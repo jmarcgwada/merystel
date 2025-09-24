@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,9 @@ export function OrderSummary() {
     setSelectedTable,
     applyDiscount,
     updateQuantityFromKeypad,
-    setIsKeypadOpen
+    setIsKeypadOpen,
+    saveTableOrderAndExit,
+    promoteTableToTicket
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -160,6 +162,19 @@ export function OrderSummary() {
     }
   }
 
+  const handleSaveTable = () => {
+    if (selectedTable) {
+      saveTableOrderAndExit(selectedTable.id, order);
+      router.push('/restaurant');
+    }
+  }
+
+  const handlePromoteToTicket = () => {
+    if (selectedTable) {
+      promoteTableToTicket(selectedTable.id);
+    }
+  }
+
   const keypadActive = selectedItem !== null;
 
   const keypadStyle = () => {
@@ -248,11 +263,11 @@ export function OrderSummary() {
                 <div className="grid grid-cols-4 gap-2">
                     <Input 
                         ref={keypadInputRef}
-                        type="number"
+                        type="text"
                         value={keypadValue}
                         onChange={handleDirectInputChange}
                         onFocus={(e) => e.target.select()}
-                        className="col-span-4 h-14 text-right px-4 text-4xl font-mono"
+                        className="col-span-4 h-14 text-right px-4 text-4xl font-mono bg-background/50"
                     />
 
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
@@ -277,9 +292,9 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
                     <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
                     
-                    <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-1">0</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
                     
                     
@@ -312,24 +327,49 @@ export function OrderSummary() {
                   </div>
               </div>
               <div className="mt-4 flex gap-2">
-                  <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full"
-                  disabled={order.length === 0 || !!selectedTable}
-                  onClick={holdOrder}
-                  >
-                  <Hand className="mr-2 h-4 w-4" />
-                  Mettre en attente
-                  </Button>
-                  <Button
-                  size="lg"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={order.length === 0}
-                  onClick={() => setCheckoutOpen(true)}
-                  >
-                  Payer maintenant
-                  </Button>
+                {selectedTable ? (
+                  <>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                      disabled={order.length === 0}
+                      onClick={handlePromoteToTicket}
+                    >
+                      <Ticket className="mr-2 h-4 w-4" />
+                      Transformer en ticket
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={handleSaveTable}
+                    >
+                       <Save className="mr-2 h-4 w-4" />
+                      Sauvegarder la table
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                      disabled={order.length === 0}
+                      onClick={holdOrder}
+                    >
+                      <Hand className="mr-2 h-4 w-4" />
+                      Mettre en attente
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={order.length === 0}
+                      onClick={() => setCheckoutOpen(true)}
+                    >
+                      Payer maintenant
+                    </Button>
+                  </>
+                )}
               </div>
           </div>
         </div>

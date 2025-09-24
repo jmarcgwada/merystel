@@ -46,6 +46,8 @@ interface PosContextType {
   setSelectedTable: React.Dispatch<React.SetStateAction<Table | null>>;
   setSelectedTableById: (tableId: string | null) => void;
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
+  saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
+  promoteTableToTicket: (tableId: string) => void;
 
   sales: Sale[];
   recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => void;
@@ -197,9 +199,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const saveTableOrderAndExit = useCallback((tableId: string, orderData: OrderItem[]) => {
+    updateTableOrder(tableId, orderData);
+    toast({ title: 'Table sauvegardée' });
+    clearOrder();
+    setSelectedTable(null);
+  }, [updateTableOrder, clearOrder, toast]);
+  
+  const promoteTableToTicket = useCallback((tableId: string) => {
+    setTables(prevTables => 
+      prevTables.map(table => 
+        table.id === tableId ? { ...table, order: [], status: 'available' } : table
+      )
+    );
+    setSelectedTable(null);
+    toast({ title: 'Table transformée en ticket', description: 'La commande est prête pour l\'encaissement.' });
+  }, [toast]);
+
+
   const addTable = useCallback((name: string) => {
     const newTable: Table = {
-      id: `t${Date.now()}`,
+      id: `t-${Date.now()}`,
       name,
       status: 'available',
       order: [],
@@ -208,7 +228,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addCategory = useCallback((categoryData: Omit<Category, 'id'>) => {
-    const newCategory: Category = { ...categoryData, id: `cat${Date.now()}`};
+    const newCategory: Category = { ...categoryData, id: `cat-${Date.now()}`};
     setCategories(prev => [...prev, newCategory]);
   }, []);
 
@@ -227,7 +247,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addItem = useCallback((itemData: Omit<Item, 'id'>) => {
-    const newItem: Item = { ...itemData, id: `item${Date.now()}`, showImage: itemData.showImage ?? true };
+    const newItem: Item = { ...itemData, id: `item-${Date.now()}`, showImage: itemData.showImage ?? true };
     setItems(prev => [...prev, newItem]);
   }, []);
 
@@ -245,7 +265,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
-    const newCustomer = { ...customerData, id: `cust${Date.now()}`};
+    const newCustomer = { ...customerData, id: `cust-${Date.now()}`};
     setCustomers(prev => [...prev, newCustomer]);
     return newCustomer;
   }, []);
@@ -378,6 +398,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable,
     setSelectedTableById,
     updateTableOrder,
+    saveTableOrderAndExit,
+    promoteTableToTicket,
     sales,
     recordSale,
     paymentMethods,
@@ -426,12 +448,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable,
     setSelectedTableById,
     updateTableOrder,
+    saveTableOrderAndExit,
+    promoteTableToTicket,
     sales,
     recordSale,
     paymentMethods,
     addPaymentMethod,
     updatePaymentMethod,
-    deletePaymentMethod,
+deletePaymentMethod,
     vatRates,
     addVatRate,
     updateVatRate,
