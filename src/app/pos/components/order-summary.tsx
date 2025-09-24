@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete, Check } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -53,9 +53,11 @@ export function OrderSummary() {
   }, [selectedItem, setIsKeypadOpen]);
 
   useEffect(() => {
-    if (selectedItem && keypadInputRef.current) {
-        keypadInputRef.current.focus();
-        keypadInputRef.current.select();
+    if (selectedItem) {
+        if (keypadInputRef.current) {
+            keypadInputRef.current.focus();
+            keypadInputRef.current.select();
+        }
         setShouldReplaceValue(true);
     }
   }, [selectedItem, mode]);
@@ -129,6 +131,18 @@ export function OrderSummary() {
     }
     setSelectedItem(null);
     setKeypadValue('');
+  }
+
+  const handleIncrementDecrement = (amount: number) => {
+    const currentValue = parseFloat(keypadValue) || 0;
+    let newValue = currentValue + amount;
+    if (mode === 'quantity' && newValue < 1) {
+        newValue = 1;
+    }
+    setKeypadValue(newValue.toString());
+    if (shouldReplaceValue) {
+      setShouldReplaceValue(false);
+    }
   }
   
   const handleCloseKeypad = () => {
@@ -244,8 +258,10 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                     <Button variant="destructive" className="h-14 row-span-2" onClick={() => {
-                        applyDiscount(selectedItem.id, 0, 'fixed');
+                     <Button variant="destructive" className="h-14" onClick={() => {
+                        if (selectedItem) {
+                            applyDiscount(selectedItem.id, 0, 'fixed');
+                        }
                         setKeypadValue('');
                     }}>
                         <Eraser/>
@@ -254,15 +270,18 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    
+                    <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
+
                     <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                    <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
+                    
+                    <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-1">0</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
                     
-                    <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto text-lg"><small>C</small></KeypadButton>
                     
                     <Button className="h-14 text-lg col-span-3" onClick={handleApply}>
                        <Check className="mr-2" /> Valider
