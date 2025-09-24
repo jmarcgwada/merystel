@@ -1,5 +1,5 @@
 
-import type { Category, Item, Table, Customer, Sale } from './types';
+import type { Category, Item, Table, Customer, Sale, Payment } from './types';
 
 export const mockCategories: Category[] = [
   { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100' },
@@ -58,6 +58,11 @@ const sale1Items: Item[] = [mockItems[0], mockItems[13], mockItems[15]];
 const sale2Items: Item[] = [mockItems[4], mockItems[8]];
 const sale3Items: Item[] = [mockItems[10], mockItems[11], mockItems[11]];
 
+const total1 = sale1Items.reduce((acc, item) => acc + item.price, 0) * 1.1;
+const total2 = ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 1.1;
+const total3 = (sale3Items[0].price + (sale3Items[1].price * 2)) * 1.1;
+
+
 export const mockSales: Sale[] = [
     {
         id: 'sale1',
@@ -69,8 +74,8 @@ export const mockSales: Sale[] = [
         ],
         subtotal: sale1Items.reduce((acc, item) => acc + item.price, 0),
         tax: sale1Items.reduce((acc, item) => acc + item.price, 0) * 0.1,
-        total: sale1Items.reduce((acc, item) => acc + item.price, 0) * 1.1,
-        paymentMethod: 'card'
+        total: total1,
+        payments: [{ method: 'card', amount: total1 }]
     },
     {
         id: 'sale2',
@@ -81,8 +86,8 @@ export const mockSales: Sale[] = [
         ],
         subtotal: (sale2Items[0].price * 2) + (sale2Items[1].price * 2),
         tax: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 0.1,
-        total: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 1.1,
-        paymentMethod: 'cash'
+        total: total2,
+        payments: [{ method: 'cash', amount: total2 }]
     },
     {
         id: 'sale3',
@@ -93,7 +98,7 @@ export const mockSales: Sale[] = [
         ],
         subtotal: sale3Items[0].price + (sale3Items[1].price * 2),
         tax: (sale3Items[0].price + (sale3Items[1].price * 2)) * 0.1,
-        total: (sale3Items[0].price + (sale3Items[1].price * 2)) * 1.1,
-        paymentMethod: 'card'
+        total: total3,
+        payments: [{ method: 'cash', amount: 20.00 }, { method: 'card', amount: total3 - 20.00 }]
     }
 ]

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMemo } from 'react';
-import type { Item } from '@/lib/types';
+import type { Item, Payment } from '@/lib/types';
 
 
 export default function ReportsPage() {
@@ -36,6 +36,16 @@ export default function ReportsPage() {
             .slice(0, 5);
 
     }, [sales, items]);
+    
+    const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
+      <div className="flex flex-wrap gap-1">
+        {payments.map((p, index) => (
+          <Badge key={index} variant="outline" className="capitalize">
+            {p.method}
+          </Badge>
+        ))}
+      </div>
+    );
 
 
   return (
@@ -70,7 +80,7 @@ export default function ReportsPage() {
                                         {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
                                     </TableCell>
                                     <TableCell>
-                                         <Badge variant="outline" className="capitalize">{sale.paymentMethod}</Badge>
+                                         <PaymentBadges payments={sale.payments} />
                                     </TableCell>
                                     <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                 </TableRow>

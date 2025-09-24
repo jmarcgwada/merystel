@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale } from '@/lib/types';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,7 +38,7 @@ interface PosContextType {
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
 
   sales: Sale[];
-  recordSale: (sale: Sale) => void;
+  recordSale: (sale: Omit<Sale, 'id' | 'date'>) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -152,8 +152,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Client supprimé' });
   }
 
-  const recordSale = (sale: Sale) => {
-    setSales(prevSales => [sale, ...prevSales]);
+  const recordSale = (saleData: Omit<Sale, 'id' | 'date'>) => {
+    const newSale: Sale = {
+      ...saleData,
+      id: `sale-${Date.now()}`,
+      date: new Date(),
+    };
+    setSales(prevSales => [newSale, ...prevSales]);
   }
 
 

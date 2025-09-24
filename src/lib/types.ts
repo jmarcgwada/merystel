@@ -35,6 +35,11 @@ export interface Customer {
 
 export type PaymentMethod = 'cash' | 'card' | 'other';
 
+export interface Payment {
+  method: PaymentMethod;
+  amount: number;
+}
+
 export interface Sale {
   id: string;
   date: Date;
@@ -42,5 +47,5 @@ export interface Sale {
   subtotal: number;
   tax: number;
   total: number;
-  paymentMethod: PaymentMethod;
+  payments: Payment[];
 }
