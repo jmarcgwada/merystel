@@ -176,6 +176,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 value={currentAmount}
                                 onChange={handleAmountChange}
                                 className="text-6xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                onFocus={(e) => e.target.select()}
                             />
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
                         </div>
