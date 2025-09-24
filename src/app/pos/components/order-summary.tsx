@@ -45,6 +45,7 @@ export function OrderSummary() {
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
 
   useEffect(() => {
@@ -69,12 +70,6 @@ export function OrderSummary() {
             const newOrder = [...order];
             const [movedItem] = newOrder.splice(itemIndex, 1);
             setOrder([movedItem, ...newOrder]);
-            
-            setTimeout(() => {
-                if (scrollAreaRef.current) {
-                    scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }, 100);
         }
     }
   }
@@ -149,6 +144,18 @@ export function OrderSummary() {
 
   const keypadActive = selectedItem !== null;
 
+  const keypadStyle = () => {
+    if (!keypadActive || !selectedItem || !itemRefs.current[selectedItem.id]) return {};
+    const itemElement = itemRefs.current[selectedItem.id];
+    if (itemElement) {
+        const top = itemElement.offsetTop + itemElement.offsetHeight;
+        return {
+            top: `${top}px`
+        }
+    }
+    return {};
+  }
+
   return (
     <>
       <div className="flex h-full flex-col bg-card">
@@ -170,12 +177,12 @@ export function OrderSummary() {
             </div>
           ) : (
             <ScrollArea 
-                className={cn("h-full transition-opacity", keypadActive && 'opacity-30 pointer-events-none')} 
+                className={cn("h-full", keypadActive && 'opacity-30 pointer-events-none')} 
                 viewportRef={scrollAreaRef}
             >
               <div className="divide-y">
                 {order.map((item) => (
-                  <div key={item.id}>
+                  <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
                       <div 
                           className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
                           onClick={() => handleItemSelect(item)}
@@ -214,7 +221,7 @@ export function OrderSummary() {
           )}
           
            {keypadActive && selectedItem && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-secondary/80 backdrop-blur-sm border-t">
+            <div style={keypadStyle()} className="absolute z-10 left-0 right-0 p-4 bg-secondary/95 backdrop-blur-sm border-t border-b shadow-lg">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                     <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
                     <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
@@ -240,17 +247,15 @@ export function OrderSummary() {
                         <Eraser/>
                     </Button>
                     
-
                     <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('C')}>C</KeypadButton>
-
+                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto text-lg"><small>C</small></KeypadButton>
+                    
                     <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
-                    
                     
                     <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
@@ -263,7 +268,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className={cn("mt-auto border-t", keypadActive && 'opacity-30 pointer-events-none')}>
+        <div className="mt-auto border-t">
           <div className="p-4">
               <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -311,3 +316,4 @@ export function OrderSummary() {
     </>
   );
 }
+
