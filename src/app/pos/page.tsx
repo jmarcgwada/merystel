@@ -13,9 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Hand, Search, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all' | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -56,7 +57,10 @@ export default function PosPage() {
             />
           </div>
 
-          <div className="md:col-span-5 lg:col-span-6 flex flex-col h-[calc(100vh-4rem)]">
+          <div className={cn(
+            "md:col-span-5 lg:col-span-6 flex flex-col h-[calc(100vh-4rem)] transition-opacity",
+             isKeypadOpen && 'opacity-50 pointer-events-none'
+          )}>
             <div className="p-4 border-b bg-card">
                  <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">

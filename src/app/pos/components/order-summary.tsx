@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete, Check } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,8 @@ export function OrderSummary() {
     holdOrder, 
     setSelectedTable,
     applyDiscount,
-    updateQuantityFromKeypad 
+    updateQuantityFromKeypad,
+    setIsKeypadOpen
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -47,6 +48,9 @@ export function OrderSummary() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
+  useEffect(() => {
+    setIsKeypadOpen(!!selectedItem);
+  }, [selectedItem, setIsKeypadOpen]);
 
   useEffect(() => {
     if (selectedItem && keypadInputRef.current) {
@@ -153,7 +157,7 @@ export function OrderSummary() {
             top: `${top}px`
         }
     }
-    return {};
+    return { top: '88px' }; // Fallback
   }
 
   return (
@@ -240,7 +244,7 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                     <Button variant="destructive" className="h-14" onClick={() => {
+                     <Button variant="destructive" className="h-14 row-span-2" onClick={() => {
                         applyDiscount(selectedItem.id, 0, 'fixed');
                         setKeypadValue('');
                     }}>
@@ -250,7 +254,6 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto text-lg"><small>C</small></KeypadButton>
                     
                     <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
@@ -258,12 +261,16 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
                     
                     <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
-                    <Button className="h-14 text-lg col-span-2" onClick={handleApply}>
-                       Valider
+                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto text-lg"><small>C</small></KeypadButton>
+                    
+                    <Button className="h-14 text-lg col-span-3" onClick={handleApply}>
+                       <Check className="mr-2" /> Valider
+                    </Button>
+                     <Button variant="ghost" className="h-14" onClick={handleCloseKeypad}>
+                        <X />
                     </Button>
                 </div>
-                 <Button variant="ghost" className="w-full mt-2" onClick={handleCloseKeypad}>Fermer</Button>
             </div>
           )}
         </div>
@@ -316,4 +323,3 @@ export function OrderSummary() {
     </>
   );
 }
-

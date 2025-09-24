@@ -19,6 +19,8 @@ interface PosContextType {
   clearOrder: () => void;
   orderTotal: number;
   orderTax: number;
+  isKeypadOpen: boolean;
+  setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -77,6 +79,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
   const [vatRates, setVatRates] = useState<VatRate[]>(mockVatRates);
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const { toast } = useToast();
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -259,7 +262,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const today = new Date();
     const datePrefix = format(today, 'yyyyMMdd');
     const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-    const ticketNumber = `${datePrefix}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
 
     const newSale: Sale = {
       ...saleData,
@@ -350,6 +353,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder,
     orderTotal,
     orderTax,
+    isKeypadOpen,
+    setIsKeypadOpen,
     items,
     addItem,
     updateItem,
@@ -396,6 +401,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder,
     orderTotal,
     orderTax,
+    isKeypadOpen,
+    setIsKeypadOpen,
     items,
     addItem,
     updateItem,
