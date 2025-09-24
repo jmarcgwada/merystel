@@ -40,11 +40,14 @@ export function OrderSummary() {
   const [keypadValue, setKeypadValue] = useState('');
   const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
   const keypadInputRef = useRef<HTMLInputElement>(null);
+  const [shouldReplaceValue, setShouldReplaceValue] = useState(false);
+
 
   useEffect(() => {
     if (selectedItem && keypadInputRef.current) {
         keypadInputRef.current.focus();
         keypadInputRef.current.select();
+        setShouldReplaceValue(true);
     }
   }, [selectedItem, mode]);
 
@@ -66,22 +69,35 @@ export function OrderSummary() {
     } else {
         setKeypadValue('');
     }
+    setShouldReplaceValue(true);
   }
 
   const handleKeypadInput = (value: string) => {
     if (document.activeElement === keypadInputRef.current) {
-      // If input is focused, let the user type directly
-      return;
+        setShouldReplaceValue(false);
     }
-     // If not focused, use button logic
+    
     if (value === 'del') {
       setKeypadValue(prev => prev.slice(0, -1));
     } else if (value === 'C') {
         setKeypadValue('');
     } else {
-      setKeypadValue(prev => prev + value);
+      if (shouldReplaceValue) {
+        setKeypadValue(value);
+        setShouldReplaceValue(false);
+      } else {
+        setKeypadValue(prev => prev + value);
+      }
     }
   }
+  
+  const handleDirectInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setKeypadValue(e.target.value);
+    if (shouldReplaceValue) {
+      setShouldReplaceValue(false);
+    }
+  };
+
 
   const handleApply = () => {
     if (!selectedItem) return;
@@ -184,7 +200,7 @@ export function OrderSummary() {
                         ref={keypadInputRef}
                         type="number"
                         value={keypadValue}
-                        onChange={(e) => setKeypadValue(e.target.value)}
+                        onChange={handleDirectInputChange}
                         onFocus={(e) => e.target.select()}
                         className="col-span-4 h-14 text-right px-4 text-2xl font-mono"
                     />
