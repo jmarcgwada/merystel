@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from '@/components/ui/badge';
 
 const iconMap: { [key: string]: Icon } = {
   card: CreditCard,
@@ -70,6 +71,7 @@ export default function PaymentMethodsPage() {
                     <TableRow>
                         <TableHead className="w-[50px]"></TableHead>
                         <TableHead>Nom</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead className="w-[100px] text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -82,6 +84,11 @@ export default function PaymentMethodsPage() {
                                     <IconComponent className="h-5 w-5 text-muted-foreground" />
                                 </TableCell>
                                 <TableCell className="font-medium">{method.name}</TableCell>
+                                <TableCell>
+                                  <Badge variant={method.type === 'direct' ? 'default' : 'secondary'} className="capitalize">
+                                    {method.type === 'direct' ? 'Direct' : 'Indirect'}
+                                  </Badge>
+                                </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(method)}>
                                         <Edit className="h-4 w-4"/>

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Wallet, Landmark, StickyNote } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
 
@@ -36,28 +37,30 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const { toast } = useToast();
   const { updatePaymentMethod } = usePos();
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState<'card' | 'cash' | 'check' | 'other' | ''>('');
+  const [icon, setIcon] = useState<PaymentMethod['icon']>('');
+  const [type, setType] = useState<PaymentMethod['type']>('direct');
 
   useEffect(() => {
     if (paymentMethod) {
         setName(paymentMethod.name);
         setIcon(paymentMethod.icon || '');
+        setType(paymentMethod.type || 'direct');
     }
   }, [paymentMethod]);
 
 
   const handleEditMethod = () => {
-    if (!name || !icon) {
+    if (!name || !icon || !type) {
         toast({
             variant: 'destructive',
             title: 'Champs requis',
-            description: 'Veuillez renseigner le nom et sélectionner une icône.',
+            description: 'Veuillez renseigner le nom, l\'icône et le type.',
         });
         return;
     }
     
     if (paymentMethod) {
-        updatePaymentMethod({ ...paymentMethod, name, icon });
+        updatePaymentMethod({ ...paymentMethod, name, icon, type });
         onClose();
     }
   };
@@ -100,6 +103,25 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
                     })}
                 </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="type" className="text-right">
+              Type
+            </Label>
+             <RadioGroup
+                value={type}
+                onValueChange={(v) => setType(v as PaymentMethod['type'])}
+                className="col-span-3 flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="direct" id="edit-direct" />
+                  <Label htmlFor="edit-direct">Direct</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="indirect" id="edit-indirect" />
+                  <Label htmlFor="edit-indirect">Indirect</Label>
+                </div>
+              </RadioGroup>
           </div>
         </div>
         <DialogFooter>

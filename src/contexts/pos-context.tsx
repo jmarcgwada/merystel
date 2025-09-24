@@ -220,6 +220,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deletePaymentMethod,
   }), [
     order,
+    setOrder,
     addToOrder,
     removeFromOrder,
     updateQuantity,
@@ -238,8 +239,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateCustomer,
     deleteCustomer,
     tables,
+    setTables,
     addTable,
     selectedTable,
+    setSelectedTable,
     updateTableOrder,
     sales,
     recordSale,

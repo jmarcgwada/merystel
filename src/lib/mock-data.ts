@@ -2,10 +2,10 @@
 import type { Category, Item, Table, Customer, Sale, PaymentMethod } from './types';
 
 export const mockPaymentMethods: PaymentMethod[] = [
-    { id: 'pm1', name: 'Carte', icon: 'card' },
-    { id: 'pm2', name: 'Espèces', icon: 'cash' },
-    { id: 'pm3', name: 'Chèque', icon: 'check' },
-    { id: 'pm4', name: 'Autre', icon: 'other' },
+    { id: 'pm1', name: 'Carte', icon: 'card', type: 'direct' },
+    { id: 'pm2', name: 'Espèces', icon: 'cash', type: 'indirect' },
+    { id: 'pm3', name: 'Chèque', icon: 'check', type: 'direct' },
+    { id: 'pm4', name: 'Autre', icon: 'other', type: 'direct' },
 ];
 
 export const mockCategories: Category[] = [
