@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, Check, ChevronsUpDown } from 'lucide-react';
 import { AddItemDialog } from './components/add-item-dialog';
 import { EditItemDialog } from './components/edit-item-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -25,9 +25,11 @@ import {
 import type { Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem } from '@/components/ui/command';
 
-type SortKey = 'name' | 'price';
+
+type SortKey = 'name' | 'price' | 'categoryId';
 
 export default function ItemsPage() {
   const [isAddItemOpen, setAddItemOpen] = useState(false);
@@ -38,7 +40,8 @@ export default function ItemsPage() {
 
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
+  const [isCategoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
@@ -57,10 +60,19 @@ export default function ItemsPage() {
 
     if (sortConfig !== null) {
         filtered.sort((a, b) => {
-            if (a[sortConfig.key] < b[sortConfig.key]) {
+            let aValue, bValue;
+            if(sortConfig.key === 'categoryId') {
+                aValue = getCategoryName(a.categoryId);
+                bValue = getCategoryName(b.categoryId);
+            } else {
+                aValue = a[sortConfig.key];
+                bValue = b[sortConfig.key];
+            }
+
+            if (aValue < bValue) {
                 return sortConfig.direction === 'asc' ? -1 : 1;
             }
-            if (a[sortConfig.key] > b[sortConfig.key]) {
+            if (aValue > bValue) {
                 return sortConfig.direction === 'asc' ? 1 : -1;
             }
             return 0;
@@ -68,7 +80,7 @@ export default function ItemsPage() {
     }
 
     return filtered;
-  }, [items, filterName, filterCategory, sortConfig]);
+  }, [items, filterName, filterCategory, sortConfig, categories]);
 
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -116,17 +128,62 @@ export default function ItemsPage() {
                 onChange={(e) => setFilterName(e.target.value)}
                 className="max-w-sm"
               />
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">Toutes les catégories</SelectItem>
-                      {categories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isCategoryPopoverOpen}
+                    className="w-[200px] justify-between"
+                  >
+                    {filterCategory === 'all'
+                      ? "Toutes les catégories"
+                      : categories.find((cat) => cat.id === filterCategory)?.name}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Rechercher une catégorie..." />
+                    <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setFilterCategory("all");
+                          setCategoryPopoverOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filterCategory === "all" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        Toutes les catégories
+                      </CommandItem>
+                      {categories.map((cat) => (
+                        <CommandItem
+                          key={cat.id}
+                          value={cat.id}
+                          onSelect={(currentValue) => {
+                            setFilterCategory(currentValue === filterCategory ? "" : currentValue);
+                            setCategoryPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filterCategory === cat.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {cat.name}
+                        </CommandItem>
                       ))}
-                  </SelectContent>
-              </Select>
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <Table>
               <TableHeader>
@@ -137,7 +194,11 @@ export default function ItemsPage() {
                         Nom {getSortIcon('name')}
                     </Button>
                   </TableHead>
-                  <TableHead>Catégorie</TableHead>
+                  <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('categoryId')}>
+                        Catégorie {getSortIcon('categoryId')}
+                    </Button>
+                  </TableHead>
                   <TableHead>TVA (%)</TableHead>
                   <TableHead className="text-right">
                      <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
@@ -202,3 +263,5 @@ export default function ItemsPage() {
     </>
   );
 }
+
+    
