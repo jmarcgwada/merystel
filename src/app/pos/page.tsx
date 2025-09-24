@@ -15,7 +15,7 @@ import { Hand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function PosPage() {
-  const { categories, selectedTable, setSelectedTable, tables, setOrder, clearOrder, heldOrders } = usePos();
+  const { categories, setSelectedTable, tables, setOrder, clearOrder, heldOrders } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     categories[0] || null
@@ -26,23 +26,18 @@ export default function PosPage() {
   const tableId = searchParams.get('tableId');
 
   useEffect(() => {
-    if (tableId) {
-      const table = tables.find(t => t.id === tableId);
-      if (table) {
-        if(selectedTable?.id !== table.id){
-            setSelectedTable(table);
-            setOrder(table.order);
-        }
-      }
+    const table = tableId ? tables.find(t => t.id === tableId) || null : null;
+    setSelectedTable(table);
+
+    if (table) {
+      setOrder(table.order);
     } else {
-        if(selectedTable) {
-            clearOrder();
-        }
-        setSelectedTable(null);
+      // When there's no tableId, we don't want to clear an existing order
+      // that might be a recalled held order.
+      // The user can clear it manually.
     }
-  // This effect should ONLY run when tableId changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId]);
+  }, [tableId, tables, setOrder, setSelectedTable]);
   
 
   useEffect(() => {
