@@ -14,6 +14,8 @@ interface PosContextType {
   addToOrder: (itemId: OrderItem['id']) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
+  updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
+  applyDiscount: (itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => void;
   clearOrder: () => void;
   orderTotal: number;
   orderTax: number;
@@ -88,11 +90,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setOrder((currentOrder) => {
       const existingItem = currentOrder.find((item) => item.id === itemId);
       if (existingItem) {
+        const newQuantity = existingItem.quantity + 1;
         return currentOrder.map((item) =>
-          item.id === itemId ? { ...item, quantity: item.quantity + 1, total: item.price * (item.quantity + 1) } : item
+          item.id === itemId ? { ...item, quantity: newQuantity, total: (item.price * newQuantity) - (item.discount || 0) } : item
         );
       }
-      return [...currentOrder, { ...itemToAdd, quantity: 1, total: itemToAdd.price }];
+      return [...currentOrder, { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 }];
     });
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
   }, [items, toast]);
@@ -104,10 +107,45 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     setOrder((currentOrder) =>
       currentOrder.map((item) =>
-        item.id === itemId ? { ...item, quantity, total: item.price * quantity } : item
+        item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
       )
     );
   }, [removeFromOrder]);
+  
+  const updateQuantityFromKeypad = useCallback((itemId: OrderItem['id'], quantity: number) => {
+     if (quantity <= 0) {
+      removeFromOrder(itemId);
+      return;
+    }
+     setOrder((currentOrder) =>
+      currentOrder.map((item) =>
+        item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
+      )
+    );
+  }, [removeFromOrder]);
+
+  const applyDiscount = useCallback((itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => {
+      setOrder(currentOrder => currentOrder.map(item => {
+          if (item.id === itemId) {
+              let discountAmount = 0;
+              if (type === 'percentage') {
+                  discountAmount = (item.price * item.quantity) * (value / 100);
+              } else {
+                  discountAmount = value;
+              }
+
+              if (discountAmount < 0) discountAmount = 0;
+              const newTotal = (item.price * item.quantity) - discountAmount;
+
+              return {
+                  ...item,
+                  discount: discountAmount,
+                  total: newTotal > 0 ? newTotal : 0,
+              }
+          }
+          return item;
+      }));
+  }, []);
   
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -294,6 +332,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addToOrder,
     removeFromOrder,
     updateQuantity,
+    updateQuantityFromKeypad,
+    applyDiscount,
     clearOrder,
     orderTotal,
     orderTax,
@@ -338,6 +378,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addToOrder,
     removeFromOrder,
     updateQuantity,
+    updateQuantityFromKeypad,
+    applyDiscount,
     clearOrder,
     orderTotal,
     orderTax,

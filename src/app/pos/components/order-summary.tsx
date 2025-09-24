@@ -3,23 +3,83 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Minus, Plus, Hand } from 'lucide-react';
+import { X, Hand, Percent, Eraser, Euro } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import type { OrderItem } from '@/lib/types';
+
+const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
+    <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick}>
+        {children}
+    </Button>
+)
 
 export function OrderSummary() {
-  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, orderTax, selectedTable, holdOrder, setSelectedTable } = usePos();
+  const { 
+    order, 
+    removeFromOrder, 
+    clearOrder, 
+    orderTotal, 
+    orderTax, 
+    selectedTable, 
+    holdOrder, 
+    setSelectedTable,
+    applyDiscount,
+    updateQuantityFromKeypad 
+  } = usePos();
+  
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const router = useRouter();
 
+  const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
+  const [keypadValue, setKeypadValue] = useState('');
+  const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
+
+  const handleItemSelect = (item: OrderItem) => {
+    if (selectedItem?.id === item.id) {
+        setSelectedItem(null); // Deselect if clicking the same item
+        setKeypadValue('');
+    } else {
+        setSelectedItem(item);
+        setMode('quantity');
+        setKeypadValue(item.quantity.toString());
+    }
+  }
+
+  const handleKeypadInput = (value: string) => {
+    if (value === 'del') {
+        setKeypadValue(prev => prev.slice(0, -1));
+    } else if (value === '.') {
+        if (!keypadValue.includes('.')) {
+            setKeypadValue(prev => prev + '.');
+        }
+    } else {
+        setKeypadValue(prev => prev + value);
+    }
+  }
+
+  const handleApply = () => {
+    if (!selectedItem) return;
+    const value = parseFloat(keypadValue);
+    if(isNaN(value)) return;
+    
+    if (mode === 'quantity') {
+        updateQuantityFromKeypad(selectedItem.id, value);
+    } else if (mode === 'discountPercent') {
+        applyDiscount(selectedItem.id, value, 'percentage');
+    } else if (mode === 'discountFixed') {
+        applyDiscount(selectedItem.id, value, 'fixed');
+    }
+    setSelectedItem(null);
+    setKeypadValue('');
+  }
+
   const handleClearOrder = () => {
     if(selectedTable) {
-        // If a table is selected, clearing the order should just empty it,
-        // then navigate back to the restaurant view.
         clearOrder();
         setSelectedTable(null);
         router.push('/restaurant');
@@ -27,6 +87,8 @@ export function OrderSummary() {
         clearOrder();
     }
   }
+
+  const keypadActive = selectedItem !== null;
 
 
   return (
@@ -51,77 +113,117 @@ export function OrderSummary() {
           <ScrollArea className="flex-1">
             <div className="divide-y">
               {order.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 p-4">
-                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
-                    <Image
-                      src={item.image || 'https://picsum.photos/seed/item/100/100'}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                      data-ai-hint="product image"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">{item.price.toFixed(2)}€</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Input type="number" value={item.quantity} onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)} className="h-6 w-12 text-center" onFocus={(e) => e.target.select()} />
-                      <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
+                <div key={item.id}>
+                    <div 
+                        className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
+                        onClick={() => handleItemSelect(item)}
+                    >
+                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
+                            <Image
+                            src={item.image || 'https://picsum.photos/seed/item/100/100'}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            data-ai-hint="product image"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-semibold">{item.name}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>Qté: {item.quantity}</span>
+                                {item.discount > 0 && (
+                                     <span className="text-destructive font-semibold">
+                                        (-{item.discount.toFixed(2)}€)
+                                     </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="font-bold">{item.total.toFixed(2)}€</p>
+                        </div>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">{item.total.toFixed(2)}€</p>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => removeFromOrder(item.id)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>
           </ScrollArea>
         )}
 
-        <div className="mt-auto border-t p-4">
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Sous-total</span>
-              <span>{orderTotal.toFixed(2)}€</span>
+        <div className="mt-auto border-t">
+          {keypadActive && selectedItem ? (
+            <div className="p-4 bg-secondary/50">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                    <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => { setMode('quantity'); setKeypadValue(selectedItem.quantity.toString()); }}>Qté</Button>
+                    <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => { setMode('discountPercent'); setKeypadValue(''); }}>Remise %</Button>
+                    <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => { setMode('discountFixed'); setKeypadValue(''); }}>Remise €</Button>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                    <div className="col-span-4 rounded-md bg-background border h-14 flex items-center justify-end px-4 text-2xl font-mono">{keypadValue || '0'}</div>
+
+                    <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
+                    <Button variant="destructive" className="h-14" onClick={() => applyDiscount(selectedItem.id, 0, 'fixed')}>
+                        <Eraser/>
+                    </Button>
+
+                    <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
+                    <Button className="row-span-3 h-auto text-2xl" onClick={handleApply}>
+                       Valider
+                    </Button>
+
+                    <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                    
+                    <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-2">0</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('del')} className="col-start-4 row-start-2">←</KeypadButton>
+                </div>
             </div>
-            <div className="flex justify-between">
-              <span>TVA</span>
-              <span>{orderTax.toFixed(2)}€</span>
+          ) : (
+            <div className="p-4">
+                <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                    <span>Sous-total</span>
+                    <span>{orderTotal.toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between">
+                    <span>TVA</span>
+                    <span>{orderTax.toFixed(2)}€</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span>{(orderTotal + orderTax).toFixed(2)}€</span>
+                    </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                    <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0 || !!selectedTable}
+                    onClick={holdOrder}
+                    >
+                    <Hand className="mr-2 h-4 w-4" />
+                    Mettre en attente
+                    </Button>
+                    <Button
+                    size="lg"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={order.length === 0}
+                    onClick={() => setCheckoutOpen(true)}
+                    >
+                    Payer maintenant
+                    </Button>
+                </div>
             </div>
-            <Separator />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span>{(orderTotal + orderTax).toFixed(2)}€</span>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full"
-              disabled={order.length === 0 || !!selectedTable}
-              onClick={holdOrder}
-            >
-              <Hand className="mr-2 h-4 w-4" />
-              Mettre en attente
-            </Button>
-            <Button
-              size="lg"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={order.length === 0}
-              onClick={() => setCheckoutOpen(true)}
-            >
-              Payer maintenant
-            </Button>
-          </div>
+          )}
         </div>
       </div>
       <CheckoutModal

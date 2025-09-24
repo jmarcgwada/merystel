@@ -29,6 +29,7 @@ export interface Item {
 export interface OrderItem extends Item {
   quantity: number;
   total: number;
+  discount: number;
 }
 
 export interface Table {
