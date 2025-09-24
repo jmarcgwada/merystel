@@ -1,3 +1,4 @@
+
 export interface Category {
   id: string;
   name: string;
@@ -23,6 +24,13 @@ export interface Table {
   name: string;
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
+}
+
+export interface Customer {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'other';

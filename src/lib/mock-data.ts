@@ -1,4 +1,5 @@
-import type { Category, Item, Table } from './types';
+
+import type { Category, Item, Table, Customer } from './types';
 
 export const mockCategories: Category[] = [
   { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100' },
@@ -46,4 +47,9 @@ export const mockTables: Table[] = [
   { id: 't7', name: 'Table 7', status: 'occupied', order: [{...mockItems[10], quantity: 1, total: 3.5}] },
   { id: 't8', name: 'Table 8', status: 'available', order: [] },
   { id: 't9', name: 'À emporter', status: 'available', order: [] },
+];
+
+export const mockCustomers: Customer[] = [
+  { id: 'cust1', name: 'Alice Martin', email: 'alice.m@email.com', phone: '0612345678' },
+  { id: 'cust2', name: 'Bob Dubois', email: 'bob.d@email.com', phone: '0687654321' },
 ];

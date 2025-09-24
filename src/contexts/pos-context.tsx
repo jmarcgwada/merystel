@@ -2,18 +2,28 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import type { OrderItem, Table } from '@/lib/types';
-import { mockItems, mockTables } from '@/lib/mock-data';
+import type { OrderItem, Table, Item, Category, Customer } from '@/lib/types';
+import { mockItems, mockTables, mockCategories, mockCustomers } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
-  addToOrder: (item: OrderItem['id']) => void;
+  addToOrder: (itemId: OrderItem['id']) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   clearOrder: () => void;
   orderTotal: number;
+
+  items: Item[];
+  addItem: (item: Item) => void;
+  
+  categories: Category[];
+  addCategory: (category: Category) => void;
+
+  customers: Customer[];
+  addCustomer: (customer: Customer) => void;
+
   tables: Table[];
   setTables: React.Dispatch<React.SetStateAction<Table[]>>;
   addTable: (name: string) => void;
@@ -28,10 +38,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [tables, setTables] = useState<Table[]>(mockTables);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [items, setItems] = useState<Item[]>(mockItems);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const { toast } = useToast();
 
   const addToOrder = (itemId: OrderItem['id']) => {
-    const itemToAdd = mockItems.find((i) => i.id === itemId);
+    const itemToAdd = items.find((i) => i.id === itemId);
     if (!itemToAdd) return;
 
     setOrder((currentOrder) => {
@@ -88,6 +101,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setTables(prevTables => [...prevTables, newTable]);
   };
 
+  const addCategory = (category: Category) => {
+    setCategories(prev => [...prev, category]);
+  }
+
+  const addItem = (item: Item) => {
+    setItems(prev => [...prev, item]);
+  }
+
+  const addCustomer = (customer: Customer) => {
+    setCustomers(prev => [...prev, customer]);
+  }
+
+
   const value = {
     order,
     setOrder,
@@ -96,6 +122,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateQuantity,
     clearOrder,
     orderTotal,
+    items,
+    addItem,
+    categories,
+    addCategory,
+    customers,
+    addCustomer,
     tables,
     setTables,
     addTable,

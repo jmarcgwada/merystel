@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Category } from '@/lib/types';
-import { mockItems } from '@/lib/mock-data';
 import { usePos } from '@/contexts/pos-context';
 import { PlusCircle } from 'lucide-react';
 
@@ -21,7 +21,7 @@ interface ItemListProps {
 }
 
 export function ItemList({ category }: ItemListProps) {
-  const { addToOrder } = usePos();
+  const { addToOrder, items: mockItems } = usePos();
   const items = category
     ? mockItems.filter((item) => item.categoryId === category.id)
     : mockItems;

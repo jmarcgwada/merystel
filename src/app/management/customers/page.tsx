@@ -5,11 +5,14 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
+import { usePos } from '@/contexts/pos-context';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function CustomersPage() {
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+  const { customers } = usePos();
 
   return (
     <>
@@ -21,10 +24,33 @@ export default function CustomersPage() {
       </PageHeader>
        <Card className="mt-8">
         <CardContent className="pt-6">
-            <div className="text-center text-muted-foreground py-16">
-                <p>L'interface de gestion des clients sera ici.</p>
-                <p>Les fonctionnalités incluront l'ajout de clients pour la facturation et le suivi.</p>
-            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Téléphone</TableHead>
+                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {customers.map(customer => (
+                        <TableRow key={customer.id}>
+                            <TableCell className="font-medium">{customer.name}</TableCell>
+                            <TableCell>{customer.email}</TableCell>
+                            <TableCell>{customer.phone}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="ghost" size="icon">
+                                    <Edit className="h-4 w-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </CardContent>
       </Card>
       <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />

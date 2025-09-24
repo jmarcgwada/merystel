@@ -7,14 +7,14 @@ import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category } from '@/lib/types';
-import { mockCategories } from '@/lib/mock-data';
 import { useSearchParams } from 'next/navigation';
 
 export default function PosPage() {
+  const { categories, selectedTable, setSelectedTable, tables, setOrder, clearOrder } = usePos();
+
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    mockCategories[0] || null
+    categories[0] || null
   );
-  const { selectedTable, setSelectedTable, tables, setOrder, clearOrder } = usePos();
   
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
@@ -35,6 +35,12 @@ export default function PosPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId, tables, setOrder, setSelectedTable, clearOrder, selectedTable]);
+
+  useEffect(() => {
+    if(!selectedCategory && categories.length > 0) {
+      setSelectedCategory(categories[0]);
+    }
+  }, [categories, selectedCategory])
 
 
   return (

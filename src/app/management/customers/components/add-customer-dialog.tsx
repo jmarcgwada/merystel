@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { usePos } from '@/contexts/pos-context';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
@@ -21,12 +23,35 @@ interface AddCustomerDialogProps {
 
 export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
     const { toast } = useToast();
+    const { addCustomer } = usePos();
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
 
     const handleAddCustomer = () => {
+        if (!name) {
+             toast({
+                variant: 'destructive',
+                title: 'Nom requis',
+                description: 'Le nom du client est obligatoire.',
+            });
+            return;
+        }
+
+        addCustomer({
+            id: `cust${Date.now()}`,
+            name,
+            email,
+            phone,
+        });
+
         toast({
             title: 'Client ajouté',
             description: 'Le nouveau client a été créé avec succès.',
         });
+        setName('');
+        setEmail('');
+        setPhone('');
         onClose();
     }
 
@@ -44,19 +69,19 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
             <Label htmlFor="name" className="text-right">
               Nom
             </Label>
-            <Input id="name" placeholder="Jean Dupont" className="col-span-3" />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Jean Dupont" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="jean.dupont@example.com" className="col-span-3" />
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean.dupont@example.com" className="col-span-3" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
               Téléphone
             </Label>
-            <Input id="phone" type="tel" placeholder="(123) 456-7890" className="col-span-3" />
+            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(123) 456-7890" className="col-span-3" />
           </div>
         </div>
         <DialogFooter>

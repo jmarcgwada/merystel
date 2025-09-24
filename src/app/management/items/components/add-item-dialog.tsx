@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockCategories } from '@/lib/mock-data';
+import { usePos } from '@/contexts/pos-context';
 
 interface AddItemDialogProps {
   isOpen: boolean;
@@ -23,12 +24,34 @@ interface AddItemDialogProps {
 
 export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
   const { toast } = useToast();
+  const { categories, addItem } = usePos();
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [categoryId, setCategoryId] = useState('');
 
   const handleAddItem = () => {
+    if (!name || !price || !categoryId) {
+        toast({
+            variant: 'destructive',
+            title: 'Champs obligatoires',
+            description: 'Veuillez remplir tous les champs.',
+        });
+        return;
+    }
+    addItem({
+        id: `item${Date.now()}`,
+        name,
+        price: parseFloat(price),
+        categoryId,
+        image: `https://picsum.photos/seed/${Date.now()}/200/150`
+    });
     toast({
       title: 'Article ajouté',
       description: 'Le nouvel article a été créé avec succès.',
     });
+    setName('');
+    setPrice('');
+    setCategoryId('');
     onClose();
   };
 
@@ -46,24 +69,24 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
             <Label htmlFor="name" className="text-right">
               Nom
             </Label>
-            <Input id="name" placeholder="ex: Café glacé" className="col-span-3" />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="ex: Café glacé" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">
               Prix
             </Label>
-            <Input id="price" type="number" placeholder="ex: 4.50" className="col-span-3" />
+            <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="ex: 4.50" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
               Catégorie
             </Label>
-            <Select>
+            <Select onValueChange={setCategoryId} value={categoryId}>
                 <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Sélectionnez une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                    {mockCategories.map(cat => (
+                    {categories.map(cat => (
                         <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                     ))}
                 </SelectContent>
