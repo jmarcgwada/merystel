@@ -279,8 +279,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </div>
                 </div>
 
-                <div className="md:col-span-1 flex flex-col items-center justify-center text-center h-full">
-                    <div className="flex-grow flex flex-col items-center justify-center">
+                <div className="md:col-span-1 text-center">
+                    <div className="space-y-2">
                         <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
                         <div className="relative mt-1 w-full">
                             <Input
@@ -289,7 +289,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 type="text"
                                 value={currentAmount}
                                 onChange={handleAmountChange}
-                                disabled={balanceDue <= 0}
+                                disabled={balanceDue <= 0.009}
                                 className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
                                 onFocus={(e) => e.target.select()}
                             />
@@ -367,5 +367,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    
