@@ -252,7 +252,7 @@ export function OrderSummary() {
                         value={keypadValue}
                         onChange={handleDirectInputChange}
                         onFocus={(e) => e.target.select()}
-                        className="col-span-4 h-14 text-right px-4 text-2xl font-mono"
+                        className="col-span-4 h-14 text-right px-4 text-4xl font-mono"
                     />
 
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
