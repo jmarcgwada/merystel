@@ -120,8 +120,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     let amountToAdd = parseFloat(String(currentAmount));
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    // Cap the amount to the balance due
-    if (amountToAdd > balanceDue) {
+    // Do not cap the amount for cash payment to calculate change
+    if (method.icon !== 'cash' && amountToAdd > balanceDue) {
       amountToAdd = balanceDue;
     }
 
@@ -134,7 +134,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     if (newBalance <= 0.009) { // Using a small epsilon for float comparison
         setPayments(newPayments); // Ensure state is updated before finalizing
-        handleFinalizeSale();
+        setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
+        // Don't auto-finalize, let user see the change and click finalize
     } else {
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
@@ -206,7 +207,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 variant="outline"
                                 className="h-16 flex flex-col items-center justify-center gap-2"
                                 onClick={() => handleAddPayment(method)}
-                                disabled={balanceDue <= 0 || !currentAmount || parseFloat(String(currentAmount)) <= 0}
+                                disabled={balanceDue > 0 && (!currentAmount || parseFloat(String(currentAmount)) <= 0)}
                             >
                                 <IconComponent className="h-5 w-5" />
                                 <span className="text-sm">{method.name}</span>
