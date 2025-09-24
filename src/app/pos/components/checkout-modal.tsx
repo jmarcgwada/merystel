@@ -256,7 +256,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <div className="grid grid-cols-2 gap-4">
                       {paymentMethods.map((method) => {
                           const IconComponent = getIcon(method.icon);
-                          const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > balanceDue) ) || 
+                          const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
                                              (!currentAmount && !method.value) || 
                                              (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
@@ -276,7 +276,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </div>
                 </div>
 
-                <div className="md:col-span-1 flex flex-col items-center justify-center text-center space-y-2">
+                <div className="md:col-span-1 flex flex-col items-center justify-center text-center">
                     <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
                     <div className="relative mt-1 w-full">
                         <Input
