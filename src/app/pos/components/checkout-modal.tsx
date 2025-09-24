@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -40,6 +41,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [isPaid, setIsPaid] = useState(false);
 
   const changeDue = parseFloat(amountPaid) - totalAmount;
+  
+  const quickCashButtons = [
+    totalAmount,
+    Math.ceil(totalAmount / 5) * 5,
+    Math.ceil(totalAmount / 10) * 10,
+    Math.ceil(totalAmount / 50) * 50
+  ].filter((value, index, self) => self.indexOf(value) === index && value > totalAmount).slice(0, 3);
+  if (!quickCashButtons.includes(totalAmount)) {
+    quickCashButtons.unshift(totalAmount);
+  }
+
 
   const handlePayment = () => {
     // In a real app, this would process the payment.
@@ -125,19 +137,41 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               </RadioGroup>
 
               {paymentMethod === 'cash' && (
-                <div className="grid gap-2">
-                  <Label htmlFor="amount-paid">Montant payé</Label>
-                  <Input
-                    id="amount-paid"
-                    type="number"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    className="text-lg text-center h-12"
-                  />
-                  {changeDue >= 0 && (
-                     <p className="text-center text-muted-foreground mt-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="amount-paid">Montant payé</Label>
+                      <Input
+                        id="amount-paid"
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        className="text-lg text-center h-12 mt-1"
+                      />
+                    </div>
+                     <div className="flex flex-col space-y-2">
+                        <Label>Saisie rapide</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {quickCashButtons.map(amount => (
+                            <Button 
+                              key={amount} 
+                              variant="outline"
+                              onClick={() => setAmountPaid(amount.toFixed(2))}
+                            >
+                                {amount.toFixed(2)}€
+                            </Button>
+                          ))}
+                        </div>
+                    </div>
+                  </div>
+                  {changeDue >= 0 ? (
+                     <p className="text-center text-muted-foreground">
                         Monnaie à rendre : <span className="font-bold text-primary">{changeDue.toFixed(2)}€</span>
                      </p>
+                  ) : (
+                    <p className="text-center text-destructive">
+                        Montant insuffisant
+                    </p>
                   )}
                 </div>
               )}
@@ -162,3 +196,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </Dialog>
   );
 }
+
