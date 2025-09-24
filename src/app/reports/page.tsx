@@ -13,7 +13,7 @@ import type { Item, Payment } from '@/lib/types';
 
 
 export default function ReportsPage() {
-    const { sales, items } = usePos();
+    const { sales, items, customers } = usePos();
 
     const popularItems = useMemo(() => {
         const itemCounts: { [key: string]: { item: Item, count: number } } = {};
@@ -47,6 +47,11 @@ export default function ReportsPage() {
       </div>
     );
 
+    const getCustomerName = (customerId?: string) => {
+        if (!customerId) return 'N/A';
+        return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
+    }
+
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -64,7 +69,9 @@ export default function ReportsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Ticket</TableHead>
                                 <TableHead>Date</TableHead>
+                                <TableHead>Client</TableHead>
                                 <TableHead>Articles</TableHead>
                                 <TableHead>Paiement</TableHead>
                                 <TableHead className="text-right">Total</TableHead>
@@ -73,8 +80,14 @@ export default function ReportsPage() {
                         <TableBody>
                             {sales.map(sale => (
                                 <TableRow key={sale.id}>
+                                     <TableCell className="font-mono text-muted-foreground text-xs">
+                                        {sale.ticketNumber}
+                                    </TableCell>
                                     <TableCell className="font-medium whitespace-nowrap">
                                         {format(sale.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                                    </TableCell>
+                                    <TableCell>
+                                        {getCustomerName(sale.customerId)}
                                     </TableCell>
                                     <TableCell>
                                         {sale.items.reduce((acc, item) => acc + item.quantity, 0)}

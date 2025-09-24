@@ -1,5 +1,6 @@
 
 import type { Category, Item, Table, Customer, Sale, PaymentMethod } from './types';
+import { format } from 'date-fns';
 
 export const mockPaymentMethods: PaymentMethod[] = [
     { id: 'pm1', name: 'Carte', icon: 'card', type: 'direct' },
@@ -61,19 +62,18 @@ export const mockCustomers: Customer[] = [
   { id: 'cust2', name: 'Bob Dubois', email: 'bob.d@email.com', phone: '0687654321' },
 ];
 
-const sale1Items: Item[] = [mockItems[0], mockItems[13], mockItems[15]];
-const sale2Items: Item[] = [mockItems[4], mockItems[8]];
-const sale3Items: Item[] = [mockItems[10], mockItems[11], mockItems[11]];
+const generateMockSales = (): Sale[] => {
+    const sales: Sale[] = [];
+    const today = new Date();
+    const datePrefix = format(today, 'yyyyMMdd');
 
-const total1 = sale1Items.reduce((acc, item) => acc + item.price, 0) * 1.1;
-const total2 = ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 1.1;
-const total3 = (sale3Items[0].price + (sale3Items[1].price * 2)) * 1.1;
-
-
-export const mockSales: Sale[] = [
-    {
+    // Sale 1
+    const sale1Items = [mockItems[0], mockItems[13], mockItems[15]];
+    const total1 = sale1Items.reduce((acc, item) => acc + item.price, 0) * 1.1;
+    sales.push({
         id: 'sale1',
-        date: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
+        ticketNumber: `${datePrefix}-0001`,
+        date: new Date(Date.now() - 2 * 60 * 1000),
         items: [
             {...sale1Items[0], quantity: 1, total: sale1Items[0].price},
             {...sale1Items[1], quantity: 1, total: sale1Items[1].price},
@@ -82,11 +82,17 @@ export const mockSales: Sale[] = [
         subtotal: sale1Items.reduce((acc, item) => acc + item.price, 0),
         tax: sale1Items.reduce((acc, item) => acc + item.price, 0) * 0.1,
         total: total1,
-        payments: [{ method: mockPaymentMethods[0], amount: total1 }]
-    },
-    {
+        payments: [{ method: mockPaymentMethods[0], amount: total1 }],
+        customerId: 'cust1',
+    });
+
+    // Sale 2
+    const sale2Items = [mockItems[4], mockItems[8]];
+    const total2 = ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 1.1;
+     sales.push({
         id: 'sale2',
-        date: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+        ticketNumber: `${datePrefix}-0002`,
+        date: new Date(Date.now() - 15 * 60 * 1000),
         items: [
              {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2},
              {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2},
@@ -95,10 +101,15 @@ export const mockSales: Sale[] = [
         tax: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 0.1,
         total: total2,
         payments: [{ method: mockPaymentMethods[1], amount: total2 }]
-    },
-    {
+    });
+
+    // Sale 3
+    const sale3Items = [mockItems[10], mockItems[11]];
+    const total3 = (sale3Items[0].price + (sale3Items[1].price * 2)) * 1.1;
+     sales.push({
         id: 'sale3',
-        date: new Date(Date.now() - 35 * 60 * 1000), // 35 minutes ago
+        ticketNumber: `${datePrefix}-0003`,
+        date: new Date(Date.now() - 35 * 60 * 1000),
         items: [
             {...sale3Items[0], quantity: 1, total: sale3Items[0].price},
             {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2},
@@ -106,6 +117,12 @@ export const mockSales: Sale[] = [
         subtotal: sale3Items[0].price + (sale3Items[1].price * 2),
         tax: (sale3Items[0].price + (sale3Items[1].price * 2)) * 0.1,
         total: total3,
-        payments: [{ method: mockPaymentMethods[1], amount: 20.00 }, { method: mockPaymentMethods[0], amount: total3 - 20.00 }]
-    }
-]
+        payments: [{ method: mockPaymentMethods[1], amount: 20.00 }, { method: mockPaymentMethods[0], amount: total3 - 20.00 }],
+        customerId: 'cust2',
+    });
+    
+    return sales;
+}
+
+
+export const mockSales: Sale[] = generateMockSales();

@@ -49,12 +49,14 @@ export interface Payment {
 
 export interface Sale {
   id: string;
+  ticketNumber: string;
   date: Date;
   items: OrderItem[];
   subtotal: number;
   tax: number;
   total: number;
   payments: Payment[];
+  customerId?: string;
 }
 
 export interface HeldOrder {

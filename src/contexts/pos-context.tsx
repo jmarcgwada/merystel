@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, useEf
 import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface PosContextType {
   order: OrderItem[];
@@ -40,7 +41,7 @@ interface PosContextType {
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
 
   sales: Sale[];
-  recordSale: (sale: Omit<Sale, 'id' | 'date'>) => void;
+  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => void;
   
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -109,10 +110,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (table) {
       setOrder(table.order);
     } else {
-      // This is a crucial part. If we are navigating away from a table context,
-      // but not recalling a held order, the order should be cleared.
-      // We will rely on recallOrder to set the new order if needed.
-      // If tableId is null and no recall is happening, we're in a fresh POS state.
       if (!heldOrders.some(o => o.id.startsWith('recalled-'))) {
         clearOrder();
       }
@@ -151,7 +148,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const deleteCategory = useCallback((categoryId: string) => {
     setCategories(prev => prev.filter(c => c.id !== categoryId));
-    // Also delete items in that category
     setItems(prev => prev.filter(i => i.categoryId !== categoryId));
     toast({ title: 'Catégorie supprimée' });
   }, [toast]);
@@ -170,7 +166,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const addCustomer = useCallback((customer: Customer) => {
-    setCustomers(prev => [...prev, customer]);
+    const newCustomer = { ...customer, id: `cust${Date.now()}`};
+    setCustomers(prev => [...prev, newCustomer]);
+    return newCustomer;
   }, []);
 
   const updateCustomer = useCallback((customer: Customer) => {
@@ -182,14 +180,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Client supprimé' });
   }, [toast]);
 
-  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date'>) => {
+  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
+    const today = new Date();
+    const datePrefix = format(today, 'yyyyMMdd');
+    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
+    const ticketNumber = `${datePrefix}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+
     const newSale: Sale = {
       ...saleData,
       id: `sale-${Date.now()}`,
-      date: new Date(),
+      date: today,
+      ticketNumber,
     };
     setSales(prevSales => [newSale, ...prevSales]);
-  }, []);
+  }, [sales]);
 
   const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
     const newMethod: PaymentMethod = {
@@ -230,7 +234,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const orderToRecall = heldOrders.find(o => o.id === orderId);
     if (orderToRecall) {
       if (selectedTable) {
-        setSelectedTable(null); // Ensure we are not in a table context
+        setSelectedTable(null);
       }
       setOrder(orderToRecall.items);
       setHeldOrders(prev => prev.filter(o => o.id !== orderId));

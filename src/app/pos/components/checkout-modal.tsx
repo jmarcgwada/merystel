@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,12 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, PaymentMethod } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon } from 'lucide-react';
+import type { Payment, PaymentMethod, Customer } from '@/lib/types';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -36,13 +38,17 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, paymentMethods } = usePos();
+  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, paymentMethods, customers } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +75,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setPayments([]);
             setIsPaid(false);
             setCurrentAmount('');
+            setSelectedCustomer(null);
         }, 300); // Delay to allow animation to finish
     }
   }, [isOpen, isPaid, totalAmount, payments]);
@@ -78,6 +85,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments([]);
     setIsPaid(false);
     setCurrentAmount('');
+    setSelectedCustomer(null);
   }
 
   const handleOpenChange = (open: boolean) => {
@@ -97,6 +105,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       tax: orderTotal * 0.1,
       total: totalAmount,
       payments: finalPayments,
+      customerId: selectedCustomer?.id,
     });
     
     setIsPaid(true);
@@ -113,7 +122,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       clearOrder();
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange]);
+  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange, selectedCustomer]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
@@ -134,7 +143,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    // Do not cap the amount for indirect payment to calculate change
     if (method.type === 'direct' && amountToAdd > balanceDue) {
       amountToAdd = balanceDue;
     }
@@ -149,7 +157,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if (newBalance > 0.009) {
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
-    } else { // Exactly paid or change is due
+    } else { 
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         if (newBalance > -0.009 && newBalance < 0.009) { // Exactly paid
             handleFinalizeSale(newPayments);
@@ -185,8 +193,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const finalizeButtonDisabled = balanceDue > 0;
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         {!isPaid ? (
           <>
             <DialogHeader>
@@ -196,24 +205,57 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
               </div>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-4">
                 {/* Left side: Payment input */}
-                <div className="space-y-6 flex flex-col">
-                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2">
-                        <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
-                        <div className="relative mt-1 w-full">
-                            <Input
-                                id="amount-to-pay"
-                                ref={amountInputRef}
-                                type="text"
-                                value={currentAmount}
-                                onChange={handleAmountChange}
-                                className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
-                                onFocus={(e) => e.target.select()}
-                            />
-                            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
+                <div className="md:col-span-1 space-y-6 flex flex-col">
+                   <div className="rounded-lg border bg-secondary/50 p-4">
+                     <h3 className="font-semibold text-secondary-foreground mb-3">Client</h3>
+                     {selectedCustomer ? (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">{selectedCustomer.name}</p>
+                                <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+                            </div>
+                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setSelectedCustomer(null)}>
+                                <XCircle className="h-4 w-4" />
+                            </Button>
                         </div>
-                    </div>
+                     ) : (
+                        <div className="flex gap-2">
+                             <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                                <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" aria-expanded={isCustomerSearchOpen} className="w-full justify-start">
+                                    Rechercher un client
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Rechercher un client..." />
+                                    <CommandList>
+                                        <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                                        <CommandGroup>
+                                        {customers.map((customer) => (
+                                            <CommandItem
+                                            key={customer.id}
+                                            onSelect={() => {
+                                                setSelectedCustomer(customer);
+                                                setCustomerSearchOpen(false);
+                                            }}
+                                            >
+                                            {customer.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <Button size="icon" onClick={() => setAddCustomerOpen(true)}>
+                                <UserPlus className="h-4 w-4" />
+                            </Button>
+                        </div>
+                     )}
+                   </div>
                     
                     <div className="grid grid-cols-2 gap-4">
                       {paymentMethods.map((method) => {
@@ -238,8 +280,24 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </div>
                 </div>
 
+                <div className="md:col-span-1 flex flex-col items-center justify-center text-center space-y-2">
+                    <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
+                    <div className="relative mt-1 w-full">
+                        <Input
+                            id="amount-to-pay"
+                            ref={amountInputRef}
+                            type="text"
+                            value={currentAmount}
+                            onChange={handleAmountChange}
+                            className="!text-7xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                            onFocus={(e) => e.target.select()}
+                        />
+                        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-6xl font-bold text-muted-foreground">€</span>
+                    </div>
+                </div>
+
                 {/* Right side: Payments list */}
-                <div className="space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
+                <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
                   <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
                   <div className="flex-1">
                     {payments.length === 0 ? (
@@ -303,5 +361,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
+     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
+    </>
   );
 }
