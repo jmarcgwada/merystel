@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "main-courses",
+      "description": "A delicious main course.",
+      "imageUrl": "https://images.unsplash.com/photo-1599921841143-819065a55cc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYWluJTIwY291cnNlfGVufDB8fHx8MTc1ODcyOTg5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "main course"
+    },
+    {
+      "id": "appetizers",
+      "description": "A tasty appetizer.",
+      "imageUrl": "https://images.unsplash.com/photo-1549203386-9d4394c8a2fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YXBwZXRpemVyfGVufDB8fHx8MTc1ODcyOTg5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "appetizer"
+    },
+    {
+      "id": "desserts",
+      "description": "A sweet dessert.",
+      "imageUrl": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkZXNzZXJ0fGVufDB8fHx8MTc1ODY5MzE3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dessert"
+    },
+    {
+      "id": "hot-drinks",
+      "description": "A warm beverage.",
+      "imageUrl": "https://images.unsplash.com/photo-1498804103079-a6351b050096?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxob3QlMjBkcmlua3xlbnwwfHx8fDE3NTg2MzI5MTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hot drink"
+    },
+    {
+      "id": "cold-drinks",
+      "description": "A refreshing cold drink.",
+      "imageUrl": "https://images.unsplash.com/photo-1630404365865-97ff92feba6a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb2xkJTIwZHJpbmt8ZW58MHx8fHwxNzU4NzI5ODk1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cold drink"
+    },
+    {
+      "id": "pastries",
+      "description": "A flaky pastry.",
+      "imageUrl": "https://images.unsplash.com/photo-1608039783021-6116a558f0c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwYXN0cnl8ZW58MHx8fHwxNzU4NjExOTI5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pastry"
+    },
+    {
+      "id": "salads",
+      "description": "A fresh salad.",
+      "imageUrl": "https://images.unsplash.com/photo-1546793665-c74683f339c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzYWxhZHxlbnwwfHx8fDE3NTg3MTEyMjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "salad"
+    }
+  ]
 }
