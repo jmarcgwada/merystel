@@ -25,8 +25,8 @@ export const mockCategories: Category[] = [
 
 export const mockItems: Item[] = [
   // Plats principaux
-  { id: 'item1', name: 'Steak Frites', price: 28.5, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/201/150/150', isFavorite: true },
-  { id: 'item2', name: 'Poulet rôti', price: 24.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/202/150/150' },
+  { id: 'item1', name: 'Steak Frites', price: 28.5, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/201/150/150', isFavorite: true, description: 'Un classique de la brasserie : un steak de bœuf grillé à la perfection, accompagné de frites maison croustillantes et d\'une sauce au poivre.' },
+  { id: 'item2', name: 'Poulet rôti', price: 24.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/202/150/150', description: 'Demi-poulet fermier rôti lentement, servi avec une purée de pommes de terre onctueuse et son jus de cuisson.' },
   { id: 'item3', name: 'Filet de saumon', price: 26.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/203/150/150' },
   { id: 'item4', name: 'Pâtes Carbonara', price: 19.5, categoryId: 'cat1', vatId: 'vat2', image: 'https://picsum.photos/seed/204/150/150' },
   
@@ -84,7 +84,7 @@ const generateMockSales = (): Sale[] => {
     sales.push({
         id: 'sale1',
         ticketNumber: `${datePrefix}-0001`,
-        date: new Date(today.getTime() - 2 * 60 * 1000),
+        date: new Date('2025-09-24T15:58:00'),
         items: [
             {...sale1Items[0], quantity: 1, total: sale1Items[0].price},
             {...sale1Items[1], quantity: 1, total: sale1Items[1].price},
@@ -106,7 +106,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale2',
         ticketNumber: `${datePrefix}-0002`,
-        date: new Date(today.getTime() - 15 * 60 * 1000),
+        date: new Date('2025-09-24T15:45:00'),
         items: [
              {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2},
              {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2},
@@ -126,7 +126,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale3',
         ticketNumber: `${datePrefix}-0003`,
-        date: new Date(today.getTime() - 35 * 60 * 1000),
+        date: new Date('2025-09-24T15:25:00'),
         items: [
             {...sale3Items[0], quantity: 1, total: sale3Items[0].price},
             {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2},

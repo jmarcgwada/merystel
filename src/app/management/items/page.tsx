@@ -6,8 +6,6 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, ArrowUpDown, Check, ChevronsUpDown } from 'lucide-react';
-import { AddItemDialog } from './components/add-item-dialog';
-import { EditItemDialog } from './components/edit-item-dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -27,16 +25,15 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem } from '@/components/ui/command';
+import { useRouter } from 'next/navigation';
 
 
 type SortKey = 'name' | 'price' | 'categoryId';
 
 export default function ItemsPage() {
-  const [isAddItemOpen, setAddItemOpen] = useState(false);
-  const [isEditItemOpen, setEditItemOpen] = useState(false);
   const { items, categories, vatRates, deleteItem, toggleItemFavorite } = usePos();
+  const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
-  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -98,11 +95,6 @@ export default function ItemsPage() {
     }
   }
 
-  const handleOpenEditDialog = (item: Item) => {
-    setItemToEdit(item);
-    setEditItemOpen(true);
-  }
-
   const getSortIcon = (key: SortKey) => {
     if (!sortConfig || sortConfig.key !== key) {
         return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
@@ -113,7 +105,7 @@ export default function ItemsPage() {
   return (
     <>
       <PageHeader title="Gérer les articles" subtitle="Ajoutez, modifiez ou supprimez des produits.">
-        <Button onClick={() => setAddItemOpen(true)}>
+        <Button onClick={() => router.push('/management/items/form')}>
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un article
         </Button>
@@ -231,7 +223,7 @@ export default function ItemsPage() {
                        <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                            <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                        </Button>
-                       <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(item)}>
+                       <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)}>
                            <Edit className="h-4 w-4"/>
                        </Button>
                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
@@ -244,8 +236,7 @@ export default function ItemsPage() {
             </Table>
         </CardContent>
       </Card>
-      <AddItemDialog isOpen={isAddItemOpen} onClose={() => setAddItemOpen(false)} />
-      <EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={itemToEdit} />
+
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -263,5 +254,3 @@ export default function ItemsPage() {
     </>
   );
 }
-
-    

@@ -22,6 +22,7 @@ export interface Item {
   vatId: string;
   image?: string;
   isFavorite?: boolean;
+  description?: string;
 }
 
 export interface OrderItem extends Item {
