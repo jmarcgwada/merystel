@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
+import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -25,14 +26,21 @@ import type { Category } from '@/lib/types';
 
 export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
   const { categories, deleteCategory } = usePos();
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
 
   const handleDeleteCategory = () => {
     if (categoryToDelete) {
       deleteCategory(categoryToDelete.id);
       setCategoryToDelete(null);
     }
+  }
+
+  const handleOpenEditDialog = (category: Category) => {
+    setCategoryToEdit(category);
+    setEditCategoryOpen(true);
   }
 
   return (
@@ -68,7 +76,7 @@ export default function CategoriesPage() {
                     </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(category)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCategoryToDelete(category)}>
@@ -82,6 +90,7 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
       <AddCategoryDialog isOpen={isAddCategoryOpen} onClose={() => setAddCategoryOpen(false)} />
+      <EditCategoryDialog isOpen={isEditCategoryOpen} onClose={() => setEditCategoryOpen(false)} category={categoryToEdit} />
 
       <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
         <AlertDialogContent>

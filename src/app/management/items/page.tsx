@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { AddItemDialog } from './components/add-item-dialog';
+import { EditItemDialog } from './components/edit-item-dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +27,10 @@ import type { Item } from '@/lib/types';
 
 export default function ItemsPage() {
   const [isAddItemOpen, setAddItemOpen] = useState(false);
+  const [isEditItemOpen, setEditItemOpen] = useState(false);
   const { items, categories, deleteItem } = usePos();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
@@ -38,6 +41,11 @@ export default function ItemsPage() {
       deleteItem(itemToDelete.id);
       setItemToDelete(null);
     }
+  }
+
+  const handleOpenEditDialog = (item: Item) => {
+    setItemToEdit(item);
+    setEditItemOpen(true);
   }
 
   return (
@@ -79,7 +87,7 @@ export default function ItemsPage() {
                     </TableCell>
                     <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     <TableCell className="text-right">
-                       <Button variant="ghost" size="icon">
+                       <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(item)}>
                            <Edit className="h-4 w-4"/>
                        </Button>
                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
@@ -93,6 +101,7 @@ export default function ItemsPage() {
         </CardContent>
       </Card>
       <AddItemDialog isOpen={isAddItemOpen} onClose={() => setAddItemOpen(false)} />
+      <EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={itemToEdit} />
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
+import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -24,14 +25,21 @@ import type { Customer } from '@/lib/types';
 
 export default function CustomersPage() {
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const { customers, deleteCustomer } = usePos();
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
 
   const handleDeleteCustomer = () => {
     if (customerToDelete) {
       deleteCustomer(customerToDelete.id);
       setCustomerToDelete(null);
     }
+  }
+
+  const handleOpenEditDialog = (customer: Customer) => {
+    setCustomerToEdit(customer);
+    setEditCustomerOpen(true);
   }
 
   return (
@@ -60,7 +68,7 @@ export default function CustomersPage() {
                             <TableCell>{customer.email}</TableCell>
                             <TableCell>{customer.phone}</TableCell>
                             <TableCell className="text-right">
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(customer)}>
                                     <Edit className="h-4 w-4"/>
                                 </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(customer)}>
@@ -74,6 +82,7 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
       <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
+      <EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={customerToEdit} />
        <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

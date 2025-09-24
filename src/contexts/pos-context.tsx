@@ -17,14 +17,17 @@ interface PosContextType {
 
   items: Item[];
   addItem: (item: Item) => void;
+  updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   
   categories: Category[];
   addCategory: (category: Category) => void;
+  updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
 
   customers: Customer[];
   addCustomer: (customer: Customer) => void;
+  updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
 
   tables: Table[];
@@ -107,6 +110,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addCategory = (category: Category) => {
     setCategories(prev => [...prev, category]);
   }
+
+  const updateCategory = (category: Category) => {
+    setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+  }
   
   const deleteCategory = (categoryId: string) => {
     setCategories(prev => prev.filter(c => c.id !== categoryId));
@@ -118,6 +125,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addItem = (item: Item) => {
     setItems(prev => [...prev, item]);
   }
+
+  const updateItem = (item: Item) => {
+    setItems(prev => prev.map(i => i.id === item.id ? item : i));
+  }
   
   const deleteItem = (itemId: string) => {
     setItems(prev => prev.filter(i => i.id !== itemId));
@@ -126,6 +137,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addCustomer = (customer: Customer) => {
     setCustomers(prev => [...prev, customer]);
+  }
+
+  const updateCustomer = (customer: Customer) => {
+    setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
   }
   
   const deleteCustomer = (customerId: string) => {
@@ -144,12 +159,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     orderTotal,
     items,
     addItem,
+    updateItem,
     deleteItem,
     categories,
     addCategory,
+    updateCategory,
     deleteCategory,
     customers,
     addCustomer,
+    updateCustomer,
     deleteCustomer,
     tables,
     setTables,
