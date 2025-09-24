@@ -276,19 +276,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </div>
                 </div>
 
-                <div className="md:col-span-1 flex flex-col items-center justify-center text-center">
-                    <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
-                    <div className="relative mt-1 w-full">
-                        <Input
-                            id="amount-to-pay"
-                            ref={amountInputRef}
-                            type="text"
-                            value={currentAmount}
-                            onChange={handleAmountChange}
-                            className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
-                            onFocus={(e) => e.target.select()}
-                        />
-                        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
+                <div className="md:col-span-1 flex flex-col items-center justify-center text-center h-full">
+                    <div className="flex-grow flex flex-col items-center justify-center">
+                        <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
+                        <div className="relative mt-1 w-full">
+                            <Input
+                                id="amount-to-pay"
+                                ref={amountInputRef}
+                                type="text"
+                                value={currentAmount}
+                                onChange={handleAmountChange}
+                                className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                onFocus={(e) => e.target.select()}
+                            />
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
+                        </div>
                     </div>
                 </div>
 
@@ -365,3 +367,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
 
     
+
