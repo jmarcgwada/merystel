@@ -261,7 +261,7 @@ function ItemForm() {
                         </div>
                         <div className="flex items-center justify-between p-3 pt-0">
                             <span className="text-lg font-bold text-primary">
-                            {(watchedPrice || 0).toFixed(2)}€
+                            {Number(watchedPrice || 0).toFixed(2)}€
                             </span>
                             <PlusCircle className="w-6 h-6 text-muted-foreground" />
                         </div>
