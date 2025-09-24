@@ -13,11 +13,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { PaymentMethod, Payment } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2 } from 'lucide-react';
+import type { Payment, PaymentMethod } from '@/lib/types';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -29,54 +28,40 @@ interface CheckoutModalProps {
   totalAmount: number;
 }
 
-const paymentOptions = [
-  { value: 'card', label: 'Carte', icon: CreditCard },
-  { value: 'cash', label: 'Espèces', icon: Wallet },
-  { value: 'other', label: 'Autre', icon: Landmark },
-] as const;
+const iconMap: { [key: string]: Icon } = {
+  card: CreditCard,
+  cash: Wallet,
+  check: StickyNote,
+  other: Landmark
+};
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal } = usePos();
+  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, paymentMethods } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [currentAmount, setCurrentAmount] = useState('0.00');
   const [isPaid, setIsPaid] = useState(false);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentAmount(balanceDue.toFixed(2));
-    }
-  }, [isOpen, balanceDue]);
-  
   const handleReset = () => {
     setPayments([]);
     setIsPaid(false);
-    setCurrentAmount(totalAmount.toFixed(2));
-    setPaymentMethod('card');
   }
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
-      // Reset state after a short delay to allow for closing animation
       setTimeout(handleReset, 300);
     }
   };
 
-  const handleAddPayment = () => {
-    const amount = parseFloat(currentAmount);
-    if (isNaN(amount) || amount <= 0) {
-        toast({ variant: 'destructive', title: 'Montant invalide' });
-        return;
-    }
-    
-    setPayments(prev => [...prev, { method: paymentMethod, amount }]);
+  const handleAddPayment = (method: PaymentMethod) => {
+    if (balanceDue <= 0) return;
+
+    setPayments(prev => [...prev, { method, amount: balanceDue }]);
   }
   
   const handleRemovePayment = (index: number) => {
@@ -108,7 +93,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, 2000);
   };
   
-  const changeDue = paymentMethod === 'cash' ? parseFloat(currentAmount) - balanceDue : 0;
+  const getIcon = (iconName?: string) => {
+    if (iconName && iconMap[iconName]) {
+      return iconMap[iconName];
+    }
+    return Landmark;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -137,47 +127,23 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         </div>
                     </div>
                     
-                    <RadioGroup
-                        defaultValue="card"
-                        className="grid grid-cols-3 gap-4"
-                        onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
-                        value={paymentMethod}
-                    >
-                        {paymentOptions.map((option) => (
-                        <div key={option.value}>
-                            <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
-                            <Label
-                            htmlFor={option.value}
-                            className={`flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer ${
-                                paymentMethod === option.value ? 'border-primary' : ''
-                            }`}
+                    <div className="grid grid-cols-2 gap-4">
+                      {paymentMethods.map((method) => {
+                          const IconComponent = getIcon(method.icon);
+                          return (
+                            <Button
+                                key={method.id}
+                                variant="outline"
+                                className="h-16 flex flex-col items-center justify-center gap-2"
+                                onClick={() => handleAddPayment(method)}
+                                disabled={balanceDue <= 0}
                             >
-                            <option.icon className="mb-2 h-5 w-5" />
-                            <span className="text-sm">{option.label}</span>
-                            </Label>
-                        </div>
-                        ))}
-                    </RadioGroup>
-
-                    <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                            <Label htmlFor="current-amount">Montant à ajouter</Label>
-                            <Input
-                                id="current-amount"
-                                type="number"
-                                value={currentAmount}
-                                onChange={(e) => setCurrentAmount(e.target.value)}
-                                className="text-lg h-12 mt-1"
-                            />
-                        </div>
-                        <Button onClick={handleAddPayment} disabled={parseFloat(currentAmount) <= 0}>Ajouter</Button>
+                                <IconComponent className="h-5 w-5" />
+                                <span className="text-sm">{method.name}</span>
+                            </Button>
+                          );
+                      })}
                     </div>
-
-                    {paymentMethod === 'cash' && changeDue > 0 && (
-                        <p className="text-center text-muted-foreground">
-                            Monnaie à rendre : <span className="font-bold text-primary">{changeDue.toFixed(2)}€</span>
-                        </p>
-                    )}
                 </div>
 
                 {/* Right side: Payments list */}
@@ -192,7 +158,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         {payments.map((p, index) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-secondary rounded-md">
                             <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="capitalize">{p.method}</Badge>
+                              <Badge variant="outline" className="capitalize">{p.method.name}</Badge>
                               <span className="font-semibold">{p.amount.toFixed(2)}€</span>
                             </div>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>

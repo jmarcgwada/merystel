@@ -1,5 +1,12 @@
 
-import type { Category, Item, Table, Customer, Sale, Payment } from './types';
+import type { Category, Item, Table, Customer, Sale, PaymentMethod } from './types';
+
+export const mockPaymentMethods: PaymentMethod[] = [
+    { id: 'pm1', name: 'Carte', icon: 'card' },
+    { id: 'pm2', name: 'Espèces', icon: 'cash' },
+    { id: 'pm3', name: 'Chèque', icon: 'check' },
+    { id: 'pm4', name: 'Autre', icon: 'other' },
+];
 
 export const mockCategories: Category[] = [
   { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100' },
@@ -75,7 +82,7 @@ export const mockSales: Sale[] = [
         subtotal: sale1Items.reduce((acc, item) => acc + item.price, 0),
         tax: sale1Items.reduce((acc, item) => acc + item.price, 0) * 0.1,
         total: total1,
-        payments: [{ method: 'card', amount: total1 }]
+        payments: [{ method: mockPaymentMethods[0], amount: total1 }]
     },
     {
         id: 'sale2',
@@ -87,7 +94,7 @@ export const mockSales: Sale[] = [
         subtotal: (sale2Items[0].price * 2) + (sale2Items[1].price * 2),
         tax: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 0.1,
         total: total2,
-        payments: [{ method: 'cash', amount: total2 }]
+        payments: [{ method: mockPaymentMethods[1], amount: total2 }]
     },
     {
         id: 'sale3',
@@ -99,6 +106,6 @@ export const mockSales: Sale[] = [
         subtotal: sale3Items[0].price + (sale3Items[1].price * 2),
         tax: (sale3Items[0].price + (sale3Items[1].price * 2)) * 0.1,
         total: total3,
-        payments: [{ method: 'cash', amount: 20.00 }, { method: 'card', amount: total3 - 20.00 }]
+        payments: [{ method: mockPaymentMethods[1], amount: 20.00 }, { method: mockPaymentMethods[0], amount: total3 - 20.00 }]
     }
 ]

@@ -41,7 +41,7 @@ export default function ReportsPage() {
       <div className="flex flex-wrap gap-1">
         {payments.map((p, index) => (
           <Badge key={index} variant="outline" className="capitalize">
-            {p.method}
+            {p.method.name}
           </Badge>
         ))}
       </div>

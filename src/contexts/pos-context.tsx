@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment } from '@/lib/types';
-import { mockItems, mockTables, mockCategories, mockCustomers, mockSales } from '@/lib/mock-data';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod } from '@/lib/types';
+import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 
 interface PosContextType {
@@ -39,6 +39,8 @@ interface PosContextType {
 
   sales: Sale[];
   recordSale: (sale: Omit<Sale, 'id' | 'date'>) => void;
+  
+  paymentMethods: PaymentMethod[];
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -51,6 +53,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>(mockCategories);
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [sales, setSales] = useState<Sale[]>(mockSales);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
   const { toast } = useToast();
 
   const addToOrder = (itemId: OrderItem['id']) => {
@@ -190,6 +193,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateTableOrder,
     sales,
     recordSale,
+    paymentMethods,
   };
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

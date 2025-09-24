@@ -33,7 +33,11 @@ export interface Customer {
     phone?: string;
 }
 
-export type PaymentMethod = 'cash' | 'card' | 'other';
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  icon?: 'card' | 'cash' | 'check' | 'other';
+}
 
 export interface Payment {
   method: PaymentMethod;
