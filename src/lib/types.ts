@@ -38,6 +38,7 @@ export interface PaymentMethod {
   name: string;
   icon?: 'card' | 'cash' | 'check' | 'other';
   type: 'direct' | 'indirect';
+  value?: number;
 }
 
 export interface Payment {

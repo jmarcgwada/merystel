@@ -38,6 +38,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<PaymentMethod['icon']>('');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
+  const [value, setValue] = useState('');
 
 
   const handleAddMethod = () => {
@@ -50,11 +51,17 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
         return;
     }
     
-    addPaymentMethod({ name, icon, type });
+    addPaymentMethod({ 
+      name, 
+      icon, 
+      type,
+      value: type === 'indirect' && value ? parseFloat(value) : undefined
+    });
     
     setName('');
     setIcon('');
     setType('direct');
+    setValue('');
     onClose();
   };
 
@@ -116,6 +123,22 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
                 </div>
               </RadioGroup>
           </div>
+          {type === 'indirect' && (
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="value" className="text-right">
+                Valeur (€)
+                </Label>
+                <Input
+                id="value"
+                type="number"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="ex: 8.50"
+                className="col-span-3"
+                onFocus={(e) => e.target.select()}
+                />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>

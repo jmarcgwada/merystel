@@ -39,12 +39,14 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<PaymentMethod['icon']>('');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
+  const [value, setValue] = useState('');
 
   useEffect(() => {
     if (paymentMethod) {
         setName(paymentMethod.name);
         setIcon(paymentMethod.icon || '');
         setType(paymentMethod.type || 'direct');
+        setValue(paymentMethod.value?.toString() || '');
     }
   }, [paymentMethod]);
 
@@ -60,7 +62,13 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
     }
     
     if (paymentMethod) {
-        updatePaymentMethod({ ...paymentMethod, name, icon, type });
+        updatePaymentMethod({ 
+            ...paymentMethod, 
+            name, 
+            icon, 
+            type,
+            value: type === 'indirect' && value ? parseFloat(value) : undefined
+        });
         onClose();
     }
   };
@@ -123,6 +131,22 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
                 </div>
               </RadioGroup>
           </div>
+           {type === 'indirect' && (
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-value" className="text-right">
+                Valeur (€)
+                </Label>
+                <Input
+                id="edit-value"
+                type="number"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="ex: 8.50"
+                className="col-span-3"
+                onFocus={(e) => e.target.select()}
+                />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>

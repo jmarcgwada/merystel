@@ -86,7 +86,7 @@ export default function PaymentMethodsPage() {
                                 <TableCell className="font-medium">{method.name}</TableCell>
                                 <TableCell>
                                   <Badge variant={method.type === 'direct' ? 'default' : 'secondary'} className="capitalize">
-                                    {method.type === 'direct' ? 'Direct' : 'Indirect'}
+                                    {method.type === 'direct' ? 'Direct' : `Indirect ${method.value ? `(${method.value.toFixed(2)}€)` : ''}`}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
