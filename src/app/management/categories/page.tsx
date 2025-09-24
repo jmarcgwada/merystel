@@ -10,10 +10,30 @@ import { AddCategoryDialog } from './components/add-category-dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import type { Category } from '@/lib/types';
+
 
 export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
-  const { categories } = usePos();
+  const { categories, deleteCategory } = usePos();
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
+  const handleDeleteCategory = () => {
+    if (categoryToDelete) {
+      deleteCategory(categoryToDelete.id);
+      setCategoryToDelete(null);
+    }
+  }
 
   return (
     <>
@@ -51,7 +71,7 @@ export default function CategoriesPage() {
                     <Button variant="ghost" size="icon">
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCategoryToDelete(category)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -62,6 +82,21 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
       <AddCategoryDialog isOpen={isAddCategoryOpen} onClose={() => setAddCategoryOpen(false)} />
+
+      <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La catégorie "{categoryToDelete?.name}" et tous les articles associés seront supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

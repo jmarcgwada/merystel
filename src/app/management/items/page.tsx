@@ -11,13 +11,33 @@ import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import type { Item } from '@/lib/types';
+
 
 export default function ItemsPage() {
   const [isAddItemOpen, setAddItemOpen] = useState(false);
-  const { items, categories } = usePos();
+  const { items, categories, deleteItem } = usePos();
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
+  }
+
+  const handleDeleteItem = () => {
+    if(itemToDelete) {
+      deleteItem(itemToDelete.id);
+      setItemToDelete(null);
+    }
   }
 
   return (
@@ -62,7 +82,7 @@ export default function ItemsPage() {
                        <Button variant="ghost" size="icon">
                            <Edit className="h-4 w-4"/>
                        </Button>
-                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
                            <Trash2 className="h-4 w-4"/>
                        </Button>
                     </TableCell>
@@ -73,6 +93,20 @@ export default function ItemsPage() {
         </CardContent>
       </Card>
       <AddItemDialog isOpen={isAddItemOpen} onClose={() => setAddItemOpen(false)} />
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'article "{itemToDelete?.name}" sera supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

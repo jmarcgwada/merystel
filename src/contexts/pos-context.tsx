@@ -17,12 +17,15 @@ interface PosContextType {
 
   items: Item[];
   addItem: (item: Item) => void;
+  deleteItem: (itemId: string) => void;
   
   categories: Category[];
   addCategory: (category: Category) => void;
+  deleteCategory: (categoryId: string) => void;
 
   customers: Customer[];
   addCustomer: (customer: Customer) => void;
+  deleteCustomer: (customerId: string) => void;
 
   tables: Table[];
   setTables: React.Dispatch<React.SetStateAction<Table[]>>;
@@ -93,7 +96,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addTable = (name: string) => {
     const newTable: Table = {
-      id: `t${tables.length + 1}`,
+      id: `t${Date.now()}`,
       name,
       status: 'available',
       order: [],
@@ -104,13 +107,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addCategory = (category: Category) => {
     setCategories(prev => [...prev, category]);
   }
+  
+  const deleteCategory = (categoryId: string) => {
+    setCategories(prev => prev.filter(c => c.id !== categoryId));
+    // Also delete items in that category
+    setItems(prev => prev.filter(i => i.categoryId !== categoryId));
+    toast({ title: 'Catégorie supprimée' });
+  }
 
   const addItem = (item: Item) => {
     setItems(prev => [...prev, item]);
   }
+  
+  const deleteItem = (itemId: string) => {
+    setItems(prev => prev.filter(i => i.id !== itemId));
+    toast({ title: 'Article supprimé' });
+  }
 
   const addCustomer = (customer: Customer) => {
     setCustomers(prev => [...prev, customer]);
+  }
+  
+  const deleteCustomer = (customerId: string) => {
+    setCustomers(prev => prev.filter(c => c.id !== customerId));
+    toast({ title: 'Client supprimé' });
   }
 
 
@@ -124,10 +144,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     orderTotal,
     items,
     addItem,
+    deleteItem,
     categories,
     addCategory,
+    deleteCategory,
     customers,
     addCustomer,
+    deleteCustomer,
     tables,
     setTables,
     addTable,
