@@ -60,7 +60,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if(isOpen && !isPaid) {
         setTimeout(() => {
             amountInputRef.current?.focus();
-            amountInputref.current?.select();
+            amountInputRef.current?.select();
         }, 100);
     }
   }, [isOpen, isPaid]);
