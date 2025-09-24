@@ -1,13 +1,20 @@
+
+'use client';
+
+import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { AddCustomerDialog } from './components/add-customer-dialog';
 
 export default function CustomersPage() {
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+
   return (
     <>
       <PageHeader title="Manage Customers" subtitle="View and manage your customer list.">
-        <Button>
+        <Button onClick={() => setAddCustomerOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Customer
         </Button>
@@ -20,6 +27,7 @@ export default function CustomersPage() {
             </div>
         </CardContent>
       </Card>
+      <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
     </>
   );
 }

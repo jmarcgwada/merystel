@@ -16,6 +16,7 @@ interface PosContextType {
   orderTotal: number;
   tables: Table[];
   setTables: React.Dispatch<React.SetStateAction<Table[]>>;
+  addTable: (name: string) => void;
   selectedTable: Table | null;
   setSelectedTable: React.Dispatch<React.SetStateAction<Table | null>>;
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
@@ -77,6 +78,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const addTable = (name: string) => {
+    const newTable: Table = {
+      id: `t${tables.length + 1}`,
+      name,
+      status: 'available',
+      order: [],
+    };
+    setTables(prevTables => [...prevTables, newTable]);
+  };
+
   const value = {
     order,
     setOrder,
@@ -87,6 +98,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     orderTotal,
     tables,
     setTables,
+    addTable,
     selectedTable,
     setSelectedTable,
     updateTableOrder,
