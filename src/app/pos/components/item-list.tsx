@@ -16,18 +16,21 @@ import type { Category } from '@/lib/types';
 
 interface ItemListProps {
   category: Category | null;
+  searchTerm: string;
 }
 
-export function ItemList({ category }: ItemListProps) {
+export function ItemList({ category, searchTerm }: ItemListProps) {
   const { addToOrder, items: allItems } = usePos();
   
-  const items = category
-    ? allItems.filter((item) => item.categoryId === category.id)
-    : allItems;
+  const filteredItems = allItems.filter(item => {
+    const matchesCategory = category ? item.categoryId === category.id : true;
+    const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {items.map((item) => (
+      {filteredItems.map((item) => (
         <Card
           key={item.id}
           className="flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
