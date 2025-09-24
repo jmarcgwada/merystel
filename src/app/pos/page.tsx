@@ -47,7 +47,7 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="h-[calc(100vh-4rem)] bg-muted/40 grid grid-cols-1 md:grid-cols-12">
+      <div className="h-full bg-muted/40 grid grid-cols-1 md:grid-cols-12">
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card overflow-y-auto">
             <CategoryList
               selectedCategory={selectedCategory}
@@ -58,7 +58,7 @@ export default function PosPage() {
           </div>
 
           <div className={cn(
-            "md:col-span-5 lg:col-span-6 flex flex-col h-[calc(100vh-4rem)] transition-opacity",
+            "md:col-span-5 lg:col-span-6 flex flex-col h-full transition-opacity",
              isKeypadOpen && 'opacity-50 pointer-events-none'
           )}>
             <div className="p-4 border-b bg-card">
