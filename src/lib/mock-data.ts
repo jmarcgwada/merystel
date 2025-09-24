@@ -2,17 +2,17 @@
 import type { Category, Item, Table, Customer, Sale, PaymentMethod, VatRate } from './types';
 import { format } from 'date-fns';
 
+export const mockVatRates: VatRate[] = [
+    { id: 'vat1', name: 'Taux Zéro', rate: 0, code: 1 },
+    { id: 'vat2', name: 'Taux Réduit', rate: 2.2, code: 2 },
+    { id: 'vat3', name: 'Taux Intermédiaire', rate: 8.5, code: 3 },
+];
+
 export const mockPaymentMethods: PaymentMethod[] = [
     { id: 'pm1', name: 'Carte', icon: 'card', type: 'direct' },
     { id: 'pm2', name: 'Espèces', icon: 'cash', type: 'direct' },
     { id: 'pm3', name: 'Chèque', icon: 'check', type: 'direct' },
     { id: 'pm4', name: 'Ticket Restaurant', icon: 'other', type: 'indirect', value: 8.50 },
-];
-
-export const mockVatRates: VatRate[] = [
-    { id: 'vat1', name: 'Taux Zéro', rate: 0, code: 1 },
-    { id: 'vat2', name: 'Taux Réduit', rate: 2.2, code: 2 },
-    { id: 'vat3', name: 'Taux Intermédiaire', rate: 8.5, code: 3 },
 ];
 
 export const mockCategories: Category[] = [
@@ -69,74 +69,52 @@ export const mockCustomers: Customer[] = [
 ];
 
 const generateMockSales = (): Sale[] => {
-    const sales: Sale[] = [];
     const baseDate = new Date('2025-09-24T16:00:00Z');
     const datePrefix = format(baseDate, 'yyyyMMdd');
-
-    // Sale 1
-    const sale1Items = [mockItems[0], mockItems[13], mockItems[15]];
-    const subtotal1 = sale1Items.reduce((acc, item) => acc + item.price, 0);
-    const tax1 = (mockItems[0].price * (mockVatRates.find(v => v.id === mockItems[0].vatId)!.rate / 100)) + 
-                 (mockItems[13].price * (mockVatRates.find(v => v.id === mockItems[13].vatId)!.rate / 100)) +
-                 (mockItems[15].price * (mockVatRates.find(v => v.id === mockItems[15].vatId)!.rate / 100));
-    const total1 = subtotal1 + tax1;
-    sales.push({
-        id: 'sale1',
-        ticketNumber: `${datePrefix}-0001`,
-        date: new Date('2025-09-24T15:58:00Z'),
-        items: [
-            {...sale1Items[0], quantity: 1, total: sale1Items[0].price, discount: 0},
-            {...sale1Items[1], quantity: 1, total: sale1Items[1].price, discount: 0},
-            {...sale1Items[2], quantity: 1, total: sale1Items[2].price, discount: 0},
-        ],
-        subtotal: subtotal1,
-        tax: tax1,
-        total: total1,
-        payments: [{ method: mockPaymentMethods[0], amount: total1 }],
-        customerId: 'cust1',
-    });
-
-    // Sale 2
-    const sale2Items = [mockItems[4], mockItems[8]];
-    const subtotal2 = (sale2Items[0].price * 2) + (sale2Items[1].price * 2);
-    const tax2 = ((sale2Items[0].price * 2) * (mockVatRates.find(v => v.id === sale2Items[0].vatId)!.rate / 100)) +
-                 ((sale2Items[1].price * 2) * (mockVatRates.find(v => v.id === sale2Items[1].vatId)!.rate / 100));
-    const total2 = subtotal2 + tax2;
-     sales.push({
-        id: 'sale2',
-        ticketNumber: `${datePrefix}-0002`,
-        date: new Date('2025-09-24T15:45:00Z'),
-        items: [
-             {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2, discount: 0},
-             {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2, discount: 0},
-        ],
-        subtotal: subtotal2,
-        tax: tax2,
-        total: total2,
-        payments: [{ method: mockPaymentMethods[1], amount: total2 }]
-    });
-
-    // Sale 3
-    const sale3Items = [mockItems[10], mockItems[11]];
-    const subtotal3 = sale3Items[0].price + (sale3Items[1].price * 2);
-    const tax3 = (sale3Items[0].price * (mockVatRates.find(v => v.id === sale3Items[0].vatId)!.rate / 100)) +
-                 ((sale3Items[1].price * 2) * (mockVatRates.find(v => v.id === sale3Items[1].vatId)!.rate / 100));
-    const total3 = subtotal3 + tax3;
-     sales.push({
-        id: 'sale3',
-        ticketNumber: `${datePrefix}-0003`,
-        date: new Date('2025-09-24T15:25:00Z'),
-        items: [
-            {...sale3Items[0], quantity: 1, total: sale3Items[0].price, discount: 0},
-            {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2, discount: 0},
-        ],
-        subtotal: subtotal3,
-        tax: tax3,
-        total: total3,
-        payments: [{ method: mockPaymentMethods[1], amount: 20.00 }, { method: mockPaymentMethods[0], amount: total3 - 20.00 }],
-        customerId: 'cust2',
-    });
-    
+    const sales: Sale[] = [
+        {
+            id: 'sale1',
+            ticketNumber: `${datePrefix}-0001`,
+            date: new Date('2025-09-24T15:58:00Z'),
+            items: [
+                {...mockItems[0], quantity: 1, total: 28.5, discount: 0},
+                {...mockItems[13], quantity: 1, total: 4.0, discount: 0},
+                {...mockItems[15], quantity: 1, total: 5.5, discount: 0},
+            ],
+            subtotal: 38.0,
+            tax: 2.4225,
+            total: 40.4225,
+            payments: [{ method: mockPaymentMethods[0], amount: 40.42 }],
+            customerId: 'cust1',
+        },
+        {
+            id: 'sale2',
+            ticketNumber: `${datePrefix}-0002`,
+            date: new Date('2025-09-24T15:45:00Z'),
+            items: [
+                 {...mockItems[4], quantity: 2, total: 18.0, discount: 0},
+                 {...mockItems[8], quantity: 2, total: 19.0, discount: 0},
+            ],
+            subtotal: 37.0,
+            tax: 0.814 + 0.418,
+            total: 38.232,
+            payments: [{ method: mockPaymentMethods[1], amount: 38.23 }]
+        },
+        {
+            id: 'sale3',
+            ticketNumber: `${datePrefix}-0003`,
+            date: new Date('2025-09-24T15:25:00Z'),
+            items: [
+                {...mockItems[10], quantity: 1, total: 3.5, discount: 0},
+                {...mockItems[11], quantity: 2, total: 10.0, discount: 0},
+            ],
+            subtotal: 13.5,
+            tax: 0.077 + 0.22,
+            total: 13.797,
+            payments: [{ method: mockPaymentMethods[1], amount: 13.80 }],
+            customerId: 'cust2',
+        }
+    ];
     return sales;
 }
 
