@@ -12,6 +12,7 @@ export interface VatRate {
   id: string;
   name: string;
   rate: number;
+  code: number;
 }
 
 export interface Item {

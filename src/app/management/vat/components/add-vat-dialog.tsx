@@ -57,7 +57,7 @@ export function AddVatDialog({ isOpen, onClose }: AddVatDialogProps) {
         <DialogHeader>
           <DialogTitle>Ajouter un taux de TVA</DialogTitle>
           <DialogDescription>
-            Saisissez les informations du nouveau taux.
+            Saisissez les informations du nouveau taux. Le code sera généré automatiquement.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

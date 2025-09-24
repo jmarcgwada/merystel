@@ -10,9 +10,9 @@ export const mockPaymentMethods: PaymentMethod[] = [
 ];
 
 export const mockVatRates: VatRate[] = [
-    { id: 'vat1', name: 'Taux Zéro', rate: 0 },
-    { id: 'vat2', name: 'Taux Intermédiaire', rate: 8.5 },
-    { id: 'vat3', name: 'Taux Normal', rate: 20 },
+    { id: 'vat1', name: 'Taux Zéro', rate: 0, code: 1 },
+    { id: 'vat2', name: 'Taux Réduit', rate: 2.2, code: 2 },
+    { id: 'vat3', name: 'Taux Intermédiaire', rate: 8.5, code: 3 },
 ];
 
 export const mockCategories: Category[] = [
@@ -53,12 +53,12 @@ export const mockItems: Item[] = [
 
 export const mockTables: Table[] = [
   { id: 't1', name: 'Table 1', status: 'available', order: [] },
-  { id: 't2', name: 'Table 2', status: 'occupied', order: [{...mockItems[0], quantity: 2, total: 57.0}, {...mockItems[13], quantity: 2, total: 8.0}] },
+  { id: 't2', name: 'Table 2', status: 'occupied', order: [{...mockItems[0], quantity: 2, total: 57.0, discount: 0}, {...mockItems[13], quantity: 2, total: 8.0, discount: 0}] },
   { id: 't3', name: 'Table 3', status: 'available', order: [] },
-  { id: 't4', name: 'Table 4', status: 'paying', order: [{...mockItems[3], quantity: 1, total: 19.5}] },
+  { id: 't4', name: 'Table 4', status: 'paying', order: [{...mockItems[3], quantity: 1, total: 19.5, discount: 0}] },
   { id: 't5', name: 'Table 5', status: 'available', order: [] },
   { id: 't6', name: 'Table 6', status: 'available', order: [] },
-  { id: 't7', name: 'Table 7', status: 'occupied', order: [{...mockItems[10], quantity: 1, total: 3.5}] },
+  { id: 't7', name: 'Table 7', status: 'occupied', order: [{...mockItems[10], quantity: 1, total: 3.5, discount: 0}] },
   { id: 't8', name: 'Table 8', status: 'available', order: [] },
   { id: 't9', name: 'À emporter', status: 'available', order: [] },
 ];
@@ -86,9 +86,9 @@ const generateMockSales = (): Sale[] => {
         ticketNumber: `${datePrefix}-0001`,
         date: new Date('2025-09-24T15:58:00'),
         items: [
-            {...sale1Items[0], quantity: 1, total: sale1Items[0].price},
-            {...sale1Items[1], quantity: 1, total: sale1Items[1].price},
-            {...sale1Items[2], quantity: 1, total: sale1Items[2].price},
+            {...sale1Items[0], quantity: 1, total: sale1Items[0].price, discount: 0},
+            {...sale1Items[1], quantity: 1, total: sale1Items[1].price, discount: 0},
+            {...sale1Items[2], quantity: 1, total: sale1Items[2].price, discount: 0},
         ],
         subtotal: subtotal1,
         tax: tax1,
@@ -108,8 +108,8 @@ const generateMockSales = (): Sale[] => {
         ticketNumber: `${datePrefix}-0002`,
         date: new Date('2025-09-24T15:45:00'),
         items: [
-             {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2},
-             {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2},
+             {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2, discount: 0},
+             {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2, discount: 0},
         ],
         subtotal: subtotal2,
         tax: tax2,
@@ -128,8 +128,8 @@ const generateMockSales = (): Sale[] => {
         ticketNumber: `${datePrefix}-0003`,
         date: new Date('2025-09-24T15:25:00'),
         items: [
-            {...sale3Items[0], quantity: 1, total: sale3Items[0].price},
-            {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2},
+            {...sale3Items[0], quantity: 1, total: sale3Items[0].price, discount: 0},
+            {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2, discount: 0},
         ],
         subtotal: subtotal3,
         tax: tax3,

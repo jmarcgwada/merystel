@@ -28,11 +28,13 @@ export function EditVatDialog({ vatRate, isOpen, onClose }: EditVatDialogProps) 
     const { updateVatRate } = usePos();
     const [name, setName] = useState('');
     const [rate, setRate] = useState('');
+    const [code, setCode] = useState<number | ''>('');
 
     useEffect(() => {
         if(vatRate) {
             setName(vatRate.name);
             setRate(vatRate.rate.toString());
+            setCode(vatRate.code);
         }
     }, [vatRate])
 
@@ -65,10 +67,16 @@ export function EditVatDialog({ vatRate, isOpen, onClose }: EditVatDialogProps) 
         <DialogHeader>
           <DialogTitle>Modifier le taux de TVA</DialogTitle>
           <DialogDescription>
-            Modifiez les informations du taux.
+            Modifiez les informations du taux. Le code n'est pas modifiable.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="code" className="text-right">
+              Code
+            </Label>
+            <Input id="code" type="number" value={code} readOnly disabled className="col-span-3" />
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nom

@@ -55,6 +55,7 @@ export default function VatPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-[100px]">Code</TableHead>
                         <TableHead>Nom</TableHead>
                         <TableHead className="text-right">Taux (%)</TableHead>
                         <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -63,6 +64,7 @@ export default function VatPage() {
                 <TableBody>
                     {vatRates.map(vat => (
                         <TableRow key={vat.id}>
+                            <TableCell className="font-mono text-muted-foreground">{vat.code}</TableCell>
                             <TableCell className="font-medium">{vat.name}</TableCell>
                             <TableCell className="text-right">{vat.rate.toFixed(2)}%</TableCell>
                             <TableCell className="text-right">

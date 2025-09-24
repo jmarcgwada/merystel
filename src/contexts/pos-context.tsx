@@ -29,13 +29,13 @@ interface PosContextType {
   toggleItemFavorite: (itemId: string) => void;
   
   categories: Category[];
-  addCategory: (category: Category) => void;
+  addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
 
   customers: Customer[];
-  addCustomer: (customer: Customer) => void;
+  addCustomer: (customer: Omit<Customer, 'id'>) => void;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
 
@@ -56,7 +56,7 @@ interface PosContextType {
   deletePaymentMethod: (methodId: string) => void;
 
   vatRates: VatRate[];
-  addVatRate: (vatRate: Omit<VatRate, 'id'>) => void;
+  addVatRate: (vatRate: Omit<VatRate, 'id' | 'code'>) => void;
   updateVatRate: (vatRate: VatRate) => void;
   deleteVatRate: (vatRateId: string) => void;
 
@@ -207,8 +207,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setTables(prevTables => [...prevTables, newTable]);
   }, []);
 
-  const addCategory = useCallback((category: Category) => {
-    setCategories(prev => [...prev, category]);
+  const addCategory = useCallback((categoryData: Omit<Category, 'id'>) => {
+    const newCategory: Category = { ...categoryData, id: `cat${Date.now()}`};
+    setCategories(prev => [...prev, newCategory]);
   }, []);
 
   const updateCategory = useCallback((category: Category) => {
@@ -243,8 +244,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItems(prev => prev.map(i => i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i));
   }, []);
 
-  const addCustomer = useCallback((customer: Customer) => {
-    const newCustomer = { ...customer, id: `cust${Date.now()}`};
+  const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
+    const newCustomer = { ...customerData, id: `cust${Date.now()}`};
     setCustomers(prev => [...prev, newCustomer]);
     return newCustomer;
   }, []);
@@ -292,11 +293,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Moyen de paiement supprimé' });
   }, [toast]);
 
-  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id'>) => {
-    const newVatRate: VatRate = { ...vatRate, id: `vat-${Date.now()}` };
+  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
+    const newCode = Math.max(0, ...vatRates.map(v => v.code)) + 1;
+    const newVatRate: VatRate = { ...vatRate, id: `vat-${Date.now()}`, code: newCode };
     setVatRates(prev => [...prev, newVatRate]);
     toast({ title: 'Taux de TVA ajouté' });
-  }, [toast]);
+  }, [vatRates, toast]);
   
   const updateVatRate = useCallback((vatRate: VatRate) => {
     setVatRates(prev => prev.map(v => v.id === vatRate.id ? vatRate : v));
