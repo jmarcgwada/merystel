@@ -8,34 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useMemo } from 'react';
-import type { Item, Payment } from '@/lib/types';
+import type { Payment } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { TrendingUp } from 'lucide-react';
 
 
 export default function ReportsPage() {
-    const { sales, items, customers } = usePos();
-
-    const popularItems = useMemo(() => {
-        const itemCounts: { [key: string]: { item: Item, count: number } } = {};
-
-        sales.forEach(sale => {
-            sale.items.forEach(orderItem => {
-                if(itemCounts[orderItem.id]) {
-                    itemCounts[orderItem.id].count += orderItem.quantity;
-                } else {
-                    const itemDetails = items.find(i => i.id === orderItem.id);
-                    if(itemDetails) {
-                         itemCounts[orderItem.id] = { item: itemDetails, count: orderItem.quantity };
-                    }
-                }
-            })
-        });
-        
-        return Object.values(itemCounts)
-            .sort((a,b) => b.count - a.count)
-            .slice(0, 5);
-
-    }, [sales, items]);
+    const { sales, customers } = usePos();
     
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
@@ -58,77 +38,56 @@ export default function ReportsPage() {
       <PageHeader
         title="Rapports"
         subtitle="Analysez vos performances de vente."
-      />
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Ventes Récentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Ticket</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Articles</TableHead>
-                                <TableHead>Paiement</TableHead>
-                                <TableHead className="text-right">Total</TableHead>
+      >
+        <Button asChild>
+            <Link href="/reports/popular-items">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Voir les articles populaires
+            </Link>
+        </Button>
+      </PageHeader>
+      <div className="mt-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Ventes Récentes</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Ticket</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Articles</TableHead>
+                            <TableHead>Paiement</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sales.map(sale => (
+                            <TableRow key={sale.id}>
+                                 <TableCell className="font-mono text-muted-foreground text-xs">
+                                    {sale.ticketNumber}
+                                </TableCell>
+                                <TableCell className="font-medium whitespace-nowrap">
+                                    {format(sale.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                                </TableCell>
+                                <TableCell>
+                                    {getCustomerName(sale.customerId)}
+                                </TableCell>
+                                <TableCell>
+                                    {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
+                                </TableCell>
+                                <TableCell>
+                                     <PaymentBadges payments={sale.payments} />
+                                </TableCell>
+                                <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sales.map(sale => (
-                                <TableRow key={sale.id}>
-                                     <TableCell className="font-mono text-muted-foreground text-xs">
-                                        {sale.ticketNumber}
-                                    </TableCell>
-                                    <TableCell className="font-medium whitespace-nowrap">
-                                        {format(sale.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
-                                    </TableCell>
-                                    <TableCell>
-                                        {getCustomerName(sale.customerId)}
-                                    </TableCell>
-                                    <TableCell>
-                                        {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
-                                    </TableCell>
-                                    <TableCell>
-                                         <PaymentBadges payments={sale.payments} />
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
-        <div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Articles Populaires</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {popularItems.map(({ item, count }, index) => (
-                             <div key={item.id} className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
-                                    <div>
-                                        <p className="font-semibold">{item.name}</p>
-                                        <p className="text-sm text-muted-foreground">{item.price.toFixed(2)}€</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-primary">{count}</p>
-                                    <p className="text-xs text-muted-foreground">Ventes</p>
-                                </div>
-                             </div>
                         ))}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
       </div>
     </div>
   );

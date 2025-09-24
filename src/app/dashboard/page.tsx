@@ -9,6 +9,7 @@ import { usePos } from '@/contexts/pos-context';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import type { Item } from '@/lib/types';
 
 const quickLinks = [
     {
@@ -38,7 +39,7 @@ const quickLinks = [
 ]
 
 export default function DashboardPage() {
-    const { sales } = usePos();
+    const { sales, items } = usePos();
 
     const totalSales = useMemo(() => {
         return sales.reduce((acc, sale) => acc + sale.total, 0);
@@ -48,6 +49,28 @@ export default function DashboardPage() {
         const today = new Date();
         return sales.filter(sale => format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')).length;
     }, [sales]);
+
+    const popularItems = useMemo(() => {
+        const itemCounts: { [key: string]: { item: Item, count: number } } = {};
+
+        sales.forEach(sale => {
+            sale.items.forEach(orderItem => {
+                if(itemCounts[orderItem.id]) {
+                    itemCounts[orderItem.id].count += orderItem.quantity;
+                } else {
+                    const itemDetails = items.find(i => i.id === orderItem.id);
+                    if(itemDetails) {
+                         itemCounts[orderItem.id] = { item: itemDetails, count: orderItem.quantity };
+                    }
+                }
+            })
+        });
+        
+        return Object.values(itemCounts)
+            .sort((a,b) => b.count - a.count)
+            .slice(0, 5);
+
+    }, [sales, items]);
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -87,28 +110,73 @@ export default function DashboardPage() {
                  <p className="text-xs text-muted-foreground">Sur {sales.length} transactions</p>
             </CardContent>
         </Card>
+         <Card>
+            <CardHeader>
+                <CardTitle className="text-sm font-medium">Articles Populaires</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {popularItems.slice(0, 3).map(({ item, count }) => (
+                         <div key={item.id} className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-sm">{item.name}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-bold text-primary text-sm">{count} ventes</p>
+                            </div>
+                         </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
       </div>
 
-      <div className="mt-12">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-            {quickLinks.map(link => (
-                <Link href={link.href} key={link.href} className="group">
-                    <Card className="h-full transition-all hover:shadow-md hover:border-primary">
-                        <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <link.icon className="h-8 w-8 text-primary mb-2" />
-                                    <h3 className="text-lg font-semibold font-headline">{link.title}</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+                {quickLinks.map(link => (
+                    <Link href={link.href} key={link.href} className="group">
+                        <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <link.icon className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline">{link.title}</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
                                 </div>
-                                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
-            ))}
+                            </CardContent>
+                        </Card>
+                    </Link>
+                ))}
+            </div>
         </div>
+         <div className="lg:col-span-1">
+             <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Top Articles</h2>
+             <Card>
+                <CardContent className="pt-6">
+                    <div className="space-y-4">
+                        {popularItems.map(({ item, count }, index) => (
+                             <div key={item.id} className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
+                                    <div>
+                                        <p className="font-semibold">{item.name}</p>
+                                        <p className="text-sm text-muted-foreground">{item.price.toFixed(2)}€</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">{count}</p>
+                                    <p className="text-xs text-muted-foreground">Ventes</p>
+                                </div>
+                             </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+         </div>
       </div>
     </div>
   );
