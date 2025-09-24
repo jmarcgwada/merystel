@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 
 export const mockPaymentMethods: PaymentMethod[] = [
     { id: 'pm1', name: 'Carte', icon: 'card', type: 'direct' },
-    { id: 'pm2', name: 'Espèces', icon: 'cash', type: 'indirect' },
+    { id: 'pm2', name: 'Espèces', icon: 'cash', type: 'direct' },
     { id: 'pm3', name: 'Chèque', icon: 'check', type: 'direct' },
     { id: 'pm4', name: 'Ticket Restaurant', icon: 'other', type: 'indirect', value: 8.50 },
 ];
