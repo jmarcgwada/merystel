@@ -14,11 +14,9 @@ import { Hand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function PosPage() {
-  const { categories, setSelectedTableById, heldOrders } = usePos();
+  const { setSelectedTableById, heldOrders } = usePos();
 
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
-  );
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isHeldOpen, setHeldOpen] = useState(false);
   
   const searchParams = useSearchParams();
@@ -29,12 +27,6 @@ export default function PosPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);
 
-  useEffect(() => {
-    // Select the first category by default if none is selected
-    if (!selectedCategory && categories.length > 0) {
-      setSelectedCategory(categories[0]);
-    }
-  }, [categories, selectedCategory]);
 
   return (
     <>

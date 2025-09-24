@@ -12,18 +12,18 @@ import {
 } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import { PlusCircle } from 'lucide-react';
+import type { Category } from '@/lib/types';
 
 interface ItemListProps {
   category: Category | null;
 }
-import type { Category } from '@/lib/types';
-
 
 export function ItemList({ category }: ItemListProps) {
-  const { addToOrder, items: mockItems } = usePos();
+  const { addToOrder, items: allItems } = usePos();
+  
   const items = category
-    ? mockItems.filter((item) => item.categoryId === category.id)
-    : mockItems;
+    ? allItems.filter((item) => item.categoryId === category.id)
+    : allItems;
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
