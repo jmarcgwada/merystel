@@ -70,9 +70,8 @@ export const mockCustomers: Customer[] = [
 
 const generateMockSales = (): Sale[] => {
     const sales: Sale[] = [];
-    const today = new Date('2025-09-24T16:00:00');
-
-    const datePrefix = format(today, 'yyyyMMdd');
+    const baseDate = new Date('2025-09-24T16:00:00Z');
+    const datePrefix = format(baseDate, 'yyyyMMdd');
 
     // Sale 1
     const sale1Items = [mockItems[0], mockItems[13], mockItems[15]];
@@ -84,7 +83,7 @@ const generateMockSales = (): Sale[] => {
     sales.push({
         id: 'sale1',
         ticketNumber: `${datePrefix}-0001`,
-        date: new Date('2025-09-24T15:58:00'),
+        date: new Date('2025-09-24T15:58:00Z'),
         items: [
             {...sale1Items[0], quantity: 1, total: sale1Items[0].price, discount: 0},
             {...sale1Items[1], quantity: 1, total: sale1Items[1].price, discount: 0},
@@ -106,7 +105,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale2',
         ticketNumber: `${datePrefix}-0002`,
-        date: new Date('2025-09-24T15:45:00'),
+        date: new Date('2025-09-24T15:45:00Z'),
         items: [
              {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2, discount: 0},
              {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2, discount: 0},
@@ -126,7 +125,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale3',
         ticketNumber: `${datePrefix}-0003`,
-        date: new Date('2025-09-24T15:25:00'),
+        date: new Date('2025-09-24T15:25:00Z'),
         items: [
             {...sale3Items[0], quantity: 1, total: sale3Items[0].price, discount: 0},
             {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2, discount: 0},
@@ -143,5 +142,3 @@ const generateMockSales = (): Sale[] => {
 
 
 export const mockSales: Sale[] = generateMockSales();
-
-    

@@ -36,9 +36,8 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
         return;
     }
     addCategory({
-        id: `cat${Date.now()}`,
         name,
-        image: `https://picsum.photos/seed/${Date.now()}/100/100`
+        image: `https://picsum.photos/seed/${Math.floor(Math.random() * 1000)}/100/100`
     });
     toast({
       title: 'Catégorie ajoutée',

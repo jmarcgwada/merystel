@@ -39,7 +39,6 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
         }
 
         addCustomer({
-            id: `cust${Date.now()}`,
             name,
             email,
             phone,

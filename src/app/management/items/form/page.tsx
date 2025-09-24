@@ -43,6 +43,7 @@ function ItemForm() {
   const { toast } = useToast();
   const { items, categories, vatRates, addItem, updateItem } = usePos();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [defaultImage, setDefaultImage] = useState('');
 
   const itemId = searchParams.get('id');
   const isEditMode = Boolean(itemId);
@@ -68,6 +69,11 @@ function ItemForm() {
   const watchedPrice = watch('price');
 
   useEffect(() => {
+    // Generate a default image URL only on the client side to avoid hydration mismatch
+    setDefaultImage(`https://picsum.photos/seed/${Math.floor(Math.random() * 1000)}/200/150`);
+  }, []);
+
+  useEffect(() => {
     if (isEditMode && itemToEdit) {
       form.reset({
         name: itemToEdit.name,
@@ -81,9 +87,11 @@ function ItemForm() {
       });
     } else {
         form.reset();
-        setValue('image', `https://picsum.photos/seed/${Date.now()}/200/150`);
+        if (defaultImage) {
+          setValue('image', defaultImage);
+        }
     }
-  }, [isEditMode, itemToEdit, form, setValue]);
+  }, [isEditMode, itemToEdit, form, setValue, defaultImage]);
 
   function onSubmit(data: ItemFormValues) {
     if (isEditMode && itemToEdit) {
@@ -307,7 +315,7 @@ function ItemForm() {
                               </div>
                             ) : (
                               <Image
-                                src={watchedImage || 'https://picsum.photos/seed/placeholder/200/150'}
+                                src={watchedImage || defaultImage || 'https://picsum.photos/seed/placeholder/200/150'}
                                 alt={watchedName || "Aperçu de l'article"}
                                 fill
                                 className="object-cover"
