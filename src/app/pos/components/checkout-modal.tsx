@@ -50,11 +50,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isPaid) {
         const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
         setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
     }
-  }, [isOpen, totalAmount, payments]);
+  }, [isOpen, totalAmount, payments, isPaid]);
 
   useEffect(() => {
     if(isOpen && !isPaid) {
@@ -80,16 +80,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   };
 
   const handleAddPayment = (method: PaymentMethod) => {
-    const amountToAdd = parseFloat(String(currentAmount));
+    let amountToAdd = parseFloat(String(currentAmount));
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    if (amountToAdd > balanceDue + 0.001) {
-        toast({
-            variant: 'destructive',
-            title: 'Montant invalide',
-            description: 'Le montant ne peut pas être supérieur au solde restant.',
-        });
-        return;
+    // Cap the amount to the balance due
+    if (amountToAdd > balanceDue) {
+      amountToAdd = balanceDue;
     }
 
     setPayments(prev => [...prev, { method, amount: amountToAdd }]);
@@ -120,8 +116,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         router.push('/restaurant');
       }
       clearOrder();
-      onClose();
-      // handleReset is called by onOpenChange
+      handleOpenChange(false); // This will call onClose and then handleReset
     }, 2000);
   };
   
@@ -226,7 +221,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
                 Annuler
               </Button>
               <Button 
@@ -242,7 +237,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="sr-only">Paiement confirmé</DialogTitle>
+                <DialogTitle className="sr-only">Paiement Confirmé</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />

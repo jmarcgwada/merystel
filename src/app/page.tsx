@@ -15,6 +15,7 @@ import {
   ArrowRight,
   BarChart3,
   FileText,
+  CreditCard,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 
@@ -73,6 +74,13 @@ const shortcuts = [
     section: 'management',
   },
   {
+    title: 'Moyens de paiement',
+    href: '/management/payment-methods',
+    icon: CreditCard,
+    description: 'Configurez les options de paiement disponibles.',
+    section: 'management',
+  },
+  {
     title: 'Paramètres de l\'application',
     href: '/settings',
     icon: Settings,
@@ -94,7 +102,7 @@ export default function DashboardPage() {
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
               Ventes & Commandes
             </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shortcuts
                 .filter((s) => s.section === 'sales')
                 .map((shortcut) => (
@@ -107,7 +115,7 @@ export default function DashboardPage() {
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
               Gestion de l'entreprise
             </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shortcuts
                 .filter((s) => s.section === 'management')
                 .map((shortcut) => (
@@ -120,7 +128,7 @@ export default function DashboardPage() {
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
               Système
             </h2>
-             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shortcuts
                 .filter((s) => s.section === 'settings')
                 .map((shortcut) => (
