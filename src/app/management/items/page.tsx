@@ -165,9 +165,9 @@ export default function ItemsPage() {
                       {categories.map((cat) => (
                         <CommandItem
                           key={cat.id}
-                          value={cat.id}
-                          onSelect={(currentValue) => {
-                            setFilterCategory(currentValue === filterCategory ? "" : currentValue);
+                          value={cat.name}
+                          onSelect={() => {
+                            setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
                             setCategoryPopoverOpen(false);
                           }}
                         >
