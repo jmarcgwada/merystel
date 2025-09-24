@@ -50,6 +50,15 @@ export function OrderSummary() {
     }
   }
 
+  const handleModeChange = (newMode: 'quantity' | 'discountPercent' | 'discountFixed') => {
+    setMode(newMode);
+    if (newMode === 'quantity' && selectedItem) {
+        setKeypadValue(selectedItem.quantity.toString());
+    } else {
+        setKeypadValue('');
+    }
+  }
+
   const handleKeypadInput = (value: string) => {
     if (value === 'del') {
         setKeypadValue(prev => prev.slice(0, -1));
@@ -155,9 +164,9 @@ export function OrderSummary() {
           {keypadActive && selectedItem ? (
             <div className="p-4 bg-secondary/50">
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                    <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => { setMode('quantity'); setKeypadValue(selectedItem.quantity.toString()); }}>Qté</Button>
-                    <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => { setMode('discountPercent'); setKeypadValue(''); }}>Remise %</Button>
-                    <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => { setMode('discountFixed'); setKeypadValue(''); }}>Remise €</Button>
+                    <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                    <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                    <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                     <div className="col-span-4 rounded-md bg-background border h-14 flex items-center justify-end px-4 text-2xl font-mono">{keypadValue || '0'}</div>
