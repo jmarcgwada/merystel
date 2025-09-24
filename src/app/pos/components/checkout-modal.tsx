@@ -190,11 +190,16 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </DialogFooter>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-4 py-16">
-            <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />
-            <h2 className="text-2xl font-semibold">Paiement confirmé</h2>
-            <p className="text-muted-foreground">Merci pour votre achat !</p>
-          </div>
+          <>
+            <DialogHeader>
+              <DialogTitle className="sr-only">Paiement confirmé</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />
+              <h2 className="text-2xl font-semibold">Paiement confirmé</h2>
+              <p className="text-muted-foreground">Merci pour votre achat !</p>
+            </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
