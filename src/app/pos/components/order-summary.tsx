@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -40,7 +41,7 @@ export function OrderSummary() {
   const [keypadValue, setKeypadValue] = useState('');
   const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
   const keypadInputRef = useRef<HTMLInputElement>(null);
-  const [shouldReplaceValue, setShouldReplaceValue] = useState(false);
+  const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
 
   useEffect(() => {
@@ -141,54 +142,56 @@ export function OrderSummary() {
           )}
         </div>
 
-        {order.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-muted-foreground">Aucun article dans la commande.</p>
-          </div>
-        ) : (
-          <ScrollArea className="flex-1">
-            <div className="divide-y">
-              {order.map((item) => (
-                <div key={item.id}>
-                    <div 
-                        className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
-                        onClick={() => handleItemSelect(item)}
-                    >
-                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
-                            <Image
-                            src={item.image || 'https://picsum.photos/seed/item/100/100'}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                            data-ai-hint="product image"
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-semibold">{item.name}</p>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>Qté: {item.quantity}</span>
-                                {item.discount > 0 && (
-                                     <span className="text-destructive font-semibold">
-                                        (-{item.discount.toFixed(2)}€)
-                                     </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="font-bold">{item.total.toFixed(2)}€</p>
-                        </div>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-              ))}
+        <div className="flex-1 overflow-y-auto">
+          {order.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
-          </ScrollArea>
-        )}
+          ) : (
+            <ScrollArea className="h-full">
+              <div className="divide-y">
+                {order.map((item) => (
+                  <div key={item.id}>
+                      <div 
+                          className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
+                          onClick={() => handleItemSelect(item)}
+                      >
+                          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
+                              <Image
+                              src={item.image || 'https://picsum.photos/seed/item/100/100'}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                              data-ai-hint="product image"
+                              />
+                          </div>
+                          <div className="flex-1">
+                              <p className="font-semibold">{item.name}</p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <span>Qté: {item.quantity}</span>
+                                  {item.discount > 0 && (
+                                      <span className="text-destructive font-semibold">
+                                          (-{item.discount.toFixed(2)}€)
+                                      </span>
+                                  )}
+                              </div>
+                          </div>
+                          <div className="text-right">
+                              <p className="font-bold">{item.total.toFixed(2)}€</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
+                              <X className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
 
         <div className="mt-auto border-t">
-          {keypadActive && selectedItem ? (
+          {keypadActive && selectedItem && (
             <div className="p-4 bg-secondary/50">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                     <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
@@ -226,50 +229,50 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
                     
-                    <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-2">0</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('C')}>C</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('del')} className="col-start-4 row-start-3">←</KeypadButton>
-                </div>
-            </div>
-          ) : (
-            <div className="p-4">
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                    <span>Sous-total</span>
-                    <span>{orderTotal.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between">
-                    <span>TVA</span>
-                    <span>{orderTax.toFixed(2)}€</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>{(orderTotal + orderTax).toFixed(2)}€</span>
-                    </div>
-                </div>
-                <div className="mt-4 flex gap-2">
-                    <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled={order.length === 0 || !!selectedTable}
-                    onClick={holdOrder}
-                    >
-                    <Hand className="mr-2 h-4 w-4" />
-                    Mettre en attente
-                    </Button>
-                    <Button
-                    size="lg"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={order.length === 0}
-                    onClick={() => setCheckoutOpen(true)}
-                    >
-                    Payer maintenant
-                    </Button>
+                    <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
                 </div>
             </div>
           )}
+          
+          <div className="p-4">
+              <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                  <span>Sous-total</span>
+                  <span>{orderTotal.toFixed(2)}€</span>
+                  </div>
+                  <div className="flex justify-between">
+                  <span>TVA</span>
+                  <span>{orderTax.toFixed(2)}€</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>{(orderTotal + orderTax).toFixed(2)}€</span>
+                  </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                  <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                  disabled={order.length === 0 || !!selectedTable}
+                  onClick={holdOrder}
+                  >
+                  <Hand className="mr-2 h-4 w-4" />
+                  Mettre en attente
+                  </Button>
+                  <Button
+                  size="lg"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={order.length === 0}
+                  onClick={() => setCheckoutOpen(true)}
+                  >
+                  Payer maintenant
+                  </Button>
+              </div>
+          </div>
         </div>
       </div>
       <CheckoutModal

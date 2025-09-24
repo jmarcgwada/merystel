@@ -10,7 +10,7 @@ import type { Category } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search } from 'lucide-react';
+import { Hand, Search, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
@@ -31,26 +31,23 @@ export default function PosPage() {
   }, [tableId]);
 
   const pageTitle = useMemo(() => {
-    if (showFavoritesOnly) return 'Favoris';
     if (selectedCategory === 'all' || selectedCategory === null) return 'Tous les articles';
     if (typeof selectedCategory === 'object') return selectedCategory.name;
     return 'Articles';
-  }, [selectedCategory, showFavoritesOnly]);
+  }, [selectedCategory]);
 
   const handleSelectCategory = (category: Category | 'all' | null) => {
-    setShowFavoritesOnly(false);
     setSelectedCategory(category);
   }
 
   const handleToggleFavorites = () => {
-    setSelectedCategory(null);
-    setShowFavoritesOnly(true);
+    setShowFavoritesOnly(prev => !prev);
   }
 
   return (
     <>
       <div className="h-[calc(100vh-4rem)] bg-muted/40 grid grid-cols-1 md:grid-cols-12">
-          <div className="md:col-span-3 lg:col-span-2 border-r bg-card">
+          <div className="md:col-span-3 lg:col-span-2 border-r bg-card overflow-y-auto">
             <CategoryList
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
@@ -62,9 +59,12 @@ export default function PosPage() {
           <div className="md:col-span-5 lg:col-span-6 flex flex-col h-[calc(100vh-4rem)]">
             <div className="p-4 border-b bg-card">
                  <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
-                    {pageTitle}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
+                      {pageTitle}
+                    </h2>
+                    {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
+                  </div>
                   <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -90,7 +90,7 @@ export default function PosPage() {
             </div>
           </div>
 
-          <div className="md:col-span-4 lg:col-span-4 border-l bg-card">
+          <div className="md:col-span-4 lg:col-span-4 border-l bg-card overflow-y-auto">
             <OrderSummary />
           </div>
       </div>

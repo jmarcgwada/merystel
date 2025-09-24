@@ -31,7 +31,6 @@ export function CategoryList({
   );
 
   const getVariant = (id: string | null) => {
-    if (showFavoritesOnly) return 'ghost';
     if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
     if (typeof selectedCategory === 'object' && selectedCategory?.id === id) return 'default';
     return 'ghost';
@@ -64,11 +63,11 @@ export function CategoryList({
               <span className="text-base">Tout</span>
             </Button>
             <Button
-              variant={showFavoritesOnly ? 'default' : 'ghost'}
+              variant={showFavoritesOnly ? 'secondary' : 'ghost'}
               className="h-12 w-full justify-start text-left"
               onClick={onToggleFavorites}
             >
-              <Star className="mr-3 h-5 w-5" />
+              <Star className={cn("mr-3 h-5 w-5", showFavoritesOnly && 'text-yellow-500 fill-yellow-400')} />
               <span className="text-base">Favoris</span>
             </Button>
           {filteredCategories.map((category) => (
