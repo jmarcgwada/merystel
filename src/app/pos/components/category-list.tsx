@@ -31,6 +31,7 @@ export function CategoryList({
   );
 
   const getVariant = (id: string | null) => {
+    if (showFavoritesOnly) return 'ghost';
     if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
     if (typeof selectedCategory === 'object' && selectedCategory?.id === id) return 'default';
     return 'ghost';
