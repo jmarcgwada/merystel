@@ -57,12 +57,22 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
 
   useEffect(() => {
-    if (isOpen && !isPaid) {
-        const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
-        setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
-        selectAndFocusInput();
+    if (isOpen) {
+        if (!isPaid) {
+            const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
+            setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
+            selectAndFocusInput();
+        }
+    } else {
+        // Reset state when closing
+        setTimeout(() => {
+            setPayments([]);
+            setIsPaid(false);
+            setCurrentAmount('');
+        }, 300); // Delay to allow animation to finish
     }
-  }, [isOpen, totalAmount, payments, isPaid]);
+  }, [isOpen, isPaid, totalAmount]);
+
 
   const handleReset = () => {
     setPayments([]);
@@ -115,12 +125,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       amountToAdd = balanceDue;
     }
 
-    const newPayments = [...payments, { method, amount: amountToAdd }];
+    const newPayment: Payment = { method, amount: amountToAdd };
+    const newPayments = [...payments, newPayment];
     setPayments(newPayments);
     
-    const newBalance = totalAmount - (amountPaid + amountToAdd);
+    const newAmountPaid = amountPaid + amountToAdd;
+    const newBalance = totalAmount - newAmountPaid;
 
-    if (newBalance <= 0.009) {
+    if (newBalance <= 0.009) { // Using a small epsilon for float comparison
+        setPayments(newPayments); // Ensure state is updated before finalizing
         handleFinalizeSale();
     } else {
         setCurrentAmount(newBalance.toFixed(2));
@@ -129,7 +142,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
   
   const handleRemovePayment = (index: number) => {
-    setPayments(prev => prev.filter((_, i) => i !== index));
+    setPayments(prev => {
+        const newPayments = prev.filter((_, i) => i !== index);
+        const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
+        const newBalance = totalAmount - newAmountPaid;
+        setCurrentAmount(newBalance.toFixed(2));
+        return newPayments;
+    });
     selectAndFocusInput();
   }
   
