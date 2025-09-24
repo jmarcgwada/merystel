@@ -23,6 +23,7 @@ const KeypadButton = ({ children, onClick, className }: { children: React.ReactN
 export function OrderSummary() {
   const { 
     order, 
+    setOrder,
     removeFromOrder, 
     clearOrder, 
     orderTotal, 
@@ -43,6 +44,8 @@ export function OrderSummary() {
   const keypadInputRef = useRef<HTMLInputElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
+  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
 
   useEffect(() => {
     if (selectedItem && keypadInputRef.current) {
@@ -53,13 +56,32 @@ export function OrderSummary() {
   }, [selectedItem, mode]);
 
   const handleItemSelect = (item: OrderItem) => {
+    let newSelectedItem = null;
     if (selectedItem?.id === item.id) {
         setSelectedItem(null);
         setKeypadValue('');
     } else {
+        newSelectedItem = item;
         setSelectedItem(item);
         setMode('quantity');
         setKeypadValue(item.quantity.toString());
+    }
+
+    // Move to top logic
+    const itemIndex = order.findIndex(o => o.id === item.id);
+    if (itemIndex > 0) {
+        const newOrder = [...order];
+        const [movedItem] = newOrder.splice(itemIndex, 1);
+        setOrder([movedItem, ...newOrder]);
+        
+        // Scroll to the item after it's moved
+        setTimeout(() => {
+            const itemRef = itemRefs.current.get(item.id);
+            itemRef?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    } else {
+        const itemRef = itemRefs.current.get(item.id);
+        itemRef?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
@@ -130,7 +152,7 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col bg-card">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold tracking-tight font-headline">
             {selectedTable ? `Commande: ${selectedTable.name}` : 'Commande actuelle'}
@@ -151,7 +173,7 @@ export function OrderSummary() {
             <ScrollArea className="h-full">
               <div className="divide-y">
                 {order.map((item) => (
-                  <div key={item.id}>
+                  <div key={item.id} ref={el => itemRefs.current.set(item.id, el)}>
                       <div 
                           className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
                           onClick={() => handleItemSelect(item)}

@@ -88,14 +88,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!itemToAdd) return;
 
     setOrder((currentOrder) => {
-      const existingItem = currentOrder.find((item) => item.id === itemId);
-      if (existingItem) {
+      const existingItemIndex = currentOrder.findIndex((item) => item.id === itemId);
+      
+      if (existingItemIndex !== -1) {
+        const existingItem = currentOrder[existingItemIndex];
         const newQuantity = existingItem.quantity + 1;
-        return currentOrder.map((item) =>
-          item.id === itemId ? { ...item, quantity: newQuantity, total: (item.price * newQuantity) - (item.discount || 0) } : item
-        );
+        const updatedItem = { ...existingItem, quantity: newQuantity, total: (existingItem.price * newQuantity) - (existingItem.discount || 0) };
+        
+        // Move to top
+        const newOrder = [...currentOrder];
+        newOrder.splice(existingItemIndex, 1);
+        return [updatedItem, ...newOrder];
+
+      } else {
+        const newItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
+        return [newItem, ...currentOrder];
       }
-      return [...currentOrder, { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 }];
     });
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
   }, [items, toast]);
