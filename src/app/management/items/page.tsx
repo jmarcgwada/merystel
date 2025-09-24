@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown } from 'lucide-react';
 import { AddItemDialog } from './components/add-item-dialog';
 import { EditItemDialog } from './components/edit-item-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -24,7 +24,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+type SortKey = 'name' | 'price';
 
 export default function ItemsPage() {
   const [isAddItemOpen, setAddItemOpen] = useState(false);
@@ -33,9 +36,44 @@ export default function ItemsPage() {
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
+  const [filterName, setFilterName] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>(null);
+
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
   }
+
+  const sortedAndFilteredItems = useMemo(() => {
+    let filtered = items.filter(item => {
+      const nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase());
+      const categoryMatch = filterCategory === 'all' || item.categoryId === filterCategory;
+      return nameMatch && categoryMatch;
+    });
+
+    if (sortConfig !== null) {
+        filtered.sort((a, b) => {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+    }
+
+    return filtered;
+  }, [items, filterName, filterCategory, sortConfig]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
 
   const handleDeleteItem = () => {
     if(itemToDelete) {
@@ -49,6 +87,13 @@ export default function ItemsPage() {
     setEditItemOpen(true);
   }
 
+  const getSortIcon = (key: SortKey) => {
+    if (!sortConfig || sortConfig.key !== key) {
+        return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  }
+
   return (
     <>
       <PageHeader title="Gérer les articles" subtitle="Ajoutez, modifiez ou supprimez des produits.">
@@ -57,20 +102,48 @@ export default function ItemsPage() {
           Ajouter un article
         </Button>
       </PageHeader>
+
       <Card className="mt-8">
         <CardContent className="pt-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Input
+                placeholder="Filtrer par nom..."
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
+                className="max-w-sm"
+              />
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">Toutes les catégories</SelectItem>
+                      {categories.map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">Image</TableHead>
-                  <TableHead>Nom</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('name')}>
+                        Nom {getSortIcon('name')}
+                    </Button>
+                  </TableHead>
                   <TableHead>Catégorie</TableHead>
-                  <TableHead className="text-right">Prix</TableHead>
+                  <TableHead className="text-right">
+                     <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
+                        Prix {getSortIcon('price')}
+                    </Button>
+                  </TableHead>
                   <TableHead className="w-[160px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map(item => (
+                {sortedAndFilteredItems.map(item => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Image 
