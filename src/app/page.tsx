@@ -2,6 +2,6 @@
 import { redirect } from 'next/navigation';
 
 export default function RootPage() {
-  redirect('/management/payment-methods');
+  redirect('/restaurant');
   return null;
 }
