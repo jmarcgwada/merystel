@@ -29,7 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/', label: 'Tableau de bord', icon: Grid },
+  { href: '/dashboard', label: 'Tableau de bord', icon: Grid },
   { href: '/pos', label: 'Point de Vente', icon: ShoppingCart },
   { href: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
   { href: '/commercial', label: 'Commercial', icon: FileText },
@@ -42,7 +42,7 @@ export default function Header() {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
+    if (href === '/dashboard') return pathname === '/dashboard';
     if (href.startsWith('/management')) return pathname.startsWith('/management');
     return pathname.startsWith(href);
   };
@@ -51,7 +51,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -98,7 +98,7 @@ export default function Header() {
               <SheetContent side="left" className="w-[280px]">
                 <div className="flex h-full flex-col">
                     <div className="flex items-center p-4 border-b">
-                        <Link href="/" className="flex items-center gap-2">
+                        <Link href="/dashboard" className="flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                             <span className="text-lg font-bold text-foreground font-headline">Zenith POS</span>
                         </Link>

@@ -1,0 +1,115 @@
+
+'use client';
+
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3 } from 'lucide-react';
+import { usePos } from '@/contexts/pos-context';
+import { useMemo } from 'react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const quickLinks = [
+    {
+        href: '/pos',
+        title: "Point de Vente",
+        description: 'Accéder à l\'interface de vente principale.',
+        icon: ShoppingCart
+    },
+    {
+        href: '/restaurant',
+        title: "Mode Restaurant",
+        description: "Gérer les tables et les commandes.",
+        icon: Utensils
+    },
+    {
+        href: '/management/items',
+        title: 'Gestion des Articles',
+        description: "Ajouter, modifier ou supprimer des produits.",
+        icon: Package
+    },
+    {
+        href: '/reports',
+        title: 'Rapports de Vente',
+        description: "Analyser les performances de vente.",
+        icon: BarChart3
+    }
+]
+
+export default function DashboardPage() {
+    const { sales } = usePos();
+
+    const totalSales = useMemo(() => {
+        return sales.reduce((acc, sale) => acc + sale.total, 0);
+    }, [sales]);
+    
+    const todaysSales = useMemo(() => {
+        const today = new Date();
+        return sales.filter(sale => format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')).length;
+    }, [sales]);
+
+  return (
+    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader
+        title="Tableau de bord"
+        subtitle={`Bienvenue, Jean Marc. Voici un aperçu de votre journée.`}
+      />
+      
+      <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Chiffre d'affaires total</CardTitle>
+                <span className="text-muted-foreground">€</span>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{totalSales.toFixed(2)}€</div>
+                <p className="text-xs text-muted-foreground">Basé sur toutes les ventes enregistrées</p>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ventes Aujourd'hui</CardTitle>
+                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">+{todaysSales}</div>
+                 <p className="text-xs text-muted-foreground">{format(new Date(), "eeee, d MMMM", { locale: fr })}</p>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                 <span className="text-muted-foreground">€</span>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
+                 <p className="text-xs text-muted-foreground">Sur {sales.length} transactions</p>
+            </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+            {quickLinks.map(link => (
+                <Link href={link.href} key={link.href} className="group">
+                    <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                        <CardContent className="pt-6">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <link.icon className="h-8 w-8 text-primary mb-2" />
+                                    <h3 className="text-lg font-semibold font-headline">{link.title}</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
+                                </div>
+                                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
