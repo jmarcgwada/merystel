@@ -8,11 +8,18 @@ export interface Category {
   isFavorite?: boolean;
 }
 
+export interface VatRate {
+  id: string;
+  name: string;
+  rate: number;
+}
+
 export interface Item {
   id: string;
   name: string;
   price: number;
   categoryId: string;
+  vatId: string;
   image?: string;
   isFavorite?: boolean;
 }

@@ -32,7 +32,7 @@ type SortKey = 'name' | 'price';
 export default function ItemsPage() {
   const [isAddItemOpen, setAddItemOpen] = useState(false);
   const [isEditItemOpen, setEditItemOpen] = useState(false);
-  const { items, categories, deleteItem, toggleItemFavorite } = usePos();
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite } = usePos();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
@@ -42,6 +42,10 @@ export default function ItemsPage() {
 
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || 'N/A';
+  }
+
+  const getVatRate = (vatId: string) => {
+    return vatRates.find(v => v.id === vatId)?.rate.toFixed(2) || 'N/A';
   }
 
   const sortedAndFilteredItems = useMemo(() => {
@@ -134,6 +138,7 @@ export default function ItemsPage() {
                     </Button>
                   </TableHead>
                   <TableHead>Catégorie</TableHead>
+                  <TableHead>TVA (%)</TableHead>
                   <TableHead className="text-right">
                      <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
                         Prix {getSortIcon('price')}
@@ -159,6 +164,7 @@ export default function ItemsPage() {
                     <TableCell>
                         <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
                     </TableCell>
+                    <TableCell>{getVatRate(item.vatId)}%</TableCell>
                     <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     <TableCell className="text-right">
                        <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>

@@ -12,7 +12,7 @@ import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 
 export function OrderSummary() {
-  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable, holdOrder, setSelectedTable } = usePos();
+  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, orderTax, selectedTable, holdOrder, setSelectedTable } = usePos();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const router = useRouter();
 
@@ -93,13 +93,13 @@ export function OrderSummary() {
               <span>{orderTotal.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between">
-              <span>Taxes (10%)</span>
-              <span>{(orderTotal * 0.1).toFixed(2)}€</span>
+              <span>TVA</span>
+              <span>{orderTax.toFixed(2)}€</span>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span>{(orderTotal * 1.1).toFixed(2)}€</span>
+              <span>{(orderTotal + orderTax).toFixed(2)}€</span>
             </div>
           </div>
           <div className="mt-4 flex gap-2">
@@ -127,7 +127,7 @@ export function OrderSummary() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setCheckoutOpen(false)}
-        totalAmount={orderTotal * 1.1}
+        totalAmount={orderTotal + orderTax}
       />
     </>
   );

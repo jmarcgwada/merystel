@@ -24,13 +24,14 @@ interface AddItemDialogProps {
 
 export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
   const { toast } = useToast();
-  const { categories, addItem } = usePos();
+  const { categories, vatRates, addItem } = usePos();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [vatId, setVatId] = useState('');
 
   const handleAddItem = () => {
-    if (!name || !price || !categoryId) {
+    if (!name || !price || !categoryId || !vatId) {
         toast({
             variant: 'destructive',
             title: 'Champs obligatoires',
@@ -39,10 +40,10 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
         return;
     }
     addItem({
-        id: `item${Date.now()}`,
         name,
         price: parseFloat(price),
         categoryId,
+        vatId,
         image: `https://picsum.photos/seed/${Date.now()}/200/150`
     });
     toast({
@@ -52,6 +53,7 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
     setName('');
     setPrice('');
     setCategoryId('');
+    setVatId('');
     onClose();
   };
 
@@ -88,6 +90,21 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
                 <SelectContent>
                     {categories.map(cat => (
                         <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="vat" className="text-right">
+              TVA
+            </Label>
+            <Select onValueChange={setVatId} value={vatId}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Sélectionnez un taux de TVA" />
+                </SelectTrigger>
+                <SelectContent>
+                    {vatRates.map(vat => (
+                        <SelectItem key={vat.id} value={vat.id}>{vat.name} ({vat.rate}%)</SelectItem>
                     ))}
                 </SelectContent>
             </Select>

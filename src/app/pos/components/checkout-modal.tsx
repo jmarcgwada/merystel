@@ -38,7 +38,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, paymentMethods, customers } = usePos();
+  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -105,7 +105,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     recordSale({
       items: order,
       subtotal: orderTotal,
-      tax: orderTotal * 0.1,
+      tax: orderTax,
       total: totalAmount,
       payments: finalPayments,
       customerId: selectedCustomer?.id,
@@ -125,7 +125,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       clearOrder();
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange, selectedCustomer]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange, selectedCustomer]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
@@ -289,7 +289,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 type="text"
                                 value={currentAmount}
                                 onChange={handleAmountChange}
-                                disabled={balanceDue <= 0.009}
+                                disabled={balanceDue <= 0}
                                 className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
                                 onFocus={(e) => e.target.select()}
                             />

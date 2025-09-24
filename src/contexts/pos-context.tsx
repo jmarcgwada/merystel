@@ -3,8 +3,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder } from '@/lib/types';
-import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate } from '@/lib/types';
+import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods, mockVatRates } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -16,9 +16,10 @@ interface PosContextType {
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   clearOrder: () => void;
   orderTotal: number;
+  orderTax: number;
 
   items: Item[];
-  addItem: (item: Item) => void;
+  addItem: (item: Omit<Item, 'id'>) => void;
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
@@ -50,6 +51,11 @@ interface PosContextType {
   updatePaymentMethod: (method: PaymentMethod) => void;
   deletePaymentMethod: (methodId: string) => void;
 
+  vatRates: VatRate[];
+  addVatRate: (vatRate: Omit<VatRate, 'id'>) => void;
+  updateVatRate: (vatRate: VatRate) => void;
+  deleteVatRate: (vatRateId: string) => void;
+
   heldOrders: HeldOrder[];
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
@@ -67,6 +73,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [sales, setSales] = useState<Sale[]>(mockSales);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+  const [vatRates, setVatRates] = useState<VatRate[]>(mockVatRates);
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const { toast } = useToast();
 
@@ -120,6 +127,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return order.reduce((sum, item) => sum + item.total, 0);
   }, [order]);
   
+  const orderTax = useMemo(() => {
+    return order.reduce((sum, item) => {
+        const vat = vatRates.find(v => v.id === item.vatId);
+        const taxForItem = item.total * ((vat?.rate || 0) / 100);
+        return sum + taxForItem;
+    }, 0);
+  }, [order, vatRates]);
+  
   const updateTableOrder = useCallback((tableId: string, orderData: OrderItem[]) => {
     setTables(prevTables => 
       prevTables.map(table => 
@@ -156,8 +171,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, isFavorite: !c.isFavorite } : c));
   }, []);
 
-  const addItem = useCallback((item: Item) => {
-    setItems(prev => [...prev, item]);
+  const addItem = useCallback((itemData: Omit<Item, 'id'>) => {
+    const newItem: Item = { ...itemData, id: `item${Date.now()}` };
+    setItems(prev => [...prev, newItem]);
   }, []);
 
   const updateItem = useCallback((item: Item) => {
@@ -222,13 +238,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Moyen de paiement supprimé' });
   }, [toast]);
 
+  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id'>) => {
+    const newVatRate: VatRate = { ...vatRate, id: `vat-${Date.now()}` };
+    setVatRates(prev => [...prev, newVatRate]);
+    toast({ title: 'Taux de TVA ajouté' });
+  }, [toast]);
+  
+  const updateVatRate = useCallback((vatRate: VatRate) => {
+    setVatRates(prev => prev.map(v => v.id === vatRate.id ? vatRate : v));
+    toast({ title: 'Taux de TVA modifié' });
+  }, [toast]);
+
+  const deleteVatRate = useCallback((vatRateId: string) => {
+    setVatRates(prev => prev.filter(v => v.id !== vatRateId));
+    toast({ title: 'Taux de TVA supprimé' });
+  }, [toast]);
+
+
   const holdOrder = useCallback(() => {
     if(order.length === 0) return;
     const newHeldOrder: HeldOrder = {
       id: `held-${Date.now()}`,
       date: new Date(),
       items: order,
-      total: orderTotal * 1.1,
+      total: orderTotal + orderTax,
     };
     setHeldOrders(prev => [newHeldOrder, ...prev]);
     clearOrder();
@@ -236,7 +269,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSelectedTable(null);
     }
     toast({ title: 'Commande mise en attente.' });
-  }, [order, orderTotal, clearOrder, selectedTable, toast]);
+  }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast]);
 
   const recallOrder = useCallback((orderId: string) => {
     const orderToRecall = heldOrders.find(o => o.id === orderId);
@@ -263,6 +296,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateQuantity,
     clearOrder,
     orderTotal,
+    orderTax,
     items,
     addItem,
     updateItem,
@@ -290,6 +324,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    vatRates,
+    addVatRate,
+    updateVatRate,
+    deleteVatRate,
     heldOrders,
     holdOrder,
     recallOrder,
@@ -302,6 +340,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateQuantity,
     clearOrder,
     orderTotal,
+    orderTax,
     items,
     addItem,
     updateItem,
@@ -329,6 +368,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    vatRates,
+    addVatRate,
+    updateVatRate,
+    deleteVatRate,
     heldOrders,
     holdOrder,
     recallOrder,

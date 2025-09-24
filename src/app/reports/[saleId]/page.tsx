@@ -93,7 +93,7 @@ export default function SaleDetailPage() {
                 <span>{sale.subtotal.toFixed(2)}€</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Taxes (10%)</span>
+                <span className="text-muted-foreground">TVA</span>
                 <span>{sale.tax.toFixed(2)}€</span>
               </div>
               <Separator />
