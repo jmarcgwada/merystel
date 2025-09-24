@@ -9,15 +9,20 @@ import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
 import { X, Minus, Plus, Hand } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
+import { useRouter } from 'next/navigation';
 
 export function OrderSummary() {
-  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable, holdOrder } = usePos();
+  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable, holdOrder, setSelectedTable } = usePos();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const router = useRouter();
 
   const handleClearOrder = () => {
     if(selectedTable) {
-        // Just clear the current view, don't wipe the table's order yet
+        // If a table is selected, clearing the order should just empty it,
+        // then navigate back to the restaurant view.
         clearOrder();
+        setSelectedTable(null);
+        router.push('/restaurant');
     } else {
         clearOrder();
     }
@@ -33,7 +38,7 @@ export function OrderSummary() {
           </h2>
           {order.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleClearOrder} className="text-destructive hover:text-destructive">
-              Tout effacer
+              {selectedTable ? 'Annuler' : 'Tout effacer'}
             </Button>
           )}
         </div>

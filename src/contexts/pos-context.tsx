@@ -102,9 +102,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setOrder([]);
   }, []);
 
-  // When selectedTable is null, clear the order
+  // If the selected table is explicitly set to null, it means we're no longer in a table context.
+  // In this case, we should clear the order to start a fresh transaction.
   useEffect(() => {
-    if(!selectedTable){
+    if (selectedTable === null) {
         clearOrder();
     }
   }, [selectedTable, clearOrder]);
@@ -219,11 +220,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const recallOrder = useCallback((orderId: string) => {
     const orderToRecall = heldOrders.find(o => o.id === orderId);
     if (orderToRecall) {
+      if (selectedTable) {
+        setSelectedTable(null); // Ensure we are not in a table context
+      }
       setOrder(orderToRecall.items);
       setHeldOrders(prev => prev.filter(o => o.id !== orderId));
       toast({ title: 'Commande rappelée.' });
     }
-  }, [heldOrders, toast]);
+  }, [heldOrders, toast, selectedTable, setSelectedTable]);
 
   const deleteHeldOrder = useCallback((orderId: string) => {
     setHeldOrders(prev => prev.filter(o => o.id !== orderId));

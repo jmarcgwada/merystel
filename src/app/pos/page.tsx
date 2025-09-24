@@ -14,7 +14,7 @@ import { Hand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function PosPage() {
-  const { categories, setSelectedTable, tables, setOrder, heldOrders } = usePos();
+  const { categories, setSelectedTable, tables, setOrder, heldOrders, clearOrder } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     categories[0] || null
@@ -30,9 +30,12 @@ export default function PosPage() {
 
     if (table) {
       setOrder(table.order);
+    } else {
+        // If there's no tableId, we're in a regular POS session, not a table session.
+        // We shouldn't clear the order here, because it could be a recalled held order.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId, tables]);
+  }, [tableId, tables, setSelectedTable, setOrder]);
   
 
   useEffect(() => {
