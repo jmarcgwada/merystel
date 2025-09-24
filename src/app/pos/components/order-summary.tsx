@@ -14,6 +14,16 @@ export function OrderSummary() {
   const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable } = usePos();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
 
+  const handleClearOrder = () => {
+    if(selectedTable) {
+        // Just clear the current view, don't wipe the table's order yet
+        clearOrder();
+    } else {
+        clearOrder();
+    }
+  }
+
+
   return (
     <>
       <div className="flex h-full flex-col">
@@ -22,7 +32,7 @@ export function OrderSummary() {
             {selectedTable ? `Commande: ${selectedTable.name}` : 'Commande actuelle'}
           </h2>
           {order.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearOrder} className="text-destructive hover:text-destructive">
+            <Button variant="ghost" size="sm" onClick={handleClearOrder} className="text-destructive hover:text-destructive">
               Tout effacer
             </Button>
           )}

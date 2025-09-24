@@ -24,6 +24,7 @@ import {
   LogOut,
   PanelLeft,
   BarChart3,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ const navLinks = [
   { href: '/', label: 'Tableau de bord', icon: Grid },
   { href: '/pos', label: 'Point de Vente', icon: ShoppingCart },
   { href: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
+  { href: '/commercial', label: 'Commercial', icon: FileText },
   { href: '/management/items', label: 'Gestion', icon: Package },
   { href: '/reports', label: 'Rapports', icon: BarChart3 },
   { href: '/settings', label: 'Paramètres', icon: Settings },

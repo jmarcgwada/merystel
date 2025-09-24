@@ -7,7 +7,7 @@ import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category } from '@/lib/types';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function PosPage() {
   const { categories, selectedTable, setSelectedTable, tables, setOrder, clearOrder } = usePos();
@@ -17,24 +17,36 @@ export default function PosPage() {
   );
   
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tableId = searchParams.get('tableId');
 
   useEffect(() => {
     if (tableId) {
       const table = tables.find(t => t.id === tableId);
       if (table) {
-        setSelectedTable(table);
-        setOrder(table.order);
+        if(selectedTable?.id !== table.id){
+            setSelectedTable(table);
+            setOrder(table.order);
+        }
       }
     } else {
-        // If not a table order, ensure we are not using a previous table's context
         if(selectedTable) {
             clearOrder();
         }
         setSelectedTable(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId, tables, setOrder, setSelectedTable, clearOrder, selectedTable]);
+  
+  useEffect(() => {
+    // If there is no tableId in URL, but we have a selectedTable in context, clear it.
+    if(!tableId && selectedTable) {
+        router.replace('/pos');
+        clearOrder();
+        setSelectedTable(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableId, selectedTable])
+
 
   useEffect(() => {
     if(!selectedCategory && categories.length > 0) {
