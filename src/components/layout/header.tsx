@@ -23,6 +23,7 @@ import {
   User,
   LogOut,
   PanelLeft,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ const navLinks = [
   { href: '/pos', label: 'Point de Vente', icon: ShoppingCart },
   { href: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
   { href: '/management/items', label: 'Gestion', icon: Package },
+  { href: '/reports', label: 'Rapports', icon: BarChart3 },
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
@@ -39,6 +41,7 @@ export default function Header() {
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
+    if (href.startsWith('/management')) return pathname.startsWith('/management');
     return pathname.startsWith(href);
   };
 

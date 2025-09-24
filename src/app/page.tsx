@@ -13,6 +13,7 @@ import {
   Users,
   Settings,
   ArrowRight,
+  BarChart3,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 
@@ -34,6 +35,13 @@ const shortcuts = [
     icon: UtensilsCrossed,
     description: 'Gérez les tables et les commandes du restaurant.',
     section: 'sales',
+  },
+  {
+    title: 'Rapports de Ventes',
+    href: '/reports',
+    icon: BarChart3,
+    description: 'Analysez les performances et les tendances.',
+    section: 'management',
   },
   {
     title: 'Gérer les articles',

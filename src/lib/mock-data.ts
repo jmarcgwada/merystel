@@ -1,5 +1,5 @@
 
-import type { Category, Item, Table, Customer } from './types';
+import type { Category, Item, Table, Customer, Sale } from './types';
 
 export const mockCategories: Category[] = [
   { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100' },
@@ -53,3 +53,47 @@ export const mockCustomers: Customer[] = [
   { id: 'cust1', name: 'Alice Martin', email: 'alice.m@email.com', phone: '0612345678' },
   { id: 'cust2', name: 'Bob Dubois', email: 'bob.d@email.com', phone: '0687654321' },
 ];
+
+const sale1Items: Item[] = [mockItems[0], mockItems[13], mockItems[15]];
+const sale2Items: Item[] = [mockItems[4], mockItems[8]];
+const sale3Items: Item[] = [mockItems[10], mockItems[11], mockItems[11]];
+
+export const mockSales: Sale[] = [
+    {
+        id: 'sale1',
+        date: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
+        items: [
+            {...sale1Items[0], quantity: 1, total: sale1Items[0].price},
+            {...sale1Items[1], quantity: 1, total: sale1Items[1].price},
+            {...sale1Items[2], quantity: 1, total: sale1Items[2].price},
+        ],
+        subtotal: sale1Items.reduce((acc, item) => acc + item.price, 0),
+        tax: sale1Items.reduce((acc, item) => acc + item.price, 0) * 0.1,
+        total: sale1Items.reduce((acc, item) => acc + item.price, 0) * 1.1,
+        paymentMethod: 'card'
+    },
+    {
+        id: 'sale2',
+        date: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+        items: [
+             {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2},
+             {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2},
+        ],
+        subtotal: (sale2Items[0].price * 2) + (sale2Items[1].price * 2),
+        tax: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 0.1,
+        total: ((sale2Items[0].price * 2) + (sale2Items[1].price * 2)) * 1.1,
+        paymentMethod: 'cash'
+    },
+    {
+        id: 'sale3',
+        date: new Date(Date.now() - 35 * 60 * 1000), // 35 minutes ago
+        items: [
+            {...sale3Items[0], quantity: 1, total: sale3Items[0].price},
+            {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2},
+        ],
+        subtotal: sale3Items[0].price + (sale3Items[1].price * 2),
+        tax: (sale3Items[0].price + (sale3Items[1].price * 2)) * 0.1,
+        total: (sale3Items[0].price + (sale3Items[1].price * 2)) * 1.1,
+        paymentMethod: 'card'
+    }
+]

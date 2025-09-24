@@ -32,7 +32,7 @@ const paymentOptions = [
 ] as const;
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, selectedTable, updateTableOrder } = usePos();
+  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
@@ -45,6 +45,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     // In a real app, this would process the payment.
     // For now, we'll just simulate a successful payment.
     setIsPaid(true);
+
+    const sale = {
+      id: `sale-${Date.now()}`,
+      date: new Date(),
+      items: order,
+      subtotal: orderTotal,
+      tax: orderTotal * 0.1,
+      total: totalAmount,
+      paymentMethod,
+    };
+    recordSale(sale);
 
     setTimeout(() => {
       toast({
@@ -64,12 +75,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     }, 2000);
   };
-
+  
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
+      // Reset state if dialog is closed without completing payment
+      setTimeout(() => setIsPaid(false), 300);
     }
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -92,13 +106,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 defaultValue="card"
                 className="grid grid-cols-3 gap-4"
                 onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
+                value={paymentMethod}
               >
                 {paymentOptions.map((option) => (
                   <div key={option.value}>
                     <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
                     <Label
                       htmlFor={option.value}
-                      className={`flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground ${
+                      className={`flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer ${
                         paymentMethod === option.value ? 'border-primary' : ''
                       }`}
                     >
