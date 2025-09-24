@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Percent, Eraser, Euro } from 'lucide-react';
+import { X, Hand, Eraser } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import type { OrderItem } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
     <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick}>
@@ -38,10 +39,18 @@ export function OrderSummary() {
   const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
   const [keypadValue, setKeypadValue] = useState('');
   const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
+  const keypadInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectedItem && keypadInputRef.current) {
+        keypadInputRef.current.focus();
+        keypadInputRef.current.select();
+    }
+  }, [selectedItem, mode]);
 
   const handleItemSelect = (item: OrderItem) => {
     if (selectedItem?.id === item.id) {
-        setSelectedItem(null); // Deselect if clicking the same item
+        setSelectedItem(null);
         setKeypadValue('');
     } else {
         setSelectedItem(item);
@@ -60,7 +69,18 @@ export function OrderSummary() {
   }
 
   const handleKeypadInput = (value: string) => {
-    setKeypadValue(prev => prev + value);
+    if (document.activeElement === keypadInputRef.current) {
+      // If input is focused, let the user type directly
+      return;
+    }
+     // If not focused, use button logic
+    if (value === 'del') {
+      setKeypadValue(prev => prev.slice(0, -1));
+    } else if (value === 'C') {
+        setKeypadValue('');
+    } else {
+      setKeypadValue(prev => prev + value);
+    }
   }
 
   const handleApply = () => {
@@ -88,14 +108,8 @@ export function OrderSummary() {
         clearOrder();
     }
   }
-  
-  const handleClearKeypad = () => {
-    setKeypadValue('');
-  }
-
 
   const keypadActive = selectedItem !== null;
-
 
   return (
     <>
@@ -166,14 +180,21 @@ export function OrderSummary() {
                     <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                    <div className="col-span-4 rounded-md bg-background border h-14 flex items-center justify-end px-4 text-2xl font-mono">{keypadValue || '0'}</div>
+                    <Input 
+                        ref={keypadInputRef}
+                        type="number"
+                        value={keypadValue}
+                        onChange={(e) => setKeypadValue(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        className="col-span-4 h-14 text-right px-4 text-2xl font-mono"
+                    />
 
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
                     <Button variant="destructive" className="h-14" onClick={() => {
                         applyDiscount(selectedItem.id, 0, 'fixed');
-                        handleClearKeypad();
+                        setKeypadValue('');
                     }}>
                         <Eraser/>
                     </Button>
@@ -190,8 +211,8 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
                     
                     <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-2">0</KeypadButton>
-                    <KeypadButton onClick={() => setKeypadValue('')}>C</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('del')} className="col-start-4 row-start-2">←</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('C')}>C</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('del')} className="col-start-4 row-start-3">←</KeypadButton>
                 </div>
             </div>
           ) : (
