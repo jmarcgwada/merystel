@@ -53,7 +53,7 @@ function ItemForm() {
       vatId: '',
       description: '',
       isFavorite: false,
-      image: `https://picsum.photos/seed/${Date.now()}/200/150`,
+      image: '',
     },
   });
 
@@ -71,7 +71,7 @@ function ItemForm() {
         vatId: itemToEdit.vatId,
         description: itemToEdit.description || '',
         isFavorite: itemToEdit.isFavorite || false,
-        image: itemToEdit.image || `https://picsum.photos/seed/${itemToEdit.id}/200/150`,
+        image: itemToEdit.image,
       });
     } else if (!isEditMode) {
       form.reset();
