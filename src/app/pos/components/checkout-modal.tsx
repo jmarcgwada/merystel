@@ -88,8 +88,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }
   };
   
-  const handleFinalizeSale = () => {
-    // Prevent double execution
+  const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
 
     recordSale({
@@ -97,7 +96,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       subtotal: orderTotal,
       tax: orderTotal * 0.1,
       total: totalAmount,
-      payments,
+      payments: finalPayments,
     });
     
     setIsPaid(true);
@@ -112,9 +111,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         router.push('/restaurant');
       }
       clearOrder();
-      handleOpenChange(false); // This will call onClose and then handleReset
+      handleOpenChange(false);
     }, 2000);
-  };
+  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd = parseFloat(String(currentAmount));
@@ -131,14 +130,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     const newAmountPaid = amountPaid + amountToAdd;
     const newBalance = totalAmount - newAmountPaid;
-
-    if (newBalance <= 0.009) { // Using a small epsilon for float comparison
-        setPayments(newPayments); // Ensure state is updated before finalizing
-        setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
-        // Don't auto-finalize, let user see the change and click finalize
-    } else {
+    
+    if (newBalance > 0.009) {
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
+    } else if (Math.abs(newBalance) < 0.009) { // Exactly paid
+        handleFinalizeSale(newPayments);
+    } else { // Change is due
+        setCurrentAmount(Math.abs(newBalance).toFixed(2));
     }
   }
   
@@ -263,7 +262,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               </Button>
               <Button 
                 type="submit" 
-                onClick={handleFinalizeSale} 
+                onClick={() => handleFinalizeSale(payments)} 
                 className="w-full sm:w-auto" 
                 disabled={balanceDue > 0.009 || payments.length === 0}
               >
