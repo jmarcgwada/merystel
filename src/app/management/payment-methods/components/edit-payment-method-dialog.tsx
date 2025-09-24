@@ -37,14 +37,14 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const { toast } = useToast();
   const { updatePaymentMethod } = usePos();
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState<PaymentMethod['icon']>('');
+  const [icon, setIcon] = useState<PaymentMethod['icon']>('other');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
 
   useEffect(() => {
     if (paymentMethod) {
         setName(paymentMethod.name);
-        setIcon(paymentMethod.icon || '');
+        setIcon(paymentMethod.icon || 'other');
         setType(paymentMethod.type || 'direct');
         setValue(paymentMethod.value?.toString() || '');
     }

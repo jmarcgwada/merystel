@@ -36,7 +36,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
   const { toast } = useToast();
   const { addPaymentMethod } = usePos();
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState<PaymentMethod['icon']>('');
+  const [icon, setIcon] = useState<PaymentMethod['icon']>('other');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
 
@@ -59,7 +59,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
     });
     
     setName('');
-    setIcon('');
+    setIcon('other');
     setType('direct');
     setValue('');
     onClose();

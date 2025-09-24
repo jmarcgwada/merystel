@@ -124,11 +124,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       });
       return;
     }
-    let amountToAdd = parseFloat(String(currentAmount));
+    
+    let amountToAdd : number;
+    if (method.type === 'indirect' && method.value) {
+      amountToAdd = method.value;
+    } else {
+      amountToAdd = parseFloat(String(currentAmount));
+    }
+
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    // Do not cap the amount for cash payment to calculate change
-    if (method.icon !== 'cash' && amountToAdd > balanceDue) {
+    // Do not cap the amount for indirect payment to calculate change
+    if (method.type === 'direct' && amountToAdd > balanceDue) {
       amountToAdd = balanceDue;
     }
 
@@ -211,13 +218,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <div className="grid grid-cols-2 gap-4">
                       {paymentMethods.map((method) => {
                           const IconComponent = getIcon(method.icon);
+                          const isDisabled = (balanceDue <= 0 && method.type === 'direct') || 
+                                             (!currentAmount && !method.value) || 
+                                             (parseFloat(String(currentAmount)) <= 0 && !method.value);
+
                           return (
                             <Button
                                 key={method.id}
                                 variant="outline"
                                 className="h-16 flex flex-col items-center justify-center gap-2"
                                 onClick={() => handleAddPayment(method)}
-                                disabled={balanceDue <= 0 && method.icon !== 'cash' || !currentAmount || parseFloat(String(currentAmount)) <= 0}
+                                disabled={isDisabled}
                             >
                                 <IconComponent className="h-5 w-5" />
                                 <span className="text-sm">{method.name}</span>
