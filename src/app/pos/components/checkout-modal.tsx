@@ -78,24 +78,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       setTimeout(handleReset, 300);
     }
   };
-
-  const handleAddPayment = (method: PaymentMethod) => {
-    let amountToAdd = parseFloat(String(currentAmount));
-    if (isNaN(amountToAdd) || amountToAdd <= 0) return;
-    
-    // Cap the amount to the balance due
-    if (amountToAdd > balanceDue) {
-      amountToAdd = balanceDue;
-    }
-
-    setPayments(prev => [...prev, { method, amount: amountToAdd }]);
-  }
   
-  const handleRemovePayment = (index: number) => {
-    setPayments(prev => prev.filter((_, i) => i !== index));
-  }
-
   const handleFinalizeSale = () => {
+    // Prevent double execution
+    if (isPaid) return;
+
     recordSale({
       items: order,
       subtotal: orderTotal,
@@ -119,6 +106,35 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       handleOpenChange(false); // This will call onClose and then handleReset
     }, 2000);
   };
+  
+  const handleAddPayment = (method: PaymentMethod) => {
+    let amountToAdd = parseFloat(String(currentAmount));
+    if (isNaN(amountToAdd) || amountToAdd <= 0) return;
+    
+    // Cap the amount to the balance due
+    if (amountToAdd > balanceDue) {
+      amountToAdd = balanceDue;
+    }
+
+    const newPayments = [...payments, { method, amount: amountToAdd }];
+    setPayments(newPayments);
+    
+    const newBalance = totalAmount - (amountPaid + amountToAdd);
+
+    if (newBalance <= 0.009) {
+        // Auto-finalize if paid in full
+        handleFinalizeSale();
+    } else {
+        // Otherwise, update amount and refocus
+        setCurrentAmount(newBalance.toFixed(2));
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+    }
+  }
+  
+  const handleRemovePayment = (index: number) => {
+    setPayments(prev => prev.filter((_, i) => i !== index));
+  }
   
   const getIcon = (iconName?: string) => {
     if (iconName && iconMap[iconName]) {
@@ -159,9 +175,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 type="text"
                                 value={currentAmount}
                                 onChange={handleAmountChange}
-                                className="text-5xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                className="text-6xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                             />
-                            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-3xl font-bold text-muted-foreground">€</span>
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
                         </div>
                     </div>
                     
