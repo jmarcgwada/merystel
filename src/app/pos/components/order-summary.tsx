@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,6 @@ export function OrderSummary() {
   const keypadInputRef = useRef<HTMLInputElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
-  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
 
@@ -65,19 +63,19 @@ export function OrderSummary() {
         setSelectedItem(item);
         setMode('quantity');
         setKeypadValue(item.quantity.toString());
-    }
 
-    const itemIndex = order.findIndex(o => o.id === item.id);
-    if (itemIndex > 0) {
-        const newOrder = [...order];
-        const [movedItem] = newOrder.splice(itemIndex, 1);
-        setOrder([movedItem, ...newOrder]);
-        
-        setTimeout(() => {
-            if (scrollAreaRef.current) {
-                scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }, 100);
+        const itemIndex = order.findIndex(o => o.id === item.id);
+        if (itemIndex > 0) { // Only move if not already at top
+            const newOrder = [...order];
+            const [movedItem] = newOrder.splice(itemIndex, 1);
+            setOrder([movedItem, ...newOrder]);
+            
+            setTimeout(() => {
+                if (scrollAreaRef.current) {
+                    scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }, 100);
+        }
     }
   }
 
@@ -165,16 +163,19 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 relative">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <ScrollArea className="h-full" viewportRef={scrollAreaRef}>
+            <ScrollArea 
+                className={cn("h-full transition-opacity", keypadActive && 'opacity-30 pointer-events-none')} 
+                viewportRef={scrollAreaRef}
+            >
               <div className="divide-y">
                 {order.map((item) => (
-                  <div key={item.id} ref={el => itemRefs.current.set(item.id, el)}>
+                  <div key={item.id}>
                       <div 
                           className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
                           onClick={() => handleItemSelect(item)}
@@ -211,11 +212,9 @@ export function OrderSummary() {
               </div>
             </ScrollArea>
           )}
-        </div>
-
-        <div className="mt-auto border-t">
-          {keypadActive && selectedItem && (
-            <div className="p-4 bg-secondary/50">
+          
+           {keypadActive && selectedItem && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-secondary/80 backdrop-blur-sm border-t">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                     <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
                     <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
@@ -234,34 +233,37 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                    <Button variant="destructive" className="h-14" onClick={() => {
+                     <Button variant="destructive" className="h-14" onClick={() => {
                         applyDiscount(selectedItem.id, 0, 'fixed');
                         setKeypadValue('');
                     }}>
                         <Eraser/>
                     </Button>
+                    
 
                     <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    <Button className="h-14 text-lg" onClick={handleApply}>
-                       Valider
-                    </Button>
+                    <KeypadButton onClick={() => handleKeypadInput('C')}>C</KeypadButton>
 
                     <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
-                    <Button variant="secondary" className="h-14 text-lg" onClick={handleCloseKeypad}>
-                        Fermer
-                    </Button>
+                    <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
                     
-                    <KeypadButton onClick={() => handleKeypadInput('C')} className="col-span-2">C</KeypadButton>
+                    
                     <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
+                    <Button className="h-14 text-lg col-span-2" onClick={handleApply}>
+                       Valider
+                    </Button>
                 </div>
+                 <Button variant="ghost" className="w-full mt-2" onClick={handleCloseKeypad}>Fermer</Button>
             </div>
           )}
-          
+        </div>
+
+        <div className={cn("mt-auto border-t", keypadActive && 'opacity-30 pointer-events-none')}>
           <div className="p-4">
               <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
