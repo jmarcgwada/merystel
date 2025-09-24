@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Eye } from 'lucide-react';
 
 
 export default function ReportsPage() {
@@ -61,6 +61,7 @@ export default function ReportsPage() {
                             <TableHead>Articles</TableHead>
                             <TableHead>Paiement</TableHead>
                             <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -82,6 +83,13 @@ export default function ReportsPage() {
                                      <PaymentBadges payments={sale.payments} />
                                 </TableCell>
                                 <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
+                                <TableCell className="text-right">
+                                    <Button asChild variant="ghost" size="icon">
+                                        <Link href={`/reports/${sale.id}`}>
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
