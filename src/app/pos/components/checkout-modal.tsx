@@ -67,7 +67,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (!isPaid) {
             const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
-            selectAndFocusInput();
+            if (newBalance > 0) {
+              selectAndFocusInput();
+            }
         }
     } else {
         // Reset state when closing
@@ -78,7 +80,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setSelectedCustomer(null);
         }, 300); // Delay to allow animation to finish
     }
-  }, [isOpen, isPaid, totalAmount, payments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isPaid, totalAmount]);
 
 
   const handleReset = () => {
@@ -136,7 +139,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     let amountToAdd : number;
     if (method.type === 'indirect' && method.value) {
-      amountToAdd = method.value;
+      amountToAdd = method.value > balanceDue ? balanceDue : method.value;
     } else {
       amountToAdd = parseFloat(String(currentAmount));
     }
@@ -186,7 +189,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }
   };
 
-  const finalizeButtonDisabled = balanceDue > 0;
+  const finalizeButtonDisabled = balanceDue > 0.009;
 
   return (
     <>
@@ -278,7 +281,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
                 <div className="md:col-span-1 flex flex-col items-center justify-center text-center h-full">
                     <div className="flex-grow flex flex-col items-center justify-center">
-                        <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
+                        <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
                         <div className="relative mt-1 w-full">
                             <Input
                                 id="amount-to-pay"
@@ -286,7 +289,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 type="text"
                                 value={currentAmount}
                                 onChange={handleAmountChange}
-                                className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                disabled={balanceDue <= 0}
+                                className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
                                 onFocus={(e) => e.target.select()}
                             />
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
@@ -365,6 +369,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 }
 
     
-
-    
-
