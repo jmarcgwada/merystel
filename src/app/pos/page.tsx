@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 export default function PosPage() {
   const { setSelectedTableById, heldOrders } = usePos();
 
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'all' | 'favorites' | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   
@@ -28,6 +28,13 @@ export default function PosPage() {
     setSelectedTableById(tableId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);
+
+  const pageTitle = useMemo(() => {
+    if (selectedCategory === 'all' || selectedCategory === null) return 'Tous les articles';
+    if (selectedCategory === 'favorites') return 'Favoris';
+    if (typeof selectedCategory === 'object') return selectedCategory.name;
+    return 'Articles';
+  }, [selectedCategory]);
 
 
   return (
@@ -44,7 +51,7 @@ export default function PosPage() {
           <div className="md:col-span-5 lg:col-span-6 overflow-y-auto p-4">
              <div className="flex items-center justify-between mb-4 gap-4">
               <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
-                {selectedCategory ? selectedCategory.name : 'Tous les articles'}
+                {pageTitle}
               </h2>
               <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

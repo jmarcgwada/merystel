@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
@@ -21,11 +21,13 @@ interface PosContextType {
   addItem: (item: Item) => void;
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
+  toggleItemFavorite: (itemId: string) => void;
   
   categories: Category[];
   addCategory: (category: Category) => void;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
+  toggleCategoryFavorite: (categoryId: string) => void;
 
   customers: Customer[];
   addCustomer: (customer: Customer) => void;
@@ -149,6 +151,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setItems(prev => prev.filter(i => i.categoryId !== categoryId));
     toast({ title: 'Catégorie supprimée' });
   }, [toast]);
+  
+  const toggleCategoryFavorite = useCallback((categoryId: string) => {
+      setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, isFavorite: !c.isFavorite } : c));
+  }, []);
 
   const addItem = useCallback((item: Item) => {
     setItems(prev => [...prev, item]);
@@ -162,6 +168,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setItems(prev => prev.filter(i => i.id !== itemId));
     toast({ title: 'Article supprimé' });
   }, [toast]);
+
+  const toggleItemFavorite = useCallback((itemId: string) => {
+      setItems(prev => prev.map(i => i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i));
+  }, []);
 
   const addCustomer = useCallback((customer: Customer) => {
     const newCustomer = { ...customer, id: `cust${Date.now()}`};
@@ -257,10 +267,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addItem,
     updateItem,
     deleteItem,
+    toggleItemFavorite,
     categories,
     addCategory,
     updateCategory,
     deleteCategory,
+    toggleCategoryFavorite,
     customers,
     addCustomer,
     updateCustomer,
@@ -294,10 +306,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addItem,
     updateItem,
     deleteItem,
+    toggleItemFavorite,
     categories,
     addCategory,
     updateCategory,
     deleteCategory,
+    toggleCategoryFavorite,
     customers,
     addCustomer,
     updateCustomer,

@@ -5,6 +5,7 @@ export interface Category {
   name: string;
   color?: string;
   image?: string;
+  isFavorite?: boolean;
 }
 
 export interface Item {
@@ -13,6 +14,7 @@ export interface Item {
   price: number;
   categoryId: string;
   image?: string;
+  isFavorite?: boolean;
 }
 
 export interface OrderItem extends Item {

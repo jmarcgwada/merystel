@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search } from 'lucide-react';
+import { LayoutGrid, Search, Star } from 'lucide-react';
 
 interface CategoryListProps {
-  selectedCategory: Category | null;
-  onSelectCategory: (category: Category | null) => void;
+  selectedCategory: Category | 'all' | 'favorites' | null;
+  onSelectCategory: (category: Category | 'all' | 'favorites' | null) => void;
 }
 
 export function CategoryList({
@@ -25,6 +25,12 @@ export function CategoryList({
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getVariant = (id: string | null) => {
+    if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
+    if (typeof selectedCategory === 'object' && selectedCategory?.id === id) return 'default';
+    return 'ghost';
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -45,19 +51,25 @@ export function CategoryList({
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-2 p-4">
            <Button
-              variant={!selectedCategory ? 'default' : 'ghost'}
+              variant={getVariant('all')}
               className="h-12 w-full justify-start text-left"
-              onClick={() => onSelectCategory(null)}
+              onClick={() => onSelectCategory('all')}
             >
               <LayoutGrid className="mr-3 h-5 w-5" />
               <span className="text-base">Tout</span>
             </Button>
+            <Button
+              variant={getVariant('favorites')}
+              className="h-12 w-full justify-start text-left"
+              onClick={() => onSelectCategory('favorites')}
+            >
+              <Star className="mr-3 h-5 w-5" />
+              <span className="text-base">Favoris</span>
+            </Button>
           {filteredCategories.map((category) => (
             <Button
               key={category.id}
-              variant={
-                selectedCategory?.id === category.id ? 'default' : 'ghost'
-              }
+              variant={getVariant(category.id)}
               className="h-12 w-full justify-start text-left"
               onClick={() => onSelectCategory(category)}
             >

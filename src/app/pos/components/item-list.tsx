@@ -15,7 +15,7 @@ import { PlusCircle } from 'lucide-react';
 import type { Category } from '@/lib/types';
 
 interface ItemListProps {
-  category: Category | null;
+  category: Category | 'all' | 'favorites' | null;
   searchTerm: string;
 }
 
@@ -23,7 +23,15 @@ export function ItemList({ category, searchTerm }: ItemListProps) {
   const { addToOrder, items: allItems } = usePos();
   
   const filteredItems = allItems.filter(item => {
-    const matchesCategory = category ? item.categoryId === category.id : true;
+    let matchesCategory = true;
+    if (category === 'all' || category === null) {
+        matchesCategory = true;
+    } else if (category === 'favorites') {
+        matchesCategory = !!item.isFavorite;
+    } else if (typeof category === 'object' && category.id) {
+        matchesCategory = item.categoryId === category.id;
+    }
+    
     const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
     return matchesCategory && matchesSearch;
   });

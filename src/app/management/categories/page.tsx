@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Star } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
 import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -22,12 +22,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Category } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 
 export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
-  const { categories, deleteCategory } = usePos();
+  const { categories, deleteCategory, toggleCategoryFavorite } = usePos();
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
 
@@ -58,7 +59,7 @@ export default function CategoriesPage() {
               <TableRow>
                 <TableHead className="w-[80px]">Image</TableHead>
                 <TableHead>Nom</TableHead>
-                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                <TableHead className="w-[160px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -76,6 +77,9 @@ export default function CategoriesPage() {
                     </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => toggleCategoryFavorite(category.id)}>
+                        <Star className={cn("h-4 w-4", category.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(category)}>
                       <Edit className="h-4 w-4" />
                     </Button>
