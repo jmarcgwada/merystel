@@ -8,28 +8,28 @@ export default function CompanyPage() {
   return (
     <>
       <PageHeader
-        title="Company Details"
-        subtitle="Manage your business information."
+        title="Détails de l'entreprise"
+        subtitle="Gérez les informations de votre entreprise."
       />
       <Card className="mt-8">
         <CardHeader>
-            <CardTitle>Business Information</CardTitle>
+            <CardTitle>Informations sur l'entreprise</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid gap-2">
-                <Label htmlFor="company-name">Company Name</Label>
+                <Label htmlFor="company-name">Nom de l'entreprise</Label>
                 <Input id="company-name" defaultValue="Zenith POS Inc." />
             </div>
              <div className="grid gap-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" defaultValue="123 Market St, San Francisco, CA" />
+                <Label htmlFor="address">Adresse</Label>
+                <Input id="address" defaultValue="123 Rue du Marché, Paris, FR" />
             </div>
              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" defaultValue="contact@zenithpos.com" />
             </div>
             <div className="flex justify-end pt-4">
-                <Button>Save Changes</Button>
+                <Button>Sauvegarder les modifications</Button>
             </div>
         </CardContent>
       </Card>

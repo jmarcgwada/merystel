@@ -25,8 +25,8 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
   const handleAddCategory = () => {
     // In a real app, you'd handle form state and submission
     toast({
-      title: 'Category Added',
-      description: 'The new category has been successfully created.',
+      title: 'Catégorie ajoutée',
+      description: 'La nouvelle catégorie a été créée avec succès.',
     });
     onClose();
   };
@@ -35,25 +35,24 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Category</DialogTitle>
+          <DialogTitle>Ajouter une nouvelle catégorie</DialogTitle>
           <DialogDescription>
-            Enter the details for the new category.
+            Saisissez les détails de la nouvelle catégorie.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Nom
             </Label>
-            <Input id="name" placeholder="e.g. Beverages" className="col-span-3" />
+            <Input id="name" placeholder="ex: Boissons" className="col-span-3" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAddCategory}>Add Category</Button>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleAddCategory}>Ajouter Catégorie</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-

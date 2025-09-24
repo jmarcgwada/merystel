@@ -30,16 +30,16 @@ export function AddTableDialog({ isOpen, onClose }: AddTableDialogProps) {
     if (tableName.trim()) {
       addTable(tableName);
       toast({
-        title: 'Table Added',
-        description: `Table "${tableName}" has been successfully created.`,
+        title: 'Table ajoutée',
+        description: `La table "${tableName}" a été créée avec succès.`,
       });
       setTableName('');
       onClose();
     } else {
         toast({
             variant: 'destructive',
-            title: 'Invalid Name',
-            description: 'Table name cannot be empty.'
+            title: 'Nom invalide',
+            description: 'Le nom de la table ne peut pas être vide.'
         })
     }
   };
@@ -48,28 +48,28 @@ export function AddTableDialog({ isOpen, onClose }: AddTableDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Table</DialogTitle>
+          <DialogTitle>Ajouter une nouvelle table</DialogTitle>
           <DialogDescription>
-            Enter a name for the new table.
+            Saisissez un nom pour la nouvelle table.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Table Name
+              Nom de la table
             </Label>
             <Input 
               id="name" 
               value={tableName}
               onChange={(e) => setTableName(e.target.value)}
-              placeholder="e.g. Patio 1" 
+              placeholder="ex: Terrasse 1" 
               className="col-span-3" 
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAddTable}>Add Table</Button>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleAddTable}>Ajouter une table</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

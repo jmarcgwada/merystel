@@ -19,18 +19,18 @@ export function OrderSummary() {
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold tracking-tight font-headline">
-            {selectedTable ? `Order: ${selectedTable.name}` : 'Current Order'}
+            {selectedTable ? `Commande: ${selectedTable.name}` : 'Commande actuelle'}
           </h2>
           {order.length > 0 && (
             <Button variant="ghost" size="sm" onClick={clearOrder} className="text-destructive hover:text-destructive">
-              Clear All
+              Tout effacer
             </Button>
           )}
         </div>
 
         {order.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-muted-foreground">No items in the order yet.</p>
+            <p className="text-muted-foreground">Aucun article dans la commande.</p>
           </div>
         ) : (
           <ScrollArea className="flex-1">
@@ -48,7 +48,7 @@ export function OrderSummary() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">{item.price.toFixed(2)}€</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Minus className="h-3 w-3" />
@@ -60,7 +60,7 @@ export function OrderSummary() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">${item.total.toFixed(2)}</p>
+                    <p className="font-bold">{item.total.toFixed(2)}€</p>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => removeFromOrder(item.id)}>
                       <X className="h-4 w-4" />
                     </Button>
@@ -74,17 +74,17 @@ export function OrderSummary() {
         <div className="mt-auto border-t p-4">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>${orderTotal.toFixed(2)}</span>
+              <span>Sous-total</span>
+              <span>{orderTotal.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between">
               <span>Taxes (10%)</span>
-              <span>${(orderTotal * 0.1).toFixed(2)}</span>
+              <span>{(orderTotal * 0.1).toFixed(2)}€</span>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span>${(orderTotal * 1.1).toFixed(2)}</span>
+              <span>{(orderTotal * 1.1).toFixed(2)}€</span>
             </div>
           </div>
           <Button
@@ -93,7 +93,7 @@ export function OrderSummary() {
             disabled={order.length === 0}
             onClick={() => setCheckoutOpen(true)}
           >
-            Pay Now
+            Payer maintenant
           </Button>
         </div>
       </div>

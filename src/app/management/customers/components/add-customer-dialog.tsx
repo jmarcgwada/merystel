@@ -24,8 +24,8 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
 
     const handleAddCustomer = () => {
         toast({
-            title: 'Customer Added',
-            description: 'The new customer has been successfully created.',
+            title: 'Client ajouté',
+            description: 'Le nouveau client a été créé avec succès.',
         });
         onClose();
     }
@@ -34,34 +34,34 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Customer</DialogTitle>
+          <DialogTitle>Ajouter un nouveau client</DialogTitle>
           <DialogDescription>
-            Enter the customer's information.
+            Saisissez les informations du client.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Nom
             </Label>
-            <Input id="name" placeholder="John Doe" className="col-span-3" />
+            <Input id="name" placeholder="Jean Dupont" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="john.doe@example.com" className="col-span-3" />
+            <Input id="email" type="email" placeholder="jean.dupont@example.com" className="col-span-3" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
-              Phone
+              Téléphone
             </Label>
             <Input id="phone" type="tel" placeholder="(123) 456-7890" className="col-span-3" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAddCustomer}>Add Customer</Button>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleAddCustomer}>Ajouter client</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

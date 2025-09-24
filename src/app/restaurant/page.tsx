@@ -14,12 +14,12 @@ export default function RestaurantPage() {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Restaurant Mode"
-        subtitle="Select a table to view or start an order."
+        title="Mode Restaurant"
+        subtitle="Sélectionnez une table pour voir ou commencer une commande."
       >
         <Button onClick={() => setAddTableOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Table
+          Ajouter une table
         </Button>
       </PageHeader>
       <div className="mt-8">

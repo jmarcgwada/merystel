@@ -7,35 +7,35 @@ export default function CustomizationPage() {
   return (
     <>
       <PageHeader
-        title="Interface Customization"
-        subtitle="Personalize the look and feel of your POS."
+        title="Personnalisation de l'interface"
+        subtitle="Personnalisez l'apparence de votre point de vente."
       />
       <div className="mt-8 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Colors</CardTitle>
+            <CardTitle>Couleurs</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="text-center text-muted-foreground py-12">
-                <p>Live color customization options will be available here.</p>
+                <p>Les options de personnalisation des couleurs en direct seront disponibles ici.</p>
             </div>
           </CardContent>
         </Card>
          <Card>
           <CardHeader>
-            <CardTitle>Sizing & Opacity</CardTitle>
+            <CardTitle>Taille & Opacité</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
              <div className="grid gap-2">
-                <Label>Category Button Opacity</Label>
+                <Label>Opacité du bouton de catégorie</Label>
                 <Slider defaultValue={[80]} max={100} step={1} />
              </div>
               <div className="grid gap-2">
-                <Label>Table Button Size</Label>
+                <Label>Taille du bouton de table</Label>
                 <Slider defaultValue={[50]} max={100} step={1} />
              </div>
              <div className="text-center text-muted-foreground py-8">
-                <p>More sliders and real-time previews will be implemented.</p>
+                <p>Plus de curseurs et d'aperçus en temps réel seront implémentés.</p>
             </div>
           </CardContent>
         </Card>

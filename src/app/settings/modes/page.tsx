@@ -7,31 +7,31 @@ export default function ModesPage() {
   return (
     <>
       <PageHeader
-        title="Forced Modes"
-        subtitle="Lock the application into a specific mode for certain users."
+        title="Modes Forcés"
+        subtitle="Verrouillez l'application dans un mode spécifique pour certains utilisateurs."
       />
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Mode Configuration</CardTitle>
+          <CardTitle>Configuration du mode</CardTitle>
           <CardDescription>
-            Enable a mode to lock the app. A special key combination will be required to unlock.
+            Activez un mode pour verrouiller l'application. Une combinaison de touches spéciale sera requise pour déverrouiller.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label htmlFor="touch-mode" className="text-base">Force Touchscreen Mode</Label>
+              <Label htmlFor="touch-mode" className="text-base">Forcer le mode écran tactile</Label>
               <p className="text-sm text-muted-foreground">
-                Locks the app to the main Point of Sale screen.
+                Verrouille l'application sur l'écran principal du point de vente.
               </p>
             </div>
             <Switch id="touch-mode" />
           </div>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label htmlFor="restaurant-mode" className="text-base">Force Restaurant Mode</Label>
+              <Label htmlFor="restaurant-mode" className="text-base">Forcer le mode restaurant</Label>
                <p className="text-sm text-muted-foreground">
-                Locks the app to the Restaurant table management view.
+                Verrouille l'application sur la vue de gestion des tables du restaurant.
               </p>
             </div>
             <Switch id="restaurant-mode" />

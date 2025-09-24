@@ -19,7 +19,7 @@ export function CategoryList({
   return (
     <div className="flex h-full flex-col">
       <h2 className="p-4 text-xl font-bold tracking-tight border-b font-headline">
-        Categories
+        Catégories
       </h2>
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-2 p-4">

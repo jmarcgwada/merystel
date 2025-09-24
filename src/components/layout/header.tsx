@@ -27,11 +27,11 @@ import {
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/', label: 'Dashboard', icon: Grid },
-  { href: '/pos', label: 'Point of Sale', icon: ShoppingCart },
+  { href: '/', label: 'Tableau de bord', icon: Grid },
+  { href: '/pos', label: 'Point de Vente', icon: ShoppingCart },
   { href: '/restaurant', label: 'Restaurant', icon: UtensilsCrossed },
-  { href: '/management/items', label: 'Management', icon: Package },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/management/items', label: 'Gestion', icon: Package },
+  { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
 export default function Header() {
@@ -141,16 +141,16 @@ export default function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Profil</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+                <span>Paramètres</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Se déconnecter</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

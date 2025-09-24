@@ -26,9 +26,9 @@ interface CheckoutModalProps {
 }
 
 const paymentOptions = [
-  { value: 'card', label: 'Credit Card', icon: CreditCard },
-  { value: 'cash', label: 'Cash', icon: Wallet },
-  { value: 'other', label: 'Other', icon: Landmark },
+  { value: 'card', label: 'Carte', icon: CreditCard },
+  { value: 'cash', label: 'Espèces', icon: Wallet },
+  { value: 'other', label: 'Autre', icon: Landmark },
 ] as const;
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
@@ -48,8 +48,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     setTimeout(() => {
       toast({
-        title: 'Payment Successful',
-        description: `Paid $${totalAmount.toFixed(2)} via ${paymentMethod}.`,
+        title: 'Paiement réussi',
+        description: `Payé ${totalAmount.toFixed(2)}€ via ${paymentMethod}.`,
       });
       if (selectedTable) {
         updateTableOrder(selectedTable.id, []);
@@ -77,15 +77,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         {!isPaid ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-headline">Checkout</DialogTitle>
+              <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
               <DialogDescription>
-                Complete the transaction by selecting a payment method.
+                Finalisez la transaction en sélectionnant un mode de paiement.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Due</p>
-                <p className="text-5xl font-bold text-primary">${totalAmount.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Total à payer</p>
+                <p className="text-5xl font-bold text-primary">{totalAmount.toFixed(2)}€</p>
               </div>
 
               <RadioGroup
@@ -111,7 +111,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
               {paymentMethod === 'cash' && (
                 <div className="grid gap-2">
-                  <Label htmlFor="amount-paid">Amount Paid</Label>
+                  <Label htmlFor="amount-paid">Montant payé</Label>
                   <Input
                     id="amount-paid"
                     type="number"
@@ -121,7 +121,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   />
                   {changeDue >= 0 && (
                      <p className="text-center text-muted-foreground mt-2">
-                        Change Due: <span className="font-bold text-primary">${changeDue.toFixed(2)}</span>
+                        Monnaie à rendre : <span className="font-bold text-primary">{changeDue.toFixed(2)}€</span>
                      </p>
                   )}
                 </div>
@@ -129,18 +129,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
-                Cancel
+                Annuler
               </Button>
               <Button type="submit" onClick={handlePayment} className="w-full sm:w-auto" disabled={paymentMethod === 'cash' && changeDue < 0}>
-                Confirm Payment
+                Confirmer le paiement
               </Button>
             </DialogFooter>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center gap-4 py-16">
             <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />
-            <h2 className="text-2xl font-semibold">Payment Confirmed</h2>
-            <p className="text-muted-foreground">Thank you for your purchase!</p>
+            <h2 className="text-2xl font-semibold">Paiement confirmé</h2>
+            <p className="text-muted-foreground">Merci pour votre achat !</p>
           </div>
         )}
       </DialogContent>

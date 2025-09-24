@@ -12,19 +12,19 @@ import { Badge } from '@/components/ui/badge';
 const statusConfig = {
     available: {
         icon: CheckCircle,
-        label: 'Available',
+        label: 'Disponible',
         className: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700',
         cardClassName: 'border-green-300 hover:border-green-500 dark:border-green-800 dark:hover:border-green-600',
     },
     occupied: {
         icon: Utensils,
-        label: 'Occupied',
+        label: 'Occupée',
         className: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700',
         cardClassName: 'border-primary/50 hover:border-primary',
     },
     paying: {
         icon: CircleDollarSign,
-        label: 'Paying',
+        label: 'Paiement',
         className: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700',
         cardClassName: 'border-accent/50 hover:border-accent',
     }
@@ -66,15 +66,15 @@ export function TableLayout() {
               {table.status !== 'available' ? (
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    ${(total * 1.1).toFixed(2)}
+                    {(total * 1.1).toFixed(2)}€
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {table.order.length} item{table.order.length !== 1 ? 's' : ''}
+                    {table.order.length} article{table.order.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               ) : (
                  <div className="h-[52px] flex items-center">
-                    <p className="text-sm text-muted-foreground">Ready for new guests</p>
+                    <p className="text-sm text-muted-foreground">Prête pour de nouveaux clients</p>
                 </div>
               )}
             </CardContent>

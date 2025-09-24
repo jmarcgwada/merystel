@@ -29,7 +29,7 @@ export function ItemList({ category }: ItemListProps) {
   return (
     <div>
       <h2 className="mb-4 text-2xl font-semibold tracking-tight font-headline">
-        {category ? category.name : 'All Items'}
+        {category ? category.name : 'Tous les articles'}
       </h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {items.map((item) => (
@@ -54,7 +54,7 @@ export function ItemList({ category }: ItemListProps) {
               </CardContent>
               <CardFooter className="flex items-center justify-between p-3 pt-0">
                 <span className="text-lg font-bold text-primary">
-                  ${item.price.toFixed(2)}
+                  {item.price.toFixed(2)}€
                 </span>
                 <PlusCircle className="w-6 h-6 text-muted-foreground" />
               </CardFooter>

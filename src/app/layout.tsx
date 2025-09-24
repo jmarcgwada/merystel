@@ -6,7 +6,7 @@ import { PosProvider } from '@/contexts/pos-context';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
-  description: 'Modern Point of Sale System',
+  description: 'Système de point de vente moderne',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

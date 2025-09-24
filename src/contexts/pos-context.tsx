@@ -43,7 +43,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       return [...currentOrder, { ...itemToAdd, quantity: 1, total: itemToAdd.price }];
     });
-    toast({ title: `${itemToAdd.name} added to order` });
+    toast({ title: `${itemToAdd.name} ajouté à la commande` });
   };
 
   const removeFromOrder = (itemId: OrderItem['id']) => {
@@ -110,7 +110,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
-    throw new Error('usePos must be used within a PosProvider');
+    throw new Error('usePos doit être utilisé dans un PosProvider');
   }
   return context;
 }

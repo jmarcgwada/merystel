@@ -26,8 +26,8 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
 
   const handleAddItem = () => {
     toast({
-      title: 'Item Added',
-      description: 'The new item has been successfully created.',
+      title: 'Article ajouté',
+      description: 'Le nouvel article a été créé avec succès.',
     });
     onClose();
   };
@@ -36,31 +36,31 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Item</DialogTitle>
+          <DialogTitle>Ajouter un nouvel article</DialogTitle>
           <DialogDescription>
-            Fill in the details for the new product.
+            Remplissez les détails du nouveau produit.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Nom
             </Label>
-            <Input id="name" placeholder="e.g. Iced Coffee" className="col-span-3" />
+            <Input id="name" placeholder="ex: Café glacé" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">
-              Price
+              Prix
             </Label>
-            <Input id="price" type="number" placeholder="e.g. 4.50" className="col-span-3" />
+            <Input id="price" type="number" placeholder="ex: 4.50" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
-              Category
+              Catégorie
             </Label>
             <Select>
                 <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder="Sélectionnez une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
                     {mockCategories.map(cat => (
@@ -71,8 +71,8 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAddItem}>Add Item</Button>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleAddItem}>Ajouter Article</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

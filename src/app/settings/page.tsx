@@ -6,20 +6,20 @@ import { ArrowRight, Brush, Building, Lock } from 'lucide-react';
 const settingsLinks = [
     {
         href: '/settings/customization',
-        title: 'Interface Customization',
-        description: 'Personalize colors, fonts, and button sizes.',
+        title: "Personnalisation de l'interface",
+        description: 'Personnalisez les couleurs, les polices et la taille des boutons.',
         icon: Brush
     },
     {
         href: '/settings/company',
-        title: 'Company Details',
-        description: 'Manage your business name, address, and contact info.',
+        title: "Détails de l'entreprise",
+        description: "Gérez le nom, l'adresse et les coordonnées de votre entreprise.",
         icon: Building
     },
     {
         href: '/settings/modes',
-        title: 'Forced Modes',
-        description: 'Lock the application into a specific mode.',
+        title: 'Modes Forcés',
+        description: "Verrouillez l'application dans un mode spécifique.",
         icon: Lock
     }
 ]
@@ -28,8 +28,8 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader
-        title="Settings"
-        subtitle="Configure and customize the application to your needs."
+        title="Paramètres"
+        subtitle="Configurez et personnalisez l'application selon vos besoins."
       />
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsLinks.map(link => (

@@ -17,50 +17,50 @@ import {
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | Zenith POS',
+  title: 'Tableau de bord | Zenith POS',
 };
 
 const shortcuts = [
   {
-    title: 'Point of Sale',
+    title: 'Point de Vente',
     href: '/pos',
     icon: ShoppingCart,
-    description: 'Start a new transaction in touch mode.',
+    description: 'Démarrez une nouvelle transaction en mode tactile.',
     section: 'sales',
   },
   {
-    title: 'Restaurant Mode',
+    title: 'Mode Restaurant',
     href: '/restaurant',
     icon: UtensilsCrossed,
-    description: 'Manage tables and restaurant orders.',
+    description: 'Gérez les tables et les commandes du restaurant.',
     section: 'sales',
   },
   {
-    title: 'Manage Items',
+    title: 'Gérer les articles',
     href: '/management/items',
     icon: Box,
-    description: 'Add, edit, or remove products.',
+    description: 'Ajoutez, modifiez ou supprimez des produits.',
     section: 'management',
   },
   {
-    title: 'Manage Categories',
+    title: 'Gérer les catégories',
     href: '/management/categories',
     icon: LayoutGrid,
-    description: 'Organize your items into categories.',
+    description: 'Organisez vos articles en catégories.',
     section: 'management',
   },
   {
-    title: 'Manage Customers',
+    title: 'Gérer les clients',
     href: '/management/customers',
     icon: Users,
-    description: 'View and manage your customer list.',
+    description: 'Affichez et gérez votre liste de clients.',
     section: 'management',
   },
   {
-    title: 'Application Settings',
+    title: 'Paramètres de l\'application',
     href: '/settings',
     icon: Settings,
-    description: 'Customize interface and system options.',
+    description: 'Personnalisez l\'interface et les options du système.',
     section: 'settings',
   },
 ];
@@ -70,13 +70,13 @@ export default function DashboardPage() {
     <div className="flex-1 bg-background">
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">
-          Dashboard
+          Tableau de bord
         </h1>
 
         <div className="space-y-12">
           <div>
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
-              Sales & Orders
+              Ventes & Commandes
             </h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {shortcuts
@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
           <div>
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
-              Business Management
+              Gestion de l'entreprise
             </h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {shortcuts
@@ -102,7 +102,7 @@ export default function DashboardPage() {
           
           <div>
             <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground font-headline">
-              System
+              Système
             </h2>
              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {shortcuts
@@ -139,7 +139,7 @@ function ShortcutCard({
         <CardContent>
           <p className="text-sm text-muted-foreground">{description}</p>
           <div className="mt-4 flex items-center text-sm font-semibold text-primary group-hover:text-accent-foreground">
-            Go to {title}
+            Aller à {title}
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </div>
         </CardContent>
