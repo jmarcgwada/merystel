@@ -42,6 +42,8 @@ interface PosContextType {
   
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
+  updatePaymentMethod: (method: PaymentMethod) => void;
+  deletePaymentMethod: (methodId: string) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -174,6 +176,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Moyen de paiement ajouté' });
   }
 
+  const updatePaymentMethod = (method: PaymentMethod) => {
+    setPaymentMethods(prev => prev.map(m => m.id === method.id ? method : m));
+    toast({ title: 'Moyen de paiement modifié' });
+  }
+
+  const deletePaymentMethod = (methodId: string) => {
+    setPaymentMethods(prev => prev.filter(m => m.id !== methodId));
+    toast({ title: 'Moyen de paiement supprimé' });
+  }
 
   const value = {
     order,
@@ -205,6 +216,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     recordSale,
     paymentMethods,
     addPaymentMethod,
+    updatePaymentMethod,
+    deletePaymentMethod,
   };
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

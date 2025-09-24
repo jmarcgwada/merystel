@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCard, Wallet, Landmark, StickyNote } from 'lucide-react';
+import type { PaymentMethod } from '@/lib/types';
 
-interface AddPaymentMethodDialogProps {
+interface EditPaymentMethodDialogProps {
+  paymentMethod: PaymentMethod | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -30,14 +32,21 @@ const icons = [
   { value: 'other', label: 'Autre', icon: Landmark },
 ];
 
-export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDialogProps) {
+export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: EditPaymentMethodDialogProps) {
   const { toast } = useToast();
-  const { addPaymentMethod } = usePos();
+  const { updatePaymentMethod } = usePos();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<'card' | 'cash' | 'check' | 'other' | ''>('');
 
+  useEffect(() => {
+    if (paymentMethod) {
+        setName(paymentMethod.name);
+        setIcon(paymentMethod.icon || '');
+    }
+  }, [paymentMethod]);
 
-  const handleAddMethod = () => {
+
+  const handleEditMethod = () => {
     if (!name || !icon) {
         toast({
             variant: 'destructive',
@@ -47,20 +56,19 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
         return;
     }
     
-    addPaymentMethod({ name, icon });
-    
-    setName('');
-    setIcon('');
-    onClose();
+    if (paymentMethod) {
+        updatePaymentMethod({ ...paymentMethod, name, icon });
+        onClose();
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ajouter un moyen de paiement</DialogTitle>
+          <DialogTitle>Modifier le moyen de paiement</DialogTitle>
           <DialogDescription>
-            Saisissez les détails de la nouvelle méthode de paiement.
+            Modifiez les détails de la méthode de paiement.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -96,7 +104,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={handleAddMethod}>Ajouter</Button>
+          <Button onClick={handleEditMethod}>Sauvegarder</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
