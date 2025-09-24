@@ -70,7 +70,7 @@ function ItemForm() {
 
   useEffect(() => {
     // Generate a default image URL only on the client side to avoid hydration mismatch
-    setDefaultImage(`https://picsum.photos/seed/${Math.floor(Math.random() * 1000)}/200/150`);
+    setDefaultImage(`https://picsum.photos/seed/${new Date().getTime()}/200/150`);
   }, []);
 
   useEffect(() => {
@@ -361,3 +361,5 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
+    

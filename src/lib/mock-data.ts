@@ -142,3 +142,5 @@ const generateMockSales = (): Sale[] => {
 
 
 export const mockSales: Sale[] = generateMockSales();
+
+    

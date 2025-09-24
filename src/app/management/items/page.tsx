@@ -72,6 +72,9 @@ export default function ItemsPage() {
             if (aValue > bValue) {
                 return sortConfig.direction === 'asc' ? 1 : -1;
             }
+            // Add secondary sort by id to stabilize
+            if (a.id < b.id) return -1;
+            if (a.id > b.id) return 1;
             return 0;
         });
     }
@@ -254,3 +257,5 @@ export default function ItemsPage() {
     </>
   );
 }
+
+    
