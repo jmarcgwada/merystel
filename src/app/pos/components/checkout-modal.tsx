@@ -122,10 +122,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newBalance = totalAmount - (amountPaid + amountToAdd);
 
     if (newBalance <= 0.009) {
-        // Auto-finalize if paid in full
         handleFinalizeSale();
     } else {
-        // Otherwise, update amount and refocus
         setCurrentAmount(newBalance.toFixed(2));
         amountInputRef.current?.focus();
         amountInputRef.current?.select();
@@ -145,7 +143,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-     // Allow empty string, numbers, and a single decimal point
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
         setCurrentAmount(value);
     }
