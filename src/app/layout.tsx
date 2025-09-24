@@ -29,7 +29,7 @@ export default function RootLayout({
         <PosProvider>
           <div className="flex min-h-screen w-full flex-col h-full">
             <Header />
-            <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+            <main className="flex-1 flex flex-col">{children}</main>
           </div>
           <Toaster />
         </PosProvider>
