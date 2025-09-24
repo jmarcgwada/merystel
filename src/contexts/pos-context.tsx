@@ -36,6 +36,7 @@ interface PosContextType {
   addTable: (name: string) => void;
   selectedTable: Table | null;
   setSelectedTable: React.Dispatch<React.SetStateAction<Table | null>>;
+  setSelectedTableById: (tableId: string | null) => void;
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
 
   sales: Sale[];
@@ -102,13 +103,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setOrder([]);
   }, []);
 
-  // If the selected table is explicitly set to null, it means we're no longer in a table context.
-  // In this case, we should clear the order to start a fresh transaction.
-  useEffect(() => {
-    if (selectedTable === null) {
+  const setSelectedTableById = useCallback((tableId: string | null) => {
+    const table = tableId ? tables.find(t => t.id === tableId) || null : null;
+    setSelectedTable(table);
+    if (table) {
+      setOrder(table.order);
+    } else {
+      // This is a crucial part. If we are navigating away from a table context,
+      // but not recalling a held order, the order should be cleared.
+      // We will rely on recallOrder to set the new order if needed.
+      // If tableId is null and no recall is happening, we're in a fresh POS state.
+      if (!heldOrders.some(o => o.id.startsWith('recalled-'))) {
         clearOrder();
+      }
     }
-  }, [selectedTable, clearOrder]);
+  }, [tables, clearOrder, heldOrders]);
 
   const orderTotal = useMemo(() => {
     return order.reduce((sum, item) => sum + item.total, 0);
@@ -227,7 +236,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setHeldOrders(prev => prev.filter(o => o.id !== orderId));
       toast({ title: 'Commande rappelée.' });
     }
-  }, [heldOrders, toast, selectedTable, setSelectedTable]);
+  }, [heldOrders, toast, selectedTable]);
 
   const deleteHeldOrder = useCallback((orderId: string) => {
     setHeldOrders(prev => prev.filter(o => o.id !== orderId));
@@ -259,6 +268,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addTable,
     selectedTable,
     setSelectedTable,
+    setSelectedTableById,
     updateTableOrder,
     sales,
     recordSale,
@@ -295,6 +305,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addTable,
     selectedTable,
     setSelectedTable,
+    setSelectedTableById,
     updateTableOrder,
     sales,
     recordSale,
