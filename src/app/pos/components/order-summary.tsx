@@ -60,15 +60,7 @@ export function OrderSummary() {
   }
 
   const handleKeypadInput = (value: string) => {
-    if (value === 'del') {
-        setKeypadValue(prev => prev.slice(0, -1));
-    } else if (value === '.') {
-        if (!keypadValue.includes('.')) {
-            setKeypadValue(prev => prev + '.');
-        }
-    } else {
-        setKeypadValue(prev => prev + value);
-    }
+    setKeypadValue(prev => prev + value);
   }
 
   const handleApply = () => {
@@ -96,6 +88,11 @@ export function OrderSummary() {
         clearOrder();
     }
   }
+  
+  const handleClearKeypad = () => {
+    setKeypadValue('');
+  }
+
 
   const keypadActive = selectedItem !== null;
 
@@ -174,7 +171,10 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                    <Button variant="destructive" className="h-14" onClick={() => applyDiscount(selectedItem.id, 0, 'fixed')}>
+                    <Button variant="destructive" className="h-14" onClick={() => {
+                        applyDiscount(selectedItem.id, 0, 'fixed');
+                        handleClearKeypad();
+                    }}>
                         <Eraser/>
                     </Button>
 
@@ -190,7 +190,7 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
                     
                     <KeypadButton onClick={() => handleKeypadInput('0')} className="col-span-2">0</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
+                    <KeypadButton onClick={() => setKeypadValue('')}>C</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('del')} className="col-start-4 row-start-2">←</KeypadButton>
                 </div>
             </div>
