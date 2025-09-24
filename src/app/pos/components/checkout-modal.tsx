@@ -42,7 +42,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isPaid, setIsPaid] = useState(false);
-  const [currentAmount, setCurrentAmount] = useState(0);
+  const [currentAmount, setCurrentAmount] = useState<number | string>('');
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,9 +51,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   useEffect(() => {
     if (isOpen) {
-        setCurrentAmount(balanceDue);
+        const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
+        setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
     }
-  }, [isOpen, balanceDue]);
+  }, [isOpen, totalAmount, payments]);
 
   useEffect(() => {
     if(isOpen && !isPaid) {
@@ -67,19 +68,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleReset = () => {
     setPayments([]);
     setIsPaid(false);
-    setCurrentAmount(0);
+    setCurrentAmount('');
   }
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
+      // Use a timeout to avoid seeing the reset before the dialog closes
       setTimeout(handleReset, 300);
     }
   };
 
   const handleAddPayment = (method: PaymentMethod) => {
-    const amountToAdd = currentAmount;
-    if (amountToAdd <= 0) return;
+    const amountToAdd = parseFloat(String(currentAmount));
+    if (isNaN(amountToAdd) || amountToAdd <= 0) return;
+    
     if (amountToAdd > balanceDue + 0.001) {
         toast({
             variant: 'destructive',
@@ -118,6 +121,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
       clearOrder();
       onClose();
+      // handleReset is called by onOpenChange
     }, 2000);
   };
   
@@ -128,6 +132,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     return Landmark;
   }
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+     // Allow empty string, numbers, and a single decimal point
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+        setCurrentAmount(value);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -135,31 +147,26 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
-              <DialogDescription>
-                Ajoutez un ou plusieurs paiements pour compléter la transaction.
-              </DialogDescription>
+              <div className="absolute top-4 right-16 text-right">
+                <p className="text-sm text-muted-foreground">Total de la commande</p>
+                <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
+              </div>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
                 {/* Left side: Payment input */}
-                <div className="space-y-6">
-                    <div className="text-center space-y-2">
-                        <div>
-                            <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
-                            <div className="relative mt-1">
-                                <Input
-                                    id="amount-to-pay"
-                                    ref={amountInputRef}
-                                    type="number"
-                                    value={currentAmount.toFixed(2)}
-                                    onChange={(e) => setCurrentAmount(parseFloat(e.target.value) || 0)}
-                                    className="text-5xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0"
-                                />
-                                <span className="absolute right-0 top-1/2 -translate-y-1/2 text-3xl font-bold text-muted-foreground">€</span>
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Total de la commande</p>
-                            <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
+                <div className="space-y-6 flex flex-col">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2">
+                        <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">Montant à payer</Label>
+                        <div className="relative mt-1 w-full">
+                            <Input
+                                id="amount-to-pay"
+                                ref={amountInputRef}
+                                type="text"
+                                value={currentAmount}
+                                onChange={handleAmountChange}
+                                className="text-5xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                            />
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-3xl font-bold text-muted-foreground">€</span>
                         </div>
                     </div>
                     
@@ -172,7 +179,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 variant="outline"
                                 className="h-16 flex flex-col items-center justify-center gap-2"
                                 onClick={() => handleAddPayment(method)}
-                                disabled={balanceDue <= 0 || currentAmount <= 0}
+                                disabled={balanceDue <= 0 || !currentAmount || parseFloat(String(currentAmount)) <= 0}
                             >
                                 <IconComponent className="h-5 w-5" />
                                 <span className="text-sm">{method.name}</span>
@@ -183,18 +190,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
 
                 {/* Right side: Payments list */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Paiements effectués</h3>
+                <div className="space-y-4 rounded-lg border bg-secondary/50 p-4">
+                  <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
                   {payments.length === 0 ? (
-                    <div className="flex items-center justify-center h-full rounded-lg border border-dashed py-12">
+                    <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30 py-12">
                       <p className="text-muted-foreground">Aucun paiement ajouté.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                         {payments.map((p, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                          <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
                             <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="capitalize">{p.method.name}</Badge>
+                              <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
                               <span className="font-semibold">{p.amount.toFixed(2)}€</span>
                             </div>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
@@ -206,12 +213,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   )}
                   <Separator />
                    <div className="flex justify-between font-bold text-lg">
-                        <span>Total Payé</span>
-                        <span>{amountPaid.toFixed(2)}€</span>
+                        <span className="text-secondary-foreground">Total Payé</span>
+                        <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
                     </div>
-                    <div className="flex justify-between font-bold text-lg text-primary">
-                        <span>Solde Restant</span>
-                        <span>{balanceDue.toFixed(2)}€</span>
+                    <div className={cn(
+                        "flex justify-between font-bold text-lg",
+                        balanceDue > 0 ? "text-primary" : "text-green-600"
+                    )}>
+                        <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
+                        <span>{Math.abs(balanceDue).toFixed(2)}€</span>
                     </div>
                 </div>
             </div>
