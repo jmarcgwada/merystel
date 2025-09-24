@@ -65,6 +65,7 @@ export const mockCustomers: Customer[] = [
 const generateMockSales = (): Sale[] => {
     const sales: Sale[] = [];
     const today = new Date();
+    today.setHours(16, 0, 0, 0);
     const datePrefix = format(today, 'yyyyMMdd');
 
     // Sale 1
@@ -73,7 +74,7 @@ const generateMockSales = (): Sale[] => {
     sales.push({
         id: 'sale1',
         ticketNumber: `${datePrefix}-0001`,
-        date: new Date(Date.now() - 2 * 60 * 1000),
+        date: new Date(today.getTime() - 2 * 60 * 1000),
         items: [
             {...sale1Items[0], quantity: 1, total: sale1Items[0].price},
             {...sale1Items[1], quantity: 1, total: sale1Items[1].price},
@@ -92,7 +93,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale2',
         ticketNumber: `${datePrefix}-0002`,
-        date: new Date(Date.now() - 15 * 60 * 1000),
+        date: new Date(today.getTime() - 15 * 60 * 1000),
         items: [
              {...sale2Items[0], quantity: 2, total: sale2Items[0].price * 2},
              {...sale2Items[1], quantity: 2, total: sale2Items[1].price * 2},
@@ -109,7 +110,7 @@ const generateMockSales = (): Sale[] => {
      sales.push({
         id: 'sale3',
         ticketNumber: `${datePrefix}-0003`,
-        date: new Date(Date.now() - 35 * 60 * 1000),
+        date: new Date(today.getTime() - 35 * 60 * 1000),
         items: [
             {...sale3Items[0], quantity: 1, total: sale3Items[0].price},
             {...sale3Items[1], quantity: 2, total: sale3Items[1].price * 2},

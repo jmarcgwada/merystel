@@ -110,11 +110,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (table) {
       setOrder(table.order);
     } else {
-      if (!heldOrders.some(o => o.id.startsWith('recalled-'))) {
-        clearOrder();
-      }
+      clearOrder();
     }
-  }, [tables, clearOrder, heldOrders]);
+  }, [tables, clearOrder]);
 
   const orderTotal = useMemo(() => {
     return order.reduce((sum, item) => sum + item.total, 0);
