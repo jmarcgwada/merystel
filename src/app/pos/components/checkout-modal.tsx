@@ -140,7 +140,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     } else {
       amountToAdd = parseFloat(String(currentAmount));
     }
-
+    
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
     const newPayment: Payment = { method, amount: amountToAdd };
@@ -256,7 +256,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <div className="grid grid-cols-2 gap-4">
                       {paymentMethods.map((method) => {
                           const IconComponent = getIcon(method.icon);
-                          const isDisabled = (balanceDue <= 0 && method.type === 'direct') || 
+                          const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > balanceDue) ) || 
                                              (!currentAmount && !method.value) || 
                                              (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
@@ -285,10 +285,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             type="text"
                             value={currentAmount}
                             onChange={handleAmountChange}
-                            className="!text-7xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                            className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                             onFocus={(e) => e.target.select()}
                         />
-                        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-6xl font-bold text-muted-foreground">€</span>
+                        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
                     </div>
                 </div>
 
@@ -361,5 +361,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
 
     
