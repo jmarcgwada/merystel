@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +14,7 @@ export default function PosPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     mockCategories[0] || null
   );
-  const { selectedTable, setSelectedTable, tables, order, setOrder, clearOrder } = usePos();
+  const { selectedTable, setSelectedTable, tables, setOrder, clearOrder } = usePos();
   
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
@@ -33,7 +34,7 @@ export default function PosPage() {
         setSelectedTable(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId, tables]);
+  }, [tableId, tables, setOrder, setSelectedTable, clearOrder, selectedTable]);
 
 
   return (

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo } from 'react';
@@ -7,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PosContextType {
   order: OrderItem[];
+  setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   addToOrder: (item: OrderItem['id']) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
@@ -77,6 +79,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     order,
+    setOrder,
     addToOrder,
     removeFromOrder,
     updateQuantity,
