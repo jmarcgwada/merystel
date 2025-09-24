@@ -40,8 +40,8 @@ export default function ReportsPage() {
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
         {payments.map((p, index) => (
-          <Badge key={index} variant="outline" className="capitalize">
-            {p.method.name}
+          <Badge key={index} variant="outline" className="capitalize font-normal">
+            {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
           </Badge>
         ))}
       </div>
