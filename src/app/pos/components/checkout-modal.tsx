@@ -113,9 +113,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       clearOrder();
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder]);
+  }, [isPaid, order, orderTotal, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange]);
   
   const handleAddPayment = (method: PaymentMethod) => {
+    if (payments.length >= 4) {
+      toast({
+        variant: 'destructive',
+        title: 'Limite atteinte',
+        description: 'Vous ne pouvez pas utiliser plus de 4 moyens de paiement.'
+      });
+      return;
+    }
     let amountToAdd = parseFloat(String(currentAmount));
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -136,7 +144,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         selectAndFocusInput();
     } else { // Exactly paid or change is due
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
-        handleFinalizeSale(newPayments);
+        if (newBalance > -0.009 && newBalance < 0.009) { // Exactly paid
+            handleFinalizeSale(newPayments);
+        }
     }
   }
   
@@ -164,6 +174,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setCurrentAmount(value);
     }
   };
+
+  const finalizeButtonDisabled = balanceDue > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -259,6 +271,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
                 Annuler
               </Button>
+               {balanceDue < 0.009 && (
+                 <Button onClick={() => handleFinalizeSale(payments)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+                    Finaliser la vente
+                </Button>
+              )}
             </DialogFooter>
           </>
         ) : (
