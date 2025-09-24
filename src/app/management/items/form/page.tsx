@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,9 +18,11 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles } from 'lucide-react';
 import type { Item } from '@/lib/types';
 import Link from 'next/link';
+import { generateImage } from '@/ai/flows/generate-image-flow';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -39,6 +41,7 @@ function ItemForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { items, categories, vatRates, addItem, updateItem } = usePos();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const itemId = searchParams.get('id');
   const isEditMode = Boolean(itemId);
@@ -73,9 +76,9 @@ function ItemForm() {
         isFavorite: itemToEdit.isFavorite || false,
         image: itemToEdit.image,
       });
-    } else if (!isEditMode) {
-      form.reset();
-       setValue('image', `https://picsum.photos/seed/${Date.now()}/200/150`);
+    } else {
+        form.reset();
+        setValue('image', `https://picsum.photos/seed/${Date.now()}/200/150`);
     }
   }, [isEditMode, itemToEdit, form, setValue]);
 
@@ -95,8 +98,34 @@ function ItemForm() {
     router.push('/management/items');
   }
 
-  const generateNewImage = () => {
-    setValue('image', `https://picsum.photos/seed/${Date.now()}/200/150`);
+  const handleGenerateImage = async () => {
+    const name = form.getValues('name');
+    if (!name) {
+      toast({
+        variant: 'destructive',
+        title: 'Nom requis',
+        description: "Veuillez d'abord entrer un nom pour l'article.",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const result = await generateImage(name);
+      if (result) {
+        setValue('image', result);
+        toast({ title: 'Image générée avec succès !' });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de génération',
+        description: "Impossible de générer l'image. Veuillez réessayer.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -249,12 +278,18 @@ function ItemForm() {
                 <div className="w-full max-w-[200px]">
                     <Card className="flex flex-col overflow-hidden">
                         <div className="relative aspect-video w-full">
-                            <Image
-                            src={watchedImage || 'https://picsum.photos/seed/placeholder/200/150'}
-                            alt={watchedName || "Aperçu de l'article"}
-                            fill
-                            className="object-cover"
-                            />
+                           {isGenerating ? (
+                              <div className="w-full aspect-video flex items-center justify-center">
+                                  <Skeleton className="w-full h-full" />
+                              </div>
+                            ) : (
+                              <Image
+                                src={watchedImage || 'https://picsum.photos/seed/placeholder/200/150'}
+                                alt={watchedName || "Aperçu de l'article"}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
                         </div>
                         <div className="flex-1 p-3">
                             <h3 className="font-semibold leading-tight truncate">{watchedName || "Nom de l'article"}</h3>
@@ -267,16 +302,16 @@ function ItemForm() {
                         </div>
                     </Card>
                 </div>
-                 <Button type="button" variant="outline" onClick={generateNewImage}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Nouvelle image aléatoire
+                 <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGenerating}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {isGenerating ? "Génération en cours..." : "Générer une image IA"}
                 </Button>
               </CardContent>
             </Card>
           </div>
           
           <div className="lg:col-span-3 flex justify-end">
-             <Button type="submit" size="lg">
+             <Button type="submit" size="lg" disabled={isGenerating}>
                 {isEditMode ? 'Sauvegarder les modifications' : 'Créer l\'article'}
             </Button>
           </div>
