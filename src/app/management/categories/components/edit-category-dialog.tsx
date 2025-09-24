@@ -70,7 +70,7 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
             <Label htmlFor="name" className="text-right">
               Nom
             </Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Boissons" className="col-span-3" />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Boissons" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
         </div>
         <DialogFooter>

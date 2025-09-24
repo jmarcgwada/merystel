@@ -76,19 +76,19 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
             <Label htmlFor="name" className="text-right">
               Nom
             </Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Jean Dupont" className="col-span-3" />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Jean Dupont" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">
               Email
             </Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean.dupont@example.com" className="col-span-3" />
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean.dupont@example.com" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
               Téléphone
             </Label>
-            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(123) 456-7890" className="col-span-3" />
+            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(123) 456-7890" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
         </div>
         <DialogFooter>

@@ -69,13 +69,13 @@ export function AddItemDialog({ isOpen, onClose }: AddItemDialogProps) {
             <Label htmlFor="name" className="text-right">
               Nom
             </Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="ex: Café glacé" className="col-span-3" />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="ex: Café glacé" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">
               Prix
             </Label>
-            <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="ex: 4.50" className="col-span-3" />
+            <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="ex: 4.50" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">

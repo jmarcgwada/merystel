@@ -64,6 +64,7 @@ export function AddTableDialog({ isOpen, onClose }: AddTableDialogProps) {
               onChange={(e) => setTableName(e.target.value)}
               placeholder="ex: Terrasse 1" 
               className="col-span-3" 
+              onFocus={(e) => e.target.select()}
             />
           </div>
         </div>

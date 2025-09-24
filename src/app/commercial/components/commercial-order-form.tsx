@@ -111,6 +111,7 @@ export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps
                             {...field} 
                             onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                             min={1}
+                            onFocus={(e) => e.target.select()}
                         />
                       </FormControl>
                       <FormMessage />
