@@ -143,10 +143,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    if (method.type === 'direct' && amountToAdd > balanceDue) {
-      amountToAdd = balanceDue;
-    }
-
     const newPayment: Payment = { method, amount: amountToAdd };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
@@ -365,3 +361,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
