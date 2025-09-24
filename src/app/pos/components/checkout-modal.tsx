@@ -49,21 +49,20 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
 
+  const selectAndFocusInput = () => {
+    setTimeout(() => {
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+    }, 100);
+  }
+
   useEffect(() => {
     if (isOpen && !isPaid) {
         const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
         setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
+        selectAndFocusInput();
     }
   }, [isOpen, totalAmount, payments, isPaid]);
-
-  useEffect(() => {
-    if(isOpen && !isPaid) {
-        setTimeout(() => {
-            amountInputRef.current?.focus();
-            amountInputRef.current?.select();
-        }, 100);
-    }
-  }, [isOpen, isPaid]);
 
   const handleReset = () => {
     setPayments([]);
@@ -125,13 +124,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         handleFinalizeSale();
     } else {
         setCurrentAmount(newBalance.toFixed(2));
-        amountInputRef.current?.focus();
-        amountInputRef.current?.select();
+        selectAndFocusInput();
     }
   }
   
   const handleRemovePayment = (index: number) => {
     setPayments(prev => prev.filter((_, i) => i !== index));
+    selectAndFocusInput();
   }
   
   const getIcon = (iconName?: string) => {
@@ -172,7 +171,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 type="text"
                                 value={currentAmount}
                                 onChange={handleAmountChange}
-                                className="text-6xl font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                                className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                                 onFocus={(e) => e.target.select()}
                             />
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
@@ -255,7 +254,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         ) : (
           <>
             <DialogHeader>
-                <DialogTitle className="sr-only">Paiement Confirmé</DialogTitle>
+              <DialogTitle className="sr-only">Paiement Confirmé</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />
