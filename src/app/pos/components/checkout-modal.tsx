@@ -207,7 +207,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 variant="outline"
                                 className="h-16 flex flex-col items-center justify-center gap-2"
                                 onClick={() => handleAddPayment(method)}
-                                disabled={balanceDue <= 0 || !currentAmount || parseFloat(String(currentAmount)) <= 0}
+                                disabled={balanceDue <= 0 && method.icon !== 'cash' || !currentAmount || parseFloat(String(currentAmount)) <= 0}
                             >
                                 <IconComponent className="h-5 w-5" />
                                 <span className="text-sm">{method.name}</span>
