@@ -21,9 +21,11 @@ const generateImageFlow = ai.defineFlow(
         outputSchema: GenerateImageOutputSchema,
     },
     async (prompt) => {
+        // Changed model to gemini-pro-vision to avoid billing error with Imagen.
+        // This is a workaround. For best results, enable billing and use 'googleai/imagen-4.0-fast-generate-001'.
         const { media } = await ai.generate({
-            model: 'googleai/imagen-4.0-fast-generate-001',
-            prompt: `photorealistic, high quality photo of ${prompt}, food photography, professional`,
+            model: 'googleai/gemini-pro-vision',
+            prompt: `generate a photorealistic, high quality food photography style image of: ${prompt}`,
         });
         
         if (!media.url) {
@@ -33,5 +35,3 @@ const generateImageFlow = ai.defineFlow(
         return media.url;
     }
 );
-
-    
