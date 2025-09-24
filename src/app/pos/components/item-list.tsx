@@ -16,25 +16,27 @@ import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface ItemListProps {
-  category: Category | 'all' | 'favorites' | null;
+  category: Category | 'all' | null;
   searchTerm: string;
+  showFavoritesOnly: boolean;
 }
 
-export function ItemList({ category, searchTerm }: ItemListProps) {
+export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
   const { addToOrder, items: allItems } = usePos();
   
   const filteredItems = allItems.filter(item => {
     let matchesCategory = true;
     if (category === 'all' || category === null) {
         matchesCategory = true;
-    } else if (category === 'favorites') {
-        matchesCategory = !!item.isFavorite;
     } else if (typeof category === 'object' && category.id) {
         matchesCategory = item.categoryId === category.id;
     }
     
     const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
-    return matchesCategory && matchesSearch;
+
+    const matchesFavorites = showFavoritesOnly ? !!item.isFavorite : true;
+
+    return matchesCategory && matchesSearch && matchesFavorites;
   });
 
   return (

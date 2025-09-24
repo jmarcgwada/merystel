@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -11,16 +11,20 @@ import { usePos } from '@/contexts/pos-context';
 import { LayoutGrid, Search, Star } from 'lucide-react';
 
 interface CategoryListProps {
-  selectedCategory: Category | 'all' | 'favorites' | null;
-  onSelectCategory: (category: Category | 'all' | 'favorites' | null) => void;
+  selectedCategory: Category | 'all' | null;
+  onSelectCategory: (category: Category | 'all' | null) => void;
+  showFavoritesOnly: boolean;
+  onToggleFavorites: () => void;
 }
 
 export function CategoryList({
   selectedCategory,
   onSelectCategory,
+  showFavoritesOnly,
+  onToggleFavorites,
 }: CategoryListProps) {
   const { categories } = usePos();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -59,9 +63,9 @@ export function CategoryList({
               <span className="text-base">Tout</span>
             </Button>
             <Button
-              variant={getVariant('favorites')}
+              variant={showFavoritesOnly ? 'default' : 'ghost'}
               className="h-12 w-full justify-start text-left"
-              onClick={() => onSelectCategory('favorites')}
+              onClick={onToggleFavorites}
             >
               <Star className="mr-3 h-5 w-5" />
               <span className="text-base">Favoris</span>

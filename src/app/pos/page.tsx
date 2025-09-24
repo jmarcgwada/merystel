@@ -17,9 +17,10 @@ import { Input } from '@/components/ui/input';
 export default function PosPage() {
   const { setSelectedTableById, heldOrders } = usePos();
 
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'all' | 'favorites' | null>('all');
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'all' | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
@@ -31,11 +32,17 @@ export default function PosPage() {
 
   const pageTitle = useMemo(() => {
     if (selectedCategory === 'all' || selectedCategory === null) return 'Tous les articles';
-    if (selectedCategory === 'favorites') return 'Favoris';
     if (typeof selectedCategory === 'object') return selectedCategory.name;
     return 'Articles';
   }, [selectedCategory]);
 
+  const handleSelectCategory = (category: Category | 'all' | null) => {
+    setSelectedCategory(category);
+  }
+
+  const handleToggleFavorites = () => {
+    setShowFavoritesOnly(prev => !prev);
+  }
 
   return (
     <>
@@ -44,7 +51,9 @@ export default function PosPage() {
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card">
             <CategoryList
               selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
+              onSelectCategory={handleSelectCategory}
+              showFavoritesOnly={showFavoritesOnly}
+              onToggleFavorites={handleToggleFavorites}
             />
           </div>
 
@@ -68,7 +77,11 @@ export default function PosPage() {
                 {heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
               </Button>
             </div>
-            <ItemList category={selectedCategory} searchTerm={itemSearchTerm} />
+            <ItemList 
+              category={selectedCategory} 
+              searchTerm={itemSearchTerm} 
+              showFavoritesOnly={showFavoritesOnly}
+            />
           </div>
 
           <div className="md:col-span-4 lg:col-span-4 border-l bg-card">
