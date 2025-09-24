@@ -95,13 +95,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const newQuantity = existingItem.quantity + 1;
         const updatedItem = { ...existingItem, quantity: newQuantity, total: (existingItem.price * newQuantity) - (existingItem.discount || 0) };
         
-        // Move to top
         const newOrder = [...currentOrder];
         newOrder.splice(existingItemIndex, 1);
         return [updatedItem, ...newOrder];
 
       } else {
-        const newItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
+        const newItem: OrderItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
         return [newItem, ...currentOrder];
       }
     });
@@ -136,18 +135,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setOrder(currentOrder => currentOrder.map(item => {
           if (item.id === itemId) {
               let discountAmount = 0;
+              let discountPercent: number | undefined = undefined;
+
               if (type === 'percentage') {
                   discountAmount = (item.price * item.quantity) * (value / 100);
+                  discountPercent = value;
               } else {
                   discountAmount = value;
               }
 
               if (discountAmount < 0) discountAmount = 0;
+              if (value === 0) discountPercent = undefined;
+              
               const newTotal = (item.price * item.quantity) - discountAmount;
 
               return {
                   ...item,
                   discount: discountAmount,
+                  discountPercent,
                   total: newTotal > 0 ? newTotal : 0,
               }
           }

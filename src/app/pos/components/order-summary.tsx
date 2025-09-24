@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser } from 'lucide-react';
+import { X, Hand, Eraser, Badge } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ export function OrderSummary() {
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
   const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -56,32 +58,26 @@ export function OrderSummary() {
   }, [selectedItem, mode]);
 
   const handleItemSelect = (item: OrderItem) => {
-    let newSelectedItem = null;
     if (selectedItem?.id === item.id) {
         setSelectedItem(null);
         setKeypadValue('');
     } else {
-        newSelectedItem = item;
         setSelectedItem(item);
         setMode('quantity');
         setKeypadValue(item.quantity.toString());
     }
 
-    // Move to top logic
     const itemIndex = order.findIndex(o => o.id === item.id);
     if (itemIndex > 0) {
         const newOrder = [...order];
         const [movedItem] = newOrder.splice(itemIndex, 1);
         setOrder([movedItem, ...newOrder]);
         
-        // Scroll to the item after it's moved
         setTimeout(() => {
-            const itemRef = itemRefs.current.get(item.id);
-            itemRef?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }, 100);
-    } else {
-        const itemRef = itemRefs.current.get(item.id);
-        itemRef?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
@@ -137,6 +133,11 @@ export function OrderSummary() {
     setSelectedItem(null);
     setKeypadValue('');
   }
+  
+  const handleCloseKeypad = () => {
+    setSelectedItem(null);
+    setKeypadValue('');
+  }
 
   const handleClearOrder = () => {
     if(selectedTable) {
@@ -164,13 +165,13 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full" viewportRef={scrollAreaRef}>
               <div className="divide-y">
                 {order.map((item) => (
                   <div key={item.id} ref={el => itemRefs.current.set(item.id, el)}>
@@ -193,7 +194,7 @@ export function OrderSummary() {
                                   <span>Qté: {item.quantity}</span>
                                   {item.discount > 0 && (
                                       <span className="text-destructive font-semibold">
-                                          (-{item.discount.toFixed(2)}€)
+                                          (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
                                       </span>
                                   )}
                               </div>
@@ -243,15 +244,18 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    <Button className="row-span-3 h-auto text-2xl" onClick={handleApply}>
+                    <Button className="h-14 text-lg" onClick={handleApply}>
                        Valider
                     </Button>
 
                     <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                    <Button variant="secondary" className="h-14 text-lg" onClick={handleCloseKeypad}>
+                        Fermer
+                    </Button>
                     
-                    <KeypadButton onClick={() => handleKeypadInput('C')}>C</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('C')} className="col-span-2">C</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('0')}>0</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
                 </div>
