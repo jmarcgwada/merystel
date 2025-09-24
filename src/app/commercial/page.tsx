@@ -8,6 +8,7 @@ import { CommercialOrderForm } from './components/commercial-order-form';
 import { OrderSummary } from '@/app/pos/components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { OrderItem } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function CommercialPage() {
     const { setOrder, clearOrder } = usePos();
@@ -71,4 +72,3 @@ export default function CommercialPage() {
     </div>
   );
 }
-
