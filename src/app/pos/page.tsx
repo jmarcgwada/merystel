@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,7 +14,7 @@ import { Hand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function PosPage() {
-  const { categories, setSelectedTable, tables, setOrder, clearOrder, heldOrders } = usePos();
+  const { categories, setSelectedTable, tables, setOrder, heldOrders } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     categories[0] || null
@@ -31,13 +30,9 @@ export default function PosPage() {
 
     if (table) {
       setOrder(table.order);
-    } else {
-      // When there's no tableId, we don't want to clear an existing order
-      // that might be a recalled held order.
-      // The user can clear it manually.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId, tables, setOrder, setSelectedTable]);
+  }, [tableId, tables]);
   
 
   useEffect(() => {

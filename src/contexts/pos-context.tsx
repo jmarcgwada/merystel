@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
@@ -101,6 +101,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const clearOrder = useCallback(() => {
     setOrder([]);
   }, []);
+
+  // When selectedTable is null, clear the order
+  useEffect(() => {
+    if(!selectedTable){
+        clearOrder();
+    }
+  }, [selectedTable, clearOrder]);
 
   const orderTotal = useMemo(() => {
     return order.reduce((sum, item) => sum + item.total, 0);
