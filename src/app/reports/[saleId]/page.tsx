@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
@@ -17,10 +18,33 @@ import Image from 'next/image';
 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
-  const { sales, customers } = usePos();
+  const { sales, customers, vatRates } = usePos();
 
   const sale = sales.find(s => s.id === saleId);
   const customer = sale?.customerId ? customers.find(c => c.id === sale?.customerId) : null;
+
+  const getVatInfo = (vatId: string) => {
+    return vatRates.find(v => v.id === vatId);
+  }
+
+  const vatBreakdown = useMemo(() => {
+    if (!sale) return {};
+    const breakdown: { [key: string]: { rate: number; total: number } } = {};
+
+    sale.items.forEach(item => {
+      const vatInfo = getVatInfo(item.vatId);
+      if (vatInfo) {
+        const taxForItem = item.total * (vatInfo.rate / 100);
+        if (breakdown[vatInfo.rate]) {
+          breakdown[vatInfo.rate].total += taxForItem;
+        } else {
+          breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem };
+        }
+      }
+    });
+
+    return breakdown;
+  }, [sale, vatRates]);
 
   if (!sale) {
     return (
@@ -59,23 +83,32 @@ export default function SaleDetailPage() {
                   <TableRow>
                     <TableHead className="w-[64px]">Image</TableHead>
                     <TableHead>Article</TableHead>
-                    <TableHead className="text-center">Quantité</TableHead>
+                    <TableHead className="text-center">Qté</TableHead>
                     <TableHead className="text-right">Prix Unitaire</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">TVA</TableHead>
+                    <TableHead className="text-right">Total Ligne</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sale.items.map(item => (
-                    <TableRow key={item.id}>
-                        <TableCell>
-                            <Image src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
-                        </TableCell>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
-                        <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
-                    </TableRow>
-                  ))}
+                  {sale.items.map(item => {
+                    const vatInfo = getVatInfo(item.vatId);
+                    const vatAmount = item.total * ((vatInfo?.rate || 0) / 100);
+                    return (
+                        <TableRow key={item.id}>
+                            <TableCell>
+                                <Image src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
+                            </TableCell>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell className="text-center">{item.quantity}</TableCell>
+                            <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                             <TableCell className="text-right text-muted-foreground text-xs">
+                                <div>{vatAmount.toFixed(2)}€</div>
+                                <div>({vatInfo?.rate || 0}%)</div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
+                        </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -89,16 +122,25 @@ export default function SaleDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Sous-total</span>
+                <span className="text-muted-foreground">Sous-total (HT)</span>
                 <span>{sale.subtotal.toFixed(2)}€</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">TVA</span>
-                <span>{sale.tax.toFixed(2)}€</span>
+              
+              {Object.values(vatBreakdown).map(vat => (
+                <div key={vat.rate} className="flex justify-between">
+                  <span className="text-muted-foreground">TVA ({vat.rate}%)</span>
+                  <span>{vat.total.toFixed(2)}€</span>
+                </div>
+              ))}
+
+              <div className="flex justify-between text-muted-foreground">
+                 <span>Total TVA</span>
+                 <span>{sale.tax.toFixed(2)}€</span>
               </div>
+
               <Separator />
               <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
+                <span>Total (TTC)</span>
                 <span>{sale.total.toFixed(2)}€</span>
               </div>
             </CardContent>
