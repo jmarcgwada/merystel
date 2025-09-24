@@ -60,7 +60,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if(isOpen && !isPaid) {
         setTimeout(() => {
             amountInputRef.current?.focus();
-            amountInputRef.current?.select();
+            amountInputref.current?.select();
         }, 100);
     }
   }, [isOpen, isPaid]);
@@ -185,39 +185,43 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
 
                 {/* Right side: Payments list */}
-                <div className="space-y-4 rounded-lg border bg-secondary/50 p-4">
+                <div className="space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
                   <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
-                  {payments.length === 0 ? (
-                    <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30 py-12">
-                      <p className="text-muted-foreground">Aucun paiement ajouté.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                        {payments.map((p, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
-                              <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                  <div className="flex-1">
+                    {payments.length === 0 ? (
+                      <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
+                        <p className="text-muted-foreground">Aucun paiement ajouté.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                          {payments.map((p, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
+                                <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                  <Separator />
-                   <div className="flex justify-between font-bold text-lg">
-                        <span className="text-secondary-foreground">Total Payé</span>
-                        <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
-                    </div>
-                    <div className={cn(
-                        "flex justify-between font-bold text-lg",
-                        balanceDue > 0 ? "text-primary" : "text-green-600"
-                    )}>
-                        <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
-                        <span>{Math.abs(balanceDue).toFixed(2)}€</span>
-                    </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-auto">
+                    <Separator className="my-4" />
+                    <div className="flex justify-between font-bold text-lg">
+                          <span className="text-secondary-foreground">Total Payé</span>
+                          <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
+                      </div>
+                      <div className={cn(
+                          "flex justify-between font-bold text-lg mt-2",
+                          balanceDue > 0 ? "text-primary" : "text-green-600"
+                      )}>
+                          <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
+                          <span>{Math.abs(balanceDue).toFixed(2)}€</span>
+                      </div>
+                  </div>
                 </div>
             </div>
             <DialogFooter>
