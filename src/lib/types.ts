@@ -23,6 +23,7 @@ export interface Item {
   image?: string;
   isFavorite?: boolean;
   description?: string;
+  showImage?: boolean;
 }
 
 export interface OrderItem extends Item {

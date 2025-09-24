@@ -172,7 +172,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addItem = useCallback((itemData: Omit<Item, 'id'>) => {
-    const newItem: Item = { ...itemData, id: `item${Date.now()}` };
+    const newItem: Item = { ...itemData, id: `item${Date.now()}`, showImage: itemData.showImage ?? true };
     setItems(prev => [...prev, newItem]);
   }, []);
 

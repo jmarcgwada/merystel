@@ -25,30 +25,30 @@ export const mockCategories: Category[] = [
 
 export const mockItems: Item[] = [
   // Plats principaux
-  { id: 'item1', name: 'Steak Frites', price: 28.5, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/201/150/150', isFavorite: true, description: 'Un classique de la brasserie : un steak de bœuf grillé à la perfection, accompagné de frites maison croustillantes et d\'une sauce au poivre.' },
-  { id: 'item2', name: 'Poulet rôti', price: 24.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/202/150/150', description: 'Demi-poulet fermier rôti lentement, servi avec une purée de pommes de terre onctueuse et son jus de cuisson.' },
-  { id: 'item3', name: 'Filet de saumon', price: 26.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/203/150/150' },
-  { id: 'item4', name: 'Pâtes Carbonara', price: 19.5, categoryId: 'cat1', vatId: 'vat2', image: 'https://picsum.photos/seed/204/150/150' },
+  { id: 'item1', name: 'Steak Frites', price: 28.5, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/201/150/150', isFavorite: true, description: 'Un classique de la brasserie : un steak de bœuf grillé à la perfection, accompagné de frites maison croustillantes et d\'une sauce au poivre.', showImage: true },
+  { id: 'item2', name: 'Poulet rôti', price: 24.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/202/150/150', description: 'Demi-poulet fermier rôti lentement, servi avec une purée de pommes de terre onctueuse et son jus de cuisson.', showImage: true },
+  { id: 'item3', name: 'Filet de saumon', price: 26.0, categoryId: 'cat1', vatId: 'vat3', image: 'https://picsum.photos/seed/203/150/150', showImage: true },
+  { id: 'item4', name: 'Pâtes Carbonara', price: 19.5, categoryId: 'cat1', vatId: 'vat2', image: 'https://picsum.photos/seed/204/150/150', showImage: true },
   
   // Entrées
-  { id: 'item5', name: 'Soupe à l\'oignon', price: 9.0, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/205/150/150' },
-  { id: 'item6', name: 'Calamars frits', price: 12.5, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/206/150/150' },
-  { id: 'item7', name: 'Bruschetta', price: 8.0, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/207/150/150' },
+  { id: 'item5', name: 'Soupe à l\'oignon', price: 9.0, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/205/150/150', showImage: true },
+  { id: 'item6', name: 'Calamars frits', price: 12.5, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/206/150/150', showImage: false },
+  { id: 'item7', name: 'Bruschetta', price: 8.0, categoryId: 'cat2', vatId: 'vat2', image: 'https://picsum.photos/seed/207/150/150', showImage: true },
 
   // Desserts
-  { id: 'item8', name: 'Mi-cuit au chocolat', price: 10.0, categoryId: 'cat3', vatId: 'vat2', image: 'https://picsum.photos/seed/208/150/150', isFavorite: true },
-  { id: 'item9', name: 'Crème Brûlée', price: 9.5, categoryId: 'cat3', vatId: 'vat2', image: 'https://picsum.photos/seed/209/150/150' },
+  { id: 'item8', name: 'Mi-cuit au chocolat', price: 10.0, categoryId: 'cat3', vatId: 'vat2', image: 'https://picsum.photos/seed/208/150/150', isFavorite: true, showImage: true },
+  { id: 'item9', name: 'Crème Brûlée', price: 9.5, categoryId: 'cat3', vatId: 'vat2', image: 'https://picsum.photos/seed/209/150/150', showImage: true },
 
   // Boissons chaudes
-  { id: 'item10', name: 'Espresso', price: 3.5, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/210/150/150', isFavorite: true },
-  { id: 'item11', name: 'Latte', price: 5.0, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/211/150/150' },
-  { id: 'item12', name: 'Tisane', price: 4.0, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/212/150/150' },
+  { id: 'item10', name: 'Espresso', price: 3.5, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/210/150/150', isFavorite: true, showImage: false },
+  { id: 'item11', name: 'Latte', price: 5.0, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/211/150/150', showImage: false },
+  { id: 'item12', name: 'Tisane', price: 4.0, categoryId: 'cat4', vatId: 'vat2', image: 'https://picsum.photos/seed/212/150/150', showImage: false },
 
   // Boissons froides
-  { id: 'item13', name: 'Thé glacé', price: 4.0, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/213/150/150', isFavorite: true },
-  { id: 'item14', name: 'Eau pétillante', price: 3.0, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/214/150/150' },
-  { id: 'item15', name: 'Jus d\'orange', price: 5.5, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/215/150/150' },
-  { id: 'item16', name: 'Cola', price: 3.5, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/216/150/150' },
+  { id: 'item13', name: 'Thé glacé', price: 4.0, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/213/150/150', isFavorite: true, showImage: true },
+  { id: 'item14', name: 'Eau pétillante', price: 3.0, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/214/150/150', showImage: false },
+  { id: 'item15', name: 'Jus d\'orange', price: 5.5, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/215/150/150', showImage: true },
+  { id: 'item16', name: 'Cola', price: 3.5, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/216/150/150', showImage: false },
 ];
 
 export const mockTables: Table[] = [

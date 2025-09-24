@@ -32,6 +32,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   isFavorite: z.boolean().default(false),
   image: z.string().optional(),
+  showImage: z.boolean().default(true),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -57,6 +58,7 @@ function ItemForm() {
       description: '',
       isFavorite: false,
       image: '',
+      showImage: true,
     },
   });
 
@@ -75,6 +77,7 @@ function ItemForm() {
         description: itemToEdit.description || '',
         isFavorite: itemToEdit.isFavorite || false,
         image: itemToEdit.image,
+        showImage: itemToEdit.showImage ?? true,
       });
     } else {
         form.reset();
@@ -246,7 +249,7 @@ function ItemForm() {
                 <CardHeader>
                     <CardTitle>Statut & Visibilité</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                      <FormField
                         control={form.control}
                         name="isFavorite"
@@ -255,7 +258,27 @@ function ItemForm() {
                             <div className="space-y-0.5">
                                 <FormLabel className="text-base">Marquer comme favori</FormLabel>
                                 <FormDescription>
-                                Accès rapide depuis la section "Favoris" du point de vente.
+                                Accès rapide sur la page du point de vente.
+                                </FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="showImage"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">Afficher l'image</FormLabel>
+                                <FormDescription>
+                                Afficher l'image du produit dans le point de vente.
                                 </FormDescription>
                             </div>
                             <FormControl>
