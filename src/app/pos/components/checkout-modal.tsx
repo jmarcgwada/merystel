@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -71,7 +71,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setCurrentAmount('');
         }, 300); // Delay to allow animation to finish
     }
-  }, [isOpen, isPaid, totalAmount]);
+  }, [isOpen, isPaid, totalAmount, payments]);
 
 
   const handleReset = () => {
@@ -134,10 +134,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if (newBalance > 0.009) {
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
-    } else if (Math.abs(newBalance) < 0.009) { // Exactly paid
-        handleFinalizeSale(newPayments);
-    } else { // Change is due
+    } else { // Exactly paid or change is due
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
+        handleFinalizeSale(newPayments);
     }
   }
   
@@ -259,14 +258,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
                 Annuler
-              </Button>
-              <Button 
-                type="submit" 
-                onClick={() => handleFinalizeSale(payments)} 
-                className="w-full sm:w-auto" 
-                disabled={balanceDue > 0.009 || payments.length === 0}
-              >
-                Finaliser la vente
               </Button>
             </DialogFooter>
           </>
