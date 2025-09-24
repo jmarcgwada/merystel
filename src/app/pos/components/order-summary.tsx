@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Minus, Plus } from 'lucide-react';
+import { X, Minus, Plus, Hand } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 
 export function OrderSummary() {
-  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable } = usePos();
+  const { order, removeFromOrder, updateQuantity, clearOrder, orderTotal, selectedTable, holdOrder } = usePos();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
 
   const handleClearOrder = () => {
@@ -97,14 +97,26 @@ export function OrderSummary() {
               <span>{(orderTotal * 1.1).toFixed(2)}€</span>
             </div>
           </div>
-          <Button
-            size="lg"
-            className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground"
-            disabled={order.length === 0}
-            onClick={() => setCheckoutOpen(true)}
-          >
-            Payer maintenant
-          </Button>
+          <div className="mt-4 flex gap-2">
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full"
+              disabled={order.length === 0 || !!selectedTable}
+              onClick={holdOrder}
+            >
+              <Hand className="mr-2 h-4 w-4" />
+              Mettre en attente
+            </Button>
+            <Button
+              size="lg"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={order.length === 0}
+              onClick={() => setCheckoutOpen(true)}
+            >
+              Payer maintenant
+            </Button>
+          </div>
         </div>
       </div>
       <CheckoutModal

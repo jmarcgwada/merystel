@@ -1,4 +1,5 @@
 
+
 export interface Category {
   id: string;
   name: string;
@@ -20,7 +21,7 @@ export interface OrderItem extends Item {
 }
 
 export interface Table {
-  id: string;
+  id:string;
   name: string;
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
@@ -54,4 +55,11 @@ export interface Sale {
   tax: number;
   total: number;
   payments: Payment[];
+}
+
+export interface HeldOrder {
+  id: string;
+  date: Date;
+  items: OrderItem[];
+  total: number;
 }

@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod } from '@/lib/types';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,6 +45,11 @@ interface PosContextType {
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
   updatePaymentMethod: (method: PaymentMethod) => void;
   deletePaymentMethod: (methodId: string) => void;
+
+  heldOrders: HeldOrder[];
+  holdOrder: () => void;
+  recallOrder: (orderId: string) => void;
+  deleteHeldOrder: (orderId: string) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -57,6 +63,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [sales, setSales] = useState<Sale[]>(mockSales);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const { toast } = useToast();
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -186,6 +193,36 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Moyen de paiement supprimé' });
   }, [toast]);
 
+  const holdOrder = useCallback(() => {
+    if(order.length === 0) return;
+    const newHeldOrder: HeldOrder = {
+      id: `held-${Date.now()}`,
+      date: new Date(),
+      items: order,
+      total: orderTotal * 1.1,
+    };
+    setHeldOrders(prev => [newHeldOrder, ...prev]);
+    clearOrder();
+    if (selectedTable) {
+        setSelectedTable(null);
+    }
+    toast({ title: 'Commande mise en attente.' });
+  }, [order, orderTotal, clearOrder, selectedTable, toast]);
+
+  const recallOrder = useCallback((orderId: string) => {
+    const orderToRecall = heldOrders.find(o => o.id === orderId);
+    if (orderToRecall) {
+      setOrder(orderToRecall.items);
+      setHeldOrders(prev => prev.filter(o => o.id !== orderId));
+      toast({ title: 'Commande rappelée.' });
+    }
+  }, [heldOrders, toast]);
+
+  const deleteHeldOrder = useCallback((orderId: string) => {
+    setHeldOrders(prev => prev.filter(o => o.id !== orderId));
+    toast({ title: 'Ticket en attente supprimé.'});
+  }, [toast]);
+
   const value = useMemo(() => ({
     order,
     setOrder,
@@ -218,6 +255,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    heldOrders,
+    holdOrder,
+    recallOrder,
+    deleteHeldOrder,
   }), [
     order,
     setOrder,
@@ -250,6 +291,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    heldOrders,
+    holdOrder,
+    recallOrder,
+    deleteHeldOrder,
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
