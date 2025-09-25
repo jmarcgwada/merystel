@@ -3,7 +3,7 @@
 
 import { useKeyboard } from "@/contexts/keyboard-context";
 import { Button } from "./ui/button";
-import { ArrowLeft, CornerDownLeft, Languages } from "lucide-react";
+import { ArrowLeft, CornerDownLeft, Languages, Delete } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 
@@ -20,9 +20,10 @@ const Key = ({
 }) => (
   <Button
     variant="outline"
-    className={cn("h-12 text-lg bg-card hover:bg-secondary", className)}
+    className={cn("h-12 text-lg bg-background/50 hover:bg-background", className)}
     style={{ flex: `1 0 ${flex * 2.5}rem` }}
     onClick={onClick}
+    type="button"
   >
     {children}
   </Button>
@@ -55,7 +56,7 @@ export function VirtualKeyboard() {
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && hideKeyboard()} modal={false}>
-      <DrawerContent className="p-2 pb-4 max-w-4xl mx-auto" aria-describedby={undefined}>
+      <DrawerContent className="p-2 pb-4 max-w-4xl mx-auto bg-secondary/80 backdrop-blur-sm" aria-describedby={undefined}>
         <DrawerHeader className="p-0 h-0">
             <DrawerTitle className="sr-only">Clavier Virtuel</DrawerTitle>
         </DrawerHeader>
@@ -66,7 +67,7 @@ export function VirtualKeyboard() {
                     <div key={rowIndex} className="flex space-x-1 w-full justify-center">
                     {rowIndex === 2 && (
                         <Key onClick={toggleCaps} flex={1.5} className={cn(isCaps && "bg-primary text-primary-foreground")}>
-                            <Languages className="h-6 w-6"/>
+                            <Languages className="h-5 w-5"/>
                         </Key>
                     )}
                     {row.map((key) => (
@@ -76,7 +77,7 @@ export function VirtualKeyboard() {
                     ))}
                     {rowIndex === 2 && (
                         <Key onClick={pressBackspace} flex={1.5}>
-                            <ArrowLeft className="h-6 w-6"/>
+                            <Delete className="h-5 w-5"/>
                         </Key>
                     )}
                     </div>
@@ -87,8 +88,8 @@ export function VirtualKeyboard() {
                         Espace
                     </Key>
                     <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-                    <Key onClick={hideKeyboard} flex={1.5}>
-                        <CornerDownLeft className="h-6 w-6"/>
+                    <Key onClick={hideKeyboard} flex={1.5} className="bg-primary/80 text-primary-foreground">
+                        <CornerDownLeft className="h-5 w-5"/>
                     </Key>
                 </div>
             </div>
@@ -105,7 +106,7 @@ export function VirtualKeyboard() {
                     </div>
                 ))}
                 <Key onClick={pressBackspace}>
-                    <ArrowLeft className="h-6 w-6" />
+                    <ArrowLeft className="h-5 w-5" />
                 </Key>
             </div>
         </div>
