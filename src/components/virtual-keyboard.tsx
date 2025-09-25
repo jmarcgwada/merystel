@@ -35,8 +35,8 @@ export function VirtualKeyboard() {
     isCaps,
     toggleCaps,
     pressKey,
-    pressBackspace,
     pressSpace,
+    pressBackspace,
   } = useKeyboard();
 
   const keys = [
@@ -47,8 +47,11 @@ export function VirtualKeyboard() {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && hideKeyboard()}>
-        <SheetContent side="bottom" className="rounded-t-lg max-h-[50vh]">
-            <div className="flex flex-col h-full p-2 space-y-1">
+        <SheetContent side="bottom" className="rounded-t-lg max-h-[50vh] p-2">
+            <SheetHeader>
+              <SheetTitle className="sr-only">Clavier Virtuel</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col h-full space-y-1">
             {keys.map((row, rowIndex) => (
                 <div key={rowIndex} className="flex space-x-1 w-full">
                 {rowIndex === 2 && (
@@ -83,4 +86,3 @@ export function VirtualKeyboard() {
     </Sheet>
   );
 }
-
