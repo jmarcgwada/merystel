@@ -62,7 +62,7 @@ export default function PopularItemsPage() {
         title="Articles populaires"
         subtitle="Classement des articles les plus vendus."
       >
-        <Button onClick={handleToggleAllFavorites}>
+        <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>
             <Star className="mr-2 h-4 w-4" />
             {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
         </Button>
