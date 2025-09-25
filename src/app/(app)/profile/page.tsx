@@ -16,14 +16,22 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 const profileFormSchema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis.'),
   lastName: z.string().min(1, 'Le nom de famille est requis.'),
   email: z.string().email(),
+  role: z.string(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+const roleTranslations: { [key: string]: string } = {
+    admin: 'Administrateur',
+    manager: 'Gestionnaire',
+    cashier: 'Caissier'
+}
 
 export default function ProfilePage() {
   const { user, loading } = useUser();
@@ -36,6 +44,7 @@ export default function ProfilePage() {
       firstName: '',
       lastName: '',
       email: '',
+      role: '',
     },
   });
 
@@ -45,6 +54,7 @@ export default function ProfilePage() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
+        role: user.role || 'cashier',
       });
     }
   }, [user, form]);
@@ -77,7 +87,7 @@ export default function ProfilePage() {
               <CardHeader>
                 <CardTitle>Informations Personnelles</CardTitle>
                 <CardDescription>
-                  Ces informations apparaîtront publiquement.
+                  Ces informations sont liées à votre compte.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -86,9 +96,25 @@ export default function ProfilePage() {
                         <Skeleton className="h-10 w-full" />
                         <Skeleton className="h-10 w-full" />
                         <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
                     </div>
                 ) : (
                 <>
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rôle</FormLabel>
+                       <FormControl>
+                        <Input {...field} disabled className="font-semibold capitalize" />
+                      </FormControl>
+                      <FormDescription>
+                        Votre rôle définit vos permissions dans l'application. Il ne peut pas être modifié ici.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}

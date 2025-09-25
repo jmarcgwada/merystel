@@ -11,7 +11,7 @@
         "lastName": { "type": "string", "description": "The last name of the user." },
         "email": { "type": "string", "description": "The email address of the user.", "format": "email" },
         "phone": { "type": "string", "description": "The phone number of the user." },
-        "role": { "type": "string", "description": "The role of the user within the system (e.g., administrator, cashier, manager)." },
+        "role": { "type": "string", "description": "The role of the user within the system.", "enum": ["admin", "manager", "cashier"]},
         "companyId": { "type": "string", "description": "Reference to the Company the user belongs to." }
       },
       "required": ["id", "firstName", "lastName", "email", "role", "companyId"]

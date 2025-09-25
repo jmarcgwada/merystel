@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, Users } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
@@ -12,6 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Item } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timestamp } from 'firebase/firestore';
+import { useUser } from '@/firebase/auth/use-user';
 
 const quickLinks = [
     {
@@ -53,6 +54,7 @@ const quickLinks = [
 ]
 
 export default function DashboardPage() {
+    const { user: authUser } = useUser();
     const { sales, items, isLoading } = usePos();
 
     const totalSales = useMemo(() => {
@@ -124,7 +126,7 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Tableau de bord"
-        subtitle={`Bienvenue, Jean Marc. Voici un aperçu de votre journée.`}
+        subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
       />
       
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -199,6 +201,22 @@ export default function DashboardPage() {
                         </Card>
                     </Link>
                 ))}
+                {authUser?.role === 'admin' && (
+                    <Link href="/management/users" className="group">
+                        <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Users className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline">Gestion des utilisateurs</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Gérer les comptes et les rôles.</p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                )}
             </div>
         </div>
          <div className="lg:col-span-1">
@@ -229,5 +247,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
