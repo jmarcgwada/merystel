@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -20,17 +20,26 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Table as TableType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function TablesPage() {
-  const { tables, deleteTable } = usePos();
+  const { tables, deleteTable, forceFreeTable } = usePos();
   const router = useRouter();
   const [tableToDelete, setTableToDelete] = useState<TableType | null>(null);
+  const [tableToFree, setTableToFree] = useState<TableType | null>(null);
 
   const handleDeleteTable = () => {
     if (tableToDelete) {
       deleteTable(tableToDelete.id);
       setTableToDelete(null);
+    }
+  }
+
+  const handleFreeTable = () => {
+    if (tableToFree) {
+        forceFreeTable(tableToFree.id);
+        setTableToFree(null);
     }
   }
 
@@ -50,7 +59,8 @@ export default function TablesPage() {
                         <TableHead className="w-[100px]">Numéro</TableHead>
                         <TableHead>Nom</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="w-[160px] text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -59,13 +69,25 @@ export default function TablesPage() {
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>
                             <TableCell className="text-muted-foreground">{table.description}</TableCell>
+                             <TableCell>
+                                <Badge variant={table.status === 'available' ? 'secondary' : table.status === 'occupied' ? 'default' : 'outline'} className="capitalize">
+                                    {table.status === 'available' ? 'Disponible' : table.status === 'occupied' ? 'Occupée' : 'Paiement'}
+                                </Badge>
+                            </TableCell>
                             <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => router.push(`/management/tables/form?id=${table.id}`)}>
-                                    <Edit className="h-4 w-4"/>
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setTableToDelete(table)}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+                                <div className="flex justify-end items-center">
+                                    {table.status !== 'available' && (
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setTableToFree(table)}>
+                                            <Eraser className="h-4 w-4"/>
+                                        </Button>
+                                    )}
+                                    <Button variant="ghost" size="icon" onClick={() => router.push(`/management/tables/form?id=${table.id}`)}>
+                                        <Edit className="h-4 w-4"/>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setTableToDelete(table)}>
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}
@@ -84,6 +106,20 @@ export default function TablesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setTableToDelete(null)}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteTable} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!tableToFree} onOpenChange={() => setTableToFree(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Libérer la table "{tableToFree?.name}" ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action effacera la commande en cours et le ticket en attente associé à cette table. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTableToFree(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFreeTable} className="bg-destructive hover:bg-destructive/90">Libérer la table</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

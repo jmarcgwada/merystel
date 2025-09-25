@@ -49,6 +49,7 @@ interface PosContextType {
   addTable: (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => void;
   updateTable: (table: Table) => void;
   deleteTable: (tableId: string) => void;
+  forceFreeTable: (tableId: string) => void;
   selectedTable: Table | null;
   setSelectedTable: React.Dispatch<React.SetStateAction<Table | null>>;
   setSelectedTableById: (tableId: string | null) => void;
@@ -233,6 +234,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     } else {
       clearOrder();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tables, clearOrder, heldOrders, router]);
 
   const orderTotal = useMemo(() => {
@@ -362,10 +364,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const updateTable = useCallback((table: Table) => {
     setTables(prev => prev.map(t => t.id === table.id ? table : t));
   }, []);
-
+  
   const deleteTable = useCallback((tableId: string) => {
     setTables(prev => prev.filter(t => t.id !== tableId));
     toast({ title: 'Table supprimée' });
+  }, [toast]);
+
+  const forceFreeTable = useCallback((tableId: string) => {
+    setTables(prev => prev.map(t => t.id === tableId ? {...t, order: [], status: 'available'} : t));
+    setHeldOrders(prev => prev.filter(ho => ho.tableId !== tableId));
+    toast({ title: 'Table libérée' });
   }, [toast]);
 
   const addCategory = useCallback((categoryData: Omit<Category, 'id'>) => {
@@ -554,6 +562,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addTable,
     updateTable,
     deleteTable,
+    forceFreeTable,
     selectedTable,
     setSelectedTable,
     setSelectedTableById,
@@ -617,6 +626,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addTable,
     updateTable,
     deleteTable,
+    forceFreeTable,
     selectedTable,
     setSelectedTable,
     setSelectedTableById,
@@ -644,6 +654,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm,
     confirmNavigation,
     holdOrderAndNavigate,
+    router,
+    toast,
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
