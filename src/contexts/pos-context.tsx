@@ -268,6 +268,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [companyId, firestore]
   );
+
   const getDocRef = useCallback(
     (collectionName: string, docId: string) => {
       if (!companyId) throw new Error('Company ID is not available');
@@ -313,8 +314,127 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const addEntity = useCallback(
+    async (collectionName: string, data: any, toastTitle: string) => {
+      try {
+        const ref = getCollectionRef(collectionName);
+        await addDoc(ref, data);
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error adding ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: `Erreur lors de l'ajout`,
+        });
+      }
+    },
+    [getCollectionRef, toast]
+  );
+
+  const updateEntity = useCallback(
+    async (collectionName: string, id: string, data: any, toastTitle: string) => {
+      try {
+        const ref = getDocRef(collectionName, id);
+        await setDoc(ref, data, { merge: true });
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error updating ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de mise à jour',
+        });
+      }
+    },
+    [getDocRef, toast]
+  );
+
+  const deleteEntity = useCallback(
+    async (collectionName: string, id: string, toastTitle: string) => {
+      try {
+        const ref = getDocRef(collectionName, id);
+        await deleteDoc(ref);
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error deleting ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de suppression',
+        });
+      }
+    },
+    [getDocRef, toast]
+  );
+  
+  const recallOrder = useCallback(
+    (orderId: string) => {
+      if (!heldOrders) return;
+      const orderToRecall = heldOrders.find(o => o.id === orderId);
+      if (orderToRecall) {
+        if (selectedTable) {
+          setSelectedTable(null);
+        }
+        setOrder(orderToRecall.items);
+        setCurrentSaleId(orderToRecall.id);
+        setCurrentSaleContext({
+          tableId: orderToRecall.tableId,
+          tableName: orderToRecall.tableName,
+        });
+        deleteEntity('heldOrders', orderId, 'Commande rappelée.');
+      }
+    },
+    [heldOrders, selectedTable, deleteEntity]
+  );
+
+  const setSelectedTableById = useCallback(
+    (tableId: string | null) => {
+      if (!tables || !heldOrders) return;
+      const table = tableId ? tables.find(t => t.id === tableId) || null : null;
+      setSelectedTable(table);
+      if (table) {
+        if (table.status === 'paying') {
+          const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
+          if (heldOrderForTable) {
+            recallOrder(heldOrderForTable.id);
+            router.push('/pos');
+          }
+        } else {
+          setOrder(table.order);
+          setCurrentSaleContext({ tableId: table.id, tableName: table.name });
+        }
+      } else {
+        clearOrder();
+      }
+    },
+    [tables, heldOrders, clearOrder, router, recallOrder]
+  );
+
+  const orderTotal = useMemo(() => {
+    return order.reduce((sum, item) => sum + item.total, 0);
+  }, [order]);
+
+  const orderTax = useMemo(() => {
+    if (!vatRates) return 0;
+    return order.reduce((sum, item) => {
+      const vat = vatRates.find(v => v.id === item.vatId);
+      const taxForItem = item.total * ((vat?.rate || 0) / 100);
+      return sum + taxForItem;
+    }, 0);
+  }, [order, vatRates]);
+
+  const holdOrder = useCallback(async () => {
+    if (order.length === 0) return;
+    const newHeldOrder = {
+      date: new Date(),
+      items: order,
+      total: orderTotal + orderTax,
+    };
+    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
+    clearOrder();
+  }, [order, orderTotal, orderTax, clearOrder, addEntity]);
+  
   const addToOrder = useCallback(
     (itemId: OrderItem['id']) => {
+      if (!items) return;
       const itemToAdd = items.find(i => i.id === itemId);
       if (!itemToAdd) return;
 
@@ -428,40 +548,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const setSelectedTableById = useCallback(
-    (tableId: string | null) => {
-      const table = tableId ? tables.find(t => t.id === tableId) || null : null;
-      setSelectedTable(table);
-      if (table) {
-        if (table.status === 'paying') {
-          const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
-          if (heldOrderForTable) {
-            recallOrder(heldOrderForTable.id);
-            router.push('/pos');
-          }
-        } else {
-          setOrder(table.order);
-          setCurrentSaleContext({ tableId: table.id, tableName: table.name });
-        }
-      } else {
-        clearOrder();
-      }
-    },
-    [tables, clearOrder, heldOrders, router, recallOrder]
-  );
-
-  const orderTotal = useMemo(() => {
-    return order.reduce((sum, item) => sum + item.total, 0);
-  }, [order]);
-
-  const orderTax = useMemo(() => {
-    return order.reduce((sum, item) => {
-      const vat = vatRates.find(v => v.id === item.vatId);
-      const taxForItem = item.total * ((vat?.rate || 0) / 100);
-      return sum + taxForItem;
-    }, 0);
-  }, [order, vatRates]);
-
   const updateTableOrder = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       try {
@@ -494,7 +580,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const recordSale = useCallback(
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-      if (!companyId) return;
+      if (!companyId || !sales) return;
       const saleIdToUpdate = currentSaleId;
       const tableToEnd = saleIdToUpdate
         ? heldOrders.find(ho => ho.id === saleIdToUpdate)?.tableId
@@ -551,6 +637,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const promoteTableToTicket = useCallback(
     async (tableId: string) => {
+      if (!tables || !vatRates || !heldOrders) return;
       const table = tables.find(t => t.id === tableId);
       if (!table || table.order.length === 0) return;
 
@@ -608,57 +695,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  const addEntity = useCallback(
-    async (collectionName: string, data: any, toastTitle: string) => {
-      try {
-        const ref = getCollectionRef(collectionName);
-        await addDoc(ref, data);
-        toast({ title: toastTitle });
-      } catch (error) {
-        console.error(`Error adding ${collectionName}:`, error);
-        toast({
-          variant: 'destructive',
-          title: `Erreur lors de l'ajout`,
-        });
-      }
-    },
-    [getCollectionRef, toast]
-  );
-
-  const updateEntity = useCallback(
-    async (collectionName: string, id: string, data: any, toastTitle: string) => {
-      try {
-        const ref = getDocRef(collectionName, id);
-        await setDoc(ref, data, { merge: true });
-        toast({ title: toastTitle });
-      } catch (error) {
-        console.error(`Error updating ${collectionName}:`, error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de mise à jour',
-        });
-      }
-    },
-    [getDocRef, toast]
-  );
-
-  const deleteEntity = useCallback(
-    async (collectionName: string, id: string, toastTitle: string) => {
-      try {
-        const ref = getDocRef(collectionName, id);
-        await deleteDoc(ref);
-        toast({ title: toastTitle });
-      } catch (error) {
-        console.error(`Error deleting ${collectionName}:`, error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de suppression',
-        });
-      }
-    },
-    [getDocRef, toast]
-  );
-
   const addTable = useCallback(
     (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
       const newTable = {
@@ -686,6 +722,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const forceFreeTable = useCallback(
     async (tableId: string) => {
+      if (!heldOrders) return;
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       batch.update(tableRef, { status: 'available', order: [] });
@@ -717,6 +754,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   const toggleCategoryFavorite = useCallback(
     (id: string) => {
+      if (!categories) return;
       const category = categories.find(c => c.id === id);
       if (category)
         updateEntity(
@@ -743,6 +781,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   const toggleItemFavorite = useCallback(
     (id: string) => {
+      if (!items) return;
       const item = items.find(i => i.id === id);
       if (item)
         updateEntity(
@@ -769,6 +808,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addCustomer = useCallback(
     (customer: Omit<Customer, 'id' | 'isDefault'>) => {
+      if (!customers) return;
       const newCustomer = {
         ...customer,
         isDefault: !customers.some(c => c.isDefault),
@@ -788,6 +828,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   const setDefaultCustomer = useCallback(
     async (customerId: string) => {
+      if (!customers) return;
       const batch = writeBatch(firestore);
       customers.forEach(c => {
         const customerRef = getDocRef('customers', c.id);
@@ -826,6 +867,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addVatRate = useCallback(
     (vatRate: Omit<VatRate, 'id' | 'code'>) => {
+      if (!vatRates) return;
       const newCode = Math.max(0, ...vatRates.map(v => v.code)) + 1;
       const newVatRate = { ...vatRate, code: newCode };
       addEntity('vatRates', newVatRate, 'Taux de TVA ajouté');
@@ -842,38 +884,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [deleteEntity]
   );
 
-  const holdOrder = useCallback(async () => {
-    if (order.length === 0) return;
-    const newHeldOrder = {
-      date: new Date(),
-      items: order,
-      total: orderTotal + orderTax,
-    };
-    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
-    clearOrder();
-  }, [order, orderTotal, orderTax, clearOrder, addEntity]);
-
-  const recallOrder = useCallback(
-    (orderId: string) => {
-      const orderToRecall = heldOrders.find(o => o.id === orderId);
-      if (orderToRecall) {
-        if (selectedTable) {
-          setSelectedTable(null);
-        }
-        setOrder(orderToRecall.items);
-        setCurrentSaleId(orderToRecall.id);
-        setCurrentSaleContext({
-          tableId: orderToRecall.tableId,
-          tableName: orderToRecall.tableName,
-        });
-        deleteEntity('heldOrders', orderId, 'Commande rappelée.');
-      }
-    },
-    [heldOrders, selectedTable, deleteEntity]
-  );
-
   const deleteHeldOrder = useCallback(
     async (orderId: string) => {
+      if (!heldOrders) return;
       const orderToDelete = heldOrders.find(o => o.id === orderId);
       if (orderToDelete?.tableId) {
         const tableRef = getDocRef('tables', orderToDelete.tableId);
@@ -885,6 +898,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const popularItems = useMemo(() => {
+    if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
 
     sales.forEach(sale => {
@@ -1002,6 +1016,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       order,
+      setOrder,
       addToOrder,
       removeFromOrder,
       updateQuantity,
@@ -1068,7 +1083,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       closeNavConfirm,
-      showNavConfirm,
     ]
   );
 
@@ -1082,5 +1096,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
