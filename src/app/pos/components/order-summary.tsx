@@ -35,7 +35,8 @@ export function OrderSummary() {
     updateQuantityFromKeypad,
     setIsKeypadOpen,
     saveTableOrderAndExit,
-    promoteTableToTicket
+    promoteTableToTicket,
+    showTicketImages,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -203,7 +204,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-y-auto">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
@@ -220,15 +221,17 @@ export function OrderSummary() {
                           className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
                           onClick={() => handleItemSelect(item)}
                       >
-                          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
-                              <Image
-                              src={item.image || 'https://picsum.photos/seed/item/100/100'}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                              data-ai-hint="product image"
-                              />
-                          </div>
+                          {showTicketImages && (
+                            <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
+                                <Image
+                                src={item.image || 'https://picsum.photos/seed/item/100/100'}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                                data-ai-hint="product image"
+                                />
+                            </div>
+                          )}
                           <div className="flex-1">
                               <p className="font-semibold">{item.name}</p>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -309,7 +312,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="border-t p-4 mt-auto">
+        <div className="mt-auto border-t p-4">
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                 <span>Sous-total</span>

@@ -1,9 +1,17 @@
+
+'use client';
+
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { usePos } from '@/contexts/pos-context';
+
 
 export default function CustomizationPage() {
+  const { showTicketImages, setShowTicketImages } = usePos();
+
   return (
     <>
       <PageHeader
@@ -13,12 +21,25 @@ export default function CustomizationPage() {
       <div className="mt-8 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Couleurs</CardTitle>
+            <CardTitle>Visibilité</CardTitle>
+            <CardDescription>
+              Contrôlez l'affichage de certains éléments dans l'interface.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="text-center text-muted-foreground py-12">
-                <p>Les options de personnalisation des couleurs en direct seront disponibles ici.</p>
-            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="ticket-images" className="text-base">Afficher les images dans la commande</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Affiche ou masque les miniatures des articles dans la colonne de la commande actuelle.
+                  </p>
+                </div>
+                <Switch 
+                  id="ticket-images" 
+                  checked={showTicketImages}
+                  onCheckedChange={setShowTicketImages}
+                />
+              </div>
           </CardContent>
         </Card>
          <Card>

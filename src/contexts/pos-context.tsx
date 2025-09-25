@@ -66,6 +66,9 @@ interface PosContextType {
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
+
+  showTicketImages: boolean;
+  setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -82,6 +85,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [vatRates, setVatRates] = useState<VatRate[]>(mockVatRates);
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [showTicketImages, setShowTicketImages] = useState(true);
   const { toast } = useToast();
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -414,6 +418,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     holdOrder,
     recallOrder,
     deleteHeldOrder,
+    showTicketImages,
+    setShowTicketImages,
   }), [
     order,
     setOrder,
@@ -464,6 +470,8 @@ deletePaymentMethod,
     holdOrder,
     recallOrder,
     deleteHeldOrder,
+    showTicketImages,
+    setShowTicketImages
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
