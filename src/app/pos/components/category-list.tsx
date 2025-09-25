@@ -12,10 +12,10 @@ import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
-  selectedCategory: Category | SpecialCategory | null;
   onSelectCategory: (category: Category | SpecialCategory | null) => void;
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
+  selectedCategory: Category | SpecialCategory | null;
 }
 
 export function CategoryList({
@@ -26,15 +26,17 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories, popularItemsCount } = usePos();
   const [searchTerm, setSearchTerm] = React.useState('');
-  const { showKeyboard, setTargetInput, inputValue } = useKeyboard();
+  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {
-    setSearchTerm(inputValue);
-  }, [inputValue]);
+    if (targetInput?.name === 'category-search') {
+      setSearchTerm(inputValue);
+    }
+  }, [inputValue, targetInput]);
   
   const handleSearchClick = () => {
     setTargetInput({
@@ -45,6 +47,7 @@ export function CategoryList({
   };
 
   const getVariant = (id: string | null) => {
+    if (!selectedCategory && id === 'all') return 'default';
     if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
     if (typeof selectedCategory === 'object' && selectedCategory?.id === id) return 'default';
     return 'ghost';
