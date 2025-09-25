@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, writeBatch } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   createUserWithEmailAndPassword,
@@ -69,6 +69,55 @@ export default function LoginPage() {
     }
   };
 
+  const seedDefaultData = async (companyDocRef) => {
+      const batch = writeBatch(firestore);
+
+      // Company document (to mark as seeded)
+      batch.set(companyDocRef, {
+        name: `Mon Entreprise`,
+        email: registerEmail,
+        address: '',
+        postalCode: '',
+        city: '',
+        country: '',
+      }, { merge: true });
+
+      // Default VAT Rates
+      const vatCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'vatRates');
+      batch.set(doc(vatCollection), { name: 'TVA 0%', rate: 0, code: 1 });
+      batch.set(doc(vatCollection), { name: 'TVA Standard', rate: 20, code: 2 });
+      batch.set(doc(vatCollection), { name: 'TVA Intermédiaire', rate: 8.5, code: 3 });
+
+      // Default Payment Methods
+      const paymentCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'paymentMethods');
+      batch.set(doc(paymentCollection), { name: 'Carte Bancaire', icon: 'card', type: 'direct' });
+      batch.set(doc(paymentCollection), { name: 'Espèces', icon: 'cash', type: 'direct' });
+      batch.set(doc(paymentCollection), { name: 'Chèque', icon: 'check', type: 'direct' });
+      batch.set(doc(paymentCollection), { name: 'Autre', icon: 'other', type: 'direct' });
+
+      // Default Customer
+      const customerCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'customers');
+      batch.set(doc(customerCollection), { name: 'Client de passage', email: '', phone: '', isDefault: true });
+
+      // Default Category & Item
+      const categoryCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'categories');
+      const testCategoryRef = doc(categoryCollection);
+      batch.set(testCategoryRef, { name: 'Catégorie de test', color: '#3b82f6', isRestaurantOnly: false, image: `https://picsum.photos/seed/testcat/100/100` });
+      
+      const itemCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'items');
+      const vatStandardQuery = await getDoc(doc(vatCollection));
+      // This is a simplification; in a real app, you'd query for the correct VAT rate.
+      // We assume the 20% VAT is one of the first documents. It's not robust but works for seeding.
+      const vatId = vatStandardQuery.docs.find(d => d.data().rate === 20)?.id || vatStandardQuery.docs[0]?.id;
+
+      if (vatId) {
+        batch.set(doc(itemCollection), { name: 'Article de test', price: 9.99, categoryId: testCategoryRef.id, vatId, image: `https://picsum.photos/seed/testitem/200/150`, isFavorite: true });
+      }
+
+      await batch.commit();
+      toast({ title: 'Données de démonstration créées !', description: "Votre application est prête à l'emploi." });
+  }
+
   const handleRegister = async () => {
     if(!registerFirstName || !registerLastName || !registerEmail || !registerPassword) {
         toast({
@@ -81,18 +130,18 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+        const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
+        const companyDoc = await getDoc(companyDocRef);
+        const isFirstUser = !companyDoc.exists();
+
         // 1. Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
         const newUser = userCredential.user;
         
-        // 2. Ensure the main company document exists.
-        // setDoc with merge:true is idempotent and safe to call every time.
-        const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
-        await setDoc(companyDocRef, {
-            name: `Mon Entreprise`, // Default name, can be changed in settings
-            email: registerEmail, // Use first user's email as a default contact
-        }, { merge: true });
-
+        // 2. If it's the first user, seed the database with default data
+        if (isFirstUser) {
+            await seedDefaultData(companyDocRef);
+        }
 
         // 3. Create the user profile in Firestore, linking to the shared companyId
         const userDocRef = doc(firestore, "users", newUser.uid);
@@ -101,7 +150,7 @@ export default function LoginPage() {
             firstName: registerFirstName,
             lastName: registerLastName,
             email: registerEmail,
-            role: 'admin', // First user is an admin
+            role: isFirstUser ? 'admin' : 'cashier', // First user is admin, others are cashiers
             companyId: SHARED_COMPANY_ID
         }
         
