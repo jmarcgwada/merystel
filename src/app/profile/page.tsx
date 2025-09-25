@@ -5,7 +5,8 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, doc, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, doc, setDocumentNonBlocking } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,24 +50,16 @@ export default function ProfilePage() {
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
 
-    try {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      setDocumentNonBlocking(userDocRef, {
-        firstName: data.firstName,
-        lastName: data.lastName,
-      }, { merge: true });
+    const userDocRef = doc(firestore, 'users', user.uid);
+    setDocumentNonBlocking(userDocRef, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+    }, { merge: true });
 
-      toast({
-        title: 'Profil mis à jour',
-        description: 'Vos informations ont été sauvegardées avec succès.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour le profil. ' + error.message,
-      });
-    }
+    toast({
+      title: 'Profil mis à jour',
+      description: 'Vos informations ont été sauvegardées avec succès.',
+    });
   };
 
   return (
