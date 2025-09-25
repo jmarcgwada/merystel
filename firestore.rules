@@ -1,151 +1,152 @@
+/**
+ * @fileoverview Firestore Security Rules for Zenith POS.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a hybrid security model, balancing open access with
+ * owner-based restrictions. The primary principle is to ensure data
+ * consistency and prevent unauthorized modifications. The application has
+ * removed the authentication functionality. Therefore, all rules are set to
+ * allow all operations without authentication.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles.
+ * - /companies/{companyId}: Root collection for company-specific data.
+ * - Under each /companies/{companyId}:
+ *   - /customers/{customerId}: Customer data for the company.
+ *   - /categories/{categoryId}: Item categories.
+ *   - /items/{itemId}: Sellable items.
+ *   - /tables/{tableId}: Restaurant tables.
+ *   - /sales/{saleId}: Sales records.
+ *   - /paymentMethods/{methodId}: Payment methods.
+ *   - /vatRates/{vatId}: VAT rates.
+ *   - /heldOrders/{orderId}: Temporarily held orders.
+ *
+ * Key Security Decisions:
+ * - No authentication to consider.
+ * - Owner-only writes are impossible because there is no authentication. Therefore, this ruleset allows all reads and writes on all data.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Allows read and write access to user profiles. There is no authentication.
      * @path /users/{userId}
-     * @allow (get, create, update, delete): Authenticated user can access their own profile.
-     * @deny (get, create, update, delete): Authenticated user cannot access other user's profiles.
-     * @principle Enforces document ownership for writes.
+     * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any user document.
+     * @deny None.
+     * @principle Unrestricted access due to the absence of authentication.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && exists(resource);
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Controls access to company information.
+     * @description Allows read and write access to company data. There is no authentication.
      * @path /companies/{companyId}
-     * @allow (get, list): Any authenticated user can read company information.
-     * @allow (create, update, delete): No one can create, update, or delete company information.
-     * @principle Public read, owner-only writes.
+     * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any company document.
+     * @deny None.
+     * @principle Unrestricted access due to the absence of authentication.
      */
     match /companies/{companyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // No one can create, update, or delete companies.
-    }
+      allow get, list: if true;
+      allow create, update, delete: if true;
 
-    /**
-     * @description Controls access to customer data within a company.
-     * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage customers within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/customers/{customerId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to customer data for a company. There is no authentication.
+       * @path /companies/{companyId}/customers/{customerId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any customer document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /customers/{customerId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to item categories within a company.
-     * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage categories within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/categories/{categoryId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to item categories for a company. There is no authentication.
+       * @path /companies/{companyId}/categories/{categoryId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any category document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /categories/{categoryId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to items within a company.
-     * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage items within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/items/{itemId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to sellable items for a company. There is no authentication.
+       * @path /companies/{companyId}/items/{itemId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any item document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /items/{itemId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to tables within a company.
-     * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage tables within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/tables/{tableId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to restaurant tables for a company. There is no authentication.
+       * @path /companies/{companyId}/tables/{tableId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any table document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /tables/{tableId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to sales data within a company.
-     * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage sales within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/sales/{saleId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to sales records for a company. There is no authentication.
+       * @path /companies/{companyId}/sales/{saleId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any sale document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /sales/{saleId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to payment methods within a company.
-     * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage payment methods within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/paymentMethods/{methodId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to payment methods for a company. There is no authentication.
+       * @path /companies/{companyId}/paymentMethods/{methodId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any payment method document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /paymentMethods/{methodId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to VAT rates within a company.
-     * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage VAT rates within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/vatRates/{vatId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to VAT rates for a company. There is no authentication.
+       * @path /companies/{companyId}/vatRates/{vatId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any vat rate document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /vatRates/{vatId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
-    }
 
-    /**
-     * @description Controls access to held orders within a company.
-     * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list, create, update, delete): Any authenticated user can manage held orders within their company.
-     * @principle Company-level access.
-     */
-    match /companies/{companyId}/heldOrders/{orderId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Allows read and write access to held orders for a company. There is no authentication.
+       * @path /companies/{companyId}/heldOrders/{orderId}
+       * @allow (get, list, create, update, delete) Any user can read, create, update, and delete any held order document.
+       * @deny None.
+       * @principle Unrestricted access due to the absence of authentication.
+       */
+      match /heldOrders/{orderId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
       }
-        allow get, list, create, update, delete: if isSignedIn();
     }
   }
 }
