@@ -27,6 +27,7 @@ import { useUser } from '@/firebase/auth/use-user';
 
 // The single, shared company ID for all users.
 const SHARED_COMPANY_ID = 'main';
+const ADMIN_EMAIL = 'admin@zenith.com';
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -52,30 +53,16 @@ export default function LoginPage() {
   }, [user, loading, router]);
 
 
-  const handleLogin = async () => {
-    setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      toast({ title: 'Connexion réussie' });
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de connexion',
-        description: error.message,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const seedDefaultData = async (companyDocRef) => {
+  const seedDefaultData = async () => {
+      if (!firestore) return;
+      
+      const companyDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID);
       const batch = writeBatch(firestore);
 
       // Company document (to mark as seeded)
       batch.set(companyDocRef, {
         name: `Mon Entreprise`,
-        email: registerEmail,
+        email: 'contact@zenith.com',
         address: '',
         postalCode: '',
         city: '',
@@ -104,19 +91,48 @@ export default function LoginPage() {
       const testCategoryRef = doc(categoryCollection);
       batch.set(testCategoryRef, { name: 'Catégorie de test', color: '#3b82f6', isRestaurantOnly: false, image: `https://picsum.photos/seed/testcat/100/100` });
       
-      const itemCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'items');
-      const vatStandardQuery = await getDoc(doc(vatCollection));
-      // This is a simplification; in a real app, you'd query for the correct VAT rate.
-      // We assume the 20% VAT is one of the first documents. It's not robust but works for seeding.
-      const vatId = vatStandardQuery.docs.find(d => d.data().rate === 20)?.id || vatStandardQuery.docs[0]?.id;
-
-      if (vatId) {
-        batch.set(doc(itemCollection), { name: 'Article de test', price: 9.99, categoryId: testCategoryRef.id, vatId, image: `https://picsum.photos/seed/testitem/200/150`, isFavorite: true });
-      }
-
+      // We need to fetch the newly created VAT rate to link it to the item
+      const vatStandardRef = doc(vatCollection);
+      batch.set(vatStandardRef, { name: 'TVA Test', rate: 20, code: 99 }); // Temporary, will be fetched below
+      
       await batch.commit();
+
+      // Second batch for item that depends on category/vat IDs
+      const itemBatch = writeBatch(firestore);
+      const itemCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'items');
+      itemBatch.set(doc(itemCollection), { name: 'Article de test', price: 9.99, categoryId: testCategoryRef.id, vatId: vatStandardRef.id, image: `https://picsum.photos/seed/testitem/200/150`, isFavorite: true });
+      
+      await itemBatch.commit();
+
       toast({ title: 'Données de démonstration créées !', description: "Votre application est prête à l'emploi." });
   }
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+
+      // Check if this is the admin user logging in for the first time
+      if (userCredential.user.email === ADMIN_EMAIL) {
+          const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
+          const companyDoc = await getDoc(companyDocRef);
+          if (!companyDoc.exists()) {
+              await seedDefaultData();
+          }
+      }
+
+      toast({ title: 'Connexion réussie' });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de connexion',
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRegister = async () => {
     if(!registerFirstName || !registerLastName || !registerEmail || !registerPassword) {
@@ -130,27 +146,21 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
-        const companyDoc = await getDoc(companyDocRef);
-        const isFirstUser = !companyDoc.exists();
-
         // 1. Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
         const newUser = userCredential.user;
         
-        // 2. If it's the first user, seed the database with default data
-        if (isFirstUser) {
-            await seedDefaultData(companyDocRef);
-        }
+        // 2. Determine user role. If it's the special admin email, set role to 'admin'.
+        const role = registerEmail === ADMIN_EMAIL ? 'admin' : 'cashier';
 
-        // 3. Create the user profile in Firestore, linking to the shared companyId
+        // 3. Create the user profile in Firestore
         const userDocRef = doc(firestore, "users", newUser.uid);
         const userData = {
             id: newUser.uid,
             firstName: registerFirstName,
             lastName: registerLastName,
             email: registerEmail,
-            role: isFirstUser ? 'admin' : 'cashier', // First user is admin, others are cashiers
+            role: role,
             companyId: SHARED_COMPANY_ID
         }
         
@@ -160,7 +170,6 @@ export default function LoginPage() {
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
     } catch (error: any) {
-        // This catch block handles errors from createUserWithEmailAndPassword or the initial setDoc
         toast({
             variant: 'destructive',
             title: 'Erreur d\'inscription',
@@ -175,7 +184,6 @@ export default function LoginPage() {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
   }
   
-  // This prevents the login page from flashing if the user is already authenticated
   if (user) {
     return null;
   }
