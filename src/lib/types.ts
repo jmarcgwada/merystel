@@ -92,6 +92,7 @@ export interface HeldOrder {
 }
 
 export interface CompanyInfo {
+  id: string;
   name: string;
   address: string;
   postalCode: string;

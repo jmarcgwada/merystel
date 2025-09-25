@@ -3,8 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
-import { collection, doc, getDoc, writeBatch } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -24,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 // The single, shared company ID for all users.
 const SHARED_COMPANY_ID = 'main';
@@ -90,7 +90,7 @@ export default function LoginPage() {
         const role = registerEmail === ADMIN_EMAIL ? 'admin' : 'cashier';
 
         // 3. Create the user profile in Firestore
-        const userDocRef = doc(firestore, "users", newUser.uid);
+        const userDocRef = doc(firestore, "companies", SHARED_COMPANY_ID, "users", newUser.uid);
         const userData = {
             id: newUser.uid,
             firstName: registerFirstName,
@@ -100,15 +100,16 @@ export default function LoginPage() {
             companyId: SHARED_COMPANY_ID
         }
         
-        // This function is non-blocking and handles its own errors
-        setDocumentNonBlocking(userDocRef, userData, { merge: true });
+        // Use a blocking setDoc here for the initial user registration to ensure the document exists.
+        await setDoc(userDocRef, userData, { merge: true });
 
         // On first admin registration, create the company document
         if (role === 'admin') {
             const companyDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID);
             const companyDoc = await getDoc(companyDocRef);
             if (!companyDoc.exists()) {
-                setDocumentNonBlocking(companyDocRef, {
+                await setDoc(companyDocRef, {
+                    id: SHARED_COMPANY_ID,
                     name: `Mon Entreprise`,
                     email: 'contact@zenith.com',
                 }, { merge: true });
@@ -118,6 +119,7 @@ export default function LoginPage() {
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
     } catch (error: any) {
+        console.error("Registration error:", error);
         toast({
             variant: 'destructive',
             title: 'Erreur d\'inscription',

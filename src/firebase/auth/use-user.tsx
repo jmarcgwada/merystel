@@ -10,6 +10,8 @@ import type { User as AppUser } from '@/lib/types';
 
 export type CombinedUser = AuthUser & DocumentData & AppUser;
 
+const SHARED_COMPANY_ID = 'main'; // Centralize company ID
+
 export function useUser() {
   const auth = useAuth();
   const firestore = useFirestore();
@@ -29,12 +31,15 @@ export function useUser() {
       }
 
       if (authUser) {
-        const userDocRef = doc(firestore, 'users', authUser.uid);
+        // Correctly point to the user document inside the company subcollection
+        const userDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'users', authUser.uid);
+        
         unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setUser({ ...authUser, ...docSnap.data() } as CombinedUser);
           } else {
-            setUser(authUser as CombinedUser);
+            // This case might happen briefly during registration before the doc is created
+            setUser(authUser as CombinedUser); 
           }
           setLoading(false);
         }, (error) => {

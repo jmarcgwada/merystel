@@ -33,14 +33,16 @@ import {
 } from "@/components/ui/select"
 import { useToast } from '@/hooks/use-toast';
 import { setDoc, doc } from 'firebase/firestore';
+import { usePos } from '@/contexts/pos-context';
 
 
 export default function UsersPage() {
   const firestore = useFirestore();
   const { user: currentUser, loading: userLoading } = useUser();
+  const { companyInfo } = usePos();
   const { toast } = useToast();
 
-  const usersCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const usersCollectionRef = useMemoFirebase(() => (firestore && companyInfo) ? collection(firestore, 'companies', companyInfo.id, 'users') : null, [firestore, companyInfo]);
   const { data: users, isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
@@ -55,8 +57,8 @@ export default function UsersPage() {
   }
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', userId);
+    if (!firestore || !companyInfo) return;
+    const userRef = doc(firestore, 'companies', companyInfo.id, 'users', userId);
     try {
       await setDoc(userRef, { role: newRole }, { merge: true });
       toast({
