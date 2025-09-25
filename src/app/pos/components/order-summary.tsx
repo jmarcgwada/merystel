@@ -250,15 +250,17 @@ export function OrderSummary() {
                             </div>
                           )}
                           <div className="flex-1">
-                              <p className="font-semibold">{item.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>Qté: {item.quantity}</span>
-                                  {item.discount > 0 && (
-                                      <span className="text-destructive font-semibold">
-                                          (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
-                                      </span>
-                                  )}
+                              <div className="flex justify-between items-start">
+                                <p className="font-semibold pr-2">{item.name}</p>
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
                               </div>
+                              {item.discount > 0 && (
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="text-destructive font-semibold">
+                                      (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
+                                  </span>
+                                </div>
+                              )}
                           </div>
                           <div className="text-right">
                               <p className="font-bold">{item.total.toFixed(2)}€</p>
@@ -406,4 +408,3 @@ export function OrderSummary() {
   );
 }
 
-    
