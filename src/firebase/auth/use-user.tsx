@@ -35,13 +35,14 @@ export function useUser() {
           setUser(authUser as CombinedUser); // Fallback to auth user
           setLoading(false);
         });
+        // Return the firestore unsubscribe function to be called when auth state changes
         return () => unsubscribeFirestore();
       } else {
         setUser(null);
         setLoading(false);
       }
     });
-
+    // Return the auth unsubscribe function to be called when the component unmounts
     return () => unsubscribeAuth();
   }, [auth, firestore]);
 
