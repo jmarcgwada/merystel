@@ -53,74 +53,10 @@ export default function LoginPage() {
   }, [user, loading, router]);
 
 
-  const seedDefaultData = async () => {
-      if (!firestore) return;
-      
-      const companyDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID);
-      const batch = writeBatch(firestore);
-
-      // Company document (to mark as seeded)
-      batch.set(companyDocRef, {
-        name: `Mon Entreprise`,
-        email: 'contact@zenith.com',
-        address: '',
-        postalCode: '',
-        city: '',
-        country: '',
-      }, { merge: true });
-
-      // Default VAT Rates
-      const vatCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'vatRates');
-      batch.set(doc(vatCollection), { name: 'TVA 0%', rate: 0, code: 1 });
-      batch.set(doc(vatCollection), { name: 'TVA Standard', rate: 20, code: 2 });
-      batch.set(doc(vatCollection), { name: 'TVA Intermédiaire', rate: 8.5, code: 3 });
-
-      // Default Payment Methods
-      const paymentCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'paymentMethods');
-      batch.set(doc(paymentCollection), { name: 'Carte Bancaire', icon: 'card', type: 'direct' });
-      batch.set(doc(paymentCollection), { name: 'Espèces', icon: 'cash', type: 'direct' });
-      batch.set(doc(paymentCollection), { name: 'Chèque', icon: 'check', type: 'direct' });
-      batch.set(doc(paymentCollection), { name: 'Autre', icon: 'other', type: 'direct' });
-
-      // Default Customer
-      const customerCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'customers');
-      batch.set(doc(customerCollection), { name: 'Client de passage', email: '', phone: '', isDefault: true });
-
-      // Default Category & Item
-      const categoryCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'categories');
-      const testCategoryRef = doc(categoryCollection);
-      batch.set(testCategoryRef, { name: 'Catégorie de test', color: '#3b82f6', isRestaurantOnly: false, image: `https://picsum.photos/seed/testcat/100/100` });
-      
-      // We need to fetch the newly created VAT rate to link it to the item
-      const vatStandardRef = doc(vatCollection);
-      batch.set(vatStandardRef, { name: 'TVA Test', rate: 20, code: 99 }); // Temporary, will be fetched below
-      
-      await batch.commit();
-
-      // Second batch for item that depends on category/vat IDs
-      const itemBatch = writeBatch(firestore);
-      const itemCollection = collection(firestore, 'companies', SHARED_COMPANY_ID, 'items');
-      itemBatch.set(doc(itemCollection), { name: 'Article de test', price: 9.99, categoryId: testCategoryRef.id, vatId: vatStandardRef.id, image: `https://picsum.photos/seed/testitem/200/150`, isFavorite: true });
-      
-      await itemBatch.commit();
-
-      toast({ title: 'Données de démonstration créées !', description: "Votre application est prête à l'emploi." });
-  }
-
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-
-      // Check if this is the admin user logging in for the first time
-      if (userCredential.user.email === ADMIN_EMAIL) {
-          const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
-          const companyDoc = await getDoc(companyDocRef);
-          if (!companyDoc.exists()) {
-              await seedDefaultData();
-          }
-      }
-
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
       toast({ title: 'Connexion réussie' });
       router.push('/dashboard');
     } catch (error: any) {
@@ -166,6 +102,18 @@ export default function LoginPage() {
         
         // This function is non-blocking and handles its own errors
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
+
+        // On first admin registration, create the company document
+        if (role === 'admin') {
+            const companyDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID);
+            const companyDoc = await getDoc(companyDocRef);
+            if (!companyDoc.exists()) {
+                setDocumentNonBlocking(companyDocRef, {
+                    name: `Mon Entreprise`,
+                    email: 'contact@zenith.com',
+                }, { merge: true });
+            }
+        }
 
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
