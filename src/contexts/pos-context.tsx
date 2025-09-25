@@ -46,6 +46,16 @@ import type { CombinedUser } from '@/firebase/auth/use-user';
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
 
+const TAKEAWAY_TABLE: Table = {
+  id: 'takeaway',
+  name: 'Vente directe au comptoir',
+  number: 999,
+  status: 'available',
+  order: [],
+  description: 'Pour les ventes à emporter et les commandes rapides.'
+};
+
+
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
@@ -183,16 +193,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Data Fetching
   const itemsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId]);
-  const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
+  const { data: itemsData = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
   const categoriesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId]);
-  const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
   const customersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId]);
-  const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
+  const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
   const tablesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId]);
-  const { data: tables = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
+  const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
+  
+  const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData] : [TAKEAWAY_TABLE], [tablesData]);
+  const items = useMemo(() => itemsData, [itemsData]);
+  const categories = useMemo(() => categoriesData, [categoriesData]);
+  const customers = useMemo(() => customersData, [customersData]);
+
 
   const salesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
@@ -1083,4 +1099,5 @@ export function usePos() {
   }
   return context;
 }
+
 
