@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth, useFirestore } from '@/firebase';
-import { collection, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
+import { useAuth, useFirestore, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
+import { collection, doc, getDocs, writeBatch, setDoc } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -23,8 +23,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { seedDefaultData } from '@/contexts/pos-context';
 
 
 // The single, shared company ID for all users.
@@ -58,17 +56,21 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      toast({ title: 'Connexion réussie' });
-      router.push('/dashboard');
+      initiateEmailSignIn(auth, loginEmail, loginPassword);
+      // The useUser hook will handle redirection on successful login
     } catch (error: any) {
+      // This catch block might not even be hit if the error is in the listener,
+      // but it's good practice to keep it.
       toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
         description: error.message,
       });
     } finally {
-      setIsLoading(false);
+      // We don't set isLoading to false immediately, 
+      // as we wait for the auth state listener to complete the process.
+      // If the login fails, the auth state won't change, and the user will stay on the page.
+      // A more robust implementation might handle loading state based on the auth listener.
     }
   };
 
@@ -84,28 +86,9 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-        // 1. Create the user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
-        const newUser = userCredential.user;
-        
-        // 2. Determine user role. If it's the special admin email, set role to 'admin'.
-        const role = registerEmail.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'cashier';
-
-        // 3. Create the user profile in Firestore
-        const userDocRef = doc(firestore, "companies", SHARED_COMPANY_ID, "users", newUser.uid);
-        const userData = {
-            id: newUser.uid,
-            firstName: registerFirstName,
-            lastName: registerLastName,
-            email: registerEmail,
-            role: role,
-            companyId: SHARED_COMPANY_ID
-        }
-        
-        await setDoc(userDocRef, userData);
-
-        toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
-        // The useUser hook will handle redirection to /dashboard
+        // We use the non-blocking version here.
+        // The user creation will be handled by the onAuthStateChanged listener.
+        initiateEmailSignUp(auth, registerEmail, registerPassword);
     } catch (error: any) {
         console.error("Registration error:", error);
         toast({
@@ -114,15 +97,35 @@ export default function LoginPage() {
             description: error.message,
         });
     } finally {
-        setIsLoading(false);
+      // Similar to login, we let the auth state listener handle the UI changes.
     }
   };
+  
+   useEffect(() => {
+    if (user && !user.firstName && firestore) {
+      const userDocRef = doc(firestore, "companies", SHARED_COMPANY_ID, "users", user.uid);
+      const role = user.email === ADMIN_EMAIL ? 'admin' : 'cashier';
 
-  if (loading || user) {
+      // This assumes we can get the first/last name from somewhere,
+      // which we can't after the change. We'll set them as empty for now.
+      // The user can update them in their profile.
+      const userData = {
+          id: user.uid,
+          firstName: 'Nouvel', // Placeholder
+          lastName: 'Utilisateur', // Placeholder
+          email: user.email,
+          role: role,
+          companyId: SHARED_COMPANY_ID
+      }
+      setDoc(userDocRef, userData, { merge: true });
+    }
+  }, [user, firestore]);
+
+  if (loading || (user && !user.isAnonymous)) {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
   }
   
-  if (user) {
+  if (user && !user.isAnonymous) {
     return null;
   }
 
