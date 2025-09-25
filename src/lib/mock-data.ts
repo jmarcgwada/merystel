@@ -52,15 +52,15 @@ export const mockItems: Item[] = [
 ];
 
 export const mockTables: Table[] = [
-  { id: 't1', name: 'Table 1', number: 1, status: 'available', order: [] },
-  { id: 't2', name: 'Table 2', number: 2, status: 'occupied', order: [{...mockItems[0], quantity: 2, total: 57.0, discount: 0}, {...mockItems[13], quantity: 2, total: 8.0, discount: 0}] },
-  { id: 't3', name: 'Table 3', number: 3, status: 'available', order: [] },
-  { id: 't4', name: 'Table 4', number: 4, status: 'paying', order: [{...mockItems[3], quantity: 1, total: 19.5, discount: 0}] },
-  { id: 't5', name: 'Table 5', number: 5, status: 'available', order: [] },
-  { id: 't6', name: 'Table 6', number: 6, status: 'available', order: [] },
-  { id: 't7', name: 'Table 7', number: 7, status: 'occupied', order: [{...mockItems[10], quantity: 1, total: 3.5, discount: 0}] },
-  { id: 't8', name: 'Table 8', number: 8, status: 'available', order: [] },
-  { id: 't9', name: 'À emporter', number: 9, status: 'available', order: [] },
+  { id: 't1', name: 'Table 1', number: 1, description: 'Près de la fenêtre', status: 'available', order: [] },
+  { id: 't2', name: 'Table 2', number: 2, description: '', status: 'occupied', order: [{...mockItems[0], quantity: 2, total: 57.0, discount: 0}, {...mockItems[13], quantity: 2, total: 8.0, discount: 0}] },
+  { id: 't3', name: 'Table 3', number: 3, description: 'Section calme', status: 'available', order: [] },
+  { id: 't4', name: 'Table 4', number: 4, description: '', status: 'paying', order: [{...mockItems[3], quantity: 1, total: 19.5, discount: 0}] },
+  { id: 't5', name: 'Table 5', number: 5, description: '', status: 'available', order: [] },
+  { id: 't6', name: 'Table 6', number: 6, description: 'Grande table', status: 'available', order: [] },
+  { id: 't7', name: 'Table 7', number: 7, description: '', status: 'occupied', order: [{...mockItems[10], quantity: 1, total: 3.5, discount: 0}] },
+  { id: 't8', name: 'Table 8', number: 8, description: '', status: 'available', order: [] },
+  { id: 't9', name: 'À emporter', number: 9, description: 'Zone de retrait', status: 'available', order: [] },
 ];
 
 export const mockCustomers: Customer[] = [

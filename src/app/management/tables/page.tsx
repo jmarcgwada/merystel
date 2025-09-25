@@ -68,7 +68,7 @@ export default function TablesPage() {
                         <TableRow key={table.id}>
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{table.description}</TableCell>
+                            <TableCell className="text-muted-foreground">{table.description || ''}</TableCell>
                              <TableCell>
                                 <Badge variant={table.status === 'available' ? 'secondary' : table.status === 'occupied' ? 'default' : 'outline'} className="capitalize">
                                     {table.status === 'available' ? 'Disponible' : table.status === 'occupied' ? 'Occupée' : 'Paiement'}
