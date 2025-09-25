@@ -1,30 +1,54 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { useAuth } from '../provider';
+import { onAuthStateChanged, type User as AuthUser } from 'firebase/auth';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { useAuth, useFirestore } from '../provider';
 import { usePathname, useRouter } from 'next/navigation';
+import type { User as AppUser } from '@/lib/types';
+
+export type CombinedUser = AuthUser & DocumentData & AppUser;
 
 export function useUser() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CombinedUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      if (authUser) {
+        const userDocRef = doc(firestore, 'users', authUser.uid);
+        const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUser({ ...authUser, ...docSnap.data() } as CombinedUser);
+          } else {
+            // User exists in Auth but not in Firestore yet, might happen during signup
+            setUser(authUser as CombinedUser);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error fetching user from Firestore:", error);
+          setUser(authUser as CombinedUser); // Fallback to auth user
+          setLoading(false);
+        });
+        return () => unsubscribeFirestore();
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
     });
 
-    return () => unsubscribe();
-  }, [auth]);
+    return () => unsubscribeAuth();
+  }, [auth, firestore]);
 
   useEffect(() => {
     if (loading) return;
 
-    if (!user && pathname !== '/login') {
+    if (!user && pathname !== '/login' && pathname !== '/register') { // Allow register page too
       router.push('/login');
     }
   }, [user, loading, pathname, router]);
