@@ -24,6 +24,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { seedDefaultData } from '@/contexts/pos-context';
+
 
 // The single, shared company ID for all users.
 const SHARED_COMPANY_ID = 'main';
@@ -87,7 +89,7 @@ export default function LoginPage() {
         const newUser = userCredential.user;
         
         // 2. Determine user role. If it's the special admin email, set role to 'admin'.
-        const role = registerEmail === ADMIN_EMAIL ? 'admin' : 'cashier';
+        const role = registerEmail.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'cashier';
 
         // 3. Create the user profile in Firestore
         const userDocRef = doc(firestore, "companies", SHARED_COMPANY_ID, "users", newUser.uid);
@@ -100,21 +102,7 @@ export default function LoginPage() {
             companyId: SHARED_COMPANY_ID
         }
         
-        // Use a blocking setDoc here for the initial user registration to ensure the document exists.
-        await setDoc(userDocRef, userData, { merge: true });
-
-        // On first admin registration, create the company document
-        if (role === 'admin') {
-            const companyDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID);
-            const companyDoc = await getDoc(companyDocRef);
-            if (!companyDoc.exists()) {
-                await setDoc(companyDocRef, {
-                    id: SHARED_COMPANY_ID,
-                    name: `Mon Entreprise`,
-                    email: 'contact@zenith.com',
-                }, { merge: true });
-            }
-        }
+        await setDoc(userDocRef, userData);
 
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
