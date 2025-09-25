@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -191,22 +190,6 @@ export function OrderSummary() {
     return { top: '88px' }; // Fallback
   }
 
-  const vatBreakdown = useMemo(() => {
-    const breakdown: { [key: string]: { rate: number; total: number } } = {};
-    order.forEach(item => {
-        const vatInfo = vatRates.find(v => v.id === item.vatId);
-        if (vatInfo && vatInfo.rate > 0) {
-            const taxForItem = item.total * (vatInfo.rate / 100);
-            if (breakdown[vatInfo.rate]) {
-                breakdown[vatInfo.rate].total += taxForItem;
-            } else {
-                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem };
-            }
-        }
-    });
-    return Object.values(breakdown);
-  }, [order, vatRates]);
-
   return (
     <>
       <div className="flex h-full flex-col bg-card">
@@ -353,7 +336,7 @@ export function OrderSummary() {
                     size="lg"
                     variant="outline"
                     className="w-full"
-                    disabled={order.length === 0}
+                    disabled={order.length === 0 || keypadActive}
                     onClick={handlePromoteToTicket}
                   >
                     <Ticket className="mr-2 h-4 w-4" />
@@ -363,6 +346,7 @@ export function OrderSummary() {
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={handleSaveTable}
+                    disabled={keypadActive}
                   >
                      <Save className="mr-2 h-4 w-4" />
                     Sauvegarder la table
@@ -374,7 +358,7 @@ export function OrderSummary() {
                     size="lg"
                     variant="outline"
                     className="w-full"
-                    disabled={order.length === 0}
+                    disabled={order.length === 0 || keypadActive}
                     onClick={holdOrder}
                   >
                     <Hand className="mr-2 h-4 w-4" />
@@ -383,7 +367,7 @@ export function OrderSummary() {
                   <Button
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={order.length === 0}
+                    disabled={order.length === 0 || keypadActive}
                     onClick={() => setCheckoutOpen(true)}
                   >
                     Payer maintenant
@@ -401,5 +385,6 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
