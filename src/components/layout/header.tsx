@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -47,12 +48,17 @@ export default function Header() {
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
-    if (href.startsWith('/management')) return pathname.startsWith('/management');
+    if (href === '/management/items') return pathname.startsWith('/management');
     return pathname.startsWith(href);
   };
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (pathname.startsWith('/pos') && order.length > 0 && !href.startsWith('/pos')) {
+    const isLeavingPos = pathname.startsWith('/pos') && !href.startsWith('/pos');
+    
+    // Management pages can be left without confirmation if we are navigating within management
+    const isLeavingManagementForManagement = pathname.startsWith('/management') && href.startsWith('/management');
+
+    if (isLeavingPos && order.length > 0 && !isLeavingManagementForManagement) {
       e.preventDefault();
       showNavConfirm(href);
     }
