@@ -97,13 +97,6 @@ export function OrderSummary() {
         setSelectedItem(item);
         setMode('quantity');
         setKeypadValue(item.quantity.toString());
-
-        const itemIndex = order.findIndex(o => o.id === item.id);
-        if (itemIndex > 0) { // Only move if not already at top
-            const newOrder = [...order];
-            const [movedItem] = newOrder.splice(itemIndex, 1);
-            setOrder([movedItem, ...newOrder]);
-        }
     }
   }
 
@@ -258,8 +251,8 @@ export function OrderSummary() {
   return (
     <>
       <div className="flex h-full flex-col bg-card">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold tracking-tight font-headline">
+        <div className="flex items-center justify-between p-2 border-b">
+          <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
           </h2>
           <HeaderAction />
