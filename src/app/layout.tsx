@@ -27,9 +27,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased h-full">
         <PosProvider>
-          <div className="flex min-h-screen w-full flex-col h-full">
+          <div className="flex flex-col h-screen">
             <Header />
-            <main className="flex-1 flex flex-col">{children}</main>
+            <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
           <Toaster />
         </PosProvider>
