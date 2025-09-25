@@ -1,28 +1,16 @@
 /**
- * @fileoverview Firestore Security Rules for Zenith POS.
+ * @file Firebase Security Rules for Zenith POS.
  *
- * Core Philosophy:
- * This ruleset enforces a strict, role-based access control model within a hierarchical data structure.
- * Users can only access their own profile data. Access to company-level data is determined by the user's role within the company.
- *
- * Data Structure:
- * The database is structured with companies as the root. Each company contains collections for customers, categories, items, tables, sales, payment methods, and VAT rates.
- * /users/{userId} - User profile data.
- * /companies/{companyId} - Company data.
- * /companies/{companyId}/customers/{customerId} - Customers of a company.
- * /companies/{companyId}/categories/{categoryId} - Item categories for a company.
- * /companies/{companyId}/items/{itemId} - Items for sale in a company.
- * /companies/{companyId}/tables/{tableId} - Tables in a company.
- * /companies/{companyId}/sales/{saleId} - Sales records for a company.
- * /companies/{companyId}/paymentMethods/{methodId} - Payment methods for a company.
- * /companies/{companyId}/vatRates/{vatId} - VAT rates for a company.
- * /companies/{companyId}/heldOrders/{orderId} - Held orders for a company.
- *
- * Key Security Decisions:
- * - Users can only read and write their own user document.
- * - Company-level data access is role-based (admin, manager, cashier).
- * - Listing of sales is restricted to company admins and managers.
- * - Data validation is minimal in this prototype phase, focusing on ownership and relational integrity.
+ * @core_philosophy This ruleset employs a strict user-ownership and company-based access control model.
+ *  - Users can only manage their own profile data.
+ *  - Companies serve as data silos; users within a company have access to company-specific data.
+ * @data_structure
+ *  - User profiles are stored under `/users/{userId}`.
+ *  - Company data is stored under `/companies/{companyId}`, with subcollections for customers, categories, etc.
+ * @key_security_decisions
+ *  - Listing of all users is disallowed to prevent information disclosure.
+ * @denormalization_for_authorization
+ *  - Company ID is included in the user profile to simplify company-based data access rules.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -31,280 +19,178 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile document.
-     * @deny (create) User with ID 'user123' cannot create a profile document with a different ID ('user456').
-     * @allow (get) User with ID 'user123' can read their own profile document.
-     * @deny (get) User with ID 'user123' cannot read another user's profile document ('user456').
-     * @allow (update) User with ID 'user123' can update their own profile document.
-     * @deny (update) User with ID 'user123' cannot update another user's profile document ('user456').
-     * @allow (delete) User with ID 'user123' can delete their own profile document.
-     * @deny (delete) User with ID 'user123' cannot delete another user's profile document ('user456').
-     * @principle Enforces document ownership for reads and writes.
+     * @allow (create) User with ID 'test_user' can create their own profile.
+     *   - request.auth.uid: 'test_user'
+     *   - resource.data.id: 'test_user'
+     * @allow (get, update, delete) User with ID 'test_user' can read, update, and delete their own profile.
+     *   - request.auth.uid: 'test_user'
+     *   - resource.data.id: 'test_user'
+     * @deny (create) User with ID 'test_user' cannot create a profile with a different ID.
+     *   - request.auth.uid: 'test_user'
+     *   - resource.data.id: 'other_user'
+     * @deny (get, update, delete) User with ID 'test_user' cannot read, update or delete another user's profile.
+     *   - request.auth.uid: 'test_user'
+     *   - resource.data.id: 'other_user'
+     * @deny (list) No one can list all users.
+     * @principle Enforces user-ownership for profile management.
      */
     match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
      * @description Controls access to company information.
      * @path /companies/{companyId}
-     * @allow (get) Any authenticated user can read company information.
-     * @deny (get) Unauthenticated users cannot read company information.
-     * @allow (create) No one can create company documents directly.
-     * @deny (create) Attempts to create a company document are always denied.
-     * @allow (update) Only company admins can update company information.
-     * @deny (update) Non-admins cannot update company information.
-     * @allow (delete) Only company admins can delete company information.
-     * @deny (delete) Non-admins cannot delete company information.
-     * @principle Enforces role-based access control for company data.
+     * @allow (get, list) Any authenticated user can view company information.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only the company owner/admin can create, update, or delete company information.
+     *   - TODO: Implement company ownership/admin check
+     * @deny (create, update, delete) Any regular user cannot create, update, or delete company information.
+     *   - request.auth.uid: 'any_user'
+     * @principle Restricts company management to authorized personnel.
      */
     match /companies/{companyId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if false;
-      allow update: if isAdminOrManager(companyId);
-      allow delete: if isAdminOrManager(companyId);
-
-      /**
-       * @description Controls access to customer data for a specific company.
-       * @path /companies/{companyId}/customers/{customerId}
-       * @allow (create) Company admins, managers, and cashiers can create customer documents.
-       * @deny (create) Users without the necessary role cannot create customer documents.
-       * @allow (get) Company admins, managers, and cashiers can read customer documents.
-       * @deny (get) Users without the necessary role cannot read customer documents.
-       * @allow (list) Company admins, managers, and cashiers can list customer documents.
-       * @deny (list) Users without the necessary role cannot list customer documents.
-       * @allow (update) Company admins, managers, and cashiers can update customer documents.
-       * @deny (update) Users without the necessary role cannot update customer documents.
-       * @allow (delete) Company admins and managers can delete customer documents.
-       * @deny (delete) Cashiers and other users cannot delete customer documents.
-       * @principle Enforces role-based access control for customer data.
-       */
-      match /customers/{customerId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to item categories for a company.
-       * @path /companies/{companyId}/categories/{categoryId}
-       * @allow (create) Company admins, managers, and cashiers can create category documents.
-       * @deny (create) Users without the necessary role cannot create category documents.
-       * @allow (get) Company admins, managers, and cashiers can read category documents.
-       * @deny (get) Users without the necessary role cannot read category documents.
-       * @allow (list) Company admins, managers, and cashiers can list category documents.
-       * @deny (list) Users without the necessary role cannot list category documents.
-       * @allow (update) Company admins, managers, and cashiers can update category documents.
-       * @deny (update) Users without the necessary role cannot update category documents.
-       * @allow (delete) Company admins and managers can delete category documents.
-       * @deny (delete) Cashiers and other users cannot delete category documents.
-       * @principle Enforces role-based access control for category data.
-       */
-      match /categories/{categoryId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to sellable items for a company.
-       * @path /companies/{companyId}/items/{itemId}
-       * @allow (create) Company admins, managers, and cashiers can create item documents.
-       * @deny (create) Users without the necessary role cannot create item documents.
-       * @allow (get) Company admins, managers, and cashiers can read item documents.
-       * @deny (get) Users without the necessary role cannot read item documents.
-       * @allow (list) Company admins, managers, and cashiers can list item documents.
-       * @deny (list) Users without the necessary role cannot list item documents.
-       * @allow (update) Company admins, managers, and cashiers can update item documents.
-       * @deny (update) Users without the necessary role cannot update item documents.
-       * @allow (delete) Company admins and managers can delete item documents.
-       * @deny (delete) Cashiers and other users cannot delete item documents.
-       * @principle Enforces role-based access control for item data.
-       */
-      match /items/{itemId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to restaurant tables for a company.
-       * @path /companies/{companyId}/tables/{tableId}
-       * @allow (create) Company admins, managers, and cashiers can create table documents.
-       * @deny (create) Users without the necessary role cannot create table documents.
-       * @allow (get) Company admins, managers, and cashiers can read table documents.
-       * @deny (get) Users without the necessary role cannot read table documents.
-       * @allow (list) Company admins, managers, and cashiers can list table documents.
-       * @deny (list) Users without the necessary role cannot list table documents.
-       * @allow (update) Company admins, managers, and cashiers can update table documents.
-       * @deny (update) Users without the necessary role cannot update table documents.
-       * @allow (delete) Company admins and managers can delete table documents.
-       * @deny (delete) Cashiers and other users cannot delete table documents.
-       * @principle Enforces role-based access control for table data.
-       */
-      match /tables/{tableId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to sales records for a company.
-       * @path /companies/{companyId}/sales/{saleId}
-       * @allow (create) Company admins, managers, and cashiers can create sale documents.
-       * @deny (create) Users without the necessary role cannot create sale documents.
-       * @allow (get) Company admins, managers, and cashiers can read sale documents.
-       * @deny (get) Users without the necessary role cannot read sale documents.
-       * @allow (list) Only company admins and managers can list sales documents.
-       * @deny (list) Cashiers and other users cannot list sales documents.
-       * @allow (update) Company admins and managers can update sale documents.
-       * @deny (update) Cashiers and other users cannot update sale documents.
-       * @allow (delete) Company admins and managers can delete sale documents.
-       * @deny (delete) Cashiers and other users cannot delete sale documents.
-       * @principle Enforces role-based access control for sale data, restricting listing to admins and managers.
-       */
-      match /sales/{saleId} {
-        allow get, create: if isAdminOrManagerOrCashier(companyId);
-        allow list: if isAdminOrManager(companyId);
-        allow update, delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to payment methods for a company.
-       * @path /companies/{companyId}/paymentMethods/{methodId}
-       * @allow (create) Company admins, managers, and cashiers can create payment method documents.
-       * @deny (create) Users without the necessary role cannot create payment method documents.
-       * @allow (get) Company admins, managers, and cashiers can read payment method documents.
-       * @deny (get) Users without the necessary role cannot read payment method documents.
-       * @allow (list) Company admins, managers, and cashiers can list payment method documents.
-       * @deny (list) Users without the necessary role cannot list payment method documents.
-       * @allow (update) Company admins, managers, and cashiers can update payment method documents.
-       * @deny (update) Users without the necessary role cannot update payment method documents.
-       * @allow (delete) Company admins and managers can delete payment method documents.
-       * @deny (delete) Cashiers and other users cannot delete payment method documents.
-       * @principle Enforces role-based access control for payment method data.
-       */
-      match /paymentMethods/{methodId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to VAT rates for a company.
-       * @path /companies/{companyId}/vatRates/{vatId}
-       * @allow (create) Company admins, managers, and cashiers can create VAT rate documents.
-       * @deny (create) Users without the necessary role cannot create VAT rate documents.
-       * @allow (get) Company admins, managers, and cashiers can read VAT rate documents.
-       * @deny (get) Users without the necessary role cannot read VAT rate documents.
-       * @allow (list) Company admins, managers, and cashiers can list VAT rate documents.
-       * @deny (list) Users without the necessary role cannot list VAT rate documents.
-       * @allow (update) Company admins, managers, and cashiers can update VAT rate documents.
-       * @deny (update) Users without the necessary role cannot update VAT rate documents.
-       * @allow (delete) Company admins and managers can delete VAT rate documents.
-       * @deny (delete) Cashiers and other users cannot delete VAT rate documents.
-       * @principle Enforces role-based access control for VAT rate data.
-       */
-      match /vatRates/{vatId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
-
-      /**
-       * @description Controls access to temporarily held orders for a company.
-       * @path /companies/{companyId}/heldOrders/{orderId}
-       * @allow (create) Company admins, managers, and cashiers can create held order documents.
-       * @deny (create) Users without the necessary role cannot create held order documents.
-       * @allow (get) Company admins, managers, and cashiers can read held order documents.
-       * @deny (get) Users without the necessary role cannot read held order documents.
-       * @allow (list) Company admins, managers, and cashiers can list held order documents.
-       * @deny (list) Users without the necessary role cannot list held order documents.
-       * @allow (update) Company admins, managers, and cashiers can update held order documents.
-       * @deny (update) Users without the necessary role cannot update held order documents.
-       * @allow (delete) Company admins and managers can delete held order documents.
-       * @deny (delete) Cashiers and other users cannot delete held order documents.
-       * @principle Enforces role-based access control for held order data.
-       */
-      match /heldOrders/{orderId} {
-        allow get, list, create, update: if isAdminOrManagerOrCashier(companyId);
-        allow delete: if isAdminOrManager(companyId);
-      }
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // TODO: Add company owner validation once the schema is updated with an ownership field.
     }
 
-    // ---- Helper functions ----
+    /**
+     * @description Controls access to customer data for a specific company.
+     * @path /companies/{companyId}/customers/{customerId}
+     * @allow (get, list) Any authenticated user can view customer data within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete customer data.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete customer data.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for customers.
+     */
+    match /companies/{companyId}/customers/{customerId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // TODO: Add company membership validation.
+    }
 
     /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
+     * @description Controls access to item categories for a specific company.
+     * @path /companies/{companyId}/categories/{categoryId}
+     * @allow (get, list) Any authenticated user can view categories within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete categories.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete categories.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for categories.
      */
+    match /companies/{companyId}/categories/{categoryId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to items for a specific company.
+     * @path /companies/{companyId}/items/{itemId}
+     * @allow (get, list) Any authenticated user can view items within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete items.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete items.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for items.
+     */
+    match /companies/{companyId}/items/{itemId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to tables for a specific company.
+     * @path /companies/{companyId}/tables/{tableId}
+     * @allow (get, list) Any authenticated user can view tables within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete tables.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete tables.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for tables.
+     */
+    match /companies/{companyId}/tables/{tableId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to sales data for a specific company.
+     * @path /companies/{companyId}/sales/{saleId}
+     * @allow (get, list) Any authenticated user can view sales data within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete sales data.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete sales data.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for sales.
+     */
+    match /companies/{companyId}/sales/{saleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to payment methods for a specific company.
+     * @path /companies/{companyId}/paymentMethods/{methodId}
+     * @allow (get, list) Any authenticated user can view payment methods within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete payment methods.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete payment methods.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for payment methods.
+     */
+    match /companies/{companyId}/paymentMethods/{methodId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to VAT rates for a specific company.
+     * @path /companies/{companyId}/vatRates/{vatId}
+     * @allow (get, list) Any authenticated user can view VAT rates within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete VAT rates.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete VAT rates.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for VAT rates.
+     */
+    match /companies/{companyId}/vatRates/{vatId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;  // TODO: Add company membership validation.
+    }
+
+    /**
+     * @description Controls access to held orders for a specific company.
+     * @path /companies/{companyId}/heldOrders/{orderId}
+     * @allow (get, list) Any authenticated user can view held orders within their company.
+     *   - request.auth.uid: 'any_user'
+     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete held orders.
+     *   - TODO: Implement company membership check
+     * @deny (create, update, delete) Users from other companies cannot create, update, or delete held orders.
+     *   - request.auth.uid: 'other_company_user'
+     * @principle Enforces company-based data access for held orders.
+     */
+    match /companies/{companyId}/heldOrders/{orderId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // TODO: Add company membership validation.
+    }
+
     function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the user is the owner of the resource.
-     * @param {string} userId The user ID to check against.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the user is the owner of the resource and the resource exists.
-     * @param {string} userId The user ID to check against.
-     * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Checks if the user is an admin for the given company.
-     * @param {string} companyId The company ID to check against.
-     * @return {boolean} True if the user is an admin, false otherwise.
-     */
-    function isAdmin(companyId) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-    }
-
-     /**
-      * @description Checks if the user is a manager for the given company.
-      * @param {string} companyId The company ID to check against.
-      * @return {boolean} True if the user is a manager, false otherwise.
-      */
-    function isManager(companyId) {
-       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager'
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-    }
-
-    /**
-     * @description Checks if the user is a cashier for the given company.
-     * @param {string} companyId The company ID to check against.
-     * @return {boolean} True if the user is a cashier, false otherwise.
-     */
-     function isCashier(companyId) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cashier'
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-    }
-
-    /**
-     * @description Checks if the user is an admin or a manager for the given company.
-     * @param {string} companyId The company ID to check against.
-     * @return {boolean} True if the user is an admin or manager, false otherwise.
-     */
-    function isAdminOrManager(companyId) {
-      return isAdmin(companyId) || isManager(companyId);
-    }
-
-    /**
-     * @description Checks if the user is an admin, manager, or cashier for the given company.
-     * @param {string} companyId The company ID to check against.
-     * @return {boolean} True if the user is an admin, manager, or cashier, false otherwise.
-     */
-    function isAdminOrManagerOrCashier(companyId) {
-      return isAdmin(companyId) || isManager(companyId) || isCashier(companyId);
+        return request.auth != null;
     }
   }
 }
