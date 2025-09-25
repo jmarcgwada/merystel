@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate } from '@/lib/types';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate, SpecialCategory } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods, mockVatRates } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -34,6 +34,7 @@ interface PosContextType {
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
+  popularItems: Item[];
   
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
@@ -80,6 +81,8 @@ interface PosContextType {
 
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
+  popularItemsCount: number;
+  setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
 
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
@@ -106,6 +109,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
+  const [popularItemsCount, setPopularItemsCount] = useState(5);
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -549,6 +553,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Ticket en attente supprimé.'});
   }, [heldOrders, toast]);
 
+  const popularItems = useMemo(() => {
+    const itemCounts: { [key: string]: { item: Item, count: number } } = {};
+
+    sales.forEach(sale => {
+        sale.items.forEach(orderItem => {
+            if(itemCounts[orderItem.id]) {
+                itemCounts[orderItem.id].count += orderItem.quantity;
+            } else {
+                const itemDetails = items.find(i => i.id === orderItem.id);
+                if(itemDetails) {
+                     itemCounts[orderItem.id] = { item: itemDetails, count: orderItem.quantity };
+                }
+            }
+        })
+    });
+    
+    return Object.values(itemCounts)
+        .sort((a,b) => b.count - a.count)
+        .slice(0, popularItemsCount)
+        .map(i => i.item);
+
+}, [sales, items, popularItemsCount]);
+
   const value = useMemo(() => ({
     order,
     setOrder,
@@ -573,6 +600,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteItem,
     toggleItemFavorite,
     toggleFavoriteForList,
+    popularItems,
     categories,
     addCategory,
     updateCategory,
@@ -611,6 +639,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteHeldOrder,
     showTicketImages,
     setShowTicketImages,
+    popularItemsCount,
+    setPopularItemsCount,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
@@ -642,10 +672,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteItem,
     toggleItemFavorite,
     toggleFavoriteForList,
+    popularItems,
     categories,
     addCategory,
     updateCategory,
-deleteCategory,
+    deleteCategory,
     toggleCategoryFavorite,
     customers,
     addCustomer,
@@ -680,6 +711,8 @@ deleteCategory,
     deleteHeldOrder,
     showTicketImages,
     setShowTicketImages,
+    popularItemsCount,
+    setPopularItemsCount,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,

@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { Category } from '@/lib/types';
+import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
-  selectedCategory: Category | 'all' | null;
-  onSelectCategory: (category: Category | 'all' | null) => void;
+  selectedCategory: Category | SpecialCategory | null;
+  onSelectCategory: (category: Category | SpecialCategory | null) => void;
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
 }
@@ -24,7 +24,7 @@ export function CategoryList({
   showFavoritesOnly,
   onToggleFavorites,
 }: CategoryListProps) {
-  const { categories } = usePos();
+  const { categories, popularItemsCount } = usePos();
   const [searchTerm, setSearchTerm] = React.useState('');
   const { showKeyboard, setTargetInput, inputValue } = useKeyboard();
 
@@ -75,6 +75,14 @@ export function CategoryList({
             >
               <LayoutGrid className="mr-3 h-5 w-5" />
               <span className="text-base">Tout</span>
+            </Button>
+            <Button
+              variant={getVariant('popular')}
+              className="h-12 w-full justify-start text-left"
+              onClick={() => onSelectCategory('popular')}
+            >
+              <Trophy className="mr-3 h-5 w-5" />
+              <span className="text-base">Top {popularItemsCount} Populaires</span>
             </Button>
             <Button
               variant={showFavoritesOnly ? 'secondary' : 'ghost'}

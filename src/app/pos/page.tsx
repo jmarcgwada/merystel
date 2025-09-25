@@ -7,11 +7,11 @@ import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
-import type { Category } from '@/lib/types';
+import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star } from 'lucide-react';
+import { Hand, Search, Star, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -19,9 +19,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount } = usePos();
 
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'all' | null>('all');
+  const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -45,11 +45,12 @@ export default function PosPage() {
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';
     if (selectedCategory === 'all' || selectedCategory === null) return 'Tous les articles';
+    if (selectedCategory === 'popular') return `Top ${popularItemsCount} Populaires`;
     if (typeof selectedCategory === 'object') return selectedCategory.name;
     return 'Articles';
-  }, [selectedCategory, showFavoritesOnly]);
+  }, [selectedCategory, showFavoritesOnly, popularItemsCount]);
 
-  const handleSelectCategory = (category: Category | 'all' | null) => {
+  const handleSelectCategory = (category: Category | SpecialCategory | null) => {
     setSelectedCategory(category);
     setShowFavoritesOnly(false);
   }
@@ -94,6 +95,7 @@ export default function PosPage() {
                       {pageTitle}
                     </h2>
                     {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
+                    {selectedCategory === 'popular' && <Badge variant="secondary"><Trophy className="h-3 w-3 mr-1"/>Populaires</Badge>}
                   </div>
                   <div className="relative w-full max-w-sm" onClick={handleSearchClick}>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

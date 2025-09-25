@@ -10,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages } = usePos();
+  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount } = usePos();
 
   return (
     <>
@@ -44,20 +44,29 @@ export default function CustomizationPage() {
         </Card>
          <Card>
           <CardHeader>
-            <CardTitle>Taille & Opacité</CardTitle>
+            <CardTitle>Fonctionnalités & Données</CardTitle>
+            <CardDescription>
+              Ajustez les fonctionnalités et les données affichées dans l'application.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-4">
              <div className="grid gap-2">
-                <Label>Opacité du bouton de catégorie</Label>
-                <Slider defaultValue={[80]} max={100} step={1} />
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="popular-items-count">Articles populaires</Label>
+                    <span className="text-sm font-bold text-primary">{popularItemsCount} articles</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
+                </p>
+                <Slider 
+                    id="popular-items-count"
+                    value={[popularItemsCount]} 
+                    onValueChange={(value) => setPopularItemsCount(value[0])}
+                    min={1}
+                    max={50} 
+                    step={1} 
+                />
              </div>
-              <div className="grid gap-2">
-                <Label>Taille du bouton de table</Label>
-                <Slider defaultValue={[50]} max={100} step={1} />
-             </div>
-             <div className="text-center text-muted-foreground py-8">
-                <p>Plus de curseurs et d'aperçus en temps réel seront implémentés.</p>
-            </div>
           </CardContent>
         </Card>
       </div>

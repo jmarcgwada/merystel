@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -12,17 +12,17 @@ import {
 } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import { PlusCircle } from 'lucide-react';
-import type { Category } from '@/lib/types';
+import type { Category, SpecialCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface ItemListProps {
-  category: Category | 'all' | null;
+  category: Category | SpecialCategory | null;
   searchTerm: string;
   showFavoritesOnly: boolean;
 }
 
 export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
-  const { addToOrder, items: allItems } = usePos();
+  const { addToOrder, items: allItems, popularItems } = usePos();
   const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
   const handleItemClick = (itemId: string) => {
@@ -33,20 +33,28 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
     }, 200); // L'effet dure 200ms
   };
   
-  const filteredItems = allItems.filter(item => {
-    let matchesCategory = true;
-    if (category === 'all' || category === null) {
-        matchesCategory = true;
-    } else if (typeof category === 'object' && category.id) {
-        matchesCategory = item.categoryId === category.id;
-    }
+  const filteredItems = useMemo(() => {
+    let itemsToFilter = allItems;
     
-    const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+    if (category === 'popular') {
+        return popularItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
 
-    const matchesFavorites = showFavoritesOnly ? !!item.isFavorite : true;
+    return allItems.filter(item => {
+      let matchesCategory = true;
+      if (category === 'all' || category === null) {
+          matchesCategory = true;
+      } else if (typeof category === 'object' && category.id) {
+          matchesCategory = item.categoryId === category.id;
+      }
+      
+      const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
 
-    return matchesCategory && matchesSearch && matchesFavorites;
-  });
+      const matchesFavorites = showFavoritesOnly ? !!item.isFavorite : true;
+
+      return matchesCategory && matchesSearch && matchesFavorites;
+    });
+  }, [allItems, popularItems, category, searchTerm, showFavoritesOnly]);
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

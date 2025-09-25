@@ -1,5 +1,7 @@
 
 
+export type SpecialCategory = 'all' | 'popular';
+
 export interface Category {
   id: string;
   name: string;
