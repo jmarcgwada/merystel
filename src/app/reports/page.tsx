@@ -9,11 +9,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Payment } from '@/lib/types';
+import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+
+
+const ClientFormattedDate = ({ date }: { date: Date }) => {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(format(date, "d MMM yyyy 'à' HH:mm", { locale: fr }));
+    }, [date]);
+
+    return <>{formattedDate}</>;
+}
 
 
 export default function ReportsPage() {
@@ -77,7 +89,7 @@ export default function ReportsPage() {
                                     {sale.ticketNumber}
                                 </TableCell>
                                 <TableCell className="font-medium whitespace-nowrap">
-                                    {format(sale.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                                    <ClientFormattedDate date={sale.date} />
                                 </TableCell>
                                 <TableCell>
                                     {getCustomerName(sale.customerId)}

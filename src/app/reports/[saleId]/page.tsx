@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
@@ -16,6 +17,18 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+
+const ClientFormattedDate = ({ date }: { date: Date }) => {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(format(date, "d MMMM yyyy 'à' HH:mm", { locale: fr }));
+    }, [date]);
+
+    return <>{formattedDate}</>;
+}
+
 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
@@ -62,7 +75,7 @@ export default function SaleDetailPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title={`Détail de la vente #${sale.ticketNumber}`}
-        subtitle={`Effectuée le ${format(sale.date, "d MMMM yyyy 'à' HH:mm", { locale: fr })}`}
+        subtitle={<ClientFormattedDate date={sale.date} />}
       >
         <Button asChild variant="outline">
             <Link href="/reports">
