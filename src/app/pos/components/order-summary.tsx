@@ -210,7 +210,7 @@ export function OrderSummary() {
             </div>
           ) : (
             <ScrollArea 
-                className={cn("h-full", keypadActive && 'opacity-30 pointer-events-none')} 
+                className="h-full" 
                 viewportRef={scrollAreaRef}
             >
               <div className="divide-y">
@@ -309,69 +309,67 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="mt-auto border-t">
-          <div className="p-4">
-              <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                  <span>Sous-total</span>
-                  <span>{orderTotal.toFixed(2)}€</span>
-                  </div>
-                  <div className="flex justify-between">
-                  <span>TVA</span>
-                  <span>{orderTax.toFixed(2)}€</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>{(orderTotal + orderTax).toFixed(2)}€</span>
-                  </div>
-              </div>
-              <div className="mt-4 flex gap-2">
-                {selectedTable ? (
-                  <>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="w-full"
-                      disabled={order.length === 0}
-                      onClick={handlePromoteToTicket}
-                    >
-                      <Ticket className="mr-2 h-4 w-4" />
-                      Transformer en ticket
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      onClick={handleSaveTable}
-                    >
-                       <Save className="mr-2 h-4 w-4" />
-                      Sauvegarder la table
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="w-full"
-                      disabled={order.length === 0}
-                      onClick={holdOrder}
-                    >
-                      <Hand className="mr-2 h-4 w-4" />
-                      Mettre en attente
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      disabled={order.length === 0}
-                      onClick={() => setCheckoutOpen(true)}
-                    >
-                      Payer maintenant
-                    </Button>
-                  </>
-                )}
-              </div>
-          </div>
+        <div className="mt-auto border-t p-4">
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                <span>Sous-total</span>
+                <span>{orderTotal.toFixed(2)}€</span>
+                </div>
+                <div className="flex justify-between">
+                <span>TVA</span>
+                <span>{orderTax.toFixed(2)}€</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{(orderTotal + orderTax).toFixed(2)}€</span>
+                </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              {selectedTable ? (
+                <>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0}
+                    onClick={handlePromoteToTicket}
+                  >
+                    <Ticket className="mr-2 h-4 w-4" />
+                    Transformer en ticket
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={handleSaveTable}
+                  >
+                     <Save className="mr-2 h-4 w-4" />
+                    Sauvegarder la table
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0}
+                    onClick={holdOrder}
+                  >
+                    <Hand className="mr-2 h-4 w-4" />
+                    Mettre en attente
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={order.length === 0}
+                    onClick={() => setCheckoutOpen(true)}
+                  >
+                    Payer maintenant
+                  </Button>
+                </>
+              )}
+            </div>
         </div>
       </div>
       <CheckoutModal
