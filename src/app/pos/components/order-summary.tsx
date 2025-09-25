@@ -77,14 +77,6 @@ export function OrderSummary() {
 
   useEffect(() => {
     setIsKeypadOpen(!!selectedItem);
-     if (selectedItem && itemRefs.current[selectedItem.id] && scrollAreaRef.current) {
-      const itemElement = itemRefs.current[selectedItem.id];
-      const scrollArea = scrollAreaRef.current;
-      if (itemElement && scrollArea) {
-        // 380 is the height of the keypad
-        scrollArea.scrollTop = itemElement.offsetTop - 380; 
-      }
-    }
   }, [selectedItem, setIsKeypadOpen]);
 
   useEffect(() => {
@@ -214,11 +206,6 @@ export function OrderSummary() {
     }
     return '';
   }
-
-
-  const keypadStyle = () => {
-    return { top: `0px` };
-  }
   
   const HeaderAction = () => {
       if (selectedTable) {
@@ -248,6 +235,51 @@ export function OrderSummary() {
       return null;
   }
 
+  const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
+    <div 
+        ref={el => itemRefs.current[item.id] = el}
+        className={cn(
+          "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
+          isSelected ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
+          recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
+          showTicketImages ? 'p-4' : 'p-2'
+        )}
+        onClick={() => handleItemSelect(item)}
+        onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
+    >
+        {showTicketImages && (
+          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
+              <Image
+              src={item.image || 'https://picsum.photos/seed/item/100/100'}
+              alt={item.name}
+              fill
+              className="object-cover"
+              data-ai-hint="product image"
+              />
+          </div>
+        )}
+        <div className="flex-1">
+            <div className="flex justify-between items-start">
+              <p className="font-semibold pr-2">{item.name}</p>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
+            </div>
+            {item.discount > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <span className="text-destructive font-semibold">
+                    (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
+                </span>
+              </div>
+            )}
+        </div>
+        <div className="text-right">
+            <p className="font-bold">{item.total.toFixed(2)}€</p>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
+            <X className="h-4 w-4" />
+        </Button>
+    </div>
+  );
+
   return (
     <>
       <div className="flex h-full flex-col bg-card relative">
@@ -258,114 +290,78 @@ export function OrderSummary() {
           <HeaderAction />
         </div>
 
+        {isKeypadOpen && selectedItem && (
+          <div className="z-10 bg-secondary/95 backdrop-blur-sm border-b shadow-lg">
+              <div className="bg-accent/50">
+                {renderOrderItem(selectedItem, true)}
+              </div>
+              <div className="p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                      <Input 
+                          ref={keypadInputRef}
+                          type="text"
+                          value={keypadValue}
+                          onChange={handleDirectInputChange}
+                          onFocus={(e) => e.target.select()}
+                          className="col-span-4 h-12 text-right px-4 text-3xl font-mono bg-background/50"
+                      />
+
+                      <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
+                      <Button variant="destructive" className="h-12" onClick={() => {
+                          if (selectedItem) {
+                              applyDiscount(selectedItem.id, 0, 'fixed');
+                          }
+                          setKeypadValue('');
+                      }}>
+                          <Eraser/>
+                      </Button>
+                      
+                      <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
+                      <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
+
+                      <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                      <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
+                      
+                      <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
+                      
+                      <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
+                        <Check className="mr-2" /> Valider
+                      </Button>
+                      <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
+                          <X />
+                      </Button>
+                  </div>
+              </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <div className={cn("divide-y", isKeypadOpen && 'pt-[380px]')}>
+            <div className="divide-y">
                 {order.map((item) => (
-                  <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
-                      <div 
-                          className={cn(
-                            "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
-                            selectedItem?.id === item.id ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
-                            recentlyAddedItemId === item.id && 'animate-pulse-bg',
-                            showTicketImages ? 'p-4' : 'p-2'
-                          )}
-                          onClick={() => handleItemSelect(item)}
-                          onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
-                      >
-                          {showTicketImages && (
-                            <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
-                                <Image
-                                src={item.image || 'https://picsum.photos/seed/item/100/100'}
-                                alt={item.name}
-                                fill
-                                className="object-cover"
-                                data-ai-hint="product image"
-                                />
-                            </div>
-                          )}
-                          <div className="flex-1">
-                              <div className="flex justify-between items-start">
-                                <p className="font-semibold pr-2">{item.name}</p>
-                                <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
-                              </div>
-                              {item.discount > 0 && (
-                                <div className="text-sm text-muted-foreground">
-                                  <span className="text-destructive font-semibold">
-                                      (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
-                                  </span>
-                                </div>
-                              )}
-                          </div>
-                          <div className="text-right">
-                              <p className="font-bold">{item.total.toFixed(2)}€</p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
-                              <X className="h-4 w-4" />
-                          </Button>
-                      </div>
+                  <div key={item.id} className={cn(isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
+                      {renderOrderItem(item, false)}
                   </div>
                 ))}
               </div>
-          )}
-          
-           {isKeypadOpen && selectedItem && (
-            <div style={keypadStyle()} className="absolute z-10 left-0 right-0 p-4 bg-secondary/95 backdrop-blur-sm border-t border-b shadow-lg">
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                    <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
-                    <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
-                    <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                    <Input 
-                        ref={keypadInputRef}
-                        type="text"
-                        value={keypadValue}
-                        onChange={handleDirectInputChange}
-                        onFocus={(e) => e.target.select()}
-                        className="col-span-4 h-12 text-right px-4 text-3xl font-mono bg-background/50"
-                    />
-
-                    <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                     <Button variant="destructive" className="h-12" onClick={() => {
-                        if (selectedItem) {
-                            applyDiscount(selectedItem.id, 0, 'fixed');
-                        }
-                        setKeypadValue('');
-                    }}>
-                        <Eraser/>
-                    </Button>
-                    
-                    <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                    <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
-
-                    <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
-                    <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
-                    
-                    <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
-                    <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
-                    
-                    
-                    <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
-                       <Check className="mr-2" /> Valider
-                    </Button>
-                     <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
-                        <X />
-                    </Button>
-                </div>
-            </div>
           )}
         </ScrollArea>
 
@@ -441,13 +437,3 @@ export function OrderSummary() {
     </>
   );
 }
-
-
-
-
-
-
-
-    
-
-    
