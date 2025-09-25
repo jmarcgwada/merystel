@@ -77,6 +77,14 @@ export function OrderSummary() {
 
   useEffect(() => {
     setIsKeypadOpen(!!selectedItem);
+     if (selectedItem && itemRefs.current[selectedItem.id] && scrollAreaRef.current) {
+      const itemElement = itemRefs.current[selectedItem.id];
+      const scrollArea = scrollAreaRef.current;
+      if (itemElement && scrollArea) {
+        // 380 is the height of the keypad
+        scrollArea.scrollTop = itemElement.offsetTop - 380; 
+      }
+    }
   }, [selectedItem, setIsKeypadOpen]);
 
   useEffect(() => {
@@ -209,7 +217,7 @@ export function OrderSummary() {
 
 
   const keypadStyle = () => {
-    return { top: `49px` };
+    return { top: `0px` };
   }
   
   const HeaderAction = () => {
