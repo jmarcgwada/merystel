@@ -19,11 +19,12 @@ import React from 'react';
 
 export default function Header() {
   const router = useRouter();
-  const { showNavConfirm, order, selectedTable } = usePos();
+  const { showNavConfirm, order } = usePos();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    const isPos = !!selectedTable;
-    if (isPos && order.length > 0) {
+    // La modale se déclenche dès qu'il y a des articles dans la commande, 
+    // peu importe si une table est sélectionnée ou non.
+    if (order.length > 0) {
       e.preventDefault();
       showNavConfirm(href);
     }
