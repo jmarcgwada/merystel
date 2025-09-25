@@ -37,6 +37,8 @@ export interface OrderItem extends Item {
 export interface Table {
   id:string;
   name: string;
+  number: number;
+  description?: string;
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
 }

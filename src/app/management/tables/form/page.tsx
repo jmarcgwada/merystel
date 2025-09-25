@@ -1,0 +1,146 @@
+
+'use client';
+
+import React, { useEffect, Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useSearchParams, useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { usePos } from '@/contexts/pos-context';
+import { useToast } from '@/hooks/use-toast';
+import { PageHeader } from '@/components/page-header';
+import { ArrowLeft } from 'lucide-react';
+import type { Table } from '@/lib/types';
+import Link from 'next/link';
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
+  description: z.string().optional(),
+});
+
+type TableFormValues = z.infer<typeof formSchema>;
+
+function TableForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const { tables, addTable, updateTable } = usePos();
+
+  const tableId = searchParams.get('id');
+  const isEditMode = Boolean(tableId);
+  const tableToEdit = isEditMode ? tables.find(t => t.id === tableId) : null;
+
+  const form = useForm<TableFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+    },
+  });
+
+  useEffect(() => {
+    if (isEditMode && tableToEdit) {
+      form.reset({
+        name: tableToEdit.name,
+        description: tableToEdit.description || '',
+      });
+    } else {
+      form.reset();
+    }
+  }, [isEditMode, tableToEdit, form]);
+
+  function onSubmit(data: TableFormValues) {
+    if (isEditMode && tableToEdit) {
+      const updatedTable: Table = {
+        ...tableToEdit,
+        ...data,
+      };
+      updateTable(updatedTable);
+      toast({ title: 'Table modifiée', description: `La table "${data.name}" a été mise à jour.` });
+    } else {
+      addTable(data);
+      toast({ title: 'Table créée', description: `La table "${data.name}" a été ajoutée.` });
+    }
+    router.push('/management/tables');
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={isEditMode ? "Modifier la table" : 'Ajouter une nouvelle table'}
+        subtitle={isEditMode ? "Mettez à jour les détails de la table." : "Remplissez le formulaire pour créer une table."}
+      >
+        <Button variant="outline" asChild>
+          <Link href="/management/tables">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour à la liste
+          </Link>
+        </Button>
+      </PageHeader>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-xl">
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Détails de la table</CardTitle>
+              <CardDescription>
+                {isEditMode ? `Modification de la table n°${tableToEdit?.number}` : "Fournissez les informations de la nouvelle table."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom de la table</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ex: Terrasse 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (optionnel)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="ex: Près de la fenêtre" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+          
+          <div className="mt-6 flex justify-end">
+             <Button type="submit" size="lg">
+                {isEditMode ? 'Sauvegarder' : 'Créer la table'}
+            </Button>
+          </div>
+
+        </form>
+      </Form>
+    </>
+  );
+}
+
+// Wrap the component in Suspense to handle the useSearchParams() hook.
+export default function TableFormPage() {
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+            <TableForm />
+        </Suspense>
+    )
+}
