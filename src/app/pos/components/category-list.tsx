@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { Category } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { LayoutGrid, Search, Star } from 'lucide-react';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
   selectedCategory: Category | 'all' | null;
@@ -25,10 +26,23 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories } = usePos();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const { showKeyboard, setTargetInput, inputValue } = useKeyboard();
 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    setSearchTerm(inputValue);
+  }, [inputValue]);
+  
+  const handleSearchClick = () => {
+    setTargetInput({
+      value: searchTerm,
+      name: 'category-search',
+    });
+    showKeyboard();
+  };
 
   const getVariant = (id: string | null) => {
     if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
@@ -42,7 +56,7 @@ export function CategoryList({
         <h2 className="text-xl font-bold tracking-tight font-headline mb-3">
           Catégories
         </h2>
-        <div className="relative">
+        <div className="relative" onClick={handleSearchClick}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Rechercher catégorie..."

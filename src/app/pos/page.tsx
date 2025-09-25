@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function PosPage() {
   const { setSelectedTableById, heldOrders, isKeypadOpen } = usePos();
@@ -27,6 +28,14 @@ export default function PosPage() {
   
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
+  
+  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+
+  useEffect(() => {
+    if (targetInput?.name === 'item-search') {
+      setItemSearchTerm(inputValue);
+    }
+  }, [inputValue, targetInput]);
 
   useEffect(() => {
     setSelectedTableById(tableId);
@@ -34,18 +43,33 @@ export default function PosPage() {
   }, [tableId]);
 
   const pageTitle = useMemo(() => {
+    if (showFavoritesOnly) return 'Favoris';
     if (selectedCategory === 'all' || selectedCategory === null) return 'Tous les articles';
     if (typeof selectedCategory === 'object') return selectedCategory.name;
     return 'Articles';
-  }, [selectedCategory]);
+  }, [selectedCategory, showFavoritesOnly]);
 
   const handleSelectCategory = (category: Category | 'all' | null) => {
     setSelectedCategory(category);
+    setShowFavoritesOnly(false);
   }
 
   const handleToggleFavorites = () => {
     setShowFavoritesOnly(prev => !prev);
+    if (!showFavoritesOnly) {
+      setSelectedCategory(null);
+    } else {
+      setSelectedCategory('all');
+    }
   }
+
+  const handleSearchClick = () => {
+    setTargetInput({
+      value: itemSearchTerm,
+      name: 'item-search',
+    });
+    showKeyboard();
+  };
 
   return (
     <>
@@ -71,7 +95,7 @@ export default function PosPage() {
                     </h2>
                     {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
                   </div>
-                  <div className="relative w-full max-w-sm">
+                  <div className="relative w-full max-w-sm" onClick={handleSearchClick}>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Rechercher un article..."
