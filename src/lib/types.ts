@@ -95,4 +95,10 @@ export interface CompanyInfo {
   name: string;
   address: string;
   email: string;
+  phone?: string;
+  website?: string;
+  siret?: string;
+  legalForm?: string;
+  iban?: string;
+  bic?: string;
 }

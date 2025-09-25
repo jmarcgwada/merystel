@@ -123,6 +123,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     name: 'Zenith POS Inc.',
     address: '123 Rue du Marché, Paris, FR',
     email: 'contact@zenithpos.com',
+    phone: '01 23 45 67 89',
+    website: 'https://zenithpos.com',
+    siret: '123 456 789 00010',
+    legalForm: 'SAS',
+    iban: 'FR76 3000 4000 0500 0012 3456 789',
+    bic: 'BNPAFRPPXXX',
   });
   const { toast } = useToast();
   const router = useRouter();
@@ -652,7 +658,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setEnableRestaurantCategoryFilter,
     companyInfo,
     setCompanyInfo,
-    isNavConfirmOpen,
+isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
     confirmNavigation,
