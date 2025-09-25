@@ -221,7 +221,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative overflow-y-auto">
+        <ScrollArea className="flex-1">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
@@ -231,7 +231,11 @@ export function OrderSummary() {
                 {order.map((item) => (
                   <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
                       <div 
-                          className={cn("flex items-center gap-4 p-4 cursor-pointer", selectedItem?.id === item.id && 'bg-secondary')}
+                          className={cn(
+                            "flex items-center gap-4 cursor-pointer", 
+                            selectedItem?.id === item.id && 'bg-secondary',
+                            showTicketImages ? 'p-4' : 'p-2'
+                          )}
                           onClick={() => handleItemSelect(item)}
                       >
                           {showTicketImages && (
@@ -322,7 +326,7 @@ export function OrderSummary() {
                 </div>
             </div>
           )}
-        </div>
+        </ScrollArea>
 
         <div className="mt-auto border-t p-4">
             <div className="space-y-2 text-sm">
@@ -401,3 +405,5 @@ export function OrderSummary() {
     </>
   );
 }
+
+    
