@@ -90,3 +90,9 @@ export interface HeldOrder {
   tableName?: string;
   tableId?: string;
 }
+
+export interface CompanyInfo {
+  name: string;
+  address: string;
+  email: string;
+}

@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate, SpecialCategory } from '@/lib/types';
+import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate, SpecialCategory, CompanyInfo } from '@/lib/types';
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods, mockVatRates } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -88,6 +88,8 @@ interface PosContextType {
   enableRestaurantCategoryFilter: boolean;
   setEnableRestaurantCategoryFilter: React.Dispatch<React.SetStateAction<boolean>>;
 
+  companyInfo: CompanyInfo;
+  setCompanyInfo: React.Dispatch<React.SetStateAction<CompanyInfo>>;
 
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
@@ -117,6 +119,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = useState(true);
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
+    name: 'Zenith POS Inc.',
+    address: '123 Rue du Marché, Paris, FR',
+    email: 'contact@zenithpos.com',
+  });
   const { toast } = useToast();
   const router = useRouter();
 
@@ -643,6 +650,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setItemCardOpacity,
     enableRestaurantCategoryFilter,
     setEnableRestaurantCategoryFilter,
+    companyInfo,
+    setCompanyInfo,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
@@ -718,6 +727,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setItemCardOpacity,
     enableRestaurantCategoryFilter,
     setEnableRestaurantCategoryFilter,
+    companyInfo,
+    setCompanyInfo,
 isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
