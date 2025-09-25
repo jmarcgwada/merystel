@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
-import { collection, doc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   createUserWithEmailAndPassword,
@@ -24,6 +24,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
+
+// The single, shared company ID for all users.
+const SHARED_COMPANY_ID = 'main';
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -81,21 +84,17 @@ export default function LoginPage() {
         // 1. Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
         const newUser = userCredential.user;
-
-        // 2. Create a new company document in Firestore
-        const companiesCollectionRef = collection(firestore, "companies");
-        const companyDocRef = await addDoc(companiesCollectionRef, {
-            name: `Entreprise de ${registerFirstName}`,
-            address: '',
-            postalCode: '',
-            city: '',
-            country: '',
-            email: registerEmail,
-        });
-        const companyId = companyDocRef.id;
+        
+        // 2. Ensure the main company document exists.
+        // setDoc with merge:true is idempotent and safe to call every time.
+        const companyDocRef = doc(firestore, "companies", SHARED_COMPANY_ID);
+        await setDoc(companyDocRef, {
+            name: `Mon Entreprise`, // Default name, can be changed in settings
+            email: registerEmail, // Use first user's email as a default contact
+        }, { merge: true });
 
 
-        // 3. Create the user profile in Firestore, linking to the new companyId
+        // 3. Create the user profile in Firestore, linking to the shared companyId
         const userDocRef = doc(firestore, "users", newUser.uid);
         const userData = {
             id: newUser.uid,
@@ -103,7 +102,7 @@ export default function LoginPage() {
             lastName: registerLastName,
             email: registerEmail,
             role: 'admin', // First user is an admin
-            companyId: companyId 
+            companyId: SHARED_COMPANY_ID
         }
         
         // This function is non-blocking and handles its own errors
@@ -112,7 +111,7 @@ export default function LoginPage() {
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
     } catch (error: any) {
-        // This catch block handles errors from createUserWithEmailAndPassword or addDoc
+        // This catch block handles errors from createUserWithEmailAndPassword or the initial setDoc
         toast({
             variant: 'destructive',
             title: 'Erreur d\'inscription',

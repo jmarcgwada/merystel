@@ -42,6 +42,9 @@ import {
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 
+// The single, shared company ID for the entire application.
+const SHARED_COMPANY_ID = 'main';
+
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
@@ -155,7 +158,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const companyId = useMemo(() => user?.companyId, [user]);
+  const companyId = SHARED_COMPANY_ID;
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -209,7 +212,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     userLoading ||
-    !companyId || // Explicitly wait for companyId
+    !companyId ||
     itemsLoading ||
     categoriesLoading ||
     customersLoading ||
@@ -493,12 +496,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedTableById = useCallback(
     (tableId: string | null) => {
-      if (!tables || !heldOrders) return;
+      if (!tables || !heldOrdersRef.current) return;
       const table = tableId ? tables.find((t) => t.id === tableId) || null : null;
       setSelectedTable(table);
       if (table) {
         if (table.status === 'paying') {
-          const heldOrderForTable = heldOrders.find(
+          const heldOrderForTable = heldOrdersRef.current.find(
             (ho) => ho.tableId === tableId
           );
           if (heldOrderForTable) {
@@ -516,7 +519,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         clearOrder();
       }
     },
-    [tables, heldOrders, clearOrder, recallOrder]
+    [tables, clearOrder, recallOrder]
   );
 
   const updateTableOrder = useCallback(
