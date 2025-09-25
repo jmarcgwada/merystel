@@ -9,9 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Item } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function PopularItemsPage() {
-    const { sales, items, categories } = usePos();
+    const { sales, items, categories, toggleItemFavorite } = usePos();
 
     const popularItems = useMemo(() => {
         const itemCounts: { [key: string]: { item: Item, count: number, revenue: number } } = {};
@@ -61,6 +64,7 @@ export default function PopularItemsPage() {
                     <TableHead>Catégorie</TableHead>
                     <TableHead className="text-right">Ventes (Qté)</TableHead>
                     <TableHead className="text-right">Revenu Total</TableHead>
+                    <TableHead className="text-right w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -85,6 +89,11 @@ export default function PopularItemsPage() {
                         </TableCell>
                         <TableCell className="text-right font-semibold text-primary">{count}</TableCell>
                         <TableCell className="text-right font-bold">{revenue.toFixed(2)}€</TableCell>
+                        <TableCell className="text-right">
+                           <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
+                               <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                           </Button>
+                        </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
