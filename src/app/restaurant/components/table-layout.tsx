@@ -34,11 +34,19 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, setSelectedTableById } = usePos();
+  const { tables, vatRates, heldOrders, recallOrder } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    setSelectedTableById(table.id);
+    if (table.status === 'paying') {
+      const heldOrderForTable = heldOrders.find(ho => ho.tableId === table.id);
+      if (heldOrderForTable) {
+        recallOrder(heldOrderForTable.id);
+        router.push('/pos');
+      }
+    } else {
+      router.push(`/pos?tableId=${table.id}`);
+    }
   };
 
   return (
