@@ -83,6 +83,9 @@ interface PosContextType {
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
   popularItemsCount: number;
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
+  itemCardOpacity: number;
+  setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
+
 
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
@@ -110,6 +113,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
   const [popularItemsCount, setPopularItemsCount] = useState(5);
+  const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -641,6 +645,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setShowTicketImages,
     popularItemsCount,
     setPopularItemsCount,
+    itemCardOpacity,
+    setItemCardOpacity,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
@@ -713,6 +719,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setShowTicketImages,
     popularItemsCount,
     setPopularItemsCount,
+    itemCardOpacity,
+    setItemCardOpacity,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,

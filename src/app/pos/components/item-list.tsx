@@ -22,7 +22,7 @@ interface ItemListProps {
 }
 
 export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
-  const { addToOrder, items: allItems, popularItems, categories } = usePos();
+  const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity } = usePos();
   const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
   const handleItemClick = (itemId: string) => {
@@ -93,7 +93,7 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
                     />
                      <div 
                         className="absolute inset-0" 
-                        style={{ background: `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`, opacity: 0.3 }}
+                        style={{ background: `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`, opacity: itemCardOpacity / 100 }}
                      />
                   </div>
                 </CardHeader>

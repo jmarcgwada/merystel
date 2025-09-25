@@ -10,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount } = usePos();
+  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity } = usePos();
 
   return (
     <>
@@ -21,12 +21,12 @@ export default function CustomizationPage() {
       <div className="mt-8 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Visibilité</CardTitle>
+            <CardTitle>Visibilité des éléments</CardTitle>
             <CardDescription>
-              Contrôlez l'affichage de certains éléments dans l'interface.
+              Contrôlez l'affichage de certains éléments dans l'interface du point de vente.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6 pt-4">
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="ticket-images" className="text-base">Afficher les images dans la commande</Label>
@@ -39,7 +39,24 @@ export default function CustomizationPage() {
                   checked={showTicketImages}
                   onCheckedChange={setShowTicketImages}
                 />
-              </div>
+            </div>
+             <div className="grid gap-2 pt-4">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="item-card-opacity">Opacité du dégradé des articles</Label>
+                    <span className="text-sm font-bold text-primary">{itemCardOpacity}%</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Réglez l'opacité du dégradé de couleur sur les cartes d'articles.
+                </p>
+                <Slider 
+                    id="item-card-opacity"
+                    value={[itemCardOpacity]} 
+                    onValueChange={(value) => setItemCardOpacity(value[0])}
+                    min={0}
+                    max={100} 
+                    step={5} 
+                />
+             </div>
           </CardContent>
         </Card>
          <Card>
