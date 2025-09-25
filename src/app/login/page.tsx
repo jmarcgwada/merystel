@@ -2,8 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth, setDocumentNonBlocking, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useAuth, useFirestore } from '@/firebase';
+import { collection, doc, addDoc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -76,39 +77,50 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     
-    createUserWithEmailAndPassword(auth, registerEmail, registerPassword)
-      .then((userCredential) => {
+    try {
+        // 1. Create the user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
         const newUser = userCredential.user;
 
-        // Create user profile in Firestore using the non-blocking function
-        // which has the correct error handling built-in.
+        // 2. Create a new company document in Firestore
+        const companiesCollectionRef = collection(firestore, "companies");
+        const companyDocRef = await addDoc(companiesCollectionRef, {
+            name: `Entreprise de ${registerFirstName}`,
+            address: '',
+            postalCode: '',
+            city: '',
+            country: '',
+            email: registerEmail,
+        });
+        const companyId = companyDocRef.id;
+
+
+        // 3. Create the user profile in Firestore, linking to the new companyId
         const userDocRef = doc(firestore, "users", newUser.uid);
         const userData = {
             id: newUser.uid,
             firstName: registerFirstName,
             lastName: registerLastName,
             email: registerEmail,
-            role: 'cashier', // default role
-            companyId: 'defaultCompany' // placeholder
+            role: 'admin', // First user is an admin
+            companyId: companyId 
         }
+        
+        // This function is non-blocking and handles its own errors
         setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
         toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
         // The useUser hook will handle redirection to /dashboard
-      })
-      .catch((error: any) => {
-        // This catch block handles errors from createUserWithEmailAndPassword specifically
-        // (e.g., email already in use, weak password).
-        // Firestore permission errors will be handled by the global error listener.
+    } catch (error: any) {
+        // This catch block handles errors from createUserWithEmailAndPassword or addDoc
         toast({
-          variant: 'destructive',
-          title: 'Erreur d\'inscription',
-          description: error.message,
+            variant: 'destructive',
+            title: 'Erreur d\'inscription',
+            description: error.message,
         });
-      })
-      .finally(() => {
+    } finally {
         setIsLoading(false);
-      });
+    }
   };
 
   if (loading || user) {
