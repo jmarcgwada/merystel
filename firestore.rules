@@ -1,196 +1,141 @@
 /**
  * @file Firebase Security Rules for Zenith POS.
  *
- * @core_philosophy This ruleset employs a strict user-ownership and company-based access control model.
- *  - Users can only manage their own profile data.
- *  - Companies serve as data silos; users within a company have access to company-specific data.
+ * @core_philosophy This ruleset prioritizes ease of development and data access.
+ *   - All authenticated users can create customers, items, and all other entities.
+ *   - Only admins can create users.
+ *
  * @data_structure
- *  - User profiles are stored under `/users/{userId}`.
- *  - Company data is stored under `/companies/{companyId}`, with subcollections for customers, categories, etc.
+ *   - /users/{userId}: Stores individual user profiles.
+ *   - /companies/{companyId}: Root-level collection for company-wide data.
+ *   - /companies/{companyId}/*: All other data is nested under a specific company.
+ *
  * @key_security_decisions
- *  - Listing of all users is disallowed to prevent information disclosure.
- * @denormalization_for_authorization
- *  - Company ID is included in the user profile to simplify company-based data access rules.
+ *   - Users cannot list all users (only admins can create them).
+ *   - All collections under a company are readable by all users.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Rules for user profiles. Only admins can create users.
      * @path /users/{userId}
-     * @allow (create) User with ID 'test_user' can create their own profile.
-     *   - request.auth.uid: 'test_user'
-     *   - resource.data.id: 'test_user'
-     * @allow (get, update, delete) User with ID 'test_user' can read, update, and delete their own profile.
-     *   - request.auth.uid: 'test_user'
-     *   - resource.data.id: 'test_user'
-     * @deny (create) User with ID 'test_user' cannot create a profile with a different ID.
-     *   - request.auth.uid: 'test_user'
-     *   - resource.data.id: 'other_user'
-     * @deny (get, update, delete) User with ID 'test_user' cannot read, update or delete another user's profile.
-     *   - request.auth.uid: 'test_user'
-     *   - resource.data.id: 'other_user'
-     * @deny (list) No one can list all users.
-     * @principle Enforces user-ownership for profile management.
+     * @allow (create) If the user is an admin.
+     * @deny (create) If the user is not an admin.
+     * @allow (get, list, update, delete) If the user is the owner of the document.
+     * @deny (get, list, update, delete) If the user is not the owner of the document.
+     * @principle Enforces that only admins can create users, and users can only manage their own profiles.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isAdmin();
+      allow get, list, update, delete: if isOwner(userId);
     }
 
     /**
-     * @description Controls access to company information.
+     * @description Rules for company profiles.
      * @path /companies/{companyId}
-     * @allow (get, list) Any authenticated user can view company information.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only the company owner/admin can create, update, or delete company information.
-     *   - TODO: Implement company ownership/admin check
-     * @deny (create, update, delete) Any regular user cannot create, update, or delete company information.
-     *   - request.auth.uid: 'any_user'
-     * @principle Restricts company management to authorized personnel.
+     * @allow (get, list) All authenticated users can read company info.
+     * @allow (create, update, delete) Only the owner of the company can modify company info.
+     * @deny (create, update, delete) If the user is not the owner of the company.
+     * @principle Only company owners can create, update, or delete company profiles.
      */
     match /companies/{companyId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // TODO: Add company owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false; // TODO: Add owner validation once company ownership is defined.
     }
 
     /**
-     * @description Controls access to customer data for a specific company.
+     * @description Rules for customers. All authenticated users can create customer profiles for any company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list) Any authenticated user can view customer data within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete customer data.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete customer data.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for customers.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage customer data for any company.
      */
     match /companies/{companyId}/customers/{customerId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to item categories for a specific company.
+     * @description Rules for categories. All authenticated users can manage categories for any company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list) Any authenticated user can view categories within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete categories.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete categories.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for categories.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage categories for any company.
      */
     match /companies/{companyId}/categories/{categoryId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to items for a specific company.
+     * @description Rules for items. All authenticated users can manage items for any company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list) Any authenticated user can view items within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete items.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete items.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for items.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage items for any company.
      */
     match /companies/{companyId}/items/{itemId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to tables for a specific company.
+     * @description Rules for tables. All authenticated users can manage tables for any company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list) Any authenticated user can view tables within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete tables.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete tables.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for tables.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage tables for any company.
      */
     match /companies/{companyId}/tables/{tableId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to sales data for a specific company.
+     * @description Rules for sales. All authenticated users can manage sales records for any company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list) Any authenticated user can view sales data within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete sales data.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete sales data.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for sales.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage sales records for any company.
      */
     match /companies/{companyId}/sales/{saleId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to payment methods for a specific company.
+     * @description Rules for payment methods. All authenticated users can manage payment methods for any company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list) Any authenticated user can view payment methods within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete payment methods.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete payment methods.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for payment methods.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage payment methods for any company.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to VAT rates for a specific company.
+     * @description Rules for VAT rates. All authenticated users can manage VAT rates for any company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list) Any authenticated user can view VAT rates within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete VAT rates.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete VAT rates.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for VAT rates.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage VAT rates for any company.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;  // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to held orders for a specific company.
+     * @description Rules for held orders. All authenticated users can manage held orders for any company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list) Any authenticated user can view held orders within their company.
-     *   - request.auth.uid: 'any_user'
-     * @allow (create, update, delete) Only users belonging to the company can create, update, or delete held orders.
-     *   - TODO: Implement company membership check
-     * @deny (create, update, delete) Users from other companies cannot create, update, or delete held orders.
-     *   - request.auth.uid: 'other_company_user'
-     * @principle Enforces company-based data access for held orders.
+     * @allow (get, list, create, update, delete) All authenticated users.
+     * @principle All authenticated users can manage held orders for any company.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // TODO: Add company membership validation.
+      allow get, list, create, update, delete: if isSignedIn();
     }
+  }
 
-    function isSignedIn() {
-        return request.auth != null;
-    }
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isAdmin() {
+    return request.auth.token.role == 'admin';
   }
 }
