@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,18 +17,20 @@ import { Settings, User, LogOut, LogIn } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
 import { Separator } from '../ui/separator';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const auth = useAuth();
   const { user, loading } = useUser();
   const { showNavConfirm, order, companyInfo } = usePos();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (order.length > 0) {
+    if (order.length > 0 && href !== pathname) {
       e.preventDefault();
       showNavConfirm(href);
     }
@@ -40,6 +42,20 @@ export default function Header() {
   };
 
   const userDisplayName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email;
+
+  const handleProfileClick = (e: React.MouseEvent) => {
+    handleNavClick(e as any, '/profile');
+    if (!(order.length > 0)) {
+      router.push('/profile');
+    }
+  };
+  
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    handleNavClick(e as any, '/settings');
+     if (!(order.length > 0)) {
+      router.push('/settings');
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -104,11 +120,11 @@ export default function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/profile')}>
+                  <DropdownMenuItem onClick={handleProfileClick}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profil</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/settings')}>
+                  <DropdownMenuItem onClick={handleSettingsClick}>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Paramètres</span>
                   </DropdownMenuItem>

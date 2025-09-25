@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, type User as AuthUser } from 'firebase/auth';
 import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { useAuth, useFirestore } from '../provider';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, redirect } from 'next/navigation';
 import type { User as AppUser } from '@/lib/types';
 
 export type CombinedUser = AuthUser & DocumentData & AppUser;
@@ -48,9 +48,16 @@ export function useUser() {
   useEffect(() => {
     if (loading) return;
 
-    if (!user && pathname !== '/login' && pathname !== '/register') { // Allow register page too
-      router.push('/login');
+    const isAuthPage = pathname === '/login' || pathname === '/register';
+
+    if (!user && !isAuthPage) {
+      redirect('/login');
     }
+
+    if(user && isAuthPage) {
+      redirect('/dashboard');
+    }
+
   }, [user, loading, pathname, router]);
 
   return { user, loading };
