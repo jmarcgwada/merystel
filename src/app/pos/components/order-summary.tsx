@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket, ArrowLeft } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -155,11 +155,15 @@ export function OrderSummary() {
     setKeypadValue('');
   }
 
-  const handleClearOrder = () => {
+  const handleHeaderAction = () => {
     if(selectedTable) {
-        clearOrder();
-        setSelectedTable(null);
-        router.push('/restaurant');
+        if(order.length === 0) {
+            router.push('/restaurant');
+        } else {
+            clearOrder();
+            setSelectedTable(null);
+            router.push('/restaurant');
+        }
     } else {
         clearOrder();
     }
@@ -200,6 +204,34 @@ export function OrderSummary() {
     }
     return { top: '88px' }; // Fallback
   }
+  
+  const HeaderAction = () => {
+      if (selectedTable) {
+          if (order.length === 0) {
+              return (
+                <Button variant="ghost" size="sm" onClick={handleHeaderAction}>
+                  <ArrowLeft className="mr-2 h-4 w-4"/>
+                  Retour
+                </Button>
+              )
+          }
+           return (
+                <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
+                  Annuler
+                </Button>
+            )
+      }
+
+      if (order.length > 0) {
+          return (
+             <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
+              Tout effacer
+            </Button>
+          )
+      }
+      
+      return null;
+  }
 
   return (
     <>
@@ -208,11 +240,7 @@ export function OrderSummary() {
           <h2 className="text-xl font-bold tracking-tight font-headline">
              {getTitle()}
           </h2>
-          {order.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleClearOrder} className="text-destructive hover:text-destructive">
-              {selectedTable ? 'Annuler' : 'Tout effacer'}
-            </Button>
-          )}
+          <HeaderAction />
         </div>
 
         <ScrollArea className="flex-1">
@@ -401,3 +429,6 @@ export function OrderSummary() {
 
 
 
+
+
+    
