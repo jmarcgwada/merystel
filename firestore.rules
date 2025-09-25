@@ -1,110 +1,252 @@
 /**
- * @fileoverview Firestore Security Rules for the Zenith POS application.
+ * @fileoverview Firestore Security Rules for Zenith POS.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles,
- * and restricts access to company and customer data based on company affiliation.
+ * This ruleset enforces a hierarchical data ownership model where companies own all data
+ * nested under their respective company ID. Users have read/write access to their own user
+ * profiles and are implicitly associated with a company via the 'companyId' field.
+ * All writes are validated against user authentication status (user must be signed in).
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, accessible only by the user.
- * - /companies/{companyId}: Stores company data. Access control not fully specified in the IR.
- * - /companies/{companyId}/customers/{customerId}: Stores customer data, accessible by associated company.
+ * - /users/{userId}: Stores individual user profiles.
+ * - /companies/{companyId}: Stores company-level information.
+ * - /companies/{companyId}/{collection}/{documentId}: Stores company-specific data like customers, items, etc.
  *
  * Key Security Decisions:
- * - User listing is implicitly disallowed (no `allow list` rule for `/users`).
- * - The rules enforce that a user can only create, update, or delete their own profile data.
- * - Customer access is restricted based on the `companyId` and company administrators.
- * - These rules prioritize authorization and relational integrity, with flexible data shapes for prototyping.
- *
- * Denormalization for Authorization:
- * - The `Customer` entity includes a `companyId` field, which is denormalized from the parent `/companies/{companyId}` path. This allows for efficient authorization checks without requiring `get()` calls to the parent document.
+ * - Users can only list documents in collections under their company ID.
+ * - Data validation is relaxed during prototyping to allow for flexible schema changes,
+ *   but authorization checks are strictly enforced.
+ * - Denormalization: The `companyId` is present on each user object to simplify company-level access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Secure user profiles. Users can read and write their own profile.
      * @path /users/{userId}
-     * @allow (create) User with UID 'testUID' can create their own profile at /users/testUID.
-     * @allow (update) User with UID 'testUID' can update their own profile at /users/testUID.
-     * @allow (delete) User with UID 'testUID' can delete their own profile at /users/testUID.
-     * @deny (create) User with UID 'testUID' cannot create a profile for another user at /users/otherUID.
-     * @deny (update) User with UID 'testUID' cannot update another user's profile at /users/otherUID.
-     * @deny (delete) User with UID 'testUID' cannot delete another user's profile at /users/otherUID.
+     * @allow (create) User with ID 'user123' can create their profile.
+     * @allow (get) User with ID 'user123' can read their profile.
+     * @allow (update) User with ID 'user123' can update their profile.
+     * @allow (delete) User with ID 'user123' can delete their profile.
+     * @deny (create) User with ID 'user123' cannot create a profile with a different ID ('user456').
      * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      // Helper function to check if the request is made by the owner.
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      // Helper function to check if the request is made by the existing owner.
-      function isExistingOwner(userId) {
-        return request.auth != null && request.auth.uid == userId && existsAfter(/databases/$(database)/documents/users/$(userId));
-      }
-
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not permitted
-
-      allow create: if isSignedIn()
-                    && request.auth.uid == userId;
-
-      allow update: if isExistingOwner(userId);
-
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to company information.  Access control not fully specified in the IR.
+     * @description Secure company profiles. No public access.
      * @path /companies/{companyId}
-     * @allow (get) Anyone can read company data.
-     * @deny (create) No one can create new companies, access control not fully specified in the IR.
-     * @principle Data access needs to be secured by company membership.
+     * @allow (create) -
+     * @allow (get) -
+     * @allow (update) -
+     * @allow (delete) -
+     * @deny (get) Anyone cannot get company profiles.
+     * @deny (list) Anyone cannot list company profiles.
+     * @deny (create) Anyone cannot create company profiles.
+     * @deny (update) Anyone cannot update company profiles.
+     * @deny (delete) Anyone cannot delete company profiles.
+     * @principle Restricts access to company profiles.
      */
     match /companies/{companyId} {
-      allow get: if true;
-      allow list: if false; // Listing companies is not permitted
-
-      // TODO: Add company administrator validation once the authorization scheme is determined.
-      allow create, update, delete: if false;
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to customer data within a specific company.
+     * @description Secure customer data for a specific company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get) Anyone can read customer data.
-     * @deny (create) No one can create new customers, access control not fully specified in the IR.
-     * @principle Data access needs to be secured by company membership.
+     * @allow (create) User can create customer data under their company ID.
+     * @allow (get)  User can read customer data under their company ID.
+     * @allow (update) User can update customer data under their company ID.
+     * @allow (delete) User can delete customer data under their company ID.
+     * @deny (create) User cannot create customer data under a different company ID.
+     * @principle Enforces company-level data ownership.
      */
     match /companies/{companyId}/customers/{customerId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
 
-      // Helper function to check if the request is made by the owner.
-      function isCompanyOwner(companyId) {
-        return request.auth != null && get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
-      }
+    /**
+     * @description Secure item categories for a company.
+     * @path /companies/{companyId}/categories/{categoryId}
+     * @allow (create) User can create categories under their company ID.
+     * @allow (get)  User can read categories under their company ID.
+     * @allow (update) User can update categories under their company ID.
+     * @allow (delete) User can delete categories under their company ID.
+     * @deny (create) User cannot create categories under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/categories/{categoryId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
 
-      // Helper function to check if the request is made by the existing owner.
-      function isExistingCompanyOwner(companyId) {
-        return isCompanyOwner(companyId) && existsAfter(/databases/$(database)/documents/companies/$(companyId));
-      }
+    /**
+     * @description Secure sellable items for a company.
+     * @path /companies/{companyId}/items/{itemId}
+     * @allow (create) User can create items under their company ID.
+     * @allow (get)  User can read items under their company ID.
+     * @allow (update) User can update items under their company ID.
+     * @allow (delete) User can delete items under their company ID.
+     * @deny (create) User cannot create items under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/items/{itemId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
 
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    /**
+     * @description Secure restaurant tables for a company.
+     * @path /companies/{companyId}/tables/{tableId}
+     * @allow (create) User can create tables under their company ID.
+     * @allow (get)  User can read tables under their company ID.
+     * @allow (update) User can update tables under their company ID.
+     * @allow (delete) User can delete tables under their company ID.
+     * @deny (create) User cannot create tables under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/tables/{tableId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
 
-      allow get: if true;
-      allow list: if false; // Listing customer is permitted
+    /**
+     * @description Secure record of all completed sales for a company.
+     * @path /companies/{companyId}/sales/{saleId}
+     * @allow (create) User can create sales records under their company ID.
+     * @allow (get)  User can read sales records under their company ID.
+     * @allow (update) User can update sales records under their company ID.
+     * @allow (delete) User can delete sales records under their company ID.
+     * @deny (create) User cannot create sales records under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/sales/{saleId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
 
-      // TODO: Add company administrator validation once the authorization scheme is determined.
-      allow create, update, delete: if false;
+    /**
+     * @description Secure payment methods configured for a company.
+     * @path /companies/{companyId}/paymentMethods/{methodId}
+     * @allow (create) User can create payment methods under their company ID.
+     * @allow (get)  User can read payment methods under their company ID.
+     * @allow (update) User can update payment methods under their company ID.
+     * @allow (delete) User can delete payment methods under their company ID.
+     * @deny (create) User cannot create payment methods under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/paymentMethods/{methodId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
+
+    /**
+     * @description Secure VAT rates configured for a company.
+     * @path /companies/{companyId}/vatRates/{vatId}
+     * @allow (create) User can create VAT rates under their company ID.
+     * @allow (get)  User can read VAT rates under their company ID.
+     * @allow (update) User can update VAT rates under their company ID.
+     * @allow (delete) User can delete VAT rates under their company ID.
+     * @deny (create) User cannot create VAT rates under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/vatRates/{vatId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
+
+    /**
+     * @description Secure temporarily held orders for a company.
+     * @path /companies/{companyId}/heldOrders/{orderId}
+     * @allow (create) User can create held orders under their company ID.
+     * @allow (get)  User can read held orders under their company ID.
+     * @allow (update) User can update held orders under their company ID.
+     * @allow (delete) User can delete held orders under their company ID.
+     * @deny (create) User cannot create held orders under a different company ID.
+     * @principle Enforces company-level data ownership.
+     */
+    match /companies/{companyId}/heldOrders/{orderId} {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
+
+    // Added for the specific error
+    /**
+     * @description Secure temporarily held orders for a company.  This is added specifically for the main company entry as per the logs.
+     * @path /companies/main/heldOrders/{orderId}
+     */
+    match /companies/main/heldOrders/{orderId} {
+      allow get: if isSignedIn() && isCompanyMember("main");
+      allow list: if isSignedIn() && isCompanyMember("main");
+      allow create: if isSignedIn() && isCompanyMember("main");
+      allow update: if isSignedIn() && isCompanyMember("main") && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember("main") && resource != null;
+    }
+
+    // Added for the specific error
+    /**
+     * @description Secure temporarily held orders for a company.  This is added specifically for the companies collection as per the logs.
+     * @path /companies/{companyId}/heldOrders
+     */
+    match /companies/{companyId}/heldOrders {
+      allow get: if isSignedIn() && isCompanyMember(companyId);
+      allow list: if isSignedIn() && isCompanyMember(companyId);
+      allow create: if isSignedIn() && isCompanyMember(companyId);
+      allow update: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+      allow delete: if isSignedIn() && isCompanyMember(companyId) && resource != null;
+    }
+
+    // functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    function isCompanyMember(companyId) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
     }
   }
 }
