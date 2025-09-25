@@ -26,6 +26,7 @@ interface PosContextType {
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
   currentSaleContext: Partial<Sale> | null;
   recentlyAddedItemId: string | null;
+  setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -143,9 +144,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const triggerItemHighlight = (itemId: string) => {
     setRecentlyAddedItemId(itemId);
-    setTimeout(() => {
-        setRecentlyAddedItemId(null);
-    }, 1500); // Highlight duration
   };
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -160,14 +158,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const existingItemIndex = currentOrder.findIndex((item) => item.id === itemId);
       
       if (existingItemIndex !== -1) {
-        const existingItem = currentOrder[existingItemIndex];
-        const newQuantity = existingItem.quantity + 1;
-        const updatedItem = { ...existingItem, quantity: newQuantity, total: (existingItem.price * newQuantity) - (existingItem.discount || 0) };
-        
         const newOrder = [...currentOrder];
-        newOrder.splice(existingItemIndex, 1);
-        return [updatedItem, ...newOrder];
-
+        const existingItem = newOrder[existingItemIndex];
+        const newQuantity = existingItem.quantity + 1;
+        newOrder[existingItemIndex] = { ...existingItem, quantity: newQuantity, total: (existingItem.price * newQuantity) - (existingItem.discount || 0) };
+        return newOrder;
       } else {
         const newItem: OrderItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
         return [newItem, ...currentOrder];
@@ -559,6 +554,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleId,
     currentSaleContext,
     recentlyAddedItemId,
+    setRecentlyAddedItemId,
     items,
     addItem,
     updateItem,
@@ -626,6 +622,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleId,
     currentSaleContext,
     recentlyAddedItemId,
+    setRecentlyAddedItemId,
     items,
     addItem,
     updateItem,

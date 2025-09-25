@@ -41,6 +41,7 @@ export function OrderSummary() {
     isKeypadOpen,
     currentSaleContext,
     recentlyAddedItemId,
+    setRecentlyAddedItemId,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -50,9 +51,29 @@ export function OrderSummary() {
   const [keypadValue, setKeypadValue] = useState('');
   const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
   const keypadInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+
+  useEffect(() => {
+    if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
+        const itemElement = itemRefs.current[recentlyAddedItemId];
+        if (itemElement) {
+            const scrollArea = scrollAreaRef.current;
+            const itemTop = itemElement.offsetTop;
+            const itemBottom = itemTop + itemElement.offsetHeight;
+            const scrollAreaTop = scrollArea.scrollTop;
+            const scrollAreaBottom = scrollAreaTop + scrollArea.clientHeight;
+
+            if (itemTop < scrollAreaTop) {
+                scrollArea.scrollTop = itemTop;
+            } else if (itemBottom > scrollAreaBottom) {
+                scrollArea.scrollTop = itemBottom - scrollArea.clientHeight;
+            }
+        }
+    }
+  }, [recentlyAddedItemId]);
 
   useEffect(() => {
     setIsKeypadOpen(!!selectedItem);
@@ -244,7 +265,7 @@ export function OrderSummary() {
           <HeaderAction />
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
@@ -256,11 +277,12 @@ export function OrderSummary() {
                       <div 
                           className={cn(
                             "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
-                            selectedItem?.id === item.id ? 'bg-secondary' : 'bg-transparent hover:bg-secondary/50',
+                            selectedItem?.id === item.id ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
                             recentlyAddedItemId === item.id && 'animate-pulse-bg',
                             showTicketImages ? 'p-4' : 'p-2'
                           )}
                           onClick={() => handleItemSelect(item)}
+                          onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
                       >
                           {showTicketImages && (
                             <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
