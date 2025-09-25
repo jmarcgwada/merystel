@@ -57,7 +57,7 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
             key={item.id}
             className={cn(
               'flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5',
-              clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-primary'
+              clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-accent'
             )}
           >
             <button onClick={() => handleItemClick(item.id)} className="flex flex-col h-full text-left">
