@@ -2,10 +2,10 @@
 'use client';
 
 import { useKeyboard } from "@/contexts/keyboard-context";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { Button } from "./ui/button";
-import { ArrowLeft, Languages, CornerDownLeft } from "lucide-react";
+import { ArrowLeft, CornerDownLeft, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 
 const Key = ({
   children,
@@ -20,7 +20,7 @@ const Key = ({
 }) => (
   <Button
     variant="outline"
-    className={cn("h-14 text-xl bg-card hover:bg-secondary", className)}
+    className={cn("h-12 text-lg bg-card hover:bg-secondary", className)}
     style={{ flex: flex }}
     onClick={onClick}
   >
@@ -46,43 +46,43 @@ export function VirtualKeyboard() {
   ];
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && hideKeyboard()}>
-        <SheetContent side="bottom" className="rounded-t-lg max-h-[50vh] p-2">
-            <SheetHeader>
-              <SheetTitle className="sr-only">Clavier Virtuel</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col h-full space-y-1">
-            {keys.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex space-x-1 w-full">
-                {rowIndex === 2 && (
-                    <Key onClick={toggleCaps} flex={1.5} className={cn(isCaps && "bg-primary text-primary-foreground")}>
-                        <Languages className="h-6 w-6"/>
-                    </Key>
-                )}
-                {row.map((key) => (
-                    <Key key={key} onClick={() => pressKey(key)}>
-                        {isCaps ? key.toUpperCase() : key}
-                    </Key>
-                ))}
-                {rowIndex === 2 && (
-                    <Key onClick={pressBackspace} flex={1.5}>
-                       <ArrowLeft className="h-6 w-6"/>
-                    </Key>
-                )}
-                </div>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && hideKeyboard()} modal={false}>
+      <DrawerContent className="p-2 pb-4 max-w-4xl mx-auto" aria-describedby={undefined}>
+        <DrawerHeader className="p-0 h-0">
+            <DrawerTitle className="sr-only">Clavier Virtuel</DrawerTitle>
+        </DrawerHeader>
+        <div className="flex flex-col h-full space-y-1">
+        {keys.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex space-x-1 w-full justify-center">
+            {rowIndex === 2 && (
+                <Key onClick={toggleCaps} flex={1.5} className={cn(isCaps && "bg-primary text-primary-foreground")}>
+                    <Languages className="h-6 w-6"/>
+                </Key>
+            )}
+            {row.map((key) => (
+                <Key key={key} onClick={() => pressKey(key)}>
+                    {isCaps ? key.toUpperCase() : key}
+                </Key>
             ))}
-            <div className="flex space-x-1">
-                <Key onClick={() => pressKey(",")} flex={1}>,</Key>
-                <Key onClick={pressSpace} flex={5}>
-                    Espace
+            {rowIndex === 2 && (
+                <Key onClick={pressBackspace} flex={1.5}>
+                    <ArrowLeft className="h-6 w-6"/>
                 </Key>
-                <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-                <Key onClick={hideKeyboard} flex={1.5}>
-                    <CornerDownLeft className="h-6 w-6"/>
-                </Key>
+            )}
             </div>
-            </div>
-        </SheetContent>
-    </Sheet>
+        ))}
+        <div className="flex space-x-1 justify-center">
+            <Key onClick={() => pressKey(",")} flex={1}>,</Key>
+            <Key onClick={pressSpace} flex={5}>
+                Espace
+            </Key>
+            <Key onClick={() => pressKey(".")} flex={1}>.</Key>
+            <Key onClick={hideKeyboard} flex={1.5}>
+                <CornerDownLeft className="h-6 w-6"/>
+            </Key>
+        </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
