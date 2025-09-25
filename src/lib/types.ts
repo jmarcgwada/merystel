@@ -72,7 +72,7 @@ export interface Sale {
   total: number;
   payments: Payment[];
   customerId?: string;
-  status: 'paid';
+  status: 'paid' | 'pending';
   tableId?: string;
 }
 
