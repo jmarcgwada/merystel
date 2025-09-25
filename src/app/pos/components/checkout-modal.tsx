@@ -85,7 +85,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setIsPaid(false);
             setCurrentAmount('');
             setSelectedCustomer(null);
-            setCameFromRestaurant(false); // Reset on close
         }, 300); // Delay to allow animation to finish
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +96,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setIsPaid(false);
     setCurrentAmount('');
     setSelectedCustomer(null);
-    setCameFromRestaurant(false);
   }
 
   const handleOpenChange = (open: boolean) => {

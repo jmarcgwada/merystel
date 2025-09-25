@@ -130,7 +130,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if(selectedTable) {
       setSelectedTable(null);
     }
-    setCameFromRestaurant(false);
   }, [selectedTable]);
 
   const showNavConfirm = (url: string) => {
