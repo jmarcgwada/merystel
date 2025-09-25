@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -23,6 +23,15 @@ interface ItemListProps {
 
 export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
   const { addToOrder, items: allItems } = usePos();
+  const [clickedItemId, setClickedItemId] = useState<string | null>(null);
+
+  const handleItemClick = (itemId: string) => {
+    addToOrder(itemId);
+    setClickedItemId(itemId);
+    setTimeout(() => {
+      setClickedItemId(null);
+    }, 200); // L'effet dure 200ms
+  };
   
   const filteredItems = allItems.filter(item => {
     let matchesCategory = true;
@@ -46,9 +55,12 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
         return (
           <Card
             key={item.id}
-            className="flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+            className={cn(
+              'flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5',
+              clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-primary'
+            )}
           >
-            <button onClick={() => addToOrder(item.id)} className="flex flex-col h-full text-left">
+            <button onClick={() => handleItemClick(item.id)} className="flex flex-col h-full text-left">
               {showImage && (
                 <CardHeader className="p-0">
                   <div className="relative aspect-video w-full">
