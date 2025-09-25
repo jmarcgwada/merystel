@@ -29,7 +29,7 @@ export default function RootLayout({
         <PosProvider>
           <div className="flex flex-col h-screen">
             <Header />
-            <main className="flex-1 overflow-y-auto">{children}</main>
+            <main className="flex-1">{children}</main>
           </div>
           <Toaster />
         </PosProvider>

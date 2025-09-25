@@ -203,7 +203,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative overflow-y-auto">
+        <div className="flex-1 relative overflow-y-hidden">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
@@ -309,7 +309,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="border-t p-4">
+        <div className="border-t p-4 mt-auto">
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                 <span>Sous-total</span>

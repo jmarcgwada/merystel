@@ -14,6 +14,7 @@ import { Hand, Search, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function PosPage() {
   const { setSelectedTableById, heldOrders, isKeypadOpen } = usePos();
@@ -47,8 +48,8 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="h-full bg-muted/40 grid grid-cols-1 md:grid-cols-12">
-          <div className="md:col-span-3 lg:col-span-2 border-r bg-card h-full flex flex-col">
+      <div className="h-[calc(100vh-4rem)] bg-muted/40 grid grid-cols-1 md:grid-cols-12">
+          <div className="md:col-span-3 lg:col-span-2 border-r bg-card h-full flex flex-col overflow-hidden">
             <CategoryList
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
@@ -58,7 +59,7 @@ export default function PosPage() {
           </div>
 
           <div className={cn(
-            "md:col-span-5 lg:col-span-6 flex flex-col h-full transition-opacity",
+            "md:col-span-5 lg:col-span-6 flex flex-col h-full transition-opacity overflow-hidden",
              isKeypadOpen && 'opacity-50 pointer-events-none'
           )}>
             <div className="p-4 border-b bg-card">
@@ -85,16 +86,18 @@ export default function PosPage() {
                   </Button>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-                <ItemList 
-                  category={selectedCategory} 
-                  searchTerm={itemSearchTerm} 
-                  showFavoritesOnly={showFavoritesOnly}
-                />
-            </div>
+            <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <ItemList 
+                    category={selectedCategory} 
+                    searchTerm={itemSearchTerm} 
+                    showFavoritesOnly={showFavoritesOnly}
+                  />
+                </div>
+            </ScrollArea>
           </div>
 
-          <div className="md:col-span-4 lg:col-span-4 border-l bg-card h-full">
+          <div className="md:col-span-4 lg:col-span-4 border-l bg-card h-full overflow-hidden">
             <OrderSummary />
           </div>
       </div>
