@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, type User as AuthUser } from 'firebase/auth';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, Unsubscribe } from 'firebase/firestore';
 import { useAuth, useFirestore } from '../provider';
 import { usePathname, useRouter, redirect } from 'next/navigation';
 import type { User as AppUser } from '@/lib/types';
@@ -19,31 +19,41 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribeFirestore: Unsubscribe | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      // If a user logs out, make sure to unsubscribe from any existing Firestore listener first.
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+        unsubscribeFirestore = null;
+      }
+
       if (authUser) {
         const userDocRef = doc(firestore, 'users', authUser.uid);
-        const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
+        unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setUser({ ...authUser, ...docSnap.data() } as CombinedUser);
           } else {
-            // User exists in Auth but not in Firestore yet, might happen during signup
             setUser(authUser as CombinedUser);
           }
           setLoading(false);
         }, (error) => {
           console.error("Error fetching user from Firestore:", error);
-          setUser(authUser as CombinedUser); // Fallback to auth user
+          setUser(authUser as CombinedUser);
           setLoading(false);
         });
-        // Return the firestore unsubscribe function to be called when auth state changes
-        return () => unsubscribeFirestore();
       } else {
         setUser(null);
         setLoading(false);
       }
     });
-    // Return the auth unsubscribe function to be called when the component unmounts
-    return () => unsubscribeAuth();
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+    };
   }, [auth, firestore]);
 
   useEffect(() => {
@@ -55,11 +65,11 @@ export function useUser() {
       redirect('/login');
     }
 
-    if(user && isAuthPage) {
+    if (user && isAuthPage) {
       redirect('/dashboard');
     }
 
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname]);
 
   return { user, loading };
 }
