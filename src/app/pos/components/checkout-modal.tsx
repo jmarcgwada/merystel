@@ -39,7 +39,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -85,6 +85,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setIsPaid(false);
             setCurrentAmount('');
             setSelectedCustomer(null);
+            setCameFromRestaurant(false); // Reset on close
         }, 300); // Delay to allow animation to finish
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,6 +97,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setIsPaid(false);
     setCurrentAmount('');
     setSelectedCustomer(null);
+    setCameFromRestaurant(false);
   }
 
   const handleOpenChange = (open: boolean) => {
@@ -130,7 +132,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       
       const isTableSale = currentSaleId && currentSaleId.startsWith('table-');
 
-      if (isTableSale) {
+      if (isTableSale || cameFromRestaurant) {
+        if(cameFromRestaurant) setCameFromRestaurant(false);
         router.push('/restaurant');
       } else {
         clearOrder();
@@ -138,7 +141,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {

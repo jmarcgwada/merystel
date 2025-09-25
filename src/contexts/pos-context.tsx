@@ -83,6 +83,9 @@ interface PosContextType {
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
   holdOrderAndNavigate: () => void;
+
+  cameFromRestaurant: boolean;
+  setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -107,6 +110,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> | null>(null);
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
+  const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -590,6 +594,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm,
     confirmNavigation,
     holdOrderAndNavigate,
+    cameFromRestaurant,
+    setCameFromRestaurant,
   }), [
     order,
     setOrder,
@@ -654,6 +660,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm,
     confirmNavigation,
     holdOrderAndNavigate,
+    cameFromRestaurant,
+    setCameFromRestaurant,
     router,
     toast,
   ]);

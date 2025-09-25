@@ -51,7 +51,16 @@ export const mockItems: Item[] = [
   { id: 'item16', name: 'Cola', price: 3.5, categoryId: 'cat5', vatId: 'vat1', image: 'https://picsum.photos/seed/216/150/150', showImage: false },
 ];
 
-export const mockTables: Table[] = [];
+export const mockTables: Table[] = [
+    {
+        id: 'takeaway',
+        name: 'Vente à emporter',
+        number: 0,
+        description: 'Commandes à emporter traitées comme des ventes directes.',
+        status: 'available',
+        order: [],
+    }
+];
 
 export const mockCustomers: Customer[] = [
   { id: 'cust1', name: 'Alice Martin', email: 'alice.m@email.com', phone: '0612345678' },

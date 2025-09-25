@@ -34,10 +34,15 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, heldOrders, recallOrder } = usePos();
+  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
+    if (table.id === 'takeaway') {
+      setCameFromRestaurant(true);
+      router.push(`/pos`);
+      return;
+    }
     if (table.status === 'paying') {
       const heldOrderForTable = heldOrders.find(ho => ho.tableId === table.id);
       if (heldOrderForTable) {
@@ -80,7 +85,7 @@ export function TableLayout() {
               </Badge>
             </CardHeader>
             <CardContent>
-              {table.status !== 'available' ? (
+              {table.status !== 'available' && table.id !== 'takeaway' ? (
                 <div>
                   <p className="text-2xl font-bold text-foreground">
                     {total.toFixed(2)}€
@@ -91,7 +96,7 @@ export function TableLayout() {
                 </div>
               ) : (
                  <div className="h-[52px] flex items-center">
-                    <p className="text-sm text-muted-foreground">Prête pour de nouveaux clients</p>
+                    <p className="text-sm text-muted-foreground">{table.id === 'takeaway' ? 'Vente directe au comptoir' : 'Prête pour de nouveaux clients'}</p>
                 </div>
               )}
             </CardContent>
