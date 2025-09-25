@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -17,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const ClientFormattedDate = ({ date }: { date: Date }) => {
@@ -32,13 +32,13 @@ const ClientFormattedDate = ({ date }: { date: Date }) => {
 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
-  const { sales, customers, vatRates } = usePos();
+  const { sales, customers, vatRates, isLoading } = usePos();
 
-  const sale = sales.find(s => s.id === saleId);
-  const customer = sale?.customerId ? customers.find(c => c.id === sale?.customerId) : null;
+  const sale = sales?.find(s => s.id === saleId);
+  const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
 
   const getVatInfo = (vatId: string) => {
-    return vatRates.find(v => v.id === vatId);
+    return vatRates?.find(v => v.id === vatId);
   }
 
   const vatBreakdown = useMemo(() => {
@@ -59,6 +59,28 @@ export default function SaleDetailPage() {
 
     return breakdown;
   }, [sale, vatRates]);
+
+  if (isLoading) {
+      return (
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <PageHeader
+                title="Détails de la vente"
+                subtitle="Chargement des données..."
+            >
+                <Skeleton className="h-10 w-40" />
+            </PageHeader>
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <Skeleton className="h-96 w-full" />
+                </div>
+                <div className="lg:col-span-1 space-y-8">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
+            </div>
+        </div>
+      )
+  }
 
   if (!sale) {
     return (
@@ -193,4 +215,3 @@ export default function SaleDetailPage() {
     </div>
   );
 }
-

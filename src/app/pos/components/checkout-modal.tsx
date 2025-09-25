@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -66,7 +65,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   useEffect(() => {
     if (isOpen) {
         // Set default customer if available
-        const defaultCustomer = customers.find(c => c.isDefault);
+        const defaultCustomer = customers?.find(c => c.isDefault);
         if (defaultCustomer) {
             setSelectedCustomer(defaultCustomer);
         }
@@ -247,7 +246,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                     <CommandList>
                                         <CommandEmpty>Aucun client trouvé.</CommandEmpty>
                                         <CommandGroup>
-                                        {customers.map((customer) => (
+                                        {customers && customers.map((customer) => (
                                             <CommandItem
                                             key={customer.id}
                                             onSelect={() => {
@@ -271,7 +270,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                    </div>
                     
                     <div className="grid grid-cols-2 gap-4">
-                      {paymentMethods.map((method) => {
+                      {paymentMethods && paymentMethods.map((method) => {
                           const IconComponent = getIcon(method.icon);
                           const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
                                              (!currentAmount && !method.value) || 

@@ -22,12 +22,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Customer } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function CustomersPage() {
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
-  const { customers, deleteCustomer, setDefaultCustomer } = usePos();
+  const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
 
@@ -63,7 +64,15 @@ export default function CustomersPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {customers.map(customer => (
+                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-52" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                    {!isLoading && customers && customers.map(customer => (
                         <TableRow key={customer.id}>
                             <TableCell className="font-medium">{customer.name}</TableCell>
                             <TableCell>{customer.email}</TableCell>

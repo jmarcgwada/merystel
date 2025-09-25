@@ -26,12 +26,13 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem } from '@/components/ui/command';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 type SortKey = 'name' | 'price' | 'categoryId';
 
 export default function ItemsPage() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite } = usePos();
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
@@ -41,14 +42,16 @@ export default function ItemsPage() {
   const [isCategoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
   const getCategoryName = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)?.name || 'N/A';
+    return categories?.find(c => c.id === categoryId)?.name || 'N/A';
   }
 
   const getVatRate = (vatId: string) => {
-    return vatRates.find(v => v.id === vatId)?.rate.toFixed(2) || 'N/A';
+    return vatRates?.find(v => v.id === vatId)?.rate.toFixed(2) || 'N/A';
   }
 
   const sortedAndFilteredItems = useMemo(() => {
+    if (!items || !categories) return [];
+
     let filtered = items.filter(item => {
       const nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase());
       const categoryMatch = filterCategory === 'all' || item.categoryId === filterCategory;
@@ -133,7 +136,7 @@ export default function ItemsPage() {
                   >
                     {filterCategory === 'all'
                       ? "Toutes les catégories"
-                      : categories.find((cat) => cat.id === filterCategory)?.name}
+                      : categories?.find((cat) => cat.id === filterCategory)?.name}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -157,7 +160,7 @@ export default function ItemsPage() {
                         />
                         Toutes les catégories
                       </CommandItem>
-                      {categories.map((cat) => (
+                      {categories && categories.map((cat) => (
                         <CommandItem
                           key={cat.id}
                           value={cat.name}
@@ -204,7 +207,17 @@ export default function ItemsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedAndFilteredItems.map(item => (
+                {isLoading && Array.from({length: 5}).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Image 
@@ -257,5 +270,3 @@ export default function ItemsPage() {
     </>
   );
 }
-
-    

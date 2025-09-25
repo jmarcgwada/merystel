@@ -24,12 +24,13 @@ import {
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
-  const { categories, deleteCategory, toggleCategoryFavorite } = usePos();
+  const { categories, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
 
@@ -66,7 +67,16 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map(category => (
+              {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && categories && categories.map(category => (
                 <TableRow key={category.id}>
                    <TableCell>
                       <Image 

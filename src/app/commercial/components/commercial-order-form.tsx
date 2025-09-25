@@ -14,6 +14,7 @@ import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FormSchema = z.object({
   items: z.array(z.object({
@@ -29,7 +30,7 @@ interface CommercialOrderFormProps {
 }
 
 export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps) {
-  const { items: allItems } = usePos();
+  const { items: allItems, isLoading } = usePos();
   const { toast } = useToast();
 
   const form = useForm<CommercialOrderFormValues>({
@@ -45,6 +46,7 @@ export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps
   });
 
   function onSubmit(data: CommercialOrderFormValues) {
+    if (!allItems) return;
     const orderItems: OrderItem[] = data.items.map(item => {
         const product = allItems.find(p => p.id === item.itemId);
         if (!product) throw new Error('Produit non trouvé');
@@ -61,7 +63,20 @@ export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps
   const watchItems = form.watch('items');
   const selectedItemIds = watchItems.map(item => item.itemId);
 
-  const availableItems = allItems.filter(item => !selectedItemIds.includes(item.id));
+  const availableItems = allItems?.filter(item => !selectedItemIds.includes(item.id)) || [];
+
+  if (isLoading) {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <div className="flex justify-between">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-48" />
+            </div>
+        </div>
+    )
+  }
 
   return (
     <Form {...form}>
@@ -69,7 +84,7 @@ export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps
         <div className="space-y-4">
           {fields.map((field, index) => {
             const currentItemId = watchItems[index]?.itemId;
-            const currentItem = allItems.find(i => i.id === currentItemId);
+            const currentItem = allItems?.find(i => i.id === currentItemId);
 
             return (
               <div key={field.id} className="grid grid-cols-12 gap-4 items-start">

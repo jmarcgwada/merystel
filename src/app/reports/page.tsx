@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -15,6 +14,7 @@ import Link from 'next/link';
 import { TrendingUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const ClientFormattedDate = ({ date }: { date: Date }) => {
@@ -29,7 +29,7 @@ const ClientFormattedDate = ({ date }: { date: Date }) => {
 
 
 export default function ReportsPage() {
-    const { sales, customers } = usePos();
+    const { sales, customers, isLoading } = usePos();
     
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
@@ -46,7 +46,7 @@ export default function ReportsPage() {
     );
 
     const getCustomerName = (customerId?: string) => {
-        if (!customerId) return 'N/A';
+        if (!customerId || !customers) return 'N/A';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
     }
 
@@ -83,7 +83,18 @@ export default function ReportsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sales.map(sale => (
+                        {isLoading && Array.from({length: 10}).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                            </TableRow>
+                        ))}
+                        {!isLoading && sales && sales.map(sale => (
                             <TableRow key={sale.id}>
                                  <TableCell className="font-mono text-muted-foreground text-xs">
                                     {sale.ticketNumber}
@@ -118,4 +129,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const iconMap: { [key: string]: Icon } = {
   card: CreditCard,
@@ -31,7 +32,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export default function PaymentMethodsPage() {
-  const { paymentMethods, deletePaymentMethod } = usePos();
+  const { paymentMethods, deletePaymentMethod, isLoading } = usePos();
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [methodToEdit, setMethodToEdit] = useState<PaymentMethod | null>(null);
@@ -76,7 +77,15 @@ export default function PaymentMethodsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {paymentMethods.map((method: PaymentMethod) => {
+                    {isLoading && Array.from({length: 3}).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-5 rounded-full" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                    {!isLoading && paymentMethods && paymentMethods.map((method: PaymentMethod) => {
                         const IconComponent = getIcon(method.icon);
                         return (
                             <TableRow key={method.id}>

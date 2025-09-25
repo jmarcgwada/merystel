@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo } from 'react';
@@ -13,11 +12,14 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PopularItemsPage() {
-    const { sales, items, categories, toggleItemFavorite, toggleFavoriteForList } = usePos();
+    const { sales, items, categories, toggleItemFavorite, toggleFavoriteForList, isLoading } = usePos();
 
     const popularItems = useMemo(() => {
+        if (!sales || !items) return [];
+
         const itemCounts: { [key: string]: { item: Item, count: number, revenue: number } } = {};
 
         sales.forEach(sale => {
@@ -44,6 +46,7 @@ export default function PopularItemsPage() {
     }, [sales, items]);
 
     const getCategoryName = (categoryId: string) => {
+        if (!categories) return 'N/A';
         return categories.find(c => c.id === categoryId)?.name || 'N/A';
     }
 
@@ -83,7 +86,18 @@ export default function PopularItemsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {popularItems.map(({ item, count, revenue }, index) => (
+                  {isLoading && Array.from({length: 10}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-6 w-6" /></TableCell>
+                        <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                  {!isLoading && popularItems.map(({ item, count, revenue }, index) => (
                     <TableRow key={item.id}>
                         <TableCell className="font-bold text-lg text-muted-foreground">
                             #{index + 1}

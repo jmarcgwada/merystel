@@ -21,10 +21,11 @@ import {
 import type { Table as TableType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function TablesPage() {
-  const { tables, deleteTable, forceFreeTable } = usePos();
+  const { tables, deleteTable, forceFreeTable, isLoading } = usePos();
   const router = useRouter();
   const [tableToDelete, setTableToDelete] = useState<TableType | null>(null);
   const [tableToFree, setTableToFree] = useState<TableType | null>(null);
@@ -64,7 +65,16 @@ export default function TablesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {tables.map(table => (
+                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                    {!isLoading && tables && tables.map(table => (
                         <TableRow key={table.id}>
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -9,6 +8,7 @@ import type { Table } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Utensils, CircleDollarSign, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const statusConfig = {
@@ -34,7 +34,7 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant } = usePos();
+  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant, isLoading } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
@@ -44,7 +44,7 @@ export function TableLayout() {
       return;
     }
     if (table.status === 'paying') {
-      const heldOrderForTable = heldOrders.find(ho => ho.tableId === table.id);
+      const heldOrderForTable = heldOrders?.find(ho => ho.tableId === table.id);
       if (heldOrderForTable) {
         recallOrder(heldOrderForTable.id);
         router.push('/pos');
@@ -54,15 +54,25 @@ export function TableLayout() {
     }
   };
 
+  if (isLoading) {
+      return (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32" />
+              ))}
+          </div>
+      )
+  }
+
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {tables.map((table) => {
+      {tables && tables.map((table) => {
         const config = statusConfig[table.status];
         const Icon = config.icon;
         
         const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
         const tax = table.order.reduce((sum, item) => {
-            const vat = vatRates.find(v => v.id === item.vatId);
+            const vat = vatRates?.find(v => v.id === item.vatId);
             const taxForItem = item.total * ((vat?.rate || 0) / 100);
             return sum + taxForItem;
         }, 0);
