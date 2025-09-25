@@ -8,6 +8,7 @@ export interface Category {
   color?: string;
   image?: string;
   isFavorite?: boolean;
+  isRestaurantOnly?: boolean;
 }
 
 export interface VatRate {

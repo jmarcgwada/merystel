@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Utensils } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
 import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function CategoriesPage() {
@@ -60,6 +61,7 @@ export default function CategoriesPage() {
                 <TableHead className="w-[80px]">Image</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead className="w-[100px]">Couleur</TableHead>
+                <TableHead>Mode Restaurant</TableHead>
                 <TableHead className="w-[160px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -82,6 +84,14 @@ export default function CategoriesPage() {
                         <div className="h-6 w-6 rounded-full border" style={{ backgroundColor: category.color || '#e2e8f0' }} />
                         <span className="text-xs text-muted-foreground">{category.color}</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {category.isRestaurantOnly && (
+                      <Badge variant="outline">
+                        <Utensils className="mr-1 h-3 w-3" />
+                        Dédié
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => toggleCategoryFavorite(category.id)}>

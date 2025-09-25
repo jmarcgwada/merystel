@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import type { Category } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
 
 interface EditCategoryDialogProps {
   category: Category | null;
@@ -28,11 +29,13 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
   const { updateCategory } = usePos();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#e2e8f0');
+  const [isRestaurantOnly, setIsRestaurantOnly] = useState(false);
 
   useEffect(() => {
     if (category) {
       setName(category.name);
       setColor(category.color || '#e2e8f0');
+      setIsRestaurantOnly(category.isRestaurantOnly || false);
     }
   }, [category]);
 
@@ -50,6 +53,7 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
             ...category,
             name,
             color,
+            isRestaurantOnly,
         });
         toast({
           title: 'Catégorie modifiée',
@@ -89,6 +93,19 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
               />
                <span className="text-sm text-muted-foreground">{color}</span>
             </div>
+          </div>
+           <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="restaurant-only-edit" className="text-base">Dédié au mode restaurant</Label>
+              <p className="text-sm text-muted-foreground">
+                Si activé, cette catégorie ne sera visible que pour une commande de table.
+              </p>
+            </div>
+            <Switch 
+              id="restaurant-only-edit"
+              checked={isRestaurantOnly}
+              onCheckedChange={setIsRestaurantOnly}
+            />
           </div>
         </div>
         <DialogFooter>

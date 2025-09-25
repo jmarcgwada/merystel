@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
+import { Switch } from '@/components/ui/switch';
+import { FormDescription } from '@/components/ui/form';
 
 interface AddCategoryDialogProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
   const { addCategory } = usePos();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#e2e8f0');
+  const [isRestaurantOnly, setIsRestaurantOnly] = useState(false);
 
   const handleAddCategory = () => {
     if (!name) {
@@ -40,6 +43,7 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
         name,
         image: `https://picsum.photos/seed/${new Date().getTime()}/100/100`,
         color: color,
+        isRestaurantOnly,
     });
     toast({
       title: 'Catégorie ajoutée',
@@ -47,6 +51,7 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
     });
     setName('');
     setColor('#e2e8f0');
+    setIsRestaurantOnly(false);
     onClose();
   };
 
@@ -80,6 +85,19 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
               />
               <span className="text-sm text-muted-foreground">{color}</span>
             </div>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="restaurant-only" className="text-base">Dédié au mode restaurant</Label>
+              <p className="text-sm text-muted-foreground">
+                Si activé, cette catégorie ne sera visible que lorsque vous prenez une commande pour une table.
+              </p>
+            </div>
+            <Switch 
+              id="restaurant-only"
+              checked={isRestaurantOnly}
+              onCheckedChange={setIsRestaurantOnly}
+            />
           </div>
         </div>
         <DialogFooter>

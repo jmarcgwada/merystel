@@ -24,7 +24,7 @@ export function CategoryList({
   showFavoritesOnly,
   onToggleFavorites,
 }: CategoryListProps) {
-  const { categories, popularItemsCount } = usePos();
+  const { categories, popularItemsCount, selectedTable } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
@@ -44,10 +44,17 @@ export function CategoryList({
   };
 
   const filteredCategories = useMemo(() => {
-    return categories.filter(category =>
+    const baseCategories = categories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [categories, searchTerm]);
+
+    // If in restaurant mode (a table is selected), filter for restaurant-only categories
+    if (selectedTable) {
+        return baseCategories.filter(category => category.isRestaurantOnly || category.isRestaurantOnly === undefined);
+    }
+
+    return baseCategories;
+  }, [categories, searchTerm, selectedTable]);
 
   const getVariant = (id: string | null) => {
     const isSelected = (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) || 
@@ -65,6 +72,7 @@ export function CategoryList({
       return {
         backgroundColor: category.color,
         color: 'white',
+        '--hover-bg-color': `${category.color}E6` // 90% opacity for hover
       };
     }
     if (isHovered && category.color) {
@@ -72,7 +80,9 @@ export function CategoryList({
             backgroundColor: `${category.color}33`, // Add alpha for hover effect
         }
     }
-    return {};
+    return {
+        '--hover-bg-color': 'hsl(var(--accent))'
+    };
   };
 
   const isSpecialCategorySelected = (id: string) => {
@@ -132,8 +142,8 @@ export function CategoryList({
                 <Button
                 key={category.id}
                 variant={isSelected ? 'default' : 'ghost'}
-                style={getStyleForCategory(category)}
-                className="h-12 w-full justify-start text-left"
+                style={getStyleForCategory(category) as React.CSSProperties}
+                className={cn("h-12 w-full justify-start text-left", isSelected && "hover:bg-[var(--hover-bg-color)]")}
                 onClick={() => onSelectCategory(category)}
                 onMouseEnter={() => setHoveredCategoryId(category.id)}
                 onMouseLeave={() => setHoveredCategoryId(null)}

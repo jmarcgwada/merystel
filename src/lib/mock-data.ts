@@ -16,9 +16,9 @@ export const mockPaymentMethods: PaymentMethod[] = [
 ];
 
 export const mockCategories: Category[] = [
-  { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100', color: '#f87171', isFavorite: true },
-  { id: 'cat2', name: 'Entrées', image: 'https://picsum.photos/seed/102/100/100', color: '#fb923c' },
-  { id: 'cat3', name: 'Desserts', image: 'https://picsum.photos/seed/103/100/100', color: '#d946ef' },
+  { id: 'cat1', name: 'Plats principaux', image: 'https://picsum.photos/seed/101/100/100', color: '#f87171', isFavorite: true, isRestaurantOnly: true },
+  { id: 'cat2', name: 'Entrées', image: 'https://picsum.photos/seed/102/100/100', color: '#fb923c', isRestaurantOnly: true },
+  { id: 'cat3', name: 'Desserts', image: 'https://picsum.photos/seed/103/100/100', color: '#d946ef', isRestaurantOnly: true },
   { id: 'cat4', name: 'Boissons chaudes', image: 'https://picsum.photos/seed/104/100/100', color: '#a3a3a3', isFavorite: true },
   { id: 'cat5', name: 'Boissons froides', image: 'https://picsum.photos/seed/105/100/100', color: '#60a5fa' },
 ];
