@@ -41,13 +41,13 @@ function ItemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { items, categories, vatRates, addItem, updateItem } = usePos();
+  const { items, categories, vatRates, addItem, updateItem, isLoading } = usePos();
   const [isGenerating, setIsGenerating] = useState(false);
   const [defaultImage, setDefaultImage] = useState('');
 
   const itemId = searchParams.get('id');
   const isEditMode = Boolean(itemId);
-  const itemToEdit = isEditMode ? items.find(i => i.id === itemId) : null;
+  const itemToEdit = isEditMode && items ? items.find(i => i.id === itemId) : null;
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -138,6 +138,27 @@ function ItemForm() {
       setIsGenerating(false);
     }
   };
+  
+  if (isLoading) {
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+          <PageHeader
+            title={isEditMode ? "Modifier l'article" : 'Ajouter un nouvel article'}
+          >
+            <Skeleton className="h-10 w-40" />
+          </PageHeader>
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+                <Skeleton className="h-96 w-full" />
+            </div>
+            <div className="lg:col-span-1 space-y-8">
+                 <Skeleton className="h-64 w-full" />
+                 <Skeleton className="h-80 w-full" />
+            </div>
+          </div>
+        </Suspense>
+    )
+  }
 
   return (
     <>
@@ -203,7 +224,7 @@ function ItemForm() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {categories.map((cat) => (
+                              {categories && categories.map((cat) => (
                                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -225,7 +246,7 @@ function ItemForm() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {vatRates.map((vat) => (
+                              {vatRates && vatRates.map((vat) => (
                                 <SelectItem key={vat.id} value={vat.id}>{vat.name} ({vat.rate}%)</SelectItem>
                               ))}
                             </SelectContent>
@@ -361,3 +382,5 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
+    
