@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
@@ -654,7 +655,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder,
     orderTotal,
     orderTax,
-isKeypadOpen,
+    isKeypadOpen,
     setIsKeypadOpen,
     currentSaleId,
     setCurrentSaleId,
@@ -716,8 +717,6 @@ isKeypadOpen,
     confirmNavigation,
     cameFromRestaurant,
     setCameFromRestaurant,
-    router,
-    toast,
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
