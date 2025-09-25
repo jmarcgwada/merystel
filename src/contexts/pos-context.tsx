@@ -528,13 +528,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteHeldOrder,
     showTicketImages,
     setShowTicketImages,
-    isNavConfirmOpen,
-    confirmNavigation,
-    holdOrderAndNavigate,
-    closeNavConfirm,
-    router,
-    nextUrl,
-    showNavConfirm
+isNavConfirmOpen, 
+closeNavConfirm, 
+confirmNavigation, 
+holdOrderAndNavigate, 
+nextUrl, 
+router
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

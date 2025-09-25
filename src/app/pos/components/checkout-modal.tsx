@@ -127,8 +127,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       if (selectedTable) {
         updateTableOrder(selectedTable.id, []);
         router.push('/restaurant');
+      } else {
+        clearOrder();
       }
-      clearOrder();
       handleOpenChange(false);
     }, 2000);
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange, selectedCustomer]);
