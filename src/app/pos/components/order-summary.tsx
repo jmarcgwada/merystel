@@ -204,20 +204,12 @@ export function OrderSummary() {
     if (currentSaleContext?.tableName) {
       return `Ticket: ${currentSaleContext.tableName}`;
     }
-    return 'Commande actuelle';
+    return '';
   }
 
 
   const keypadStyle = () => {
-    if (!isKeypadOpen || !selectedItem || !itemRefs.current[selectedItem.id]) return {};
-    const itemElement = itemRefs.current[selectedItem.id];
-    if (itemElement) {
-        const top = itemElement.offsetTop + itemElement.offsetHeight;
-        return {
-            top: `${top}px`
-        }
-    }
-    return { top: '88px' }; // Fallback
+    return { top: `49px` };
   }
   
   const HeaderAction = () => {
@@ -250,10 +242,10 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card">
-        <div className="flex items-center justify-between p-2 border-b">
+      <div className="flex h-full flex-col bg-card relative">
+        <div className="flex items-center justify-between p-2 border-b h-[49px]">
           <h2 className="text-lg font-bold tracking-tight font-headline">
-             {getTitle()}
+             {getTitle() || 'Commande actuelle'}
           </h2>
           <HeaderAction />
         </div>
@@ -264,7 +256,7 @@ export function OrderSummary() {
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className={cn("divide-y", isKeypadOpen && 'pt-[380px]')}>
                 {order.map((item) => (
                   <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
                       <div 
@@ -447,5 +439,7 @@ export function OrderSummary() {
 
 
 
+
+    
 
     
