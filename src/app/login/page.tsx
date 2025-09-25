@@ -105,44 +105,19 @@ export default function LoginPage() {
     if (user && !user.firstName && firestore) { // Check if firstName is missing to prevent re-writing
         const usersCollectionRef = collection(firestore, 'companies', SHARED_COMPANY_ID, 'users');
 
-        getCountFromServer(usersCollectionRef).then(snapshot => {
-            const isFirstUser = snapshot.data().count === 0;
-            const role = isFirstUser ? 'admin' : 'cashier';
-            
-            const userDocRef = doc(usersCollectionRef, user.uid);
+        const userDocRef = doc(usersCollectionRef, user.uid);
 
-            const userData = {
-                id: user.uid,
-                firstName: registerFirstName || 'Nouvel',
-                lastName: registerLastName || 'Utilisateur',
-                email: user.email,
-                role: role,
-                companyId: SHARED_COMPANY_ID
-            };
+        const userData = {
+            id: user.uid,
+            firstName: registerFirstName || 'Nouvel',
+            lastName: registerLastName || 'Utilisateur',
+            email: user.email,
+            // Assign 'admin' role if the email matches, otherwise 'cashier'
+            role: user.email === ADMIN_EMAIL ? 'admin' : 'cashier',
+            companyId: SHARED_COMPANY_ID
+        };
 
-            setDoc(userDocRef, userData, { merge: true }).then(() => {
-                 if(isFirstUser) {
-                    toast({
-                        title: 'Compte Administrateur créé !',
-                        description: 'Vous êtes le premier utilisateur, vous avez donc tous les droits.',
-                    });
-                }
-            });
-
-        }).catch(err => {
-            console.error("Error getting user count:", err);
-            // Fallback for safety, though it may fail if read is also disallowed
-            const userDocRef = doc(usersCollectionRef, user.uid);
-            const userData = {
-                id: user.uid,
-                firstName: registerFirstName || 'Nouvel',
-                lastName: registerLastName || 'Utilisateur',
-                email: user.email,
-                role: 'cashier', // Default to cashier on error
-                companyId: SHARED_COMPANY_ID
-            };
-            setDoc(userDocRef, userData, { merge: true });
-        })
+        setDoc(userDocRef, userData, { merge: true });
     }
   }, [user, firestore, registerFirstName, registerLastName, toast]);
 

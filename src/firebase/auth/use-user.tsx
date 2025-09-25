@@ -11,6 +11,7 @@ import type { User as AppUser } from '@/lib/types';
 export type CombinedUser = AuthUser & DocumentData & AppUser;
 
 const SHARED_COMPANY_ID = 'main'; // Centralize company ID
+const ADMIN_EMAIL = 'admin@zenith.com'; // Define the super admin email
 
 export function useUser() {
   const auth = useAuth();
@@ -35,16 +36,29 @@ export function useUser() {
         const userDocRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'users', authUser.uid);
         
         unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
+          let combinedUser: CombinedUser;
           if (docSnap.exists()) {
-            setUser({ ...authUser, ...docSnap.data() } as CombinedUser);
+            combinedUser = { ...authUser, ...docSnap.data() } as CombinedUser;
           } else {
             // This case might happen briefly during registration before the doc is created
-            setUser(authUser as CombinedUser); 
+            combinedUser = authUser as CombinedUser; 
           }
+
+          // ** This is the new logic to enforce the admin role for the specific email **
+          if (combinedUser.email === ADMIN_EMAIL) {
+            combinedUser.role = 'admin';
+          }
+
+          setUser(combinedUser);
           setLoading(false);
         }, (error) => {
           console.error("Error fetching user from Firestore:", error);
-          setUser(authUser as CombinedUser);
+          const tempUser = authUser as CombinedUser;
+          // Also apply admin role override on error to be safe
+          if (tempUser.email === ADMIN_EMAIL) {
+            tempUser.role = 'admin';
+          }
+          setUser(tempUser);
           setLoading(false);
         });
       } else {
