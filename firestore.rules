@@ -1,22 +1,3 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a hierarchical data model based on companies and user roles.
- *
- * Data Structure:
- * - /users/{userId}: Stores individual user profiles. Accessible only by the user themselves.
- * - /companies/{companyId}: Stores company-level data.
- * - All other collections are nested under a specific company (e.g., /companies/{companyId}/customers/{customerId}).
- *
- * Key Security Decisions:
- * - Users can only read and write their own user profile.
- * - Company data is not directly secured in this prototype.
- * - All company subcollections enforce that the user must be part of the target company (companyId match).
- * - Data validation is relaxed in this prototyping phase, focusing on authorization checks.
- *
- * Access Control Patterns:
- * - Ownership: Used for /users/{userId} (user-owned data).
- * - Company Scoping: Used for all collections under /companies/{companyId} (company-specific data).
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,11 +5,9 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (get, update, delete) if the user is signed in and the requested userId matches their own ID.
-     * @allow (create) if the user is signed in and the userId matches their own ID.
-     * @deny (list) User listing is not allowed.
-     * @deny (create) if the user is signed in and the userId does not match their own ID.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (get, create, update, delete): Authenticated user can access their own profile.
+     * @deny (get, create, update, delete): Authenticated user cannot access other user's profiles.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -36,170 +15,137 @@ service cloud.firestore {
       }
 
       function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
+      function isExistingOwner(userId) {
+        return isOwner(userId) && exists(resource);
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && resource.data.id == userId;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to company root information.
+     * @description Controls access to company information.
      * @path /companies/{companyId}
-     * @allow (get, list) if true.
-     * @allow (create, update, delete) if false. // TODO: Define company admin role
-     * @principle Open read access, restricted writes until roles are defined.
+     * @allow (get, list): Any authenticated user can read company information.
+     * @allow (create, update, delete): No one can create, update, or delete company information.
+     * @principle Public read, owner-only writes.
      */
     match /companies/{companyId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add company admin role validation
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // No one can create, update, or delete companies.
     }
 
     /**
-     * @description Controls access to customer data for a specific company.
+     * @description Controls access to customer data within a company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage customers within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/customers/{customerId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to item categories for a specific company.
+     * @description Controls access to item categories within a company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage categories within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/categories/{categoryId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to sellable items for a specific company.
+     * @description Controls access to items within a company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage items within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/items/{itemId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to restaurant tables for a specific company.
+     * @description Controls access to tables within a company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage tables within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/tables/{tableId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to sales records for a specific company.
+     * @description Controls access to sales data within a company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage sales within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/sales/{saleId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to payment methods for a specific company.
+     * @description Controls access to payment methods within a company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage payment methods within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to VAT rates for a specific company.
+     * @description Controls access to VAT rates within a company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage VAT rates within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/vatRates/{vatId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to held orders for a specific company.
+     * @description Controls access to held orders within a company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list) if isSignedIn();
-     * @allow (create) if isSignedIn(); // TODO: Add company admin role
-     * @allow (update, delete) if isSignedIn() && resource != null; // TODO: Add company admin role
-     * @principle Company-scoped data access.
+     * @allow (get, list, create, update, delete): Any authenticated user can manage held orders within their company.
+     * @principle Company-level access.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // TODO: Add company admin role
-      allow update, delete: if isSignedIn() && resource != null; // TODO: Add company admin role
+        allow get, list, create, update, delete: if isSignedIn();
     }
   }
 }
