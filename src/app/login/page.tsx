@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/firebase';
+import { useAuth, setDocumentNonBlocking, doc, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -25,14 +24,19 @@ import { useUser } from '@/firebase/auth/use-user';
 
 export default function LoginPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading } = useUser();
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  
+  const [registerFirstName, setRegisterFirstName] = useState('');
+  const [registerLastName, setRegisterLastName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -60,13 +64,36 @@ export default function LoginPage() {
   };
 
   const handleRegister = async () => {
+    if(!registerFirstName || !registerLastName || !registerEmail || !registerPassword) {
+        toast({
+            variant: 'destructive',
+            title: 'Champs requis',
+            description: 'Veuillez remplir tous les champs.',
+        });
+        return;
+    }
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         registerEmail,
         registerPassword
       );
+      
+      const newUser = userCredential.user;
+
+      // Create user profile in Firestore
+      const userDocRef = doc(firestore, "users", newUser.uid);
+      const userData = {
+          id: newUser.uid,
+          firstName: registerFirstName,
+          lastName: registerLastName,
+          email: registerEmail,
+          role: 'cashier', // default role
+          companyId: 'defaultCompany' // placeholder
+      }
+      setDocumentNonBlocking(userDocRef, userData, { merge: true });
+
       toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
       router.push('/dashboard');
     } catch (error: any) {
@@ -80,8 +107,13 @@ export default function LoginPage() {
     }
   };
 
-  if (loading || user) {
+  if (loading) {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
+  }
+  
+  // This prevents the login page from flashing if the user is already authenticated
+  if (user) {
+    return null;
   }
 
   return (
@@ -138,6 +170,28 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-firstname">Prénom</Label>
+                  <Input
+                    id="register-firstname"
+                    placeholder="Jean"
+                    value={registerFirstName}
+                    onChange={(e) => setRegisterFirstName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="register-lastname">Nom</Label>
+                  <Input
+                    id="register-lastname"
+                    placeholder="Dupont"
+                    value={registerLastName}
+                    onChange={(e) => setRegisterLastName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="register-email">Email</Label>
                 <Input
