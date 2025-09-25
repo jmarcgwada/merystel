@@ -80,7 +80,14 @@ export default function PosPage() {
                         className="pl-9"
                     />
                   </div>
-                  <Button variant="outline" onClick={() => setHeldOpen(true)} className="flex-shrink-0">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setHeldOpen(true)} 
+                    className={cn(
+                        "flex-shrink-0",
+                        heldOrders.length > 0 && 'animate-pulse-button'
+                    )}
+                  >
                     <Hand className="mr-2 h-4 w-4"/>
                     Tickets en attente
                     {heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
