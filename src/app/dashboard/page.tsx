@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3 } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
@@ -25,9 +25,15 @@ const quickLinks = [
         icon: Utensils
     },
     {
+        href: '/commercial',
+        title: "Commercial",
+        description: "Créer des commandes et des factures.",
+        icon: FileText
+    },
+    {
         href: '/management/items',
-        title: 'Gestion des Articles',
-        description: "Ajouter, modifier ou supprimer des produits.",
+        title: 'Gestion',
+        description: "Gérer articles, catégories, clients, etc.",
         icon: Package
     },
     {
@@ -35,6 +41,12 @@ const quickLinks = [
         title: 'Rapports de Vente',
         description: "Analyser les performances de vente.",
         icon: BarChart3
+    },
+    {
+        href: '/settings',
+        title: 'Paramètres',
+        description: "Configurer l'application.",
+        icon: Settings
     }
 ]
 

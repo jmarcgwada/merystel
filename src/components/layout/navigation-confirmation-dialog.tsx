@@ -19,7 +19,6 @@ export function NavigationConfirmationDialog() {
     isNavConfirmOpen,
     closeNavConfirm,
     confirmNavigation,
-    holdOrderAndNavigate,
   } = usePos();
 
   return (
@@ -28,19 +27,20 @@ export function NavigationConfirmationDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>Vente en cours</AlertDialogTitle>
           <AlertDialogDescription>
-            Une vente est en cours. Que souhaitez-vous faire ?
+            Une vente est en cours sur une table. Vous devez la sauvegarder ou l'annuler depuis l'interface de vente avant de pouvoir quitter.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-start gap-2">
-            <Button variant="outline" onClick={closeNavConfirm}>
-                Rester
-            </Button>
-            <Button variant="destructive" onClick={confirmNavigation}>
-                Quitter (Annuler vente)
-            </Button>
-            <Button onClick={holdOrderAndNavigate}>
-                Mettre en attente
-            </Button>
+            <AlertDialogCancel asChild>
+                <Button variant="outline" onClick={closeNavConfirm}>
+                    Rester
+                </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+                 <Button variant="destructive" onClick={confirmNavigation}>
+                    Quitter (Annuler vente)
+                </Button>
+            </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

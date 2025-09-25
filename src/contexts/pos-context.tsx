@@ -90,7 +90,6 @@ interface PosContextType {
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
-  holdOrderAndNavigate: () => void;
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
@@ -522,14 +521,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Commande mise en attente.' });
   }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast, currentSaleId]);
 
-  const holdOrderAndNavigate = () => {
-    holdOrder();
-    if (nextUrl) {
-      router.push(nextUrl);
-    }
-    closeNavConfirm();
-  };
-
   const recallOrder = useCallback((orderId: string) => {
     const orderToRecall = heldOrders.find(o => o.id === orderId);
     if (orderToRecall) {
@@ -650,7 +641,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     showNavConfirm,
     closeNavConfirm,
     confirmNavigation,
-    holdOrderAndNavigate,
     cameFromRestaurant,
     setCameFromRestaurant,
   }), [
@@ -664,7 +654,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder,
     orderTotal,
     orderTax,
-    isKeypadOpen,
+isKeypadOpen,
     setIsKeypadOpen,
     currentSaleId,
     setCurrentSaleId,
@@ -724,7 +714,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     showNavConfirm,
     closeNavConfirm,
     confirmNavigation,
-    holdOrderAndNavigate,
     cameFromRestaurant,
     setCameFromRestaurant,
     router,
