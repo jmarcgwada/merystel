@@ -69,3 +69,20 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .animate-pulse-bg {
+    animation: pulse-bg 1.5s ease-in-out;
+  }
+  @keyframes pulse-bg {
+    0% {
+      background-color: hsl(var(--accent) / 0.3);
+    }
+    50% {
+      background-color: hsl(var(--accent) / 0.1);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+}

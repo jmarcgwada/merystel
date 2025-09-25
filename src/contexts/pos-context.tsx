@@ -25,6 +25,7 @@ interface PosContextType {
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
   currentSaleContext: Partial<Sale> | null;
+  recentlyAddedItemId: string | null;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -103,6 +104,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -139,6 +141,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm();
   };
 
+  const triggerItemHighlight = (itemId: string) => {
+    setRecentlyAddedItemId(itemId);
+    setTimeout(() => {
+        setRecentlyAddedItemId(null);
+    }, 1500); // Highlight duration
+  };
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) => currentOrder.filter((item) => item.id !== itemId));
@@ -165,6 +173,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return [newItem, ...currentOrder];
       }
     });
+    triggerItemHighlight(itemId);
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
   }, [items, toast]);
 
@@ -178,6 +187,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
       )
     );
+    triggerItemHighlight(itemId);
   }, [removeFromOrder]);
   
   const updateQuantityFromKeypad = useCallback((itemId: OrderItem['id'], quantity: number) => {
@@ -190,6 +200,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
       )
     );
+    triggerItemHighlight(itemId);
   }, [removeFromOrder]);
 
   const applyDiscount = useCallback((itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => {
@@ -219,6 +230,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           }
           return item;
       }));
+      triggerItemHighlight(itemId);
   }, []);
 
   const setSelectedTableById = useCallback((tableId: string | null) => {
@@ -546,6 +558,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     currentSaleId,
     setCurrentSaleId,
     currentSaleContext,
+    recentlyAddedItemId,
     items,
     addItem,
     updateItem,
@@ -612,6 +625,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     currentSaleId,
     setCurrentSaleId,
     currentSaleContext,
+    recentlyAddedItemId,
     items,
     addItem,
     updateItem,

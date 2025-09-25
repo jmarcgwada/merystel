@@ -39,7 +39,8 @@ export function OrderSummary() {
     promoteTableToTicket,
     showTicketImages,
     isKeypadOpen,
-    currentSaleContext
+    currentSaleContext,
+    recentlyAddedItemId,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -254,8 +255,9 @@ export function OrderSummary() {
                   <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
                       <div 
                           className={cn(
-                            "flex items-center gap-4 cursor-pointer", 
-                            selectedItem?.id === item.id && 'bg-secondary',
+                            "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
+                            selectedItem?.id === item.id ? 'bg-secondary' : 'bg-transparent',
+                            recentlyAddedItemId === item.id && 'bg-accent/20 animate-pulse-bg',
                             showTicketImages ? 'p-4' : 'p-2'
                           )}
                           onClick={() => handleItemSelect(item)}
