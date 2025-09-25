@@ -59,6 +59,7 @@ export default function CategoriesPage() {
               <TableRow>
                 <TableHead className="w-[80px]">Image</TableHead>
                 <TableHead>Nom</TableHead>
+                <TableHead className="w-[100px]">Couleur</TableHead>
                 <TableHead className="w-[160px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -76,6 +77,12 @@ export default function CategoriesPage() {
                       />
                     </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-full border" style={{ backgroundColor: category.color || '#e2e8f0' }} />
+                        <span className="text-xs text-muted-foreground">{category.color}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => toggleCategoryFavorite(category.id)}>
                         <Star className={cn("h-4 w-4", category.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />

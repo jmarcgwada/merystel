@@ -25,6 +25,7 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
   const { toast } = useToast();
   const { addCategory } = usePos();
   const [name, setName] = useState('');
+  const [color, setColor] = useState('#e2e8f0');
 
   const handleAddCategory = () => {
     if (!name) {
@@ -37,13 +38,15 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
     }
     addCategory({
         name,
-        image: `https://picsum.photos/seed/${new Date().getTime()}/100/100`
+        image: `https://picsum.photos/seed/${new Date().getTime()}/100/100`,
+        color: color,
     });
     toast({
       title: 'Catégorie ajoutée',
       description: 'La nouvelle catégorie a été créée avec succès.',
     });
     setName('');
+    setColor('#e2e8f0');
     onClose();
   };
 
@@ -63,6 +66,21 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Boissons" className="col-span-3" onFocus={(e) => e.target.select()} />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="color" className="text-right">
+              Couleur
+            </Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <Input
+                id="color"
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-10 p-1"
+              />
+              <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
@@ -72,5 +90,3 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
     </Dialog>
   );
 }
-
-    

@@ -27,10 +27,12 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
   const { toast } = useToast();
   const { updateCategory } = usePos();
   const [name, setName] = useState('');
+  const [color, setColor] = useState('#e2e8f0');
 
   useEffect(() => {
     if (category) {
       setName(category.name);
+      setColor(category.color || '#e2e8f0');
     }
   }, [category]);
 
@@ -47,6 +49,7 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
         updateCategory({
             ...category,
             name,
+            color,
         });
         toast({
           title: 'Catégorie modifiée',
@@ -71,6 +74,21 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
               Nom
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Boissons" className="col-span-3" onFocus={(e) => e.target.select()} />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="color" className="text-right">
+              Couleur
+            </Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <Input
+                id="color"
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-10 p-1"
+              />
+               <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
           </div>
         </div>
         <DialogFooter>

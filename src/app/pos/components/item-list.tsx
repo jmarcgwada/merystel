@@ -22,7 +22,7 @@ interface ItemListProps {
 }
 
 export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
-  const { addToOrder, items: allItems, popularItems } = usePos();
+  const { addToOrder, items: allItems, popularItems, categories } = usePos();
   const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
   const handleItemClick = (itemId: string) => {
@@ -56,17 +56,29 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
     });
   }, [allItems, popularItems, category, searchTerm, showFavoritesOnly]);
 
+  const getCategoryColor = (categoryId: string) => {
+    return categories.find(c => c.id === categoryId)?.color;
+  };
+
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {filteredItems.map((item) => {
         const showImage = item.showImage ?? true;
+        const categoryColor = getCategoryColor(item.categoryId) || 'transparent';
+        const cardStyle = {
+          '--category-color': categoryColor,
+          borderColor: 'var(--category-color)',
+        } as React.CSSProperties;
+
+
         return (
           <Card
             key={item.id}
             className={cn(
-              'flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5',
+              'flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-2',
               clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-accent'
             )}
+            style={cardStyle}
           >
             <button onClick={() => handleItemClick(item.id)} className="flex flex-col h-full text-left">
               {showImage && (
@@ -79,6 +91,10 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
                       className="object-cover"
                       data-ai-hint="product image"
                     />
+                     <div 
+                        className="absolute inset-0" 
+                        style={{ background: `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`, opacity: 0.3 }}
+                     />
                   </div>
                 </CardHeader>
               )}
