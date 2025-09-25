@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -9,6 +10,7 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Item } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const quickLinks = [
     {
@@ -50,18 +52,21 @@ const quickLinks = [
 ]
 
 export default function DashboardPage() {
-    const { sales, items } = usePos();
+    const { sales, items, isLoading } = usePos();
 
     const totalSales = useMemo(() => {
+        if (!sales) return 0;
         return sales.reduce((acc, sale) => acc + sale.total, 0);
     }, [sales]);
     
     const todaysSales = useMemo(() => {
+        if (!sales) return 0;
         const today = new Date();
-        return sales.filter(sale => format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')).length;
+        return sales.filter(sale => format(new Date(sale.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')).length;
     }, [sales]);
 
     const popularItems = useMemo(() => {
+        if (!sales || !items) return [];
         const itemCounts: { [key: string]: { item: Item, count: number } } = {};
 
         sales.forEach(sale => {
@@ -82,6 +87,32 @@ export default function DashboardPage() {
             .slice(0, 5);
 
     }, [sales, items]);
+    
+    if (isLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                 <PageHeader
+                    title="Tableau de bord"
+                    subtitle={`Chargement des données...`}
+                />
+                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                 </div>
+                 <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2">
+                        <Skeleton className="h-96" />
+                    </div>
+                     <div className="lg:col-span-1">
+                        <Skeleton className="h-96" />
+                     </div>
+                 </div>
+            </div>
+        )
+    }
+
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -117,8 +148,8 @@ export default function DashboardPage() {
                  <span className="text-muted-foreground">€</span>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
-                 <p className="text-xs text-muted-foreground">Sur {sales.length} transactions</p>
+                <div className="text-2xl font-bold">{sales && sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
+                 <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
             </CardContent>
         </Card>
          <Card>
@@ -192,3 +223,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
