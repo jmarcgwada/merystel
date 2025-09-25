@@ -39,6 +39,7 @@ interface PosContextType {
   addCustomer: (customer: Omit<Customer, 'id'>) => void;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
+  setDefaultCustomer: (customerId: string) => void;
 
   tables: Table[];
   setTables: React.Dispatch<React.SetStateAction<Table[]>>;
@@ -313,6 +314,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Client supprimé' });
   }, [toast]);
 
+  const setDefaultCustomer = useCallback((customerId: string) => {
+    setCustomers(prev => 
+      prev.map(c => ({
+        ...c,
+        isDefault: c.id === customerId ? !c.isDefault : false
+      }))
+    );
+    toast({ title: 'Client par défaut modifié' });
+  }, [toast]);
+
   const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
     const today = new Date();
     const datePrefix = format(today, 'yyyyMMdd');
@@ -433,6 +444,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addCustomer,
     updateCustomer,
     deleteCustomer,
+    setDefaultCustomer,
     tables,
     setTables,
     addTable,
@@ -490,6 +502,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     addCustomer,
     updateCustomer,
     deleteCustomer,
+    setDefaultCustomer,
     tables,
     setTables,
     addTable,
@@ -517,7 +530,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setShowTicketImages,
     isNavConfirmOpen,
     confirmNavigation,
-    holdOrderAndNavigate
+    holdOrderAndNavigate,
+    closeNavConfirm,
+    router,
+    nextUrl,
+    showNavConfirm
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

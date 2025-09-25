@@ -46,6 +46,7 @@ export interface Customer {
     name: string;
     email?: string;
     phone?: string;
+    isDefault?: boolean;
 }
 
 export interface PaymentMethod {

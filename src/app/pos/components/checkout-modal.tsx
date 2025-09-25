@@ -64,6 +64,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   useEffect(() => {
     if (isOpen) {
+        // Set default customer if available
+        const defaultCustomer = customers.find(c => c.isDefault);
+        if (defaultCustomer) {
+            setSelectedCustomer(defaultCustomer);
+        }
+
         if (!isPaid) {
             const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
@@ -81,7 +87,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         }, 300); // Delay to allow animation to finish
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isPaid, totalAmount]);
+  }, [isOpen, isPaid, totalAmount, customers]);
 
 
   const handleReset = () => {
