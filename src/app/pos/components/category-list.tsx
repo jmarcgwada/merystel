@@ -45,6 +45,8 @@ export function CategoryList({
   };
 
   const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    
     let baseCategories = categories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
