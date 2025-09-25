@@ -86,6 +86,7 @@ const generateMockSales = (): Sale[] => {
             total: 40.4225,
             payments: [{ method: mockPaymentMethods[0], amount: 40.42 }],
             customerId: 'cust1',
+            status: 'paid'
         },
         {
             id: 'sale2',
@@ -98,7 +99,8 @@ const generateMockSales = (): Sale[] => {
             subtotal: 37.0,
             tax: 0.814 + 0.418,
             total: 38.232,
-            payments: [{ method: mockPaymentMethods[1], amount: 38.23 }]
+            payments: [{ method: mockPaymentMethods[1], amount: 38.23 }],
+            status: 'paid'
         },
         {
             id: 'sale3',
@@ -113,6 +115,7 @@ const generateMockSales = (): Sale[] => {
             total: 13.797,
             payments: [{ method: mockPaymentMethods[1], amount: 13.80 }],
             customerId: 'cust2',
+            status: 'paid'
         }
     ];
     return sales;
@@ -120,5 +123,3 @@ const generateMockSales = (): Sale[] => {
 
 
 export const mockSales: Sale[] = generateMockSales();
-
-    

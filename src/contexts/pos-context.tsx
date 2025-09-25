@@ -241,15 +241,51 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [updateTableOrder, clearOrder, toast]);
   
+  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
+    const today = new Date();
+    const datePrefix = format(today, 'yyyyMMdd');
+    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
+    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+
+    const newSale: Sale = {
+      ...saleData,
+      id: `sale-${Date.now()}`,
+      date: today,
+      ticketNumber,
+    };
+    setSales(prevSales => [newSale, ...prevSales]);
+  }, [sales]);
+
   const promoteTableToTicket = useCallback((tableId: string) => {
+    const table = tables.find(t => t.id === tableId);
+    if (!table || table.order.length === 0) return;
+
+    const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
+    const tax = table.order.reduce((sum, item) => {
+      const vat = vatRates.find(v => v.id === item.vatId);
+      const taxForItem = item.total * ((vat?.rate || 0) / 100);
+      return sum + taxForItem;
+    }, 0);
+    const total = subtotal + tax;
+
+    recordSale({
+      items: table.order,
+      subtotal,
+      tax,
+      total,
+      payments: [],
+      status: 'pending',
+      customerId: customers.find(c => c.isDefault)?.id
+    });
+
     setTables(prevTables => 
-      prevTables.map(table => 
-        table.id === tableId ? { ...table, order: [], status: 'available' } : table
+      prevTables.map(t => 
+        t.id === tableId ? { ...t, order: [], status: 'available' } : t
       )
     );
     setSelectedTable(null);
     toast({ title: 'Table transformée en ticket', description: 'La commande est prête pour l\'encaissement.' });
-  }, [toast]);
+  }, [tables, vatRates, recordSale, customers, toast]);
 
 
   const addTable = useCallback((name: string) => {
@@ -324,20 +360,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Client par défaut modifié' });
   }, [toast]);
 
-  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-    const today = new Date();
-    const datePrefix = format(today, 'yyyyMMdd');
-    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
-
-    const newSale: Sale = {
-      ...saleData,
-      id: `sale-${Date.now()}`,
-      date: today,
-      ticketNumber,
-    };
-    setSales(prevSales => [newSale, ...prevSales]);
-  }, [sales]);
 
   const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
     const newMethod: PaymentMethod = {

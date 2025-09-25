@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
@@ -73,6 +74,14 @@ export default function SaleDetailPage() {
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
+          {sale.status === 'pending' && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Vente en attente</AlertTitle>
+                <AlertDescription>
+                  Cette vente a été enregistrée mais est en attente de paiement.
+                </AlertDescription>
+              </Alert>
+            )}
           <Card>
             <CardHeader>
               <CardTitle>Articles vendus</CardTitle>
@@ -147,14 +156,20 @@ export default function SaleDetailPage() {
             <CardFooter>
                  <div className="w-full">
                     <h3 className="text-sm font-semibold text-muted-foreground mb-2">Paiements</h3>
-                    <div className="space-y-2">
-                        {sale.payments.map((p, index) => (
-                            <div key={index} className="flex justify-between items-center text-sm">
-                                <Badge variant="secondary">{p.method.name}</Badge>
-                                <span className="font-medium">{p.amount.toFixed(2)}€</span>
-                            </div>
-                        ))}
-                    </div>
+                    {sale.payments.length > 0 ? (
+                      <div className="space-y-2">
+                          {sale.payments.map((p, index) => (
+                              <div key={index} className="flex justify-between items-center text-sm">
+                                  <Badge variant="secondary">{p.method.name}</Badge>
+                                  <span className="font-medium">{p.amount.toFixed(2)}€</span>
+                              </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-destructive font-medium">
+                        Aucun paiement enregistré
+                      </div>
+                    )}
                 </div>
             </CardFooter>
           </Card>

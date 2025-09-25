@@ -72,6 +72,7 @@ export interface Sale {
   total: number;
   payments: Payment[];
   customerId?: string;
+  status: 'pending' | 'paid';
 }
 
 export interface HeldOrder {

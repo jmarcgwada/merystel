@@ -13,6 +13,7 @@ import type { Payment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 export default function ReportsPage() {
@@ -20,11 +21,15 @@ export default function ReportsPage() {
     
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
-        {payments.map((p, index) => (
-          <Badge key={index} variant="outline" className="capitalize font-normal">
-            {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
-          </Badge>
-        ))}
+        {payments.length === 0 ? (
+          <Badge variant="destructive" className="font-normal">En attente</Badge>
+        ) : (
+          payments.map((p, index) => (
+            <Badge key={index} variant="outline" className="capitalize font-normal">
+              {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
+            </Badge>
+          ))
+        )}
       </div>
     );
 
@@ -67,7 +72,7 @@ export default function ReportsPage() {
                     </TableHeader>
                     <TableBody>
                         {sales.map(sale => (
-                            <TableRow key={sale.id}>
+                            <TableRow key={sale.id} className={cn(sale.status === 'pending' && 'bg-yellow-50/50 dark:bg-yellow-900/10')}>
                                  <TableCell className="font-mono text-muted-foreground text-xs">
                                     {sale.ticketNumber}
                                 </TableCell>
