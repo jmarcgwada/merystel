@@ -108,13 +108,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
     
-    const saleInfo = {
+    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
       payments: finalPayments,
-      customerId: selectedCustomer?.id,
+      ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
     };
 
     recordSale(saleInfo, currentSaleId ?? undefined);
