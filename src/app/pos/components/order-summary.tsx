@@ -15,7 +15,7 @@ import type { OrderItem } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 
 const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
-    <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick}>
+    <Button variant="outline" className={cn("text-xl h-12", className)} onClick={onClick}>
         {children}
     </Button>
 )
@@ -203,7 +203,7 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative overflow-y-hidden">
+        <div className="flex-1 relative overflow-hidden">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
@@ -267,13 +267,13 @@ export function OrderSummary() {
                         value={keypadValue}
                         onChange={handleDirectInputChange}
                         onFocus={(e) => e.target.select()}
-                        className="col-span-4 h-14 text-right px-4 text-4xl font-mono bg-background/50"
+                        className="col-span-4 h-12 text-right px-4 text-3xl font-mono bg-background/50"
                     />
 
                     <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                     <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                     <Button variant="destructive" className="h-14" onClick={() => {
+                     <Button variant="destructive" className="h-12" onClick={() => {
                         if (selectedItem) {
                             applyDiscount(selectedItem.id, 0, 'fixed');
                         }
@@ -298,10 +298,10 @@ export function OrderSummary() {
                     <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
                     
                     
-                    <Button className="h-14 text-lg col-span-3" onClick={handleApply}>
+                    <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
                        <Check className="mr-2" /> Valider
                     </Button>
-                     <Button variant="ghost" className="h-14" onClick={handleCloseKeypad}>
+                     <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
                         <X />
                     </Button>
                 </div>
