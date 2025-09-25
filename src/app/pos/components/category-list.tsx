@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -24,7 +25,7 @@ export function CategoryList({
   showFavoritesOnly,
   onToggleFavorites,
 }: CategoryListProps) {
-  const { categories, popularItemsCount, selectedTable } = usePos();
+  const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
@@ -44,17 +45,18 @@ export function CategoryList({
   };
 
   const filteredCategories = useMemo(() => {
-    const baseCategories = categories.filter(category =>
+    let baseCategories = categories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If in restaurant mode (a table is selected), filter for restaurant-only categories
-    if (selectedTable) {
-        return baseCategories.filter(category => category.isRestaurantOnly || category.isRestaurantOnly === undefined);
+    // If in restaurant mode (a table is selected) and the filter is enabled, filter for restaurant-only categories
+    if (selectedTable && enableRestaurantCategoryFilter) {
+        return baseCategories.filter(category => category.isRestaurantOnly === true || category.isRestaurantOnly === undefined);
     }
 
-    return baseCategories;
-  }, [categories, searchTerm, selectedTable]);
+    // Otherwise, show all categories (respecting search term) but filtering out explicitely non-restaurant ones if not in restaurant mode
+    return baseCategories.filter(category => selectedTable || !category.isRestaurantOnly);
+  }, [categories, searchTerm, selectedTable, enableRestaurantCategoryFilter]);
 
   const getVariant = (id: string | null) => {
     const isSelected = (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) || 

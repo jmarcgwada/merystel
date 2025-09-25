@@ -85,6 +85,8 @@ interface PosContextType {
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
   itemCardOpacity: number;
   setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
+  enableRestaurantCategoryFilter: boolean;
+  setEnableRestaurantCategoryFilter: React.Dispatch<React.SetStateAction<boolean>>;
 
 
   isNavConfirmOpen: boolean;
@@ -113,6 +115,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [showTicketImages, setShowTicketImages] = useState(true);
   const [popularItemsCount, setPopularItemsCount] = useState(5);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = useState(true);
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -638,6 +641,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setPopularItemsCount,
     itemCardOpacity,
     setItemCardOpacity,
+    enableRestaurantCategoryFilter,
+    setEnableRestaurantCategoryFilter,
     isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,
@@ -711,6 +716,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setPopularItemsCount,
     itemCardOpacity,
     setItemCardOpacity,
+    enableRestaurantCategoryFilter,
+    setEnableRestaurantCategoryFilter,
 isNavConfirmOpen,
     showNavConfirm,
     closeNavConfirm,

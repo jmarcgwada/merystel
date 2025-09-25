@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,7 +11,7 @@ import { usePos } from '@/contexts/pos-context';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity } = usePos();
+  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter } = usePos();
 
   return (
     <>
@@ -38,6 +39,19 @@ export default function CustomizationPage() {
                   id="ticket-images" 
                   checked={showTicketImages}
                   onCheckedChange={setShowTicketImages}
+                />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="restaurant-filter" className="text-base">Filtrer les catégories en mode Restaurant</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Si activé, seules les catégories dédiées au restaurant seront visibles lors d'une commande à table.
+                  </p>
+                </div>
+                <Switch 
+                  id="restaurant-filter" 
+                  checked={enableRestaurantCategoryFilter}
+                  onCheckedChange={setEnableRestaurantCategoryFilter}
                 />
             </div>
              <div className="grid gap-2 pt-4">
