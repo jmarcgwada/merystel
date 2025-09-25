@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
@@ -33,6 +34,13 @@ export default function LoginPage() {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -72,13 +80,8 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) {
+  if (loading || user) {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
-  }
-
-  if (user) {
-    router.push('/dashboard');
-    return null;
   }
 
   return (
