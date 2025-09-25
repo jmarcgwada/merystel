@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className="h-full">
+    <html lang="fr" suppressHydrationWarning className="h-full overflow-hidden">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className="font-body antialiased h-full flex flex-col">
         <PosProvider>
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-y-auto">{children}</main>
           <Toaster />
           <NavigationConfirmationDialog />
         </PosProvider>
