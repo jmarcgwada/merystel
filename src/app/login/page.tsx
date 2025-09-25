@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, useFirestore, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
-import { collection, doc, getDocs, writeBatch, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch, setDoc, getCountFromServer } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -102,24 +102,49 @@ export default function LoginPage() {
   };
   
    useEffect(() => {
-    if (user && !user.firstName && firestore) {
-      const userDocRef = doc(firestore, "companies", SHARED_COMPANY_ID, "users", user.uid);
-      const role = user.email === ADMIN_EMAIL ? 'admin' : 'cashier';
+    if (user && !user.firstName && firestore) { // Check if firstName is missing to prevent re-writing
+        const usersCollectionRef = collection(firestore, 'companies', SHARED_COMPANY_ID, 'users');
 
-      // This assumes we can get the first/last name from somewhere,
-      // which we can't after the change. We'll set them as empty for now.
-      // The user can update them in their profile.
-      const userData = {
-          id: user.uid,
-          firstName: 'Nouvel', // Placeholder
-          lastName: 'Utilisateur', // Placeholder
-          email: user.email,
-          role: role,
-          companyId: SHARED_COMPANY_ID
-      }
-      setDoc(userDocRef, userData, { merge: true });
+        getCountFromServer(usersCollectionRef).then(snapshot => {
+            const isFirstUser = snapshot.data().count === 0;
+            const role = isFirstUser ? 'admin' : 'cashier';
+            
+            const userDocRef = doc(usersCollectionRef, user.uid);
+
+            const userData = {
+                id: user.uid,
+                firstName: registerFirstName || 'Nouvel',
+                lastName: registerLastName || 'Utilisateur',
+                email: user.email,
+                role: role,
+                companyId: SHARED_COMPANY_ID
+            };
+
+            setDoc(userDocRef, userData, { merge: true }).then(() => {
+                 if(isFirstUser) {
+                    toast({
+                        title: 'Compte Administrateur créé !',
+                        description: 'Vous êtes le premier utilisateur, vous avez donc tous les droits.',
+                    });
+                }
+            });
+
+        }).catch(err => {
+            console.error("Error getting user count:", err);
+            // Fallback for safety, though it may fail if read is also disallowed
+            const userDocRef = doc(usersCollectionRef, user.uid);
+            const userData = {
+                id: user.uid,
+                firstName: registerFirstName || 'Nouvel',
+                lastName: registerLastName || 'Utilisateur',
+                email: user.email,
+                role: 'cashier', // Default to cashier on error
+                companyId: SHARED_COMPANY_ID
+            };
+            setDoc(userDocRef, userData, { merge: true });
+        })
     }
-  }, [user, firestore]);
+  }, [user, firestore, registerFirstName, registerLastName, toast]);
 
   if (loading || (user && !user.isAnonymous)) {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
