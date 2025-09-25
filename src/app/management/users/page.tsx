@@ -40,7 +40,7 @@ export default function UsersPage() {
   const { user: currentUser, loading: userLoading } = useUser();
   const { toast } = useToast();
 
-  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const usersCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const { data: users, isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
@@ -55,6 +55,7 @@ export default function UsersPage() {
   }
 
   const handleRoleChange = async (userId: string, newRole: string) => {
+    if (!firestore) return;
     const userRef = doc(firestore, 'users', userId);
     try {
       await setDoc(userRef, { role: newRole }, { merge: true });
