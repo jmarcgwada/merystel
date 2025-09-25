@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,11 @@ export default function CustomersPage() {
   const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleDeleteCustomer = () => {
     if (customerToDelete) {
@@ -64,7 +69,7 @@ export default function CustomersPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                    {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-52" /></TableCell>
@@ -72,7 +77,7 @@ export default function CustomersPage() {
                             <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
-                    {!isLoading && customers && customers.map(customer => (
+                    {isClient && !isLoading && customers && customers.map(customer => (
                         <TableRow key={customer.id}>
                             <TableCell className="font-medium">{customer.name}</TableCell>
                             <TableCell>{customer.email}</TableCell>

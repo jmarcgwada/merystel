@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
@@ -37,6 +37,11 @@ export default function PaymentMethodsPage() {
   const [isEditOpen, setEditOpen] = useState(false);
   const [methodToEdit, setMethodToEdit] = useState<PaymentMethod | null>(null);
   const [methodToDelete, setMethodToDelete] = useState<PaymentMethod | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const getIcon = (iconName?: string) => {
     if (iconName && iconMap[iconName]) {
@@ -77,7 +82,7 @@ export default function PaymentMethodsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && Array.from({length: 3}).map((_, i) => (
+                    {(isLoading || !isClient) && Array.from({length: 3}).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-5 w-5 rounded-full" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -85,7 +90,7 @@ export default function PaymentMethodsPage() {
                             <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
-                    {!isLoading && paymentMethods && paymentMethods.map((method: PaymentMethod) => {
+                    {isClient && !isLoading && paymentMethods && paymentMethods.map((method: PaymentMethod) => {
                         const IconComponent = getIcon(method.icon);
                         return (
                             <TableRow key={method.id}>

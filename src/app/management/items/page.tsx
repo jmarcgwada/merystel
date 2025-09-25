@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +35,11 @@ export default function ItemsPage() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -207,7 +212,7 @@ export default function ItemsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && Array.from({length: 5}).map((_, i) => (
+                {(isLoading || !isClient) && Array.from({length: 5}).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
                     <TableCell><Skeleton className="h-4 w-40" /></TableCell>
@@ -217,7 +222,7 @@ export default function ItemsPage() {
                     <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
                 ))}
-                {!isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
+                {isClient && !isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <Image 

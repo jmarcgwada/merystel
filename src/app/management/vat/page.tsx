@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +30,12 @@ export default function VatPage() {
   const { vatRates, deleteVatRate, isLoading } = usePos();
   const [vatToDelete, setVatToDelete] = useState<VatRate | null>(null);
   const [vatToEdit, setVatToEdit] = useState<VatRate | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const handleDeleteVat = () => {
     if (vatToDelete) {
@@ -63,7 +69,7 @@ export default function VatPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && Array.from({length: 3}).map((_, i) => (
+                    {(isLoading || !isClient) && Array.from({length: 3}).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -71,7 +77,7 @@ export default function VatPage() {
                             <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
-                    {!isLoading && vatRates && vatRates.map(vat => (
+                    {isClient && !isLoading && vatRates && vatRates.map(vat => (
                         <TableRow key={vat.id}>
                             <TableCell className="font-mono text-muted-foreground">{vat.code}</TableCell>
                             <TableCell className="font-medium">{vat.name}</TableCell>

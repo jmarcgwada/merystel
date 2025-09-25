@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +29,11 @@ export default function TablesPage() {
   const router = useRouter();
   const [tableToDelete, setTableToDelete] = useState<TableType | null>(null);
   const [tableToFree, setTableToFree] = useState<TableType | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleDeleteTable = () => {
     if (tableToDelete) {
@@ -65,7 +70,7 @@ export default function TablesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                    {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -74,7 +79,7 @@ export default function TablesPage() {
                             <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
-                    {!isLoading && tables && tables.map(table => (
+                    {isClient && !isLoading && tables && tables.map(table => (
                         <TableRow key={table.id}>
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>

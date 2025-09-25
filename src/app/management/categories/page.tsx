@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,6 +33,12 @@ export default function CategoriesPage() {
   const { categories, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const handleDeleteCategory = () => {
     if (categoryToDelete) {
@@ -67,7 +73,7 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && Array.from({ length: 5 }).map((_, i) => (
+              {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -76,7 +82,7 @@ export default function CategoriesPage() {
                     <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && categories && categories.map(category => (
+              {isClient && !isLoading && categories && categories.map(category => (
                 <TableRow key={category.id}>
                    <TableCell>
                       <Image 
