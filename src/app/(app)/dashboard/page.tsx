@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Item } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Timestamp } from 'firebase/firestore';
 
 const quickLinks = [
     {
@@ -62,7 +63,12 @@ export default function DashboardPage() {
     const todaysSales = useMemo(() => {
         if (!sales) return 0;
         const today = new Date();
-        return sales.filter(sale => format(new Date(sale.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')).length;
+        return sales.filter(sale => {
+            // Firestore timestamps need to be converted to JS Date objects
+            const saleDate = (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date);
+            if (isNaN(saleDate.getTime())) return false; // Invalid date
+            return format(saleDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+        }).length;
     }, [sales]);
 
     const popularItems = useMemo(() => {
