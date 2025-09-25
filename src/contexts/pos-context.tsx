@@ -7,6 +7,7 @@ import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, Payment
 import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods, mockVatRates } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 interface PosContextType {
   order: OrderItem[];
@@ -69,6 +70,12 @@ interface PosContextType {
 
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
+
+  isNavConfirmOpen: boolean;
+  showNavConfirm: (url: string) => void;
+  closeNavConfirm: () => void;
+  confirmNavigation: () => void;
+  holdOrderAndNavigate: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -87,6 +94,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
   const { toast } = useToast();
+  const router = useRouter();
+
+  const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
+
+  const clearOrder = useCallback(() => {
+    setOrder([]);
+  }, []);
+
+  const showNavConfirm = (url: string) => {
+    setNextUrl(url);
+    setNavConfirmOpen(true);
+  };
+
+  const closeNavConfirm = () => {
+    setNextUrl(null);
+    setNavConfirmOpen(false);
+  };
+
+  const confirmNavigation = () => {
+    clearOrder();
+    if (nextUrl) {
+      router.push(nextUrl);
+    }
+    closeNavConfirm();
+  };
+
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) => currentOrder.filter((item) => item.id !== itemId));
@@ -167,10 +201,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           }
           return item;
       }));
-  }, []);
-  
-  const clearOrder = useCallback(() => {
-    setOrder([]);
   }, []);
 
   const setSelectedTableById = useCallback((tableId: string | null) => {
@@ -351,6 +381,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Commande mise en attente.' });
   }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast]);
 
+  const holdOrderAndNavigate = () => {
+    holdOrder();
+    if (nextUrl) {
+      router.push(nextUrl);
+    }
+    closeNavConfirm();
+  };
+
   const recallOrder = useCallback((orderId: string) => {
     const orderToRecall = heldOrders.find(o => o.id === orderId);
     if (orderToRecall) {
@@ -420,6 +458,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteHeldOrder,
     showTicketImages,
     setShowTicketImages,
+    isNavConfirmOpen,
+    showNavConfirm,
+    closeNavConfirm,
+    confirmNavigation,
+    holdOrderAndNavigate,
   }), [
     order,
     setOrder,
@@ -461,7 +504,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     paymentMethods,
     addPaymentMethod,
     updatePaymentMethod,
-deletePaymentMethod,
+    deletePaymentMethod,
     vatRates,
     addVatRate,
     updateVatRate,
@@ -471,7 +514,10 @@ deletePaymentMethod,
     recallOrder,
     deleteHeldOrder,
     showTicketImages,
-    setShowTicketImages
+    setShowTicketImages,
+    isNavConfirmOpen,
+    confirmNavigation,
+    holdOrderAndNavigate
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePos } from '@/contexts/pos-context';
+import React from 'react';
 
 const navLinks = [
   { href: '/dashboard', label: 'Tableau de bord', icon: Grid },
@@ -40,6 +42,8 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { showNavConfirm, order } = usePos();
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -47,11 +51,36 @@ export default function Header() {
     return pathname.startsWith(href);
   };
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (pathname.startsWith('/pos') && order.length > 0 && !href.startsWith('/pos')) {
+      e.preventDefault();
+      showNavConfirm(href);
+    }
+  };
+
+  const NavLink = ({ href, label, icon: Icon, isSheet = false }: { href: string; label: string; icon: React.ElementType; isSheet?: boolean }) => (
+    <Link
+      href={href}
+      onClick={(e) => handleNavClick(e, href)}
+      className={cn(
+        isSheet
+          ? 'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary'
+          : 'text-sm font-medium transition-colors hover:text-primary',
+        isActive(href)
+          ? isSheet ? 'bg-secondary text-primary' : 'text-primary'
+          : !isSheet ? 'text-muted-foreground' : ''
+      )}
+    >
+      {isSheet && <Icon className="h-4 w-4" />}
+      {label}
+    </Link>
+  );
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -70,18 +99,7 @@ export default function Header() {
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm font-medium transition-colors hover:text-primary',
-                  isActive(link.href)
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-                )}
-              >
-                {link.label}
-              </Link>
+              <NavLink key={link.href} {...link} />
             ))}
           </nav>
         </div>
@@ -98,24 +116,14 @@ export default function Header() {
               <SheetContent side="left" className="w-[280px]">
                 <div className="flex h-full flex-col">
                     <div className="flex items-center p-4 border-b">
-                        <Link href="/dashboard" className="flex items-center gap-2">
+                        <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                             <span className="text-lg font-bold text-foreground font-headline">Zenith POS</span>
                         </Link>
                     </div>
                   <nav className="flex flex-col gap-2 p-4">
                     {navLinks.map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary',
-                          isActive(link.href) && 'bg-secondary text-primary'
-                        )}
-                      >
-                        <link.icon className="h-4 w-4" />
-                        {link.label}
-                      </Link>
+                      <NavLink key={link.href} {...link} isSheet={true} />
                     ))}
                   </nav>
                 </div>
@@ -148,7 +156,7 @@ export default function Header() {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profil</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Paramètres</span>
               </DropdownMenuItem>

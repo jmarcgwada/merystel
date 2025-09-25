@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
 import { PosProvider } from '@/contexts/pos-context';
+import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
@@ -28,8 +29,9 @@ export default function RootLayout({
       <body className="font-body antialiased h-full flex flex-col">
         <PosProvider>
           <Header />
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <main className="flex-1">{children}</main>
           <Toaster />
+          <NavigationConfirmationDialog />
         </PosProvider>
       </body>
     </html>
