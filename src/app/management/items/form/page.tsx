@@ -44,6 +44,7 @@ function ItemForm() {
   const { items, categories, vatRates, addItem, updateItem, isLoading } = usePos();
   const [isGenerating, setIsGenerating] = useState(false);
   const [defaultImage, setDefaultImage] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   const itemId = searchParams.get('id');
   const isEditMode = Boolean(itemId);
@@ -69,6 +70,8 @@ function ItemForm() {
   const watchedPrice = watch('price');
 
   useEffect(() => {
+    // This ensures the component has mounted on the client, avoiding hydration issues.
+    setIsClient(true);
     // Generate a default image URL only on the client side to avoid hydration mismatch
     setDefaultImage(`https://picsum.photos/seed/${new Date().getTime()}/200/150`);
   }, []);
@@ -85,13 +88,19 @@ function ItemForm() {
         image: itemToEdit.image,
         showImage: itemToEdit.showImage ?? true,
       });
-    } else {
-        form.reset();
-        if (defaultImage) {
-          setValue('image', defaultImage);
-        }
+    } else if (!isEditMode) {
+        form.reset({
+          name: '',
+          price: 0,
+          categoryId: '',
+          vatId: '',
+          description: '',
+          isFavorite: false,
+          image: `https://picsum.photos/seed/${itemId || 'new'}/200/150`,
+          showImage: true,
+        });
     }
-  }, [isEditMode, itemToEdit, form, setValue, defaultImage]);
+  }, [isEditMode, itemToEdit, form, itemId]);
 
   function onSubmit(data: ItemFormValues) {
     if (isEditMode && itemToEdit) {
@@ -139,7 +148,7 @@ function ItemForm() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading || !isClient) {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
           <PageHeader
@@ -382,5 +391,3 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
-
-    
