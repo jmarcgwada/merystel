@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 const initialCompanyInfo: CompanyInfo = {
     name: '',
@@ -37,6 +38,7 @@ export default function CompanyPage() {
   const { companyInfo, setCompanyInfo, isLoading } = usePos();
   const { toast } = useToast();
   const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
+  const router = useRouter();
 
   useEffect(() => {
     if (companyInfo) {
@@ -55,6 +57,7 @@ export default function CompanyPage() {
       title: 'Informations sauvegardées',
       description: 'Les détails de votre entreprise ont été mis à jour.',
     });
+    router.push('/settings');
   };
   
   if (isLoading) {
