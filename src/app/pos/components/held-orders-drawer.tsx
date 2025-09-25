@@ -11,6 +11,12 @@ import {
   SheetDescription,
   SheetFooter
 } from '@/components/ui/sheet';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
 import { format } from 'date-fns';
@@ -38,7 +44,7 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
         <SheetHeader className="p-6 pb-4">
           <SheetTitle>Tickets en attente</SheetTitle>
           <SheetDescription>
-            Rappelez une commande en attente pour la finaliser.
+            Rappelez une commande en attente pour la finaliser ou consultez son contenu.
           </SheetDescription>
         </SheetHeader>
         
@@ -50,37 +56,53 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
           </div>
         ) : (
           <ScrollArea className="flex-1">
-            <div className="divide-y">
+            <Accordion type="multiple" className="w-full">
               {heldOrders.map((order) => (
-                <div key={order.id} className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold">
-                        {order.tableName 
-                            ? `Ticket: ${order.tableName}`
-                            : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
-                        }
-                      </p>
-                      {order.tableName && (
-                        <p className="text-xs text-muted-foreground">
-                            Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {order.items.length} article{order.items.length > 1 ? 's' : ''}
-                      </p>
-                       <p className="font-bold text-primary mt-1">{order.total.toFixed(2)}€</p>
+                <AccordionItem value={order.id} key={order.id} className="border-b">
+                   <div className="flex items-center pr-4">
+                        <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline">
+                             <div className="flex justify-between items-start w-full">
+                                <div>
+                                <p className="font-semibold">
+                                    {order.tableName 
+                                        ? `Ticket: ${order.tableName}`
+                                        : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
+                                    }
+                                </p>
+                                {order.tableName && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
+                                    </p>
+                                )}
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {order.items.length} article{order.items.length > 1 ? 's' : ''}
+                                </p>
+                                <p className="font-bold text-primary mt-1">{order.total.toFixed(2)}€</p>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                   </div>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-2 border-l-2 border-dashed pl-4 ml-2 py-2">
+                        {order.items.map(item => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                                <div>
+                                    <span className="font-medium">{item.quantity}x</span> {item.name}
+                                </div>
+                                <span>{item.total.toFixed(2)}€</span>
+                            </div>
+                        ))}
                     </div>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => deleteHeldOrder(order.id)}>
-                        <Trash2 className="h-4 w-4" />
+                     <Button className="w-full mt-3" onClick={() => handleRecall(order.id)}>
+                        Rappeler ce ticket
                     </Button>
-                  </div>
-                  <Button className="w-full mt-3" onClick={() => handleRecall(order.id)}>
-                    Rappeler ce ticket
-                  </Button>
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </ScrollArea>
         )}
         
