@@ -79,7 +79,7 @@ export default function Header() {
             </span>
           </Link>
           <Separator orientation="vertical" className="h-6" />
-          <span className="font-normal text-muted-foreground">{companyInfo.name}</span>
+          <span className="font-normal text-muted-foreground">{companyInfo?.name}</span>
         </div>
 
         <div className="flex items-center justify-end gap-4">

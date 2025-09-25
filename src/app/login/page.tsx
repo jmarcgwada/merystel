@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth, setDocumentNonBlocking, doc, useFirestore } from '@/firebase';
+import { useAuth, setDocumentNonBlocking, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -110,7 +111,7 @@ export default function LoginPage() {
       });
   };
 
-  if (loading) {
+  if (loading || user) {
     return <div className="flex h-screen items-center justify-center">Chargement...</div>
   }
   

@@ -1,4 +1,5 @@
 
+import * as React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -8,11 +9,35 @@ import { NavigationConfirmationDialog } from '@/components/layout/navigation-con
 import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
   description: 'Système de point de vente moderne',
 };
+
+function AppLoading() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+         <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-10 w-10 text-primary animate-pulse"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+        <p className="text-muted-foreground">Chargement de l'application...</p>
+        <Skeleton className="h-4 w-48" />
+      </div>
+    </div>
+  )
+}
 
 export default function RootLayout({
   children,
@@ -32,13 +57,15 @@ export default function RootLayout({
       <body className="font-body antialiased h-full flex flex-col">
         <FirebaseClientProvider>
           <PosProvider>
-            <KeyboardProvider>
-              <Header />
-              <main className="flex-1 overflow-y-auto">{children}</main>
-              <Toaster />
-              <NavigationConfirmationDialog />
-              <VirtualKeyboard />
-            </KeyboardProvider>
+              <KeyboardProvider>
+                <React.Suspense fallback={<AppLoading/>}>
+                  <Header />
+                  <main className="flex-1 overflow-y-auto">{children}</main>
+                  <Toaster />
+                  <NavigationConfirmationDialog />
+                  <VirtualKeyboard />
+                </React.Suspense>
+              </KeyboardProvider>
           </PosProvider>
         </FirebaseClientProvider>
       </body>

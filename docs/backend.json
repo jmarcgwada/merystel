@@ -6,78 +6,38 @@
       "type": "object",
       "description": "Represents a user of the Zenith POS system.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the user.",
-          "format": "email"
-        },
-        "phone": {
-          "type": "string",
-          "description": "The phone number of the user."
-        },
-        "role": {
-          "type": "string",
-          "description": "The role of the user within the system (e.g., administrator, cashier, manager)."
-        },
-        "companyId": {
-          "type": "string",
-          "description": "Reference to the Company the user belongs to. (Relationship: Company 1:N User)"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the user." },
+        "firstName": { "type": "string", "description": "The first name of the user." },
+        "lastName": { "type": "string", "description": "The last name of the user." },
+        "email": { "type": "string", "description": "The email address of the user.", "format": "email" },
+        "phone": { "type": "string", "description": "The phone number of the user." },
+        "role": { "type": "string", "description": "The role of the user within the system (e.g., administrator, cashier, manager)." },
+        "companyId": { "type": "string", "description": "Reference to the Company the user belongs to." }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "role",
-        "companyId"
-      ]
+      "required": ["id", "firstName", "lastName", "email", "role", "companyId"]
     },
     "Company": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Company",
       "type": "object",
-      "description": "Represents a company using the Zenith POS system.",
+      "description": "Represents a company using the Zenith POS system. This is the root for all company-specific data.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the company."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the company."
-        },
-        "address": {
-          "type": "string",
-          "description": "The physical address of the company."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the company.",
-          "format": "email"
-        },
-        "phone": {
-          "type": "string",
-          "description": "The phone number of the company."
-        }
+        "name": { "type": "string", "description": "The name of the company." },
+        "address": { "type": "string", "description": "The physical address of the company." },
+        "postalCode": { "type": "string" },
+        "city": { "type": "string" },
+        "region": { "type": "string" },
+        "country": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "website": { "type": "string" },
+        "siret": { "type": "string" },
+        "legalForm": { "type": "string" },
+        "iban": { "type": "string" },
+        "bic": { "type": "string" },
+        "notes": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "address"
-      ]
+      "required": ["name", "address", "postalCode", "city", "country", "email"]
     },
     "Customer": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -85,101 +45,161 @@
       "type": "object",
       "description": "Represents a customer of the company.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the customer."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the customer."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the customer."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the customer.",
-          "format": "email"
-        },
-        "phone": {
-          "type": "string",
-          "description": "The phone number of the customer."
-        },
-        "companyId": {
-          "type": "string",
-          "description": "Reference to the Company the customer belongs to. (Relationship: Company 1:N Customer)"
-        }
+        "name": { "type": "string", "description": "The full name of the customer." },
+        "email": { "type": "string", "description": "The email address of the customer.", "format": "email" },
+        "phone": { "type": "string", "description": "The phone number of the customer." },
+        "isDefault": { "type": "boolean", "description": "Whether this is the default customer for new sales." }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "companyId"
-      ]
+      "required": ["name"]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents an item category.",
+      "properties": {
+        "name": { "type": "string" },
+        "color": { "type": "string" },
+        "image": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "isRestaurantOnly": { "type": "boolean" }
+      },
+      "required": ["name"]
+    },
+    "Item": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Item",
+      "type": "object",
+      "description": "Represents a product or service that can be sold.",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "categoryId": { "type": "string" },
+        "vatId": { "type": "string" },
+        "image": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "description": { "type": "string" },
+        "showImage": { "type": "boolean" }
+      },
+      "required": ["name", "price", "categoryId", "vatId"]
+    },
+    "Table": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Table",
+      "type": "object",
+      "description": "Represents a table in a restaurant setting.",
+      "properties": {
+        "name": { "type": "string" },
+        "number": { "type": "number" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "occupied", "paying"] },
+        "order": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["name", "number", "status", "order"]
+    },
+    "Sale": {
+      "$schema": "http://json-schema.org/draft-07_schema#",
+      "title": "Sale",
+      "type": "object",
+      "description": "Represents a completed sale transaction.",
+      "properties": {
+        "ticketNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "payments": { "type": "array", "items": { "type": "object" } },
+        "customerId": { "type": "string" },
+        "tableId": { "type": "string" },
+        "tableName": { "type": "string" },
+        "status": { "type": "string", "enum": ["paid", "pending"] }
+      },
+      "required": ["ticketNumber", "date", "items", "subtotal", "tax", "total", "payments", "status"]
+    },
+    "PaymentMethod": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentMethod",
+      "type": "object",
+      "description": "Defines a method of payment.",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string", "enum": ["card", "cash", "check", "other"] },
+        "type": { "type": "string", "enum": ["direct", "indirect"] },
+        "value": { "type": "number" }
+      },
+      "required": ["name", "type"]
+    },
+    "VatRate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VatRate",
+      "type": "object",
+      "description": "Defines a Value Added Tax rate.",
+      "properties": {
+        "name": { "type": "string" },
+        "rate": { "type": "number" },
+        "code": { "type": "number" }
+      },
+      "required": ["name", "rate", "code"]
+    },
+    "HeldOrder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HeldOrder",
+      "type": "object",
+      "description": "Represents a temporarily saved order.",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "total": { "type": "number" },
+        "tableName": { "type": "string" },
+        "tableId": { "type": "string" }
+      },
+      "required": ["date", "items", "total"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information. Path-based ownership ensures that only the authenticated user can access their data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/companies/{companyId}",
-        "definition": {
-          "entityName": "Company",
-          "schema": {
-            "$ref": "#/backend/entities/Company"
-          },
-          "description": "Stores company information. Accessible by company administrators.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The unique identifier for the company."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/companies/{companyId}/customers/{customerId}",
-        "definition": {
-          "entityName": "Customer",
-          "schema": {
-            "$ref": "#/backend/entities/Customer"
-          },
-          "description": "Stores customer data associated with a specific company. Includes denormalized 'companyId' for authorization independence.",
-          "params": [
-            {
-              "name": "companyId",
-              "description": "The unique identifier for the company."
-            },
-            {
-              "name": "customerId",
-              "description": "The unique identifier for the customer."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "This design focuses on providing a secure and scalable structure for the Zenith POS application, emphasizing authorization independence and clarity. User profiles and company data are stored in dedicated collections with clear ownership patterns.\n\n**Authorization Independence:** The design avoids hierarchical authorization dependencies by ensuring that access control information is readily available within each document or collection. For example, the User document contains a `companyId` field, enabling rules to verify company membership without needing to perform a `get()` operation on the Company document.\n\n**QAPs Support:** Segregation is used extensively. User profiles are stored under `/users/{uid}`, providing a clear and secure path-based ownership model. Company data is stored in a top-level `/companies/{companyId}` collection. This segregation ensures secure `list` operations because rules can easily filter based on the user's identity or company affiliation without inspecting the contents of each document (Rules Are Not Filters).\n\n**User Profiles:** User profiles are stored under `/users/{uid}`, where `{uid}` corresponds to the Firebase Authentication UID. This path-based ownership ensures that only the authenticated user can access and modify their profile data. The User document includes a `companyId` for association with a company.\n\n**Company Data:** Company data is stored in a top-level `/companies/{companyId}` collection, where `{companyId}` is the unique identifier for the company. This segregation allows for easy management of company-specific settings and data.\n\n**Customer Data:** Customer data is stored under `/companies/{companyId}/customers/{customerId}`, creating a Company 1:N Customer relationship. This structure allows for easy listing and filtering of customers belonging to a specific company. The Customer document also contains a `companyId` (denormalized) for rule evaluation and authorization independence."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profile information."
+    },
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/Company" },
+      "description": "Stores root information for a company."
+    },
+    "/companies/{companyId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Stores customer data for a specific company."
+    },
+    "/companies/{companyId}/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Item categories for a company."
+    },
+    "/companies/{companyId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/Item" },
+      "description": "All sellable items for a company."
+    },
+    "/companies/{companyId}/tables/{tableId}": {
+      "schema": { "$ref": "#/entities/Table" },
+      "description": "Restaurant tables for a company."
+    },
+    "/companies/{companyId}/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "Record of all completed sales for a company."
+    },
+    "/companies/{companyId}/paymentMethods/{methodId}": {
+      "schema": { "$ref": "#/entities/PaymentMethod" },
+      "description": "Payment methods configured for a company."
+    },
+    "/companies/{companyId}/vatRates/{vatId}": {
+      "schema": { "$ref": "#/entities/VatRate" },
+      "description": "VAT rates configured for a company."
+    },
+    "/companies/{companyId}/heldOrders/{orderId}": {
+      "schema": { "$ref": "#/entities/HeldOrder" },
+      "description": "Temporarily held orders for a company."
+    }
   }
 }

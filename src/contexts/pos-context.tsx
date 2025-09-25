@@ -1,13 +1,45 @@
 
+'use client';
 
-"use client";
-
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import type { OrderItem, Table, Item, Category, Customer, Sale, Payment, PaymentMethod, HeldOrder, VatRate, SpecialCategory, CompanyInfo } from '@/lib/types';
-import { mockItems, mockTables, mockCategories, mockCustomers, mockSales, mockPaymentMethods, mockVatRates } from '@/lib/mock-data';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+} from 'react';
+import type {
+  OrderItem,
+  Table,
+  Item,
+  Category,
+  Customer,
+  Sale,
+  PaymentMethod,
+  HeldOrder,
+  VatRate,
+  CompanyInfo,
+} from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useDoc,
+  useMemoFirebase,
+} from '@/firebase';
+import {
+  collection,
+  doc,
+  writeBatch,
+  deleteDoc,
+  addDoc,
+  setDoc,
+} from 'firebase/firestore';
+import type { CombinedUser } from '@/firebase/auth/use-user';
 
 interface PosContextType {
   order: OrderItem[];
@@ -16,7 +48,11 @@ interface PosContextType {
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
-  applyDiscount: (itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => void;
+  applyDiscount: (
+    itemId: OrderItem['id'],
+    value: number,
+    type: 'percentage' | 'fixed'
+  ) => void;
   clearOrder: () => void;
   orderTotal: number;
   orderTax: number;
@@ -35,7 +71,7 @@ interface PosContextType {
   toggleItemFavorite: (itemId: string) => void;
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
   popularItems: Item[];
-  
+
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (category: Category) => void;
@@ -50,7 +86,9 @@ interface PosContextType {
 
   tables: Table[];
   setTables: React.Dispatch<React.SetStateAction<Table[]>>;
-  addTable: (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => void;
+  addTable: (
+    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
+  ) => void;
   updateTable: (table: Table) => void;
   deleteTable: (tableId: string) => void;
   forceFreeTable: (tableId: string) => void;
@@ -62,8 +100,11 @@ interface PosContextType {
   promoteTableToTicket: (tableId: string) => void;
 
   sales: Sale[];
-  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, saleIdToUpdate?: string) => void;
-  
+  recordSale: (
+    sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+    saleIdToUpdate?: string
+  ) => void;
+
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
   updatePaymentMethod: (method: PaymentMethod) => void;
@@ -86,10 +127,12 @@ interface PosContextType {
   itemCardOpacity: number;
   setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
   enableRestaurantCategoryFilter: boolean;
-  setEnableRestaurantCategoryFilter: React.Dispatch<React.SetStateAction<boolean>>;
+  setEnableRestaurantCategoryFilter: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
 
-  companyInfo: CompanyInfo;
-  setCompanyInfo: React.Dispatch<React.SetStateAction<CompanyInfo>>;
+  companyInfo: CompanyInfo | null;
+  setCompanyInfo: (info: CompanyInfo) => void;
 
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
@@ -98,57 +141,146 @@ interface PosContextType {
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
+
+  isLoading: boolean;
+  user: CombinedUser | null;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+  const companyId = useMemo(() => user?.companyId, [user]);
+
+  const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(
+    useMemoFirebase(
+      () => companyId && collection(firestore, 'companies', companyId, 'items'),
+      [firestore, companyId]
+    )
+  );
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+  } = useCollection<Category>(
+    useMemoFirebase(
+      () =>
+        companyId && collection(firestore, 'companies', companyId, 'categories'),
+      [firestore, companyId]
+    )
+  );
+  const {
+    data: customers = [],
+    isLoading: customersLoading,
+  } = useCollection<Customer>(
+    useMemoFirebase(
+      () =>
+        companyId && collection(firestore, 'companies', companyId, 'customers'),
+      [firestore, companyId]
+    )
+  );
+  const { data: tables = [], isLoading: tablesLoading } = useCollection<Table>(
+    useMemoFirebase(
+      () => companyId && collection(firestore, 'companies', companyId, 'tables'),
+      [firestore, companyId]
+    )
+  );
+  const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(
+    useMemoFirebase(
+      () => companyId && collection(firestore, 'companies', companyId, 'sales'),
+      [firestore, companyId]
+    )
+  );
+  const {
+    data: paymentMethods = [],
+    isLoading: paymentMethodsLoading,
+  } = useCollection<PaymentMethod>(
+    useMemoFirebase(
+      () =>
+        companyId &&
+        collection(firestore, 'companies', companyId, 'paymentMethods'),
+      [firestore, companyId]
+    )
+  );
+  const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<
+    VatRate
+  >(
+    useMemoFirebase(
+      () =>
+        companyId && collection(firestore, 'companies', companyId, 'vatRates'),
+      [firestore, companyId]
+    )
+  );
+  const { data: heldOrders = [], isLoading: heldOrdersLoading } = useCollection<
+    HeldOrder
+  >(
+    useMemoFirebase(
+      () =>
+        companyId && collection(firestore, 'companies', companyId, 'heldOrders'),
+      [firestore, companyId]
+    )
+  );
+  const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(
+    useMemoFirebase(() => companyId && doc(firestore, 'companies', companyId), [
+      firestore,
+      companyId,
+    ])
+  );
+
   const [order, setOrder] = useState<OrderItem[]>([]);
-  const [tables, setTables] = useState<Table[]>(mockTables);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [items, setItems] = useState<Item[]>(mockItems);
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-  const [sales, setSales] = useState<Sale[]>(mockSales);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
-  const [vatRates, setVatRates] = useState<VatRate[]>(mockVatRates);
-  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
   const [popularItemsCount, setPopularItemsCount] = useState(5);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = useState(true);
-  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
-    name: 'Zenith POS Inc.',
-    address: '123 Rue du Marché',
-    postalCode: '75001',
-    city: 'Paris',
-    region: 'Île-de-France',
-    country: 'France',
-    email: 'contact@zenithpos.com',
-    phone: '01 23 45 67 89',
-    website: 'https://zenithpos.com',
-    siret: '123 456 789 00010',
-    legalForm: 'SAS',
-    iban: 'FR76 3000 4000 0500 0012 3456 789',
-    bic: 'BNPAFRPPXXX',
-    notes: '',
-  });
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
+    useState(true);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
+    null
+  );
   const { toast } = useToast();
   const router = useRouter();
 
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> | null>(null);
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<
+    Sale
+  > | null>(null);
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
+
+  const isLoading =
+    userLoading ||
+    itemsLoading ||
+    categoriesLoading ||
+    customersLoading ||
+    tablesLoading ||
+    salesLoading ||
+    paymentMethodsLoading ||
+    vatRatesLoading ||
+    heldOrdersLoading ||
+    companyInfoLoading;
+
+  const getCollectionRef = useCallback(
+    (name: string) => {
+      if (!companyId) throw new Error('Company ID is not available');
+      return collection(firestore, 'companies', companyId, name);
+    },
+    [companyId, firestore]
+  );
+  const getDocRef = useCallback(
+    (collectionName: string, docId: string) => {
+      if (!companyId) throw new Error('Company ID is not available');
+      return doc(firestore, 'companies', companyId, collectionName, docId);
+    },
+    [companyId, firestore]
+  );
 
   const clearOrder = useCallback(() => {
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
-    if(selectedTable) {
+    if (selectedTable) {
       setSelectedTable(null);
     }
   }, [selectedTable]);
@@ -176,577 +308,769 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    setOrder((currentOrder) => currentOrder.filter((item) => item.id !== itemId));
+    setOrder(currentOrder =>
+      currentOrder.filter(item => item.id !== itemId)
+    );
   }, []);
 
-  const addToOrder = useCallback((itemId: OrderItem['id']) => {
-    const itemToAdd = items.find((i) => i.id === itemId);
-    if (!itemToAdd) return;
+  const addToOrder = useCallback(
+    (itemId: OrderItem['id']) => {
+      const itemToAdd = items.find(i => i.id === itemId);
+      if (!itemToAdd) return;
 
-    setOrder((currentOrder) => {
-      const existingItemIndex = currentOrder.findIndex((item) => item.id === itemId);
-      
-      if (existingItemIndex !== -1) {
-        const newOrder = [...currentOrder];
-        const existingItem = newOrder[existingItemIndex];
-        const newQuantity = existingItem.quantity + 1;
-        newOrder[existingItemIndex] = { ...existingItem, quantity: newQuantity, total: (existingItem.price * newQuantity) - (existingItem.discount || 0) };
-        return newOrder;
-      } else {
-        const newItem: OrderItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
-        // Place new items at the end
-        return [...currentOrder, newItem];
+      setOrder(currentOrder => {
+        const existingItemIndex = currentOrder.findIndex(
+          item => item.id === itemId
+        );
+
+        if (existingItemIndex !== -1) {
+          const newOrder = [...currentOrder];
+          const existingItem = newOrder[existingItemIndex];
+          const newQuantity = existingItem.quantity + 1;
+          newOrder[existingItemIndex] = {
+            ...existingItem,
+            quantity: newQuantity,
+            total: existingItem.price * newQuantity - (existingItem.discount || 0),
+          };
+          return newOrder;
+        } else {
+          const newItem: OrderItem = {
+            ...itemToAdd,
+            quantity: 1,
+            total: itemToAdd.price,
+            discount: 0,
+          };
+          return [...currentOrder, newItem];
+        }
+      });
+      triggerItemHighlight(itemId);
+      toast({ title: `${itemToAdd.name} ajouté à la commande` });
+    },
+    [items, toast]
+  );
+
+  const updateQuantity = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      if (quantity <= 0) {
+        removeFromOrder(itemId);
+        return;
       }
-    });
-    triggerItemHighlight(itemId);
-    toast({ title: `${itemToAdd.name} ajouté à la commande` });
-  }, [items, toast]);
+      setOrder(currentOrder =>
+        currentOrder.map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                quantity,
+                total: item.price * quantity - (item.discount || 0),
+              }
+            : item
+        )
+      );
+      triggerItemHighlight(itemId);
+    },
+    [removeFromOrder]
+  );
 
+  const updateQuantityFromKeypad = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      if (quantity <= 0) {
+        removeFromOrder(itemId);
+        return;
+      }
+      setOrder(currentOrder =>
+        currentOrder.map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                quantity,
+                total: item.price * quantity - (item.discount || 0),
+              }
+            : item
+        )
+      );
+      triggerItemHighlight(itemId);
+    },
+    [removeFromOrder]
+  );
 
-  const updateQuantity = useCallback((itemId: OrderItem['id'], quantity: number) => {
-    if (quantity <= 0) {
-      removeFromOrder(itemId);
-      return;
-    }
-    setOrder((currentOrder) =>
-      currentOrder.map((item) =>
-        item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
-      )
-    );
-    triggerItemHighlight(itemId);
-  }, [removeFromOrder]);
-  
-  const updateQuantityFromKeypad = useCallback((itemId: OrderItem['id'], quantity: number) => {
-     if (quantity <= 0) {
-      removeFromOrder(itemId);
-      return;
-    }
-     setOrder((currentOrder) =>
-      currentOrder.map((item) =>
-        item.id === itemId ? { ...item, quantity, total: (item.price * quantity) - (item.discount || 0) } : item
-      )
-    );
-    triggerItemHighlight(itemId);
-  }, [removeFromOrder]);
-
-  const applyDiscount = useCallback((itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => {
-      setOrder(currentOrder => currentOrder.map(item => {
+  const applyDiscount = useCallback(
+    (itemId: OrderItem['id'], value: number, type: 'percentage' | 'fixed') => {
+      setOrder(currentOrder =>
+        currentOrder.map(item => {
           if (item.id === itemId) {
-              let discountAmount = 0;
-              let discountPercent: number | undefined = undefined;
+            let discountAmount = 0;
+            let discountPercent: number | undefined = undefined;
 
-              if (type === 'percentage') {
-                  discountAmount = (item.price * item.quantity) * (value / 100);
-                  discountPercent = value;
-              } else {
-                  discountAmount = value;
-              }
+            if (type === 'percentage') {
+              discountAmount = item.price * item.quantity * (value / 100);
+              discountPercent = value;
+            } else {
+              discountAmount = value;
+            }
 
-              if (discountAmount < 0) discountAmount = 0;
-              if (value === 0) discountPercent = undefined;
-              
-              const newTotal = (item.price * item.quantity) - discountAmount;
+            if (discountAmount < 0) discountAmount = 0;
+            if (value === 0) discountPercent = undefined;
 
-              return {
-                  ...item,
-                  discount: discountAmount,
-                  discountPercent,
-                  total: newTotal > 0 ? newTotal : 0,
-              }
+            const newTotal = item.price * item.quantity - discountAmount;
+
+            return {
+              ...item,
+              discount: discountAmount,
+              discountPercent,
+              total: newTotal > 0 ? newTotal : 0,
+            };
           }
           return item;
-      }));
+        })
+      );
       triggerItemHighlight(itemId);
-  }, []);
+    },
+    []
+  );
 
-  const setSelectedTableById = useCallback((tableId: string | null) => {
-    const table = tableId ? tables.find(t => t.id === tableId) || null : null;
-    setSelectedTable(table);
-    if (table) {
-      if (table.status === 'paying') {
-        const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
-        if (heldOrderForTable) {
-          recallOrder(heldOrderForTable.id);
-          router.push('/pos');
+  const setSelectedTableById = useCallback(
+    (tableId: string | null) => {
+      const table = tableId ? tables.find(t => t.id === tableId) || null : null;
+      setSelectedTable(table);
+      if (table) {
+        if (table.status === 'paying') {
+          const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
+          if (heldOrderForTable) {
+            recallOrder(heldOrderForTable.id);
+            router.push('/pos');
+          }
+        } else {
+          setOrder(table.order);
+          setCurrentSaleContext({ tableId: table.id, tableName: table.name });
         }
       } else {
-        setOrder(table.order);
-        setCurrentSaleContext({ tableId: table.id, tableName: table.name });
+        clearOrder();
       }
-    } else {
-      clearOrder();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tables, clearOrder, heldOrders, router]);
+    },
+    [tables, clearOrder, heldOrders, router, recallOrder]
+  );
 
   const orderTotal = useMemo(() => {
     return order.reduce((sum, item) => sum + item.total, 0);
   }, [order]);
-  
+
   const orderTax = useMemo(() => {
     return order.reduce((sum, item) => {
-        const vat = vatRates.find(v => v.id === item.vatId);
-        const taxForItem = item.total * ((vat?.rate || 0) / 100);
-        return sum + taxForItem;
+      const vat = vatRates.find(v => v.id === item.vatId);
+      const taxForItem = item.total * ((vat?.rate || 0) / 100);
+      return sum + taxForItem;
     }, 0);
   }, [order, vatRates]);
-  
-  const updateTableOrder = useCallback((tableId: string, orderData: OrderItem[]) => {
-    setTables(prevTables => 
-      prevTables.map(table => 
-        table.id === tableId ? { ...table, order: orderData, status: orderData.length > 0 ? 'occupied' : 'available' } : table
-      )
-    );
-  }, []);
 
-  const saveTableOrderAndExit = useCallback((tableId: string, orderData: OrderItem[]) => {
-    updateTableOrder(tableId, orderData);
-    toast({ title: 'Table sauvegardée' });
-    clearOrder();
-    setSelectedTable(null);
-  }, [updateTableOrder, clearOrder, toast]);
-  
-  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-    let finalSale: Sale;
-    const saleIdToUpdate = currentSaleId;
-    const existingSale = saleIdToUpdate ? sales.find(s => s.id === saleIdToUpdate) : undefined;
-    const tableToEnd = saleIdToUpdate ? heldOrders.find(ho => ho.id === saleIdToUpdate)?.tableId : undefined;
-    
-    if (existingSale) {
-        finalSale = {
-            ...existingSale,
-            ...saleData,
-            status: 'paid',
-        };
-        setSales(prevSales => prevSales.map(s => s.id === saleIdToUpdate ? finalSale : s));
-    } else {
-        const today = new Date();
-        const datePrefix = format(today, 'yyyyMMdd');
-        const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-        const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+  const updateTableOrder = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      try {
+        const tableRef = getDocRef('tables', tableId);
+        await setDoc(
+          tableRef,
+          {
+            order: orderData,
+            status: orderData.length > 0 ? 'occupied' : 'available',
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error('Error updating table order:', error);
+        toast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
+      }
+    },
+    [getDocRef, toast]
+  );
 
-        finalSale = {
-          ...saleData,
-          id: `sale-${Date.now()}`,
-          date: today,
-          ticketNumber,
-          status: 'paid',
-        };
+  const saveTableOrderAndExit = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      await updateTableOrder(tableId, orderData);
+      toast({ title: 'Table sauvegardée' });
+      clearOrder();
+      setSelectedTable(null);
+    },
+    [updateTableOrder, clearOrder, toast]
+  );
 
-        if (currentSaleContext?.tableId) {
-            finalSale.tableId = currentSaleContext.tableId;
-            finalSale.tableName = currentSaleContext.tableName;
-        }
+  const recordSale = useCallback(
+    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
+      if (!companyId) return;
+      const saleIdToUpdate = currentSaleId;
+      const tableToEnd = saleIdToUpdate
+        ? heldOrders.find(ho => ho.id === saleIdToUpdate)?.tableId
+        : undefined;
 
-        setSales(prevSales => [finalSale, ...prevSales]);
-    }
-    
-    if (tableToEnd) {
-        setTables(prev => prev.map(t => t.id === tableToEnd ? {...t, status: 'available', order: []} : t));
-    }
-}, [sales, currentSaleId, heldOrders, currentSaleContext]);
+      const batch = writeBatch(firestore);
 
+      if (saleIdToUpdate && saleIdToUpdate.startsWith('held-')) {
+        // This was a held order, delete it
+        batch.delete(getDocRef('heldOrders', saleIdToUpdate));
+      }
 
-  const promoteTableToTicket = useCallback((tableId: string) => {
-    const table = tables.find(t => t.id === tableId);
-    if (!table || table.order.length === 0) return;
+      if (tableToEnd) {
+        const tableRef = getDocRef('tables', tableToEnd);
+        batch.update(tableRef, { status: 'available', order: [] });
+      }
 
-    const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
-    const tax = table.order.reduce((sum, item) => {
+      const today = new Date();
+      const datePrefix = format(today, 'yyyyMMdd');
+      const todaysSalesCount = sales.filter(s =>
+        s.ticketNumber.startsWith(datePrefix)
+      ).length;
+      const ticketNumber =
+        `${datePrefix}-0001`.slice(0, -(todaysSalesCount + 1).toString().length) +
+        (todaysSalesCount + 1).toString();
+
+      const finalSale: Omit<Sale, 'id'> = {
+        ...saleData,
+        date: today,
+        ticketNumber,
+        status: 'paid',
+        ...(currentSaleContext?.tableId && {
+          tableId: currentSaleContext.tableId,
+          tableName: currentSaleContext.tableName,
+        }),
+      };
+
+      const newSaleRef = doc(getCollectionRef('sales'));
+      batch.set(newSaleRef, finalSale);
+
+      await batch.commit();
+    },
+    [
+      companyId,
+      currentSaleId,
+      heldOrders,
+      firestore,
+      getDocRef,
+      sales,
+      getCollectionRef,
+      currentSaleContext,
+    ]
+  );
+
+  const promoteTableToTicket = useCallback(
+    async (tableId: string) => {
+      const table = tables.find(t => t.id === tableId);
+      if (!table || table.order.length === 0) return;
+
+      const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
+      const tax = table.order.reduce((sum, item) => {
         const vat = vatRates.find(v => v.id === item.vatId);
         const taxForItem = item.total * ((vat?.rate || 0) / 100);
         return sum + taxForItem;
-    }, 0);
-    
-    const total = subtotal + tax;
-    
-    const existingHeldOrder = heldOrders.find(ho => ho.tableId === table.id);
-    const heldOrderId = existingHeldOrder ? existingHeldOrder.id : `held-${Date.now()}`;
+      }, 0);
 
-    const newHeldOrder: HeldOrder = {
-      id: heldOrderId,
-      date: new Date(),
-      items: table.order,
-      total: total,
-      tableName: table.name,
-      tableId: table.id,
-    };
-    
-    setHeldOrders(prev => {
-        const otherHeldOrders = prev.filter(ho => ho.tableId !== table.id);
-        return [newHeldOrder, ...otherHeldOrders];
-    });
+      const total = subtotal + tax;
 
-    setTables(prevTables => 
-      prevTables.map(t => 
-        t.id === tableId ? { ...t, status: 'paying' } : t
-      )
-    );
-    
-    setSelectedTable(null);
-    clearOrder();
-    router.push('/restaurant');
+      const existingHeldOrder = heldOrders.find(ho => ho.tableId === table.id);
 
-    toast({ title: 'Table transformée en ticket', description: 'Le ticket est maintenant en attente dans le point de vente.' });
-  }, [tables, vatRates, toast, clearOrder, router, heldOrders]);
+      const newHeldOrderData = {
+        date: new Date(),
+        items: table.order,
+        total: total,
+        tableName: table.name,
+        tableId: table.id,
+      };
 
+      const batch = writeBatch(firestore);
 
-  const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-    const now = Date.now();
-    const newTable: Table = { 
-      ...tableData, 
-      id: `t-${now}`,
-      number: now % 10000,
-      status: 'available',
-      order: []
-    };
-    setTables(prevTables => [...prevTables, newTable]);
-  }, []);
+      const heldOrderRef = existingHeldOrder
+        ? getDocRef('heldOrders', existingHeldOrder.id)
+        : doc(getCollectionRef('heldOrders'));
 
-  const updateTable = useCallback((table: Table) => {
-    setTables(prev => prev.map(t => t.id === table.id ? table : t));
-  }, []);
-  
-  const deleteTable = useCallback((tableId: string) => {
-    setTables(prev => prev.filter(t => t.id !== tableId));
-    toast({ title: 'Table supprimée' });
-  }, [toast]);
+      batch.set(heldOrderRef, newHeldOrderData);
 
-  const forceFreeTable = useCallback((tableId: string) => {
-    setTables(prev => prev.map(t => t.id === tableId ? {...t, order: [], status: 'available'} : t));
-    setHeldOrders(prev => prev.filter(ho => ho.tableId !== tableId));
-    toast({ title: 'Table libérée' });
-  }, [toast]);
+      const tableRef = getDocRef('tables', tableId);
+      batch.update(tableRef, { status: 'paying' });
 
-  const addCategory = useCallback((categoryData: Omit<Category, 'id'>) => {
-    const newCategory: Category = { ...categoryData, id: `cat-${Date.now()}`};
-    setCategories(prev => [...prev, newCategory]);
-  }, []);
+      await batch.commit();
 
-  const updateCategory = useCallback((category: Category) => {
-    setCategories(prev => prev.map(c => c.id === category.id ? category : c));
-  }, []);
-  
-  const deleteCategory = useCallback((categoryId: string) => {
-    setCategories(prev => prev.filter(c => c.id !== categoryId));
-    setItems(prev => prev.filter(i => i.categoryId !== categoryId));
-    toast({ title: 'Catégorie supprimée' });
-  }, [toast]);
-  
-  const toggleCategoryFavorite = useCallback((categoryId: string) => {
-      setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, isFavorite: !c.isFavorite } : c));
-  }, []);
+      setSelectedTable(null);
+      clearOrder();
+      router.push('/restaurant');
 
-  const addItem = useCallback((itemData: Omit<Item, 'id'>) => {
-    const newItem: Item = { ...itemData, id: `item-${Date.now()}`, showImage: itemData.showImage ?? true };
-    setItems(prev => [...prev, newItem]);
-  }, []);
+      toast({
+        title: 'Table transformée en ticket',
+        description: 'Le ticket est maintenant en attente dans le point de vente.',
+      });
+    },
+    [
+      tables,
+      vatRates,
+      heldOrders,
+      firestore,
+      getDocRef,
+      getCollectionRef,
+      toast,
+      clearOrder,
+      router,
+    ]
+  );
 
-  const updateItem = useCallback((item: Item) => {
-    setItems(prev => prev.map(i => i.id === item.id ? item : i));
-  }, []);
-  
-  const deleteItem = useCallback((itemId: string) => {
-    setItems(prev => prev.filter(i => i.id !== itemId));
-    toast({ title: 'Article supprimé' });
-  }, [toast]);
+  const addEntity = useCallback(
+    async (collectionName: string, data: any, toastTitle: string) => {
+      try {
+        const ref = getCollectionRef(collectionName);
+        await addDoc(ref, data);
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error adding ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: `Erreur lors de l'ajout`,
+        });
+      }
+    },
+    [getCollectionRef, toast]
+  );
 
-  const toggleItemFavorite = useCallback((itemId: string) => {
-      setItems(prev => prev.map(i => i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i));
-  }, []);
-  
-  const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
-    setItems(prevItems => 
-        prevItems.map(item => 
-            itemIds.includes(item.id) ? { ...item, isFavorite: setFavorite } : item
-        )
-    );
-    toast({ title: `Les articles sélectionnés ont été mis à jour.` });
-  }, [toast]);
+  const updateEntity = useCallback(
+    async (collectionName: string, id: string, data: any, toastTitle: string) => {
+      try {
+        const ref = getDocRef(collectionName, id);
+        await setDoc(ref, data, { merge: true });
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error updating ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de mise à jour',
+        });
+      }
+    },
+    [getDocRef, toast]
+  );
 
-  const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
-    const newCustomer = { ...customerData, id: `cust-${Date.now()}`, isDefault: !customers.some(c => c.isDefault) };
-    setCustomers(prev => [...prev, newCustomer]);
-    return newCustomer;
-  }, [customers]);
+  const deleteEntity = useCallback(
+    async (collectionName: string, id: string, toastTitle: string) => {
+      try {
+        const ref = getDocRef(collectionName, id);
+        await deleteDoc(ref);
+        toast({ title: toastTitle });
+      } catch (error) {
+        console.error(`Error deleting ${collectionName}:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de suppression',
+        });
+      }
+    },
+    [getDocRef, toast]
+  );
 
-  const updateCustomer = useCallback((customer: Customer) => {
-    setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
-  }, []);
-  
-  const deleteCustomer = useCallback((customerId: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== customerId));
-    toast({ title: 'Client supprimé' });
-  }, [toast]);
+  const addTable = useCallback(
+    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
+      const newTable = {
+        ...tableData,
+        number: Date.now() % 10000,
+        status: 'available' as const,
+        order: [],
+      };
+      addEntity('tables', newTable, 'Table créée');
+    },
+    [addEntity]
+  );
 
-  const setDefaultCustomer = useCallback((customerId: string) => {
-    setCustomers(prev => 
-      prev.map(c => ({
-        ...c,
-        isDefault: c.id === customerId ? !c.isDefault : false
-      }))
-    );
-    toast({ title: 'Client par défaut modifié' });
-  }, [toast]);
+  const updateTable = useCallback(
+    (table: Table) => {
+      updateEntity('tables', table.id, table, 'Table modifiée');
+    },
+    [updateEntity]
+  );
 
+  const deleteTable = useCallback(
+    (tableId: string) => deleteEntity('tables', tableId, 'Table supprimée'),
+    [deleteEntity]
+  );
 
-  const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
-    const newMethod: PaymentMethod = {
-      ...method,
-      id: `pm-${Date.now()}`
-    };
-    setPaymentMethods(prev => [...prev, newMethod]);
-    toast({ title: 'Moyen de paiement ajouté' });
-  }, [toast]);
+  const forceFreeTable = useCallback(
+    async (tableId: string) => {
+      const batch = writeBatch(firestore);
+      const tableRef = getDocRef('tables', tableId);
+      batch.update(tableRef, { status: 'available', order: [] });
 
-  const updatePaymentMethod = useCallback((method: PaymentMethod) => {
-    setPaymentMethods(prev => prev.map(m => m.id === method.id ? method : m));
-    toast({ title: 'Moyen de paiement modifié' });
-  }, [toast]);
+      const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
+      if (heldOrderForTable) {
+        const heldOrderRef = getDocRef('heldOrders', heldOrderForTable.id);
+        batch.delete(heldOrderRef);
+      }
+      await batch.commit();
+      toast({ title: 'Table libérée' });
+    },
+    [firestore, getDocRef, heldOrders, toast]
+  );
 
-  const deletePaymentMethod = useCallback((methodId: string) => {
-    setPaymentMethods(prev => prev.filter(m => m.id !== methodId));
-    toast({ title: 'Moyen de paiement supprimé' });
-  }, [toast]);
+  const addCategory = useCallback(
+    (category: Omit<Category, 'id'>) =>
+      addEntity('categories', category, 'Catégorie ajoutée'),
+    [addEntity]
+  );
+  const updateCategory = useCallback(
+    (category: Category) =>
+      updateEntity('categories', category.id, category, 'Catégorie modifiée'),
+    [updateEntity]
+  );
+  const deleteCategory = useCallback(
+    (id: string) => deleteEntity('categories', id, 'Catégorie supprimée'),
+    [deleteEntity]
+  );
+  const toggleCategoryFavorite = useCallback(
+    (id: string) => {
+      const category = categories.find(c => c.id === id);
+      if (category)
+        updateEntity(
+          'categories',
+          id,
+          { isFavorite: !category.isFavorite },
+          'Favori mis à jour'
+        );
+    },
+    [categories, updateEntity]
+  );
 
-  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
-    const newCode = Math.max(0, ...vatRates.map(v => v.code)) + 1;
-    const newVatRate: VatRate = { ...vatRate, id: `vat-${Date.now()}`, code: newCode };
-    setVatRates(prev => [...prev, newVatRate]);
-    toast({ title: 'Taux de TVA ajouté' });
-  }, [vatRates, toast]);
-  
-  const updateVatRate = useCallback((vatRate: VatRate) => {
-    setVatRates(prev => prev.map(v => v.id === vatRate.id ? vatRate : v));
-    toast({ title: 'Taux de TVA modifié' });
-  }, [toast]);
+  const addItem = useCallback(
+    (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé'),
+    [addEntity]
+  );
+  const updateItem = useCallback(
+    (item: Item) => updateEntity('items', item.id, item, 'Article modifié'),
+    [updateEntity]
+  );
+  const deleteItem = useCallback(
+    (id: string) => deleteEntity('items', id, 'Article supprimé'),
+    [deleteEntity]
+  );
+  const toggleItemFavorite = useCallback(
+    (id: string) => {
+      const item = items.find(i => i.id === id);
+      if (item)
+        updateEntity(
+          'items',
+          id,
+          { isFavorite: !item.isFavorite },
+          'Favori mis à jour'
+        );
+    },
+    [items, updateEntity]
+  );
+  const toggleFavoriteForList = useCallback(
+    async (itemIds: string[], setFavorite: boolean) => {
+      const batch = writeBatch(firestore);
+      itemIds.forEach(id => {
+        const itemRef = getDocRef('items', id);
+        batch.update(itemRef, { isFavorite: setFavorite });
+      });
+      await batch.commit();
+      toast({ title: `Favoris mis à jour.` });
+    },
+    [firestore, getDocRef, toast]
+  );
 
-  const deleteVatRate = useCallback((vatRateId: string) => {
-    setVatRates(prev => prev.filter(v => v.id !== vatRateId));
-    toast({ title: 'Taux de TVA supprimé' });
-  }, [toast]);
+  const addCustomer = useCallback(
+    (customer: Omit<Customer, 'id' | 'isDefault'>) => {
+      const newCustomer = {
+        ...customer,
+        isDefault: !customers.some(c => c.isDefault),
+      };
+      addEntity('customers', newCustomer, 'Client ajouté');
+    },
+    [addEntity, customers]
+  );
+  const updateCustomer = useCallback(
+    (customer: Customer) =>
+      updateEntity('customers', customer.id, customer, 'Client modifié'),
+    [updateEntity]
+  );
+  const deleteCustomer = useCallback(
+    (id: string) => deleteEntity('customers', id, 'Client supprimé'),
+    [deleteEntity]
+  );
+  const setDefaultCustomer = useCallback(
+    async (customerId: string) => {
+      const batch = writeBatch(firestore);
+      customers.forEach(c => {
+        const customerRef = getDocRef('customers', c.id);
+        if (c.id === customerId) {
+          batch.update(customerRef, { isDefault: !c.isDefault });
+        } else if (c.isDefault) {
+          batch.update(customerRef, { isDefault: false });
+        }
+      });
+      await batch.commit();
+      toast({ title: 'Client par défaut modifié' });
+    },
+    [customers, firestore, getDocRef, toast]
+  );
 
+  const addPaymentMethod = useCallback(
+    (method: Omit<PaymentMethod, 'id'>) =>
+      addEntity('paymentMethods', method, 'Moyen de paiement ajouté'),
+    [addEntity]
+  );
+  const updatePaymentMethod = useCallback(
+    (method: PaymentMethod) =>
+      updateEntity(
+        'paymentMethods',
+        method.id,
+        method,
+        'Moyen de paiement modifié'
+      ),
+    [updateEntity]
+  );
+  const deletePaymentMethod = useCallback(
+    (id: string) =>
+      deleteEntity('paymentMethods', id, 'Moyen de paiement supprimé'),
+    [deleteEntity]
+  );
 
-  const holdOrder = useCallback(() => {
-    if(order.length === 0) return;
-    const newHeldOrder: HeldOrder = {
-      id: currentSaleId || `held-${Date.now()}`,
+  const addVatRate = useCallback(
+    (vatRate: Omit<VatRate, 'id' | 'code'>) => {
+      const newCode = Math.max(0, ...vatRates.map(v => v.code)) + 1;
+      const newVatRate = { ...vatRate, code: newCode };
+      addEntity('vatRates', newVatRate, 'Taux de TVA ajouté');
+    },
+    [addEntity, vatRates]
+  );
+  const updateVatRate = useCallback(
+    (vatRate: VatRate) =>
+      updateEntity('vatRates', vatRate.id, vatRate, 'Taux de TVA modifié'),
+    [updateEntity]
+  );
+  const deleteVatRate = useCallback(
+    (id: string) => deleteEntity('vatRates', id, 'Taux de TVA supprimé'),
+    [deleteEntity]
+  );
+
+  const holdOrder = useCallback(async () => {
+    if (order.length === 0) return;
+    const newHeldOrder = {
       date: new Date(),
       items: order,
       total: orderTotal + orderTax,
     };
-    setHeldOrders(prev => [newHeldOrder, ...prev]);
+    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
     clearOrder();
-    if (selectedTable) {
-        setSelectedTable(null);
-    }
-    toast({ title: 'Commande mise en attente.' });
-  }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast, currentSaleId]);
+  }, [order, orderTotal, orderTax, clearOrder, addEntity]);
 
-  const recallOrder = useCallback((orderId: string) => {
-    const orderToRecall = heldOrders.find(o => o.id === orderId);
-    if (orderToRecall) {
-      if (selectedTable) {
-        setSelectedTable(null);
+  const recallOrder = useCallback(
+    (orderId: string) => {
+      const orderToRecall = heldOrders.find(o => o.id === orderId);
+      if (orderToRecall) {
+        if (selectedTable) {
+          setSelectedTable(null);
+        }
+        setOrder(orderToRecall.items);
+        setCurrentSaleId(orderToRecall.id);
+        setCurrentSaleContext({
+          tableId: orderToRecall.tableId,
+          tableName: orderToRecall.tableName,
+        });
+        deleteEntity('heldOrders', orderId, 'Commande rappelée.');
       }
-      setOrder(orderToRecall.items);
-      setCurrentSaleId(orderToRecall.id);
-      setCurrentSaleContext({
-        tableId: orderToRecall.tableId,
-        tableName: orderToRecall.tableName
-      })
-      setHeldOrders(prev => prev.filter(o => o.id !== orderId));
-      toast({ title: 'Commande rappelée.' });
-    }
-  }, [heldOrders, toast, selectedTable]);
+    },
+    [heldOrders, selectedTable, deleteEntity]
+  );
 
-  const deleteHeldOrder = useCallback((orderId: string) => {
-    const orderToDelete = heldOrders.find(o => o.id === orderId);
-    if (orderToDelete && orderToDelete.tableId) {
-        setTables(prev => prev.map(t => t.id === orderToDelete.tableId ? {...t, status: 'available' } : t));
-    }
-    setHeldOrders(prev => prev.filter(o => o.id !== orderId));
-    toast({ title: 'Ticket en attente supprimé.'});
-  }, [heldOrders, toast]);
+  const deleteHeldOrder = useCallback(
+    async (orderId: string) => {
+      const orderToDelete = heldOrders.find(o => o.id === orderId);
+      if (orderToDelete?.tableId) {
+        const tableRef = getDocRef('tables', orderToDelete.tableId);
+        await setDoc(tableRef, { status: 'available' }, { merge: true });
+      }
+      await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
+    },
+    [heldOrders, getDocRef, deleteEntity, setDoc]
+  );
 
   const popularItems = useMemo(() => {
-    const itemCounts: { [key: string]: { item: Item, count: number } } = {};
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
 
     sales.forEach(sale => {
-        sale.items.forEach(orderItem => {
-            if(itemCounts[orderItem.id]) {
-                itemCounts[orderItem.id].count += orderItem.quantity;
-            } else {
-                const itemDetails = items.find(i => i.id === orderItem.id);
-                if(itemDetails) {
-                     itemCounts[orderItem.id] = { item: itemDetails, count: orderItem.quantity };
-                }
-            }
-        })
+      sale.items.forEach(orderItem => {
+        if (itemCounts[orderItem.id]) {
+          itemCounts[orderItem.id].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find(i => i.id === orderItem.id);
+          if (itemDetails) {
+            itemCounts[orderItem.id] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
     });
-    
+
     return Object.values(itemCounts)
-        .sort((a,b) => b.count - a.count)
-        .slice(0, popularItemsCount)
-        .map(i => i.item);
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map(i => i.item);
+  }, [sales, items, popularItemsCount]);
 
-}, [sales, items, popularItemsCount]);
+  const setCompanyInfo = useCallback(
+    (info: CompanyInfo) => {
+      if (companyId) {
+        const companyRef = doc(firestore, 'companies', companyId);
+        setDoc(companyRef, info, { merge: true });
+      }
+    },
+    [companyId, firestore]
+  );
 
-  const value = useMemo(() => ({
-    order,
-    setOrder,
-    addToOrder,
-    removeFromOrder,
-    updateQuantity,
-    updateQuantityFromKeypad,
-    applyDiscount,
-    clearOrder,
-    orderTotal,
-    orderTax,
-    isKeypadOpen,
-    setIsKeypadOpen,
-    currentSaleId,
-    setCurrentSaleId,
-    currentSaleContext,
-    recentlyAddedItemId,
-    setRecentlyAddedItemId,
-    items,
-    addItem,
-    updateItem,
-    deleteItem,
-    toggleItemFavorite,
-    toggleFavoriteForList,
-    popularItems,
-    categories,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    toggleCategoryFavorite,
-    customers,
-    addCustomer,
-    updateCustomer,
-    deleteCustomer,
-    setDefaultCustomer,
-    tables,
-    setTables,
-    addTable,
-    updateTable,
-    deleteTable,
-    forceFreeTable,
-    selectedTable,
-    setSelectedTable,
-    setSelectedTableById,
-    updateTableOrder,
-    saveTableOrderAndExit,
-    promoteTableToTicket,
-    sales,
-    recordSale,
-    paymentMethods,
-    addPaymentMethod,
-    updatePaymentMethod,
-    deletePaymentMethod,
-    vatRates,
-    addVatRate,
-    updateVatRate,
-    deleteVatRate,
-    heldOrders,
-    holdOrder,
-    recallOrder,
-    deleteHeldOrder,
-    showTicketImages,
-    setShowTicketImages,
-    popularItemsCount,
-    setPopularItemsCount,
-    itemCardOpacity,
-    setItemCardOpacity,
-    enableRestaurantCategoryFilter,
-    setEnableRestaurantCategoryFilter,
-    companyInfo,
-    setCompanyInfo,
-isNavConfirmOpen,
-    showNavConfirm,
-    closeNavConfirm,
-    confirmNavigation,
-    cameFromRestaurant,
-    setCameFromRestaurant,
-  }), [
-    order,
-    setOrder,
-    addToOrder,
-    removeFromOrder,
-    updateQuantity,
-    updateQuantityFromKeypad,
-    applyDiscount,
-    clearOrder,
-    orderTotal,
-    orderTax,
-    isKeypadOpen,
-    setIsKeypadOpen,
-    currentSaleId,
-    setCurrentSaleId,
-    currentSaleContext,
-    recentlyAddedItemId,
-    setRecentlyAddedItemId,
-    items,
-    addItem,
-    updateItem,
-    deleteItem,
-    toggleItemFavorite,
-    toggleFavoriteForList,
-    popularItems,
-    categories,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    toggleCategoryFavorite,
-    customers,
-    addCustomer,
-    updateCustomer,
-    deleteCustomer,
-    setDefaultCustomer,
-    tables,
-    setTables,
-    addTable,
-    updateTable,
-    deleteTable,
-    forceFreeTable,
-    selectedTable,
-    setSelectedTable,
-    setSelectedTableById,
-    updateTableOrder,
-    saveTableOrderAndExit,
-    promoteTableToTicket,
-    sales,
-    recordSale,
-    paymentMethods,
-    addPaymentMethod,
-    updatePaymentMethod,
-    deletePaymentMethod,
-    vatRates,
-    addVatRate,
-    updateVatRate,
-    deleteVatRate,
-    heldOrders,
-    holdOrder,
-    recallOrder,
-    deleteHeldOrder,
-    showTicketImages,
-    setShowTicketImages,
-    popularItemsCount,
-    setPopularItemsCount,
-    itemCardOpacity,
-    setItemCardOpacity,
-    enableRestaurantCategoryFilter,
-    setEnableRestaurantCategoryFilter,
-    companyInfo,
-    setCompanyInfo,
-isNavConfirmOpen,
-    showNavConfirm,
-    closeNavConfirm,
-    confirmNavigation,
-    cameFromRestaurant,
-    setCameFromRestaurant,
-  ]);
+  const value = useMemo(
+    () => ({
+      order,
+      setOrder,
+      addToOrder,
+      removeFromOrder,
+      updateQuantity,
+      updateQuantityFromKeypad,
+      applyDiscount,
+      clearOrder,
+      orderTotal,
+      orderTax,
+      isKeypadOpen,
+      setIsKeypadOpen,
+      currentSaleId,
+      setCurrentSaleId,
+      currentSaleContext,
+      recentlyAddedItemId,
+      setRecentlyAddedItemId,
+      items,
+      addItem,
+      updateItem,
+      deleteItem,
+      toggleItemFavorite,
+      toggleFavoriteForList,
+      popularItems,
+      categories,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      toggleCategoryFavorite,
+      customers,
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
+      setDefaultCustomer,
+      tables,
+      setTables: () => {}, // setTables is now managed by Firestore
+      addTable,
+      updateTable,
+      deleteTable,
+      forceFreeTable,
+      selectedTable,
+      setSelectedTable,
+      setSelectedTableById,
+      updateTableOrder,
+      saveTableOrderAndExit,
+      promoteTableToTicket,
+      sales,
+      recordSale,
+      paymentMethods,
+      addPaymentMethod,
+      updatePaymentMethod,
+      deletePaymentMethod,
+      vatRates,
+      addVatRate,
+      updateVatRate,
+      deleteVatRate,
+      heldOrders,
+      holdOrder,
+      recallOrder,
+      deleteHeldOrder,
+      showTicketImages,
+      setShowTicketImages,
+      popularItemsCount,
+      setPopularItemsCount,
+      itemCardOpacity,
+      setItemCardOpacity,
+      enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
+      companyInfo,
+      setCompanyInfo,
+      isNavConfirmOpen,
+      showNavConfirm,
+      closeNavConfirm,
+      confirmNavigation,
+      cameFromRestaurant,
+      setCameFromRestaurant,
+      isLoading,
+      user,
+    }),
+    [
+      order,
+      addToOrder,
+      removeFromOrder,
+      updateQuantity,
+      updateQuantityFromKeypad,
+      applyDiscount,
+      clearOrder,
+      orderTotal,
+      orderTax,
+      isKeypadOpen,
+      currentSaleId,
+      currentSaleContext,
+      recentlyAddedItemId,
+      items,
+      addItem,
+      updateItem,
+      deleteItem,
+      toggleItemFavorite,
+      toggleFavoriteForList,
+      popularItems,
+      categories,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      toggleCategoryFavorite,
+      customers,
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
+      setDefaultCustomer,
+      tables,
+      addTable,
+      updateTable,
+      deleteTable,
+      forceFreeTable,
+      selectedTable,
+      setSelectedTable,
+      setSelectedTableById,
+      updateTableOrder,
+      saveTableOrderAndExit,
+      promoteTableToTicket,
+      sales,
+      recordSale,
+      paymentMethods,
+      addPaymentMethod,
+      updatePaymentMethod,
+      deletePaymentMethod,
+      vatRates,
+      addVatRate,
+      updateVatRate,
+      deleteVatRate,
+      heldOrders,
+      holdOrder,
+      recallOrder,
+      deleteHeldOrder,
+      showTicketImages,
+      popularItemsCount,
+      itemCardOpacity,
+      enableRestaurantCategoryFilter,
+      companyInfo,
+      setCompanyInfo,
+      isNavConfirmOpen,
+      confirmNavigation,
+      cameFromRestaurant,
+      isLoading,
+      user,
+      closeNavConfirm,
+      showNavConfirm,
+    ]
+  );
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
 }
@@ -758,3 +1082,5 @@ export function usePos() {
   }
   return context;
 }
+
+    

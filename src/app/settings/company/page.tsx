@@ -14,14 +14,34 @@ import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const initialCompanyInfo: CompanyInfo = {
+    name: '',
+    address: '',
+    postalCode: '',
+    city: '',
+    region: '',
+    country: '',
+    email: '',
+    phone: '',
+    website: '',
+    siret: '',
+    legalForm: '',
+    iban: '',
+    bic: '',
+    notes: '',
+}
 
 export default function CompanyPage() {
-  const { companyInfo, setCompanyInfo } = usePos();
+  const { companyInfo, setCompanyInfo, isLoading } = usePos();
   const { toast } = useToast();
-  const [localInfo, setLocalInfo] = useState<CompanyInfo>(companyInfo);
+  const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
 
   useEffect(() => {
-    setLocalInfo(companyInfo);
+    if (companyInfo) {
+        setLocalInfo(companyInfo);
+    }
   }, [companyInfo]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -36,6 +56,19 @@ export default function CompanyPage() {
       description: 'Les détails de votre entreprise ont été mis à jour.',
     });
   };
+  
+  if (isLoading) {
+      return (
+        <>
+            <PageHeader title="Détails de l'entreprise" subtitle="Gérez les informations légales et commerciales de votre entreprise."/>
+            <div className="mt-8 space-y-8">
+                <Skeleton className="w-full h-96" />
+                <Skeleton className="w-full h-64" />
+                <Skeleton className="w-full h-48" />
+            </div>
+        </>
+      )
+  }
 
   return (
     <>
