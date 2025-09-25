@@ -256,8 +256,8 @@ export function OrderSummary() {
                       <div 
                           className={cn(
                             "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
-                            selectedItem?.id === item.id ? 'bg-secondary' : 'bg-transparent',
-                            recentlyAddedItemId === item.id && 'bg-accent/20 animate-pulse-bg',
+                            selectedItem?.id === item.id ? 'bg-secondary' : 'bg-transparent hover:bg-secondary/50',
+                            recentlyAddedItemId === item.id && 'animate-pulse-bg',
                             showTicketImages ? 'p-4' : 'p-2'
                           )}
                           onClick={() => handleItemSelect(item)}
