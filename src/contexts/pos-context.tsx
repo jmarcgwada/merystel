@@ -185,8 +185,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = userLoading || itemsLoading || categoriesLoading || customersLoading || tablesLoading || salesLoading || paymentMethodsLoading || vatRatesLoading || heldOrdersLoading || companyInfoLoading;
   // #endregion
+
+  // #region Base Callbacks
+  const triggerItemHighlight = (itemId: string) => {
+    setRecentlyAddedItemId(itemId);
+  };
   
-  // #region Utility Functions
   const getCollectionRef = useCallback((name: string) => {
     if (!companyId) throw new Error('Company ID is not available');
     return collection(firestore, 'companies', companyId, name);
@@ -197,17 +201,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return doc(firestore, 'companies', companyId, collectionName, docId);
   }, [companyId, firestore]);
 
-  const clearOrder = useCallback(() => {
-    setOrder([]);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    if (selectedTable) {
-      setSelectedTable(null);
-    }
-  }, [selectedTable]);
-  // #endregion
-
-  // #region Firestore CRUD Operations
   const addEntity = useCallback(async (collectionName: string, data: any, toastTitle: string) => {
     try {
       const ref = getCollectionRef(collectionName);
@@ -241,31 +234,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [getDocRef, toast]);
   // #endregion
-
-  // #region Navigation Confirmation
-  const showNavConfirm = (url: string) => {
-    setNextUrl(url);
-    setNavConfirmOpen(true);
-  };
-
-  const closeNavConfirm = () => {
-    setNextUrl(null);
-    setNavConfirmOpen(false);
-  };
-
-  const confirmNavigation = () => {
-    if (nextUrl) {
-      clearOrder();
-      router.push(nextUrl);
-    }
-    closeNavConfirm();
-  };
-  // #endregion
-
+  
   // #region Order Management
-  const triggerItemHighlight = (itemId: string) => {
-    setRecentlyAddedItemId(itemId);
-  };
+  const clearOrder = useCallback(() => {
+    setOrder([]);
+    setCurrentSaleId(null);
+    setCurrentSaleContext(null);
+    if (selectedTable) {
+      setSelectedTable(null);
+    }
+  }, [selectedTable]);
 
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder(currentOrder => currentOrder.filter(item => item.id !== itemId));
@@ -353,8 +331,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   }, [order, vatRates]);
   // #endregion
-
-  // #region Held Orders
+  
+  // #region Held Order & Table Management
   const holdOrder = useCallback(async () => {
     if (order.length === 0) return;
     const newHeldOrder = {
@@ -365,6 +343,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
     clearOrder();
   }, [order, orderTotal, orderTax, clearOrder, addEntity]);
+
+  const deleteHeldOrder = useCallback(async (orderId: string) => {
+    if (!heldOrders) return;
+    const orderToDelete = heldOrders.find(o => o.id === orderId);
+    if (orderToDelete?.tableId) {
+      const tableRef = getDocRef('tables', orderToDelete.tableId);
+      await setDoc(tableRef, { status: 'available' }, { merge: true });
+    }
+    await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
+  }, [heldOrders, getDocRef, deleteEntity]);
 
   const recallOrder = useCallback((orderId: string) => {
     if (!heldOrders) return;
@@ -383,18 +371,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [heldOrders, selectedTable, deleteEntity]);
 
-  const deleteHeldOrder = useCallback(async (orderId: string) => {
-    if (!heldOrders) return;
-    const orderToDelete = heldOrders.find(o => o.id === orderId);
-    if (orderToDelete?.tableId) {
-      const tableRef = getDocRef('tables', orderToDelete.tableId);
-      await setDoc(tableRef, { status: 'available' }, { merge: true });
-    }
-    await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
-  }, [heldOrders, getDocRef, deleteEntity, setDoc]);
-  // #endregion
-
-  // #region Table Management
   const setSelectedTableById = useCallback((tableId: string | null) => {
     if (!tables || !heldOrders) return;
     const table = tableId ? tables.find(t => t.id === tableId) || null : null;
@@ -465,17 +441,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Table transformée en ticket', description: 'Le ticket est maintenant en attente dans le point de vente.' });
   }, [tables, vatRates, heldOrders, firestore, getDocRef, getCollectionRef, toast, clearOrder, router]);
   
-  const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-    const newTable = { ...tableData, number: Date.now() % 10000, status: 'available' as const, order: [] };
-    addEntity('tables', newTable, 'Table créée');
-  }, [addEntity]);
-
-  const updateTable = useCallback((table: Table) => {
-    updateEntity('tables', table.id, table, 'Table modifiée');
-  }, [updateEntity]);
-
-  const deleteTable = useCallback((tableId: string) => deleteEntity('tables', tableId, 'Table supprimée'), [deleteEntity]);
-
   const forceFreeTable = useCallback(async (tableId: string) => {
     if (!heldOrders) return;
     const batch = writeBatch(firestore);
@@ -489,6 +454,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     await batch.commit();
     toast({ title: 'Table libérée' });
   }, [firestore, getDocRef, heldOrders, toast]);
+
+  const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
+    const newTable = { ...tableData, number: Date.now() % 10000, status: 'available' as const, order: [] };
+    addEntity('tables', newTable, 'Table créée');
+  }, [addEntity]);
+
+  const updateTable = useCallback((table: Table) => {
+    updateEntity('tables', table.id, table, 'Table modifiée');
+  }, [updateEntity]);
+
+  const deleteTable = useCallback((tableId: string) => deleteEntity('tables', tableId, 'Table supprimée'), [deleteEntity]);
   // #endregion
 
   // #region Sales
@@ -595,6 +571,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [companyId, firestore]);
   // #endregion
 
+  // #region Navigation Confirmation
+  const showNavConfirm = (url: string) => {
+    setNextUrl(url);
+    setNavConfirmOpen(true);
+  };
+
+  const closeNavConfirm = useCallback(() => {
+    setNextUrl(null);
+    setNavConfirmOpen(false);
+  }, []);
+
+  const confirmNavigation = useCallback(() => {
+    if (nextUrl) {
+      clearOrder();
+      router.push(nextUrl);
+    }
+    closeNavConfirm();
+  }, [nextUrl, clearOrder, router, closeNavConfirm]);
+  // #endregion
+
   // #region Derived State
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
@@ -644,7 +640,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       heldOrders, holdOrder, recallOrder, deleteHeldOrder,
       showTicketImages, popularItemsCount, itemCardOpacity, enableRestaurantCategoryFilter,
       companyInfo, setCompanyInfo,
-      isNavConfirmOpen, confirmNavigation, cameFromRestaurant, isLoading, user, closeNavConfirm
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      cameFromRestaurant, isLoading, user
     ]
   );
 
@@ -658,3 +655,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
