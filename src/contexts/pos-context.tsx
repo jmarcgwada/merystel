@@ -24,6 +24,7 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
+  currentSaleContext: Partial<Sale> | null;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -100,12 +101,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> | null>(null);
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
     setCurrentSaleId(null);
+    setCurrentSaleContext(null);
     if(selectedTable) {
       setSelectedTable(null);
     }
@@ -216,6 +219,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(table);
     if (table) {
       setOrder(table.order);
+      setCurrentSaleContext({ tableId: table.id, tableName: table.name });
     } else {
       clearOrder();
     }
@@ -249,26 +253,36 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [updateTableOrder, clearOrder, toast]);
   
   const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, saleIdToUpdate?: string) => {
-    // Check if the sale is from a table ticket that was held
-    const tableIdFromSale = saleIdToUpdate && saleIdToUpdate.startsWith('table-') ? saleIdToUpdate.substring(6) : undefined;
-
-    if (tableIdFromSale) {
-        setTables(prev => prev.map(t => t.id === tableIdFromSale ? {...t, status: 'available', order: []} : t));
-    }
+    let finalSale: Sale;
+    const existingSale = saleIdToUpdate ? sales.find(s => s.id === saleIdToUpdate) : undefined;
     
-    const today = new Date();
-    const datePrefix = format(today, 'yyyyMMdd');
-    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+    if (existingSale) {
+        finalSale = {
+            ...existingSale,
+            ...saleData,
+            status: 'paid',
+        };
+        setSales(prevSales => prevSales.map(s => s.id === saleIdToUpdate ? finalSale : s));
 
-    const newSale: Sale = {
-      ...saleData,
-      id: saleIdToUpdate || `sale-${Date.now()}`,
-      date: today,
-      ticketNumber,
-    };
-    setSales(prevSales => [newSale, ...prevSales]);
+        if (existingSale.tableId) {
+            setTables(prev => prev.map(t => t.id === existingSale.tableId ? {...t, status: 'available', order: []} : t));
+        }
 
+    } else {
+        const today = new Date();
+        const datePrefix = format(today, 'yyyyMMdd');
+        const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
+        const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+
+        finalSale = {
+          ...saleData,
+          id: `sale-${Date.now()}`,
+          date: today,
+          ticketNumber,
+          status: 'paid',
+        };
+        setSales(prevSales => [finalSale, ...prevSales]);
+    }
 }, [sales]);
 
 
@@ -276,19 +290,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const table = tables.find(t => t.id === tableId);
     if (!table || table.order.length === 0) return;
 
-    const totalWithTax = table.order.reduce((sum, item) => {
+    const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
+    const tax = table.order.reduce((sum, item) => {
         const vat = vatRates.find(v => v.id === item.vatId);
         const taxForItem = item.total * ((vat?.rate || 0) / 100);
-        return sum + item.total + taxForItem;
-      }, 0);
+        return sum + taxForItem;
+    }, 0);
+    
+    const total = subtotal + tax;
 
     const newHeldOrder: HeldOrder = {
-      id: `table-${table.id}`,
+      id: `table-held-${table.id}`,
       date: new Date(),
       items: table.order,
-      total: totalWithTax,
+      total: total,
       tableName: table.name,
+      tableId: table.id,
     };
+    
     setHeldOrders(prev => [newHeldOrder, ...prev]);
 
     setTables(prevTables => 
@@ -446,16 +465,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSelectedTable(null);
       }
       setOrder(orderToRecall.items);
-      setCurrentSaleId(orderToRecall.id); // Store the ID of the recalled order
+      setCurrentSaleId(orderToRecall.id);
+      setCurrentSaleContext({
+        tableId: orderToRecall.tableId,
+        tableName: orderToRecall.tableName
+      })
       setHeldOrders(prev => prev.filter(o => o.id !== orderId));
       toast({ title: 'Commande rappelée.' });
     }
   }, [heldOrders, toast, selectedTable]);
 
   const deleteHeldOrder = useCallback((orderId: string) => {
+    const orderToDelete = heldOrders.find(o => o.id === orderId);
+    if (orderToDelete && orderToDelete.tableId) {
+        setTables(prev => prev.map(t => t.id === orderToDelete.tableId ? {...t, status: 'available' } : t));
+    }
     setHeldOrders(prev => prev.filter(o => o.id !== orderId));
     toast({ title: 'Ticket en attente supprimé.'});
-  }, [toast]);
+  }, [heldOrders, toast]);
 
   const value = useMemo(() => ({
     order,
@@ -472,6 +499,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setIsKeypadOpen,
     currentSaleId,
     setCurrentSaleId,
+    currentSaleContext,
     items,
     addItem,
     updateItem,
@@ -532,6 +560,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setIsKeypadOpen,
     currentSaleId,
     setCurrentSaleId,
+    currentSaleContext,
     items,
     addItem,
     updateItem,

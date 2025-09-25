@@ -39,6 +39,7 @@ export function OrderSummary() {
     promoteTableToTicket,
     showTicketImages,
     isKeypadOpen,
+    currentSaleContext
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -176,6 +177,17 @@ export function OrderSummary() {
       promoteTableToTicket(selectedTable.id);
     }
   }
+  
+  const getTitle = () => {
+    if (selectedTable) {
+      return `Commande: ${selectedTable.name}`;
+    }
+    if (currentSaleContext?.tableName) {
+      return `Ticket: ${currentSaleContext.tableName}`;
+    }
+    return 'Commande actuelle';
+  }
+
 
   const keypadStyle = () => {
     if (!isKeypadOpen || !selectedItem || !itemRefs.current[selectedItem.id]) return {};
@@ -194,7 +206,7 @@ export function OrderSummary() {
       <div className="flex h-full flex-col bg-card">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold tracking-tight font-headline">
-            {selectedTable ? `Commande: ${selectedTable.name}` : 'Commande actuelle'}
+             {getTitle()}
           </h2>
           {order.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleClearOrder} className="text-destructive hover:text-destructive">
@@ -345,7 +357,7 @@ export function OrderSummary() {
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={handleSaveTable}
-                    disabled={isKeypadOpen}
+                    disabled={order.length === 0 || isKeypadOpen}
                   >
                      <Save className="mr-2 h-4 w-4" />
                     Sauvegarder la table
@@ -384,6 +396,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
