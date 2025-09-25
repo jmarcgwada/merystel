@@ -221,14 +221,13 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-y-auto">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <ScrollArea className="h-full">
-              <div className="divide-y">
+            <div className="divide-y">
                 {order.map((item) => (
                   <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
                       <div 
@@ -267,7 +266,6 @@ export function OrderSummary() {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
           )}
           
            {keypadActive && selectedItem && (
@@ -344,7 +342,7 @@ export function OrderSummary() {
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
+                <span>Total (TTC)</span>
                 <span>{(orderTotal + orderTax).toFixed(2)}€</span>
                 </div>
             </div>
@@ -403,5 +401,3 @@ export function OrderSummary() {
     </>
   );
 }
-
-    

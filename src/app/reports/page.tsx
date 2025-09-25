@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -60,7 +61,7 @@ export default function ReportsPage() {
                             <TableHead>Client</TableHead>
                             <TableHead>Articles</TableHead>
                             <TableHead>Paiement</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-right">Total (TTC)</TableHead>
                             <TableHead className="w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
