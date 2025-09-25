@@ -13,28 +13,36 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, User, LogOut } from 'lucide-react';
+import { Settings, User, LogOut, LogIn } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
 import { Separator } from '../ui/separator';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { Skeleton } from '../ui/skeleton';
 
 export default function Header() {
   const router = useRouter();
+  const auth = useAuth();
+  const { user, loading } = useUser();
   const { showNavConfirm, order, companyInfo } = usePos();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // La modale se déclenche dès qu'il y a des articles dans la commande,
-    // peu importe si une table est sélectionnée ou non.
     if (order.length > 0) {
       e.preventDefault();
       showNavConfirm(href);
     }
   };
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
-      <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
+      <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4 flex-1">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -56,42 +64,64 @@ export default function Header() {
           <span className="font-normal text-muted-foreground">{companyInfo.name}</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-end gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage
-                    src="https://picsum.photos/seed/user/100/100"
-                    alt="Jean Marc"
-                  />
-                  <AvatarFallback>JM</AvatarFallback>
+                  {loading ? (
+                     <Skeleton className="h-9 w-9 rounded-full" />
+                  ) : user ? (
+                    <>
+                      <AvatarImage
+                        src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`}
+                        alt={user.displayName || user.email || 'User'}
+                      />
+                      <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
+                    </>
+                  ) : (
+                    <AvatarFallback>?</AvatarFallback>
+                  )}
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Jean Marc</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    admin@zenithpos.com
-                  </p>
+              {loading ? (
+                <div className="p-2">
+                  <Skeleton className="h-4 w-full mb-2"/>
+                  <Skeleton className="h-3 w-3/4"/>
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Paramètres</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Se déconnecter</span>
-              </DropdownMenuItem>
+              ) : user ? (
+                <>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.displayName || 'Utilisateur'}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Paramètres</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Se déconnecter</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={() => router.push('/login')}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  <span>Se connecter</span>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

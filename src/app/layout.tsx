@@ -7,6 +7,7 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
 import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
@@ -29,15 +30,17 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased h-full flex flex-col">
-        <PosProvider>
-          <KeyboardProvider>
-            <Header />
-            <main className="flex-1 overflow-y-auto">{children}</main>
-            <Toaster />
-            <NavigationConfirmationDialog />
-            <VirtualKeyboard />
-          </KeyboardProvider>
-        </PosProvider>
+        <FirebaseClientProvider>
+          <PosProvider>
+            <KeyboardProvider>
+              <Header />
+              <main className="flex-1 overflow-y-auto">{children}</main>
+              <Toaster />
+              <NavigationConfirmationDialog />
+              <VirtualKeyboard />
+            </KeyboardProvider>
+          </PosProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
