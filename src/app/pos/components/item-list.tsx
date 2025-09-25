@@ -34,8 +34,8 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
   };
   
   const filteredItems = useMemo(() => {
-    let itemsToFilter = allItems;
-    
+    if (!allItems || !popularItems || !categories) return [];
+
     if (category === 'popular') {
         return popularItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
@@ -54,9 +54,10 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
 
       return matchesCategory && matchesSearch && matchesFavorites;
     });
-  }, [allItems, popularItems, category, searchTerm, showFavoritesOnly]);
+  }, [allItems, popularItems, categories, category, searchTerm, showFavoritesOnly]);
 
   const getCategoryColor = (categoryId: string) => {
+    if (!categories) return 'transparent';
     return categories.find(c => c.id === categoryId)?.color;
   };
 
