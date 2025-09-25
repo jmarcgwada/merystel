@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, {
@@ -89,7 +90,6 @@ interface PosContextType {
   setDefaultCustomer: (customerId: string) => void;
 
   tables: Table[];
-  setTables: React.Dispatch<React.SetStateAction<Table[]>>;
   addTable: (
     tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
   ) => void;
@@ -119,7 +119,7 @@ interface PosContextType {
   updateVatRate: (vatRate: VatRate) => void;
   deleteVatRate: (vatRateId: string) => void;
 
-  heldOrders: HeldOrder[];
+  heldOrders: HeldOrder[] | null;
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
@@ -242,7 +242,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const getCollectionRef = useCallback(
     (name: string) => {
-      if (!companyId || !firestore) return null;
+      if (!companyId || !firestore) {
+         console.warn(`Cannot get collection ${name}, companyId or firestore not available.`);
+         return null;
+      };
       return collection(firestore, 'companies', companyId, name);
     },
     [companyId, firestore]
@@ -250,7 +253,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const getDocRef = useCallback(
     (collectionName: string, docId: string) => {
-      if (!companyId || !firestore) return null;
+      if (!companyId || !firestore) {
+        console.warn(`Cannot get doc from ${collectionName}, companyId or firestore not available.`);
+        return null;
+      }
       return doc(firestore, 'companies', companyId, collectionName, docId);
     },
     [companyId, firestore]
@@ -260,7 +266,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (collectionName: string, data: any, toastTitle: string) => {
       const ref = getCollectionRef(collectionName);
       if (!ref) {
-        console.warn(`Cannot add entity to ${collectionName}, companyId not available.`);
         return;
       }
       try {
@@ -283,7 +288,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     ) => {
        const ref = getDocRef(collectionName, id);
        if (!ref) {
-        console.warn(`Cannot update entity in ${collectionName}, companyId not available.`);
         return;
       }
       try {
@@ -301,7 +305,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (collectionName: string, id: string, toastTitle: string) => {
       const ref = getDocRef(collectionName, id);
       if (!ref) {
-        console.warn(`Cannot delete entity from ${collectionName}, companyId not available.`);
         return;
       }
       try {
@@ -955,7 +958,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteCustomer,
       setDefaultCustomer,
       tables,
-      setTables: () => {},
       addTable,
       updateTable,
       deleteTable,
