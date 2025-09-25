@@ -74,38 +74,40 @@ export default function LoginPage() {
         return;
     }
     setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        registerEmail,
-        registerPassword
-      );
-      
-      const newUser = userCredential.user;
+    
+    createUserWithEmailAndPassword(auth, registerEmail, registerPassword)
+      .then((userCredential) => {
+        const newUser = userCredential.user;
 
-      // Create user profile in Firestore
-      const userDocRef = doc(firestore, "users", newUser.uid);
-      const userData = {
-          id: newUser.uid,
-          firstName: registerFirstName,
-          lastName: registerLastName,
-          email: registerEmail,
-          role: 'cashier', // default role
-          companyId: 'defaultCompany' // placeholder
-      }
-      setDocumentNonBlocking(userDocRef, userData, { merge: true });
+        // Create user profile in Firestore using the non-blocking function
+        // which has the correct error handling built-in.
+        const userDocRef = doc(firestore, "users", newUser.uid);
+        const userData = {
+            id: newUser.uid,
+            firstName: registerFirstName,
+            lastName: registerLastName,
+            email: registerEmail,
+            role: 'cashier', // default role
+            companyId: 'defaultCompany' // placeholder
+        }
+        setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
-      toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur d\'inscription',
-        description: error.message,
+        toast({ title: 'Inscription réussie', description: "Vous êtes maintenant connecté." });
+        // The useUser hook will handle redirection to /dashboard
+      })
+      .catch((error: any) => {
+        // This catch block handles errors from createUserWithEmailAndPassword specifically
+        // (e.g., email already in use, weak password).
+        // Firestore permission errors will be handled by the global error listener.
+        toast({
+          variant: 'destructive',
+          title: 'Erreur d\'inscription',
+          description: error.message,
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   if (loading) {
