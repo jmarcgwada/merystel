@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,7 +28,8 @@ export function OrderSummary() {
     removeFromOrder, 
     clearOrder, 
     orderTotal, 
-    orderTax, 
+    orderTax,
+    vatRates,
     selectedTable, 
     holdOrder, 
     setSelectedTable,
@@ -48,7 +50,6 @@ export function OrderSummary() {
   const keypadInputRef = useRef<HTMLInputElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   useEffect(() => {
@@ -190,6 +191,22 @@ export function OrderSummary() {
     return { top: '88px' }; // Fallback
   }
 
+  const vatBreakdown = useMemo(() => {
+    const breakdown: { [key: string]: { rate: number; total: number } } = {};
+    order.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        if (vatInfo && vatInfo.rate > 0) {
+            const taxForItem = item.total * (vatInfo.rate / 100);
+            if (breakdown[vatInfo.rate]) {
+                breakdown[vatInfo.rate].total += taxForItem;
+            } else {
+                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem };
+            }
+        }
+    });
+    return Object.values(breakdown);
+  }, [order, vatRates]);
+
   return (
     <>
       <div className="flex h-full flex-col bg-card">
@@ -204,16 +221,13 @@ export function OrderSummary() {
           )}
         </div>
 
-        <div className="flex-1 relative overflow-y-auto">
+        <div className="flex-1 relative">
           {order.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">Aucun article dans la commande.</p>
             </div>
           ) : (
-            <ScrollArea 
-                className="h-full" 
-                viewportRef={scrollAreaRef}
-            >
+            <ScrollArea className="h-full">
               <div className="divide-y">
                 {order.map((item) => (
                   <div key={item.id} ref={el => itemRefs.current[item.id] = el}>
@@ -318,6 +332,12 @@ export function OrderSummary() {
                 <span>Sous-total</span>
                 <span>{orderTotal.toFixed(2)}€</span>
                 </div>
+                 {vatBreakdown.map(vat => (
+                    <div key={vat.rate} className="flex justify-between text-muted-foreground">
+                        <span>Dont TVA ({vat.rate}%)</span>
+                        <span>{vat.total.toFixed(2)}€</span>
+                    </div>
+                ))}
                 <div className="flex justify-between">
                 <span>TVA</span>
                 <span>{orderTax.toFixed(2)}€</span>
@@ -383,3 +403,5 @@ export function OrderSummary() {
     </>
   );
 }
+
+    
