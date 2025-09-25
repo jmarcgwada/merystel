@@ -106,7 +106,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const clearOrder = useCallback(() => {
     setOrder([]);
     setCurrentSaleId(null);
-  }, []);
+    if(selectedTable) {
+      setSelectedTable(null);
+    }
+  }, [selectedTable]);
 
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
@@ -246,13 +249,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [updateTableOrder, clearOrder, toast]);
   
   const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, saleIdToUpdate?: string) => {
-    const saleId = saleIdToUpdate ?? `sale-${Date.now()}`;
-    const tableId = saleIdToUpdate?.startsWith('table-') ? saleIdToUpdate.split('-')[1] : undefined;
+    // Check if the sale is from a table ticket that was held
+    const tableIdFromSale = saleIdToUpdate && saleIdToUpdate.startsWith('table-') ? saleIdToUpdate.substring(6) : undefined;
 
-    if (tableId) {
-        setTables(prev => prev.map(t => t.id === tableId ? {...t, status: 'available'} : t));
+    if (tableIdFromSale) {
+        setTables(prev => prev.map(t => t.id === tableIdFromSale ? {...t, status: 'available', order: []} : t));
     }
-
+    
     const today = new Date();
     const datePrefix = format(today, 'yyyyMMdd');
     const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
@@ -260,7 +263,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const newSale: Sale = {
       ...saleData,
-      id: saleId,
+      id: saleIdToUpdate || `sale-${Date.now()}`,
       date: today,
       ticketNumber,
     };
@@ -280,7 +283,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }, 0);
 
     const newHeldOrder: HeldOrder = {
-      id: `table-${table.id}`, // Link held order to table
+      id: `table-${table.id}`,
       date: new Date(),
       items: table.order,
       total: totalWithTax,
@@ -290,7 +293,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     setTables(prevTables => 
       prevTables.map(t => 
-        t.id === tableId ? { ...t, status: 'paying', order: [] } : t
+        t.id === tableId ? { ...t, status: 'paying' } : t
       )
     );
     
@@ -569,12 +572,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     deleteHeldOrder,
     showTicketImages,
     setShowTicketImages,
-isNavConfirmOpen, 
-closeNavConfirm, 
-confirmNavigation, 
-holdOrderAndNavigate, 
-nextUrl, 
-router
+    isNavConfirmOpen, 
+    closeNavConfirm, 
+    confirmNavigation, 
+    holdOrderAndNavigate,
+    nextUrl,
+    router
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
@@ -587,4 +590,3 @@ export function usePos() {
   }
   return context;
 }
-
