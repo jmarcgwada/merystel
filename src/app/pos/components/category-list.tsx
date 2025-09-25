@@ -62,15 +62,15 @@ export function CategoryList({
         <h2 className="text-xl font-bold tracking-tight font-headline mb-3">
           Catégories
         </h2>
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-10"
           />
-          <Button variant="ghost" size="icon" onClick={handleSearchClick}>
+          <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
             <Keyboard className="h-5 w-5" />
           </Button>
         </div>

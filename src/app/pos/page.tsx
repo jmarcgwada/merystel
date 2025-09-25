@@ -97,15 +97,15 @@ export default function PosPage() {
                     {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
                     {selectedCategory === 'popular' && <Badge variant="secondary"><Trophy className="h-3 w-3 mr-1"/>Populaires</Badge>}
                   </div>
-                  <div className="relative w-full max-w-sm flex items-center gap-2">
+                  <div className="relative w-full max-w-sm flex items-center">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Rechercher un article..."
                         value={itemSearchTerm}
                         onChange={(e) => setItemSearchTerm(e.target.value)}
-                        className="pl-9"
+                        className="pl-9 pr-10"
                     />
-                     <Button variant="ghost" size="icon" onClick={handleSearchClick}>
+                     <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
                         <Keyboard className="h-5 w-5" />
                     </Button>
                   </div>
