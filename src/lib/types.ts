@@ -72,7 +72,7 @@ export interface Sale {
   total: number;
   payments: Payment[];
   customerId?: string;
-  status: 'pending' | 'paid';
+  status: 'paid';
   tableId?: string;
 }
 
@@ -81,4 +81,5 @@ export interface HeldOrder {
   date: Date;
   items: OrderItem[];
   total: number;
+  tableName?: string;
 }

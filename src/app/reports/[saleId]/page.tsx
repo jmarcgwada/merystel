@@ -87,14 +87,6 @@ export default function SaleDetailPage() {
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          {sale.status === 'pending' && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertTitle>Vente en attente</AlertTitle>
-                <AlertDescription>
-                  Cette vente a été enregistrée mais est en attente de paiement.
-                </AlertDescription>
-              </Alert>
-            )}
           <Card>
             <CardHeader>
               <CardTitle>Articles vendus</CardTitle>

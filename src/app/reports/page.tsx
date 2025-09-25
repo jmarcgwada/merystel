@@ -84,7 +84,7 @@ export default function ReportsPage() {
                     </TableHeader>
                     <TableBody>
                         {sales.map(sale => (
-                            <TableRow key={sale.id} className={cn(sale.status === 'pending' && 'bg-yellow-50/50 dark:bg-yellow-900/10')}>
+                            <TableRow key={sale.id}>
                                  <TableCell className="font-mono text-muted-foreground text-xs">
                                     {sale.ticketNumber}
                                 </TableCell>

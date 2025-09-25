@@ -56,8 +56,16 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-semibold">
-                        Ticket du {format(order.date, "d MMM, HH:mm", { locale: fr })}
+                        {order.tableName 
+                            ? `Ticket: ${order.tableName}`
+                            : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
+                        }
                       </p>
+                      {order.tableName && (
+                        <p className="text-xs text-muted-foreground">
+                            Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         {order.items.length} article{order.items.length > 1 ? 's' : ''}
                       </p>
