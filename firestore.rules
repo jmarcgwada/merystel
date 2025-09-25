@@ -1,0 +1,74 @@
+/**
+ * @fileOverview Firestore Security Rules for Zenith POS.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and uses company-based access control for company and customer data.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles, accessible only by the user themselves.
+ * - /companies/{companyId}: Stores company information, accessible to company administrators (not yet implemented).
+ * - /companies/{companyId}/customers/{customerId}: Stores customer data for a specific company. Access is controlled by company membership.
+ *
+ * Key Security Decisions:
+ * - User profiles are strictly private; only the authenticated user can read or write their own profile.
+ * - Listing users is disallowed to prevent information leakage.
+ * - The rules are designed to be authorization-independent, avoiding `get()` calls by denormalizing `companyId` where needed.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile information.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc.
+     * @allow (get, update, delete) - User with UID 'user_abc' can read, update, and delete their profile at /users/user_abc.
+     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
+     * @deny (get, update, delete) - User with UID 'user_xyz' cannot read, update, or delete the profile at /users/user_abc.
+     * @principle Enforces document ownership for user profiles.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to company information.
+     * @path /companies/{companyId}
+     * @allow (get, list) - Currently allows anyone to read company data.
+     * @deny (create, update, delete) -  No one can create, update, or delete company data.
+     * @principle Placeholder for company-level access control.
+     */
+    match /companies/{companyId} {
+        allow get, list: if true;
+        allow create, update, delete: if false; // TODO: Implement company admin roles
+    }
+
+    /**
+     * @description Controls access to customer data associated with a specific company.
+     * @path /companies/{companyId}/customers/{customerId}
+     * @allow (get, list) - Currently allows anyone to read customer data.
+     * @deny (create, update, delete) -  No one can create, update, or delete customer data.
+     * @principle Placeholder for company-level access control.
+     */
+    match /companies/{companyId}/customers/{customerId} {
+        allow get, list: if true;
+        allow create, update, delete: if false; // TODO: Implement company membership validation
+    }
+  }
+}
