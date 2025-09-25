@@ -54,7 +54,7 @@ interface PosContextType {
   promoteTableToTicket: (tableId: string) => void;
 
   sales: Sale[];
-  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'status'>, saleIdToUpdate?: string) => void;
+  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, saleIdToUpdate?: string) => void;
   
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -245,37 +245,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [updateTableOrder, clearOrder, toast]);
   
-  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'status'>, saleIdToUpdate?: string) => {
+  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, saleIdToUpdate?: string) => {
     const saleId = saleIdToUpdate ?? `sale-${Date.now()}`;
+    const tableId = saleIdToUpdate?.startsWith('table-') ? saleIdToUpdate.split('-')[1] : undefined;
 
-    if (saleIdToUpdate) {
-        let saleToUpdate = sales.find(s => s.id === saleIdToUpdate);
-        if(saleToUpdate?.tableId) {
-            setTables(prev => prev.map(t => t.id === saleToUpdate.tableId ? {...t, status: 'available', order: []} : t));
-        }
-
-        setSales(prevSales => 
-            prevSales.map(sale => 
-                sale.id === saleIdToUpdate 
-                    ? { ...sale, ...saleData, status: 'paid', date: new Date() }
-                    : sale
-            )
-        );
-    } else {
-        const today = new Date();
-        const datePrefix = format(today, 'yyyyMMdd');
-        const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-        const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
-
-        const newSale: Sale = {
-          ...saleData,
-          id: saleId,
-          date: today,
-          ticketNumber,
-          status: 'paid',
-        };
-        setSales(prevSales => [newSale, ...prevSales]);
+    if (tableId) {
+        setTables(prev => prev.map(t => t.id === tableId ? {...t, status: 'available'} : t));
     }
+
+    const today = new Date();
+    const datePrefix = format(today, 'yyyyMMdd');
+    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
+    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+
+    const newSale: Sale = {
+      ...saleData,
+      id: saleId,
+      date: today,
+      ticketNumber,
+    };
+    setSales(prevSales => [newSale, ...prevSales]);
+
 }, [sales]);
 
 
@@ -290,7 +280,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }, 0);
 
     const newHeldOrder: HeldOrder = {
-      id: `held-${table.id}-${Date.now()}`,
+      id: `table-${table.id}`, // Link held order to table
       date: new Date(),
       items: table.order,
       total: totalWithTax,
@@ -360,10 +350,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
-    const newCustomer = { ...customerData, id: `cust-${Date.now()}`};
+    const newCustomer = { ...customerData, id: `cust-${Date.now()}`, isDefault: !customers.some(c => c.isDefault) };
     setCustomers(prev => [...prev, newCustomer]);
     return newCustomer;
-  }, []);
+  }, [customers]);
 
   const updateCustomer = useCallback((customer: Customer) => {
     setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
@@ -447,27 +437,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   };
 
   const recallOrder = useCallback((orderId: string) => {
-    const isPendingSale = sales.find(s => s.id === orderId && s.status === 'pending');
-    
-    if (isPendingSale) {
-        if (selectedTable) {
-            setSelectedTable(null);
-        }
-        setOrder(isPendingSale.items);
-        setCurrentSaleId(orderId);
-    } else {
-        const orderToRecall = heldOrders.find(o => o.id === orderId);
-        if (orderToRecall) {
-          if (selectedTable) {
-            setSelectedTable(null);
-          }
-          setOrder(orderToRecall.items);
-          setCurrentSaleId(orderToRecall.id);
-          setHeldOrders(prev => prev.filter(o => o.id !== orderId));
-        }
+    const orderToRecall = heldOrders.find(o => o.id === orderId);
+    if (orderToRecall) {
+      if (selectedTable) {
+        setSelectedTable(null);
+      }
+      setOrder(orderToRecall.items);
+      setCurrentSaleId(orderToRecall.id); // Store the ID of the recalled order
+      setHeldOrders(prev => prev.filter(o => o.id !== orderId));
+      toast({ title: 'Commande rappelée.' });
     }
-    toast({ title: 'Commande rappelée.' });
-  }, [heldOrders, toast, selectedTable, sales]);
+  }, [heldOrders, toast, selectedTable]);
 
   const deleteHeldOrder = useCallback((orderId: string) => {
     setHeldOrders(prev => prev.filter(o => o.id !== orderId));
@@ -607,3 +587,4 @@ export function usePos() {
   }
   return context;
 }
+

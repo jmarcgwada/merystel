@@ -33,7 +33,7 @@ export default function ReportsPage() {
     
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
-        {payments.length === 0 ? (
+        {!payments || payments.length === 0 ? (
           <Badge variant="destructive" className="font-normal">En attente</Badge>
         ) : (
           payments.map((p, index) => (
@@ -118,3 +118,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

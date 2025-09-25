@@ -161,7 +161,7 @@ export default function SaleDetailPage() {
             <CardFooter>
                  <div className="w-full">
                     <h3 className="text-sm font-semibold text-muted-foreground mb-2">Paiements</h3>
-                    {sale.payments.length > 0 ? (
+                    {sale.payments && sale.payments.length > 0 ? (
                       <div className="space-y-2">
                           {sale.payments.map((p, index) => (
                               <div key={index} className="flex justify-between items-center text-sm">
@@ -171,9 +171,7 @@ export default function SaleDetailPage() {
                           ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-destructive font-medium">
-                        Aucun paiement enregistré
-                      </div>
+                       <Badge variant="destructive" className="font-normal">Paiement en attente</Badge>
                     )}
                 </div>
             </CardFooter>
@@ -195,3 +193,4 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+

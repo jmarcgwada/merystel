@@ -39,7 +39,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, sales } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -116,7 +116,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       total: totalAmount,
       payments: finalPayments,
       customerId: selectedCustomer?.id,
-      status: 'paid' as Sale['status'],
     };
 
     recordSale(saleInfo, currentSaleId ?? undefined);
@@ -129,8 +128,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
       });
       
-      const saleOrigin = sales.find(s => s.id === currentSaleId);
-      if (saleOrigin && saleOrigin.tableId) {
+      const isTableSale = currentSaleId && currentSaleId.startsWith('table-');
+
+      if (isTableSale) {
         router.push('/restaurant');
       } else {
         clearOrder();
@@ -138,7 +138,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, sales]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
@@ -380,3 +380,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
