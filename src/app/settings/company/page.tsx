@@ -51,22 +51,39 @@ export default function CompanyPage() {
       <div className="mt-8 grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
+              <CardTitle>Informations générales et de contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid gap-2">
+                  <Label htmlFor="name">Nom de l'entreprise</Label>
+                  <Input id="name" value={localInfo.name} onChange={handleInputChange} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address">Adresse</Label>
+                <Input id="address" value={localInfo.address} onChange={handleInputChange} placeholder="ex: 123 Rue du Commerce"/>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="name">Nom de l'entreprise</Label>
-                    <Input id="name" value={localInfo.name} onChange={handleInputChange} />
+                    <Label htmlFor="postalCode">Code Postal</Label>
+                    <Input id="postalCode" value={localInfo.postalCode} onChange={handleInputChange} />
                 </div>
                  <div className="grid gap-2">
-                    <Label htmlFor="address">Adresse</Label>
-                    <Input id="address" value={localInfo.address} onChange={handleInputChange} />
+                    <Label htmlFor="city">Ville</Label>
+                    <Input id="city" value={localInfo.city} onChange={handleInputChange} />
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="region">Région / Département</Label>
+                    <Input id="region" value={localInfo.region || ''} onChange={handleInputChange} />
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="country">Pays</Label>
+                    <Input id="country" value={localInfo.country} onChange={handleInputChange} />
                 </div>
               </div>
+              <Separator/>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email de contact</Label>
                     <Input id="email" type="email" value={localInfo.email} onChange={handleInputChange} />
                 </div>
                 <div className="grid gap-2">

@@ -121,7 +121,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     name: 'Zenith POS Inc.',
-    address: '123 Rue du Marché, Paris, FR',
+    address: '123 Rue du Marché',
+    postalCode: '75001',
+    city: 'Paris',
+    region: 'Île-de-France',
+    country: 'France',
     email: 'contact@zenithpos.com',
     phone: '01 23 45 67 89',
     website: 'https://zenithpos.com',
@@ -159,8 +163,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   };
 
   const confirmNavigation = () => {
-    clearOrder();
     if (nextUrl) {
+      clearOrder();
       router.push(nextUrl);
     }
     closeNavConfirm();

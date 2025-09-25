@@ -94,6 +94,10 @@ export interface HeldOrder {
 export interface CompanyInfo {
   name: string;
   address: string;
+  postalCode: string;
+  city: string;
+  region?: string;
+  country: string;
   email: string;
   phone?: string;
   website?: string;
