@@ -94,8 +94,10 @@ export default function PosPage() {
             </div>
           </div>
 
-          <div className="md:col-span-4 lg:col-span-4 border-l bg-card overflow-y-auto">
-            <OrderSummary />
+          <div className="md:col-span-4 lg:col-span-4 border-l bg-card">
+             <div className="sticky top-0 h-screen">
+                <OrderSummary />
+            </div>
           </div>
       </div>
       <HeldOrdersDrawer isOpen={isHeldOpen} onClose={() => setHeldOpen(false)} />
