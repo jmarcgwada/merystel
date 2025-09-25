@@ -33,7 +33,7 @@ interface PosContextType {
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
-  toggleAllItemsFavorite: (setFavorite: boolean) => void;
+  toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
   
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
@@ -166,12 +166,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return newOrder;
       } else {
         const newItem: OrderItem = { ...itemToAdd, quantity: 1, total: itemToAdd.price, discount: 0 };
-        return [newItem, ...currentOrder];
+        // Place new items at the end
+        return [...currentOrder, newItem];
       }
     });
     triggerItemHighlight(itemId);
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
   }, [items, toast]);
+
 
   const updateQuantity = useCallback((itemId: OrderItem['id'], quantity: number) => {
     if (quantity <= 0) {
@@ -425,9 +427,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItems(prev => prev.map(i => i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i));
   }, []);
   
-  const toggleAllItemsFavorite = useCallback((setFavorite: boolean) => {
-    setItems(prev => prev.map(i => ({...i, isFavorite: setFavorite})));
-    toast({ title: `Tous les articles ont été ${setFavorite ? 'ajoutés aux' : 'retirés des'} favoris.` });
+  const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
+    setItems(prevItems => 
+        prevItems.map(item => 
+            itemIds.includes(item.id) ? { ...item, isFavorite: setFavorite } : item
+        )
+    );
+    toast({ title: `Les articles sélectionnés ont été mis à jour.` });
   }, [toast]);
 
   const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
@@ -566,7 +572,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     deleteItem,
     toggleItemFavorite,
-    toggleAllItemsFavorite,
+    toggleFavoriteForList,
     categories,
     addCategory,
     updateCategory,
@@ -635,11 +641,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     deleteItem,
     toggleItemFavorite,
-    toggleAllItemsFavorite,
+    toggleFavoriteForList,
     categories,
     addCategory,
     updateCategory,
-    deleteCategory,
+deleteCategory,
     toggleCategoryFavorite,
     customers,
     addCustomer,

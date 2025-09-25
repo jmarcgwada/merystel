@@ -15,7 +15,7 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function PopularItemsPage() {
-    const { sales, items, categories, toggleItemFavorite, toggleAllItemsFavorite } = usePos();
+    const { sales, items, categories, toggleItemFavorite, toggleFavoriteForList } = usePos();
 
     const popularItems = useMemo(() => {
         const itemCounts: { [key: string]: { item: Item, count: number, revenue: number } } = {};
@@ -51,13 +51,18 @@ export default function PopularItemsPage() {
       return popularItems.length > 0 && popularItems.every(({ item }) => item.isFavorite);
     }, [popularItems]);
 
+    const handleToggleAllFavorites = () => {
+        const popularItemIds = popularItems.map(({ item }) => item.id);
+        toggleFavoriteForList(popularItemIds, !allItemsAreFavorites);
+    }
+
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Articles populaires"
         subtitle="Classement des articles les plus vendus."
       >
-        <Button onClick={() => toggleAllItemsFavorite(!allItemsAreFavorites)}>
+        <Button onClick={handleToggleAllFavorites}>
             <Star className="mr-2 h-4 w-4" />
             {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
         </Button>
