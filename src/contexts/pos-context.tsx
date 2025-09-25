@@ -354,16 +354,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
   const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-    const newNumber = Math.max(0, ...tables.map(t => t.number)) + 1;
+    const now = Date.now();
     const newTable: Table = { 
       ...tableData, 
-      id: `t-${Date.now()}`,
-      number: newNumber,
+      id: `t-${now}`,
+      number: now % 10000,
       status: 'available',
       order: []
     };
     setTables(prevTables => [...prevTables, newTable]);
-  }, [tables]);
+  }, []);
 
   const updateTable = useCallback((table: Table) => {
     setTables(prev => prev.map(t => t.id === table.id ? table : t));
