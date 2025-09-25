@@ -50,7 +50,7 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
         
         <Separator />
 
-        {heldOrders.length === 0 ? (
+        {!heldOrders || heldOrders.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-muted-foreground">Aucun ticket en attente.</p>
           </div>
