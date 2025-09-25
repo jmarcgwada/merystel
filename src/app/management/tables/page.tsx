@@ -100,7 +100,7 @@ export default function TablesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. La table "{tableToDelete?.name}" sera supprimée.
+              Cette action est irréversible. La table "{tableToDelete?.name || ''}" sera supprimée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -112,7 +112,7 @@ export default function TablesPage() {
       <AlertDialog open={!!tableToFree} onOpenChange={() => setTableToFree(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Libérer la table "{tableToFree?.name}" ?</AlertDialogTitle>
+            <AlertDialogTitle>Libérer la table "{tableToFree?.name || ''}" ?</AlertDialogTitle>
             <AlertDialogDescription>
               Cette action effacera la commande en cours et le ticket en attente associé à cette table. Cette action est irréversible.
             </AlertDialogDescription>
