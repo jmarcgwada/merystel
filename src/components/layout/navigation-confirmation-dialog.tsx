@@ -19,26 +19,33 @@ export function NavigationConfirmationDialog() {
     isNavConfirmOpen,
     closeNavConfirm,
     confirmNavigation,
+    selectedTable,
   } = usePos();
+
+  const title = selectedTable ? `Vente en cours sur la table "${selectedTable.name}"` : 'Vente en cours';
+  const description = selectedTable 
+    ? "La commande de cette table sera perdue si vous quittez sans sauvegarder."
+    : "La commande actuelle sera perdue si vous quittez sans la mettre en attente ou la payer.";
+
 
   return (
     <AlertDialog open={isNavConfirmOpen} onOpenChange={closeNavConfirm}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Vente en cours</AlertDialogTitle>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            Une vente est en cours sur une table. Vous devez la sauvegarder ou l'annuler depuis l'interface de vente avant de pouvoir quitter.
+            {description} Voulez-vous vraiment quitter ?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-start gap-2">
             <AlertDialogCancel asChild>
                 <Button variant="outline" onClick={closeNavConfirm}>
-                    Rester
+                    Rester sur la page
                 </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
                  <Button variant="destructive" onClick={confirmNavigation}>
-                    Quitter (Annuler vente)
+                    Quitter & Annuler la vente
                 </Button>
             </AlertDialogAction>
         </AlertDialogFooter>
