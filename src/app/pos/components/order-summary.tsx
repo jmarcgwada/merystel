@@ -336,12 +336,6 @@ export function OrderSummary() {
                 <span>Sous-total</span>
                 <span>{orderTotal.toFixed(2)}€</span>
                 </div>
-                 {vatBreakdown.map(vat => (
-                    <div key={vat.rate} className="flex justify-between text-muted-foreground">
-                        <span>Dont TVA ({vat.rate}%)</span>
-                        <span>{vat.total.toFixed(2)}€</span>
-                    </div>
-                ))}
                 <div className="flex justify-between">
                 <span>TVA</span>
                 <span>{orderTax.toFixed(2)}€</span>
@@ -407,4 +401,5 @@ export function OrderSummary() {
     </>
   );
 }
+
 
