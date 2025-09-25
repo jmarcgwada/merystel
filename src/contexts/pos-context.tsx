@@ -158,7 +158,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const companyId = SHARED_COMPANY_ID;
+  const companyId = user ? SHARED_COMPANY_ID : null;
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -212,7 +212,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     userLoading ||
-    !companyId ||
     itemsLoading ||
     categoriesLoading ||
     customersLoading ||
@@ -1084,3 +1083,4 @@ export function usePos() {
   }
   return context;
 }
+
