@@ -218,12 +218,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const table = tableId ? tables.find(t => t.id === tableId) || null : null;
     setSelectedTable(table);
     if (table) {
-      setOrder(table.order);
-      setCurrentSaleContext({ tableId: table.id, tableName: table.name });
+        if (table.status === 'paying') {
+            const heldOrderForTable = heldOrders.find(ho => ho.tableId === tableId);
+            if (heldOrderForTable) {
+                recallOrder(heldOrderForTable.id);
+                router.push('/pos');
+            }
+        } else {
+           setOrder(table.order);
+           setCurrentSaleContext({ tableId: table.id, tableName: table.name });
+        }
     } else {
       clearOrder();
     }
-  }, [tables, clearOrder]);
+  }, [tables, clearOrder, heldOrders, router]);
 
   const orderTotal = useMemo(() => {
     return order.reduce((sum, item) => sum + item.total, 0);
@@ -264,8 +272,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         };
         setSales(prevSales => prevSales.map(s => s.id === saleIdToUpdate ? finalSale : s));
 
-        if (existingSale.tableId) {
-            setTables(prev => prev.map(t => t.id === existingSale.tableId ? {...t, status: 'available', order: []} : t));
+        if (finalSale.tableId) {
+            setTables(prev => prev.map(t => t.id === finalSale.tableId ? {...t, status: 'available', order: []} : t));
         }
 
     } else {
@@ -281,9 +289,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ticketNumber,
           status: 'paid',
         };
+
+        if (currentSaleContext?.tableId) {
+            finalSale.tableId = currentSaleContext.tableId;
+             setTables(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: []} : t));
+        }
+
         setSales(prevSales => [finalSale, ...prevSales]);
     }
-}, [sales]);
+}, [sales, currentSaleContext]);
 
 
   const promoteTableToTicket = useCallback((tableId: string) => {
@@ -298,9 +312,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 0);
     
     const total = subtotal + tax;
+    
+    const existingHeldOrder = heldOrders.find(ho => ho.tableId === table.id);
+    const heldOrderId = existingHeldOrder ? existingHeldOrder.id : `held-${Date.now()}`;
 
     const newHeldOrder: HeldOrder = {
-      id: `table-held-${table.id}`,
+      id: heldOrderId,
       date: new Date(),
       items: table.order,
       total: total,
@@ -308,7 +325,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tableId: table.id,
     };
     
-    setHeldOrders(prev => [newHeldOrder, ...prev]);
+    setHeldOrders(prev => {
+        const otherHeldOrders = prev.filter(ho => ho.tableId !== table.id);
+        return [newHeldOrder, ...otherHeldOrders];
+    });
 
     setTables(prevTables => 
       prevTables.map(t => 
@@ -321,7 +341,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     router.push('/restaurant');
 
     toast({ title: 'Table transformée en ticket', description: 'Le ticket est maintenant en attente dans le point de vente.' });
-  }, [tables, vatRates, toast, clearOrder, router]);
+  }, [tables, vatRates, toast, clearOrder, router, heldOrders]);
 
 
   const addTable = useCallback((name: string) => {
@@ -606,7 +626,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     confirmNavigation, 
     holdOrderAndNavigate,
     nextUrl,
-    router
+    router,
   ]);
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;

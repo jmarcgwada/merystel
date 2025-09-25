@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -33,11 +34,11 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates } = usePos();
+  const { tables, vatRates, setSelectedTableById } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    router.push(`/pos?tableId=${table.id}`);
+    setSelectedTableById(table.id);
   };
 
   return (
