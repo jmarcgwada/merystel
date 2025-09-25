@@ -28,18 +28,18 @@ export function NavigationConfirmationDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>Vente en cours</AlertDialogTitle>
           <AlertDialogDescription>
-            Vous avez des articles dans votre commande. Que souhaitez-vous faire avant de quitter cette page ?
+            Une vente est en cours. Que souhaitez-vous faire ?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-start gap-2">
             <Button variant="outline" onClick={closeNavConfirm}>
-                Rester sur la page
+                Rester
             </Button>
             <Button variant="destructive" onClick={confirmNavigation}>
-                Annuler la vente et quitter
+                Quitter (Annuler vente)
             </Button>
             <Button onClick={holdOrderAndNavigate}>
-                Mettre en attente et quitter
+                Mettre en attente
             </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
