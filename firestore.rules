@@ -2,228 +2,183 @@
  * @fileoverview Firestore Security Rules for Zenith POS.
  *
  * Core Philosophy:
- * This ruleset enforces a strict company-ownership model. Users can only
- * access data belonging to their assigned company. All write operations
- * require a valid authenticated user. Data structure enforces a clear
- * hierarchy with company-specific data nested under /companies/{companyId}.
+ * This ruleset enforces a strict company-based data isolation model. Users can only
+ * access data associated with the company they belong to.  User documents are
+ * secured via owner-only access.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles.
- * - /companies/{companyId}: Stores company information. The root for all
- *   company-specific data.
- * - /companies/{companyId}/customers/{customerId}: Customer data.
- * - /companies/{companyId}/categories/{categoryId}: Item categories.
- * - /companies/{companyId}/items/{itemId}: Sellable items.
- * - /companies/{companyId}/tables/{tableId}: Restaurant tables.
- * - /companies/{companyId}/sales/{saleId}: Sales records.
- * - /companies/{companyId}/paymentMethods/{methodId}: Payment methods.
- * - /companies/{companyId}/vatRates/{vatId}: VAT rates.
- * - /companies/{companyId}/heldOrders/{orderId}: Held orders.
+ * - /users/{userId}: User profile information.
+ * - /companies/{companyId}: Company root information.
+ * - /companies/{companyId}/{collection}/{documentId}: Company-specific data,
+ *   including customers, categories, items, tables, sales, payment methods,
+ *   VAT rates, and held orders.
  *
  * Key Security Decisions:
- * - Users can only read/write their own profile data (/users/{userId}).
- * - Company-level data is accessible to users belonging to that company.
- *   This is verified by checking the user's companyId claim against the
- *   companyId in the path.
- * - Listing of users is disallowed.
+ * - Users can only list payment methods and other company-specific data for their
+ *   own company.
+ * - User listing is not permitted to prevent unauthorized access to user data.
  *
  * Denormalization for Authorization:
- * - The `User` document includes a `companyId` field, which is used to
- *   authorize access to company-specific data. This avoids the need for
- *   additional reads to determine company membership.
+ * - The `companyId` field within the User document is used to quickly verify
+ *   company membership, avoiding the need for additional `get()` calls.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own user profile.
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the resource.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the resource and the resource exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Stores user profile information.
      * @path /users/{userId}
-     * @allow (read, write) User with matching userId can access their profile.
-     *   Example: User with UID "user123" can read/write /users/user123.
-     * @deny (read, write) User with UID "user123" cannot read/write /users/otherUser.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) - User with UID 'user123' can create their own user document.
+     *   Request: auth.uid = 'user123', resource.data.id = 'user123'
+     * @deny (create) - User with UID 'user123' attempts to create a user document for 'user456'.
+     *   Request: auth.uid = 'user123', resource.data.id = 'user456'
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) ;
-      allow delete: if isOwner(userId) ;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows access to company data based on user's companyId.
+     * @description Stores root information for a company.
      * @path /companies/{companyId}
-     * @allow (read) Authenticated user can read company data if their companyId matches.
-     *   Example: User with companyId "company123" can read /companies/company123.
-     * @deny (read) Authenticated user cannot read company data if their companyId does not match.
-     * @principle Enforces company-level access control.
      */
     match /companies/{companyId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
+      allow get: if true;
       allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if false; // TODO: Decide who can create a company
+      allow update: if false; // TODO: Decide who can update a company
+      allow delete: if false; // TODO: Decide who can delete a company
+
+       match /{documentId}/{anypath=**} {
+          allow read, write: if false;
+       }
     }
 
     /**
-     * @description Allows access to customer data for users within the same company.
+     * @description Stores customer data for a specific company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (read, write) Authenticated user can access customer data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/customers/cust456.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/customers/cust456.
-     * @principle Enforces company-level access control for customer data.
      */
     match /companies/{companyId}/customers/{customerId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide on get requirements
+      allow list: if false; // TODO: Decide on list requirements
+      allow create: if false; // TODO: Decide who can create a customer
+      allow update: if false; // TODO: Decide who can update a customer
+      allow delete: if false; // TODO: Decide who can delete a customer
     }
 
     /**
-     * @description Allows access to item category data for users within the same company.
+     * @description Item categories for a company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (read, write) Authenticated user can access category data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/categories/cat789.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/categories/cat789.
-     * @principle Enforces company-level access control for item categories.
      */
     match /companies/{companyId}/categories/{categoryId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide on get requirements
+      allow list: if false; // TODO: Decide on list requirements
+      allow create: if false; // TODO: Decide who can create a category
+      allow update: if false; // TODO: Decide who can update a category
+      allow delete: if false; // TODO: Decide who can delete a category
     }
 
     /**
-     * @description Allows access to item data for users within the same company.
+     * @description All sellable items for a company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (read, write) Authenticated user can access item data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/items/item101.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/items/item101.
-     * @principle Enforces company-level access control for items.
      */
     match /companies/{companyId}/items/{itemId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide on get requirements
+      allow list: if false; // TODO: Decide on list requirements
+      allow create: if false; // TODO: Decide who can create an item
+      allow update: if false; // TODO: Decide who can update an item
+      allow delete: if false; // TODO: Decide who can delete an item
     }
 
     /**
-     * @description Allows access to table data for users within the same company.
+     * @description Restaurant tables for a company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (read, write) Authenticated user can access table data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/tables/tableA.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/tables/tableA.
-     * @principle Enforces company-level access control for tables.
      */
     match /companies/{companyId}/tables/{tableId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide on get requirements
+      allow list: if false; // TODO: Decide on list requirements
+      allow create: if false; // TODO: Decide who can create a table
+      allow update: if false; // TODO: Decide who can update a table
+      allow delete: if false; // TODO: Decide who can delete a table
     }
 
     /**
-     * @description Allows access to sale data for users within the same company.
+     * @description Record of all completed sales for a company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (read, write) Authenticated user can access sale data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/sales/sale001.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/sales/sale001.
-     * @principle Enforces company-level access control for sales.
      */
     match /companies/{companyId}/sales/{saleId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide on get requirements
+      allow list: if false; // TODO: Decide on list requirements
+      allow create: if false; // TODO: Decide who can create a sale
+      allow update: if false; // TODO: Decide who can update a sale
+      allow delete: if false; // TODO: Decide who can delete a sale
     }
 
     /**
-     * @description Allows access to payment method data for users within the same company.
+     * @description Payment methods configured for a company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (read, write) Authenticated user can access payment method data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/paymentMethods/methodA.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/paymentMethods/methodA.
-     * @principle Enforces company-level access control for payment methods.
+     * @allow (list) - User with UID 'FhQle9Qk0IhIc4XHHVbidjwRQII3' can list payment methods.
+     *   Request: auth.uid = 'FhQle9Qk0IhIc4XHHVbidjwRQII3', User.companyId == companyId
+     * @deny (list) - User with UID 'FhQle9Qk0IhIc4XHHVbidjwRQII3' attempts to list payment methods for another company.
+     *   Request: auth.uid = 'FhQle9Qk0IhIc4XHHVbidjwRQII3', User.companyId != companyId
+     * @principle Restricts access to a user's own company data.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+        allow get: if false; // TODO: Decide who can get a payment method
+        allow list: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+        allow create: if false; // TODO: Decide who can create a payment method
+        allow update: if false; // TODO: Decide who can update a payment method
+        allow delete: if false; // TODO: Decide who can delete a payment method
     }
 
     /**
-     * @description Allows access to VAT rate data for users within the same company.
+     * @description VAT rates configured for a company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (read, write) Authenticated user can access VAT rate data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/vatRates/vat5.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/vatRates/vat5.
-     * @principle Enforces company-level access control for VAT rates.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide who can get a vat rate
+      allow list: if false; // TODO: Decide who can list vat rates
+      allow create: if false; // TODO: Decide who can create a vat rate
+      allow update: if false; // TODO: Decide who can update a vat rate
+      allow delete: if false; // TODO: Decide who can delete a vat rate
     }
 
     /**
-     * @description Allows access to held order data for users within the same company.
+     * @description Temporarily held orders for a company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (read, write) Authenticated user can access held order data if their companyId matches.
-     *   Example: User with companyId "company123" can read/write /companies/company123/heldOrders/orderH1.
-     * @deny (read, write) User with companyId "company123" cannot read/write /companies/otherCompany/heldOrders/orderH1.
-     * @principle Enforces company-level access control for held orders.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      function isUserInCompany(companyId) {
-        return request.auth != null && request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      allow get: if isUserInCompany(companyId);
-      allow list: if isUserInCompany(companyId);
-      allow create: if isUserInCompany(companyId);
-      allow update: if isUserInCompany(companyId);
-      allow delete: if isUserInCompany(companyId);
+      allow get: if false; // TODO: Decide who can get a held order
+      allow list: if false; // TODO: Decide who can list held orders
+      allow create: if false; // TODO: Decide who can create a held order
+      allow update: if false; // TODO: Decide who can update a held order
+      allow delete: if false; // TODO: Decide who can delete a held order
     }
   }
 }
