@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
@@ -27,7 +28,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
 
-  React.useEffect(() => {
+  useEffect(() => {
     setSelectedTableById(tableId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);

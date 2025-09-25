@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -28,7 +29,6 @@ export function OrderSummary() {
     clearOrder, 
     orderTotal, 
     orderTax,
-    vatRates,
     selectedTable, 
     holdOrder, 
     setSelectedTable,
@@ -38,6 +38,7 @@ export function OrderSummary() {
     saveTableOrderAndExit,
     promoteTableToTicket,
     showTicketImages,
+    isKeypadOpen,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -176,10 +177,8 @@ export function OrderSummary() {
     }
   }
 
-  const keypadActive = selectedItem !== null;
-
   const keypadStyle = () => {
-    if (!keypadActive || !selectedItem || !itemRefs.current[selectedItem.id]) return {};
+    if (!isKeypadOpen || !selectedItem || !itemRefs.current[selectedItem.id]) return {};
     const itemElement = itemRefs.current[selectedItem.id];
     if (itemElement) {
         const top = itemElement.offsetTop + itemElement.offsetHeight;
@@ -257,7 +256,7 @@ export function OrderSummary() {
               </div>
           )}
           
-           {keypadActive && selectedItem && (
+           {isKeypadOpen && selectedItem && (
             <div style={keypadStyle()} className="absolute z-10 left-0 right-0 p-4 bg-secondary/95 backdrop-blur-sm border-t border-b shadow-lg">
                 <div className="grid grid-cols-3 gap-2 mb-3">
                     <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
@@ -336,7 +335,7 @@ export function OrderSummary() {
                     size="lg"
                     variant="outline"
                     className="w-full"
-                    disabled={order.length === 0 || keypadActive}
+                    disabled={order.length === 0 || isKeypadOpen}
                     onClick={handlePromoteToTicket}
                   >
                     <Ticket className="mr-2 h-4 w-4" />
@@ -346,7 +345,7 @@ export function OrderSummary() {
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={handleSaveTable}
-                    disabled={keypadActive}
+                    disabled={isKeypadOpen}
                   >
                      <Save className="mr-2 h-4 w-4" />
                     Sauvegarder la table
@@ -358,7 +357,7 @@ export function OrderSummary() {
                     size="lg"
                     variant="outline"
                     className="w-full"
-                    disabled={order.length === 0 || keypadActive}
+                    disabled={order.length === 0 || isKeypadOpen}
                     onClick={holdOrder}
                   >
                     <Hand className="mr-2 h-4 w-4" />
@@ -367,7 +366,7 @@ export function OrderSummary() {
                   <Button
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={order.length === 0 || keypadActive}
+                    disabled={order.length === 0 || isKeypadOpen}
                     onClick={() => setCheckoutOpen(true)}
                   >
                     Payer maintenant
@@ -385,6 +384,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 

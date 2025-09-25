@@ -22,6 +22,8 @@ interface PosContextType {
   orderTax: number;
   isKeypadOpen: boolean;
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  currentSaleId: string | null;
+  setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -52,7 +54,7 @@ interface PosContextType {
   promoteTableToTicket: (tableId: string) => void;
 
   sales: Sale[];
-  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => void;
+  recordSale: (sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'status'>, saleIdToUpdate?: string) => void;
   
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -97,11 +99,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
 
+  const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
+    setCurrentSaleId(null);
   }, []);
 
   const showNavConfirm = (url: string) => {
@@ -241,20 +245,32 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [updateTableOrder, clearOrder, toast]);
   
-  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-    const today = new Date();
-    const datePrefix = format(today, 'yyyyMMdd');
-    const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
-    const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
+  const recordSale = useCallback((saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> & { status: Sale['status'] }, saleIdToUpdate?: string) => {
+    if (saleIdToUpdate) {
+        setSales(prevSales => 
+            prevSales.map(sale => 
+                sale.id === saleIdToUpdate 
+                    ? { ...sale, ...saleData, status: 'paid' }
+                    : sale
+            )
+        );
+    } else {
+        const today = new Date();
+        const datePrefix = format(today, 'yyyyMMdd');
+        const todaysSalesCount = sales.filter(s => s.ticketNumber.startsWith(datePrefix)).length;
+        const ticketNumber = `${datePrefix}-0001`.slice(0, - (todaysSalesCount + 1).toString().length) + (todaysSalesCount + 1).toString()
 
-    const newSale: Sale = {
-      ...saleData,
-      id: `sale-${Date.now()}`,
-      date: today,
-      ticketNumber,
-    };
-    setSales(prevSales => [newSale, ...prevSales]);
-  }, [sales]);
+        const newSale: Sale = {
+          ...saleData,
+          id: `sale-${Date.now()}`,
+          date: today,
+          ticketNumber,
+        };
+        setSales(prevSales => [newSale, ...prevSales]);
+        return newSale;
+    }
+}, [sales]);
+
 
   const promoteTableToTicket = useCallback((tableId: string) => {
     const table = tables.find(t => t.id === tableId);
@@ -268,24 +284,41 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 0);
     const total = subtotal + tax;
 
-    recordSale({
+    const newSale = recordSale({
       items: table.order,
       subtotal,
       tax,
       total,
       payments: [],
       status: 'pending',
-      customerId: customers.find(c => c.isDefault)?.id
+      customerId: customers.find(c => c.isDefault)?.id,
+      tableId: table.id, // Keep track of the origin table
     });
+
+    if (newSale) {
+        setHeldOrders(prev => [
+            {
+                id: newSale.id,
+                date: newSale.date,
+                items: newSale.items,
+                total: newSale.total,
+            },
+            ...prev,
+        ]);
+    }
 
     setTables(prevTables => 
       prevTables.map(t => 
         t.id === tableId ? { ...t, order: [], status: 'available' } : t
       )
     );
+    
     setSelectedTable(null);
+    clearOrder();
+
     toast({ title: 'Table transformée en ticket', description: 'La commande est prête pour l\'encaissement.' });
-  }, [tables, vatRates, recordSale, customers, toast]);
+    router.push('/pos');
+  }, [tables, vatRates, recordSale, customers, toast, clearOrder, router]);
 
 
   const addTable = useCallback((name: string) => {
@@ -401,7 +434,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const holdOrder = useCallback(() => {
     if(order.length === 0) return;
     const newHeldOrder: HeldOrder = {
-      id: `held-${Date.now()}`,
+      id: currentSaleId || `held-${Date.now()}`,
       date: new Date(),
       items: order,
       total: orderTotal + orderTax,
@@ -412,7 +445,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSelectedTable(null);
     }
     toast({ title: 'Commande mise en attente.' });
-  }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast]);
+  }, [order, orderTotal, orderTax, clearOrder, selectedTable, toast, currentSaleId]);
 
   const holdOrderAndNavigate = () => {
     holdOrder();
@@ -429,10 +462,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSelectedTable(null);
       }
       setOrder(orderToRecall.items);
+      
+      const isPendingSale = sales.some(s => s.id === orderId && s.status === 'pending');
+      if (isPendingSale) {
+        setCurrentSaleId(orderId);
+      } else {
+        setCurrentSaleId(null);
+      }
+
       setHeldOrders(prev => prev.filter(o => o.id !== orderId));
       toast({ title: 'Commande rappelée.' });
     }
-  }, [heldOrders, toast, selectedTable]);
+  }, [heldOrders, toast, selectedTable, sales]);
 
   const deleteHeldOrder = useCallback((orderId: string) => {
     setHeldOrders(prev => prev.filter(o => o.id !== orderId));
@@ -452,6 +493,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     orderTax,
     isKeypadOpen,
     setIsKeypadOpen,
+    currentSaleId,
+    setCurrentSaleId,
     items,
     addItem,
     updateItem,
@@ -510,6 +553,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     orderTax,
     isKeypadOpen,
     setIsKeypadOpen,
+    currentSaleId,
+    setCurrentSaleId,
     items,
     addItem,
     updateItem,

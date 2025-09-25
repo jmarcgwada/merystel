@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, PaymentMethod, Customer } from '@/lib/types';
+import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
 import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, selectedTable, updateTableOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, sales } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -107,15 +108,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
-
-    recordSale({
+    
+    const saleInfo = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
       payments: finalPayments,
       customerId: selectedCustomer?.id,
-    });
+      status: 'paid' as Sale['status'],
+    };
+
+    recordSale(saleInfo, currentSaleId ?? undefined);
     
     setIsPaid(true);
 
@@ -124,15 +128,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         title: 'Paiement réussi',
         description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
       });
-      if (selectedTable) {
-        updateTableOrder(selectedTable.id, []);
+      
+      const saleOrigin = sales.find(s => s.id === currentSaleId);
+      if (saleOrigin && saleOrigin.tableId) {
         router.push('/restaurant');
       } else {
         clearOrder();
       }
+
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, selectedTable, updateTableOrder, router, clearOrder, handleOpenChange, selectedCustomer]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, sales]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
