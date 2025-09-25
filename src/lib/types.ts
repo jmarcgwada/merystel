@@ -105,4 +105,5 @@ export interface CompanyInfo {
   legalForm?: string;
   iban?: string;
   bic?: string;
+  notes?: string;
 }

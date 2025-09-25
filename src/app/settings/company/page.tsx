@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function CompanyPage() {
   const { companyInfo, setCompanyInfo } = usePos();
@@ -22,7 +24,7 @@ export default function CompanyPage() {
     setLocalInfo(companyInfo);
   }, [companyInfo]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setLocalInfo(prev => ({ ...prev, [id]: value }));
   };
@@ -48,7 +50,7 @@ export default function CompanyPage() {
           </Link>
         </Button>
       </PageHeader>
-      <div className="mt-8 grid grid-cols-1 gap-8">
+      <div className="mt-8 space-y-8">
         <Card>
           <CardHeader>
               <CardTitle>Informations générales et de contact</CardTitle>
@@ -94,38 +96,38 @@ export default function CompanyPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-              <CardTitle>Informations légales et fiscales</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                 <div className="grid gap-2">
-                    <Label htmlFor="siret">Numéro de SIRET</Label>
-                    <Input id="siret" value={localInfo.siret || ''} onChange={handleInputChange} />
+        <div className="grid lg:grid-cols-2 gap-8">
+            <Card>
+            <CardHeader>
+                <CardTitle>Informations légales et fiscales</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="siret">Numéro de SIRET</Label>
+                        <Input id="siret" value={localInfo.siret || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="legalForm">Forme juridique</Label>
+                        <Input id="legalForm" value={localInfo.legalForm || ''} onChange={handleInputChange} placeholder="ex: SARL, SAS..." />
+                    </div>
                 </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="website">Site Web</Label>
+                        <Input id="website" value={localInfo.website || ''} onChange={handleInputChange} placeholder="https://..." />
+                    </div>
+                </div>
+            </CardContent>
+            </Card>
+            
+            <Card>
+            <CardHeader>
+                <CardTitle>Coordonnées bancaires</CardTitle>
+                <CardDescription>Ces informations apparaîtront sur vos factures.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="legalForm">Forme juridique</Label>
-                    <Input id="legalForm" value={localInfo.legalForm || ''} onChange={handleInputChange} placeholder="ex: SARL, SAS, Auto-entrepreneur..." />
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="website">Site Web</Label>
-                    <Input id="website" value={localInfo.website || ''} onChange={handleInputChange} placeholder="https://..." />
-                </div>
-              </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-              <CardTitle>Coordonnées bancaires</CardTitle>
-              <CardDescription>Ces informations apparaîtront sur vos factures.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                 <div className="grid gap-2">
                     <Label htmlFor="iban">IBAN</Label>
                     <Input id="iban" value={localInfo.iban || ''} onChange={handleInputChange} />
                 </div>
@@ -133,6 +135,18 @@ export default function CompanyPage() {
                     <Label htmlFor="bic">BIC / SWIFT</Label>
                     <Input id="bic" value={localInfo.bic || ''} onChange={handleInputChange} />
                 </div>
+            </CardContent>
+            </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+              <CardTitle>Notes / Observations</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <div className="grid gap-2">
+                  <Label htmlFor="notes">Informations diverses</Label>
+                  <Textarea id="notes" value={localInfo.notes || ''} onChange={handleInputChange} placeholder="Consignez ici toute information supplémentaire concernant l'entreprise..." rows={4} />
               </div>
           </CardContent>
         </Card>

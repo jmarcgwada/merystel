@@ -133,6 +133,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     legalForm: 'SAS',
     iban: 'FR76 3000 4000 0500 0012 3456 789',
     bic: 'BNPAFRPPXXX',
+    notes: '',
   });
   const { toast } = useToast();
   const router = useRouter();
