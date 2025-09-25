@@ -25,12 +25,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased h-full">
+      <body className="font-body antialiased h-full flex flex-col">
         <PosProvider>
-          <div className="flex flex-col h-screen">
-            <Header />
-            <main className="flex-1">{children}</main>
-          </div>
+          <Header />
+          <main className="flex-1 overflow-hidden">{children}</main>
           <Toaster />
         </PosProvider>
       </body>
