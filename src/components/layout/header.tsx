@@ -16,13 +16,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Settings, User, LogOut } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
+import { Separator } from '../ui/separator';
 
 export default function Header() {
   const router = useRouter();
-  const { showNavConfirm, order } = usePos();
+  const { showNavConfirm, order, companyInfo } = usePos();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // La modale se déclenche dès qu'il y a des articles dans la commande, 
+    // La modale se déclenche dès qu'il y a des articles dans la commande,
     // peu importe si une table est sélectionnée ou non.
     if (order.length > 0) {
       e.preventDefault();
@@ -33,7 +34,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -51,6 +52,8 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
+          <Separator orientation="vertical" className="h-6" />
+          <span className="font-normal text-muted-foreground">{companyInfo.name}</span>
         </div>
 
         <div className="flex items-center gap-4">
