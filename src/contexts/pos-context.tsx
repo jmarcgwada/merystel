@@ -33,6 +33,7 @@ interface PosContextType {
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
+  toggleAllItemsFavorite: (setFavorite: boolean) => void;
   
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
@@ -423,6 +424,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const toggleItemFavorite = useCallback((itemId: string) => {
       setItems(prev => prev.map(i => i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i));
   }, []);
+  
+  const toggleAllItemsFavorite = useCallback((setFavorite: boolean) => {
+    setItems(prev => prev.map(i => ({...i, isFavorite: setFavorite})));
+    toast({ title: `Tous les articles ont été ${setFavorite ? 'ajoutés aux' : 'retirés des'} favoris.` });
+  }, [toast]);
 
   const addCustomer = useCallback((customerData: Omit<Customer, 'id'>) => {
     const newCustomer = { ...customerData, id: `cust-${Date.now()}`, isDefault: !customers.some(c => c.isDefault) };
@@ -560,6 +566,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     deleteItem,
     toggleItemFavorite,
+    toggleAllItemsFavorite,
     categories,
     addCategory,
     updateCategory,
@@ -628,6 +635,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     deleteItem,
     toggleItemFavorite,
+    toggleAllItemsFavorite,
     categories,
     addCategory,
     updateCategory,
