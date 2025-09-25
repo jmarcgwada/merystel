@@ -21,12 +21,13 @@ const Key = ({
   <Button
     variant="outline"
     className={cn("h-12 text-lg bg-card hover:bg-secondary", className)}
-    style={{ flex: flex }}
+    style={{ flex: `1 0 ${flex * 2.5}rem` }}
     onClick={onClick}
   >
     {children}
   </Button>
 );
+
 
 export function VirtualKeyboard() {
   const {
@@ -44,6 +45,13 @@ export function VirtualKeyboard() {
     ["q", "s", "d", "f", "g", "h", "j", "k", "l", "m"],
     ["w", "x", "c", "v", "b", "n"],
   ];
+  
+  const numpadKeys = [
+    ["7", "8", "9"],
+    ["4", "5", "6"],
+    ["1", "2", "3"],
+    ["0", "."],
+  ];
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && hideKeyboard()} modal={false}>
@@ -51,36 +59,55 @@ export function VirtualKeyboard() {
         <DrawerHeader className="p-0 h-0">
             <DrawerTitle className="sr-only">Clavier Virtuel</DrawerTitle>
         </DrawerHeader>
-        <div className="flex flex-col h-full space-y-1">
-        {keys.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex space-x-1 w-full justify-center">
-            {rowIndex === 2 && (
-                <Key onClick={toggleCaps} flex={1.5} className={cn(isCaps && "bg-primary text-primary-foreground")}>
-                    <Languages className="h-6 w-6"/>
-                </Key>
-            )}
-            {row.map((key) => (
-                <Key key={key} onClick={() => pressKey(key)}>
-                    {isCaps ? key.toUpperCase() : key}
-                </Key>
-            ))}
-            {rowIndex === 2 && (
-                <Key onClick={pressBackspace} flex={1.5}>
-                    <ArrowLeft className="h-6 w-6"/>
-                </Key>
-            )}
+        <div className="flex h-full space-x-2">
+            {/* Left side: Alphabetical keyboard */}
+            <div className="flex flex-col flex-1 space-y-1">
+                {keys.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex space-x-1 w-full justify-center">
+                    {rowIndex === 2 && (
+                        <Key onClick={toggleCaps} flex={1.5} className={cn(isCaps && "bg-primary text-primary-foreground")}>
+                            <Languages className="h-6 w-6"/>
+                        </Key>
+                    )}
+                    {row.map((key) => (
+                        <Key key={key} onClick={() => pressKey(key)}>
+                            {isCaps ? key.toUpperCase() : key}
+                        </Key>
+                    ))}
+                    {rowIndex === 2 && (
+                        <Key onClick={pressBackspace} flex={1.5}>
+                            <ArrowLeft className="h-6 w-6"/>
+                        </Key>
+                    )}
+                    </div>
+                ))}
+                <div className="flex space-x-1 justify-center">
+                    <Key onClick={() => pressKey(",")} flex={1}>,</Key>
+                    <Key onClick={pressSpace} flex={5}>
+                        Espace
+                    </Key>
+                    <Key onClick={() => pressKey(".")} flex={1}>.</Key>
+                    <Key onClick={hideKeyboard} flex={1.5}>
+                        <CornerDownLeft className="h-6 w-6"/>
+                    </Key>
+                </div>
             </div>
-        ))}
-        <div className="flex space-x-1 justify-center">
-            <Key onClick={() => pressKey(",")} flex={1}>,</Key>
-            <Key onClick={pressSpace} flex={5}>
-                Espace
-            </Key>
-            <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-            <Key onClick={hideKeyboard} flex={1.5}>
-                <CornerDownLeft className="h-6 w-6"/>
-            </Key>
-        </div>
+
+            {/* Right side: Numpad */}
+            <div className="flex flex-col space-y-1" style={{width: '12rem'}}>
+                 {numpadKeys.map((row, rowIndex) => (
+                    <div key={`num-${rowIndex}`} className="flex space-x-1 w-full">
+                        {row.map((key) => (
+                            <Key key={key} onClick={() => pressKey(key)} flex={key === '0' ? 2.1 : 1}>
+                                {key}
+                            </Key>
+                        ))}
+                    </div>
+                ))}
+                <Key onClick={pressBackspace}>
+                    <ArrowLeft className="h-6 w-6" />
+                </Key>
+            </div>
         </div>
       </DrawerContent>
     </Drawer>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, Keyboard } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
@@ -28,10 +28,6 @@ export function CategoryList({
   const [searchTerm, setSearchTerm] = React.useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
       setSearchTerm(inputValue);
@@ -48,8 +44,9 @@ export function CategoryList({
 
   const getVariant = (id: string | null) => {
     if (!selectedCategory && id === 'all') return 'default';
+    // This handles both SpecialCategory string and Category object
+    if (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) return 'default';
     if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
-    if (typeof selectedCategory === 'object' && selectedCategory?.id === id) return 'default';
     return 'ghost';
   }
 
@@ -59,7 +56,7 @@ export function CategoryList({
         <h2 className="text-xl font-bold tracking-tight font-headline mb-3">
           Catégories
         </h2>
-        <div className="relative" onClick={handleSearchClick}>
+        <div className="relative flex items-center gap-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Rechercher catégorie..."
@@ -67,6 +64,9 @@ export function CategoryList({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
           />
+          <Button variant="ghost" size="icon" onClick={handleSearchClick}>
+            <Keyboard className="h-5 w-5" />
+          </Button>
         </div>
       </div>
       <ScrollArea className="flex-1">

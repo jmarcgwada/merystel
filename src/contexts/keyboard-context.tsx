@@ -44,8 +44,12 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     const toggleCaps = useCallback(() => setIsCaps(prev => !prev), []);
 
     const pressKey = useCallback((key: string) => {
-        const char = isCaps ? key.toUpperCase() : key.toLowerCase();
-        setInputValue(prev => prev + char);
+        if (/^[a-zA-Z]$/.test(key)) {
+            const char = isCaps ? key.toUpperCase() : key.toLowerCase();
+            setInputValue(prev => prev + char);
+        } else {
+             setInputValue(prev => prev + key);
+        }
     }, [isCaps]);
 
     const pressSpace = useCallback(() => {
