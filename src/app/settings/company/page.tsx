@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CompanyPage() {
   return (
@@ -10,7 +12,14 @@ export default function CompanyPage() {
       <PageHeader
         title="Détails de l'entreprise"
         subtitle="Gérez les informations de votre entreprise."
-      />
+      >
+        <Button asChild variant="outline">
+          <Link href="/settings">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour aux paramètres
+          </Link>
+        </Button>
+      </PageHeader>
       <Card className="mt-8">
         <CardHeader>
             <CardTitle>Informations sur l'entreprise</CardTitle>

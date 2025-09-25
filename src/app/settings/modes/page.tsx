@@ -2,6 +2,9 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ModesPage() {
   return (
@@ -9,7 +12,14 @@ export default function ModesPage() {
       <PageHeader
         title="Modes Forcés"
         subtitle="Verrouillez l'application dans un mode spécifique pour certains utilisateurs."
-      />
+      >
+        <Button asChild variant="outline">
+          <Link href="/settings">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour aux paramètres
+          </Link>
+        </Button>
+      </PageHeader>
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Configuration du mode</CardTitle>

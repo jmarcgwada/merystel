@@ -8,6 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { usePos } from '@/contexts/pos-context';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 
 export default function CustomizationPage() {
@@ -18,7 +21,14 @@ export default function CustomizationPage() {
       <PageHeader
         title="Personnalisation de l'interface"
         subtitle="Personnalisez l'apparence de votre point de vente."
-      />
+      >
+        <Button asChild variant="outline">
+          <Link href="/settings">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour aux paramètres
+          </Link>
+        </Button>
+      </PageHeader>
       <div className="mt-8 space-y-8">
         <Card>
           <CardHeader>
