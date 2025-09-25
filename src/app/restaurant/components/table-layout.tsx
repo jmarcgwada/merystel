@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -32,7 +33,7 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables } = usePos();
+  const { tables, vatRates } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
@@ -44,7 +45,14 @@ export function TableLayout() {
       {tables.map((table) => {
         const config = statusConfig[table.status];
         const Icon = config.icon;
-        const total = table.order.reduce((sum, item) => sum + item.total, 0);
+        
+        const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
+        const tax = table.order.reduce((sum, item) => {
+            const vat = vatRates.find(v => v.id === item.vatId);
+            const taxForItem = item.total * ((vat?.rate || 0) / 100);
+            return sum + taxForItem;
+        }, 0);
+        const total = subtotal + tax;
 
         return (
           <Card
@@ -66,7 +74,7 @@ export function TableLayout() {
               {table.status !== 'available' ? (
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {(total * 1.1).toFixed(2)}€
+                    {total.toFixed(2)}€
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {table.order.length} article{table.order.length !== 1 ? 's' : ''}
