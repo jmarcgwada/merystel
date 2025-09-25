@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -25,8 +25,9 @@ export function CategoryList({
   onToggleFavorites,
 }: CategoryListProps) {
   const { categories, popularItemsCount } = usePos();
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+  const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
@@ -49,12 +50,36 @@ export function CategoryList({
   }, [categories, searchTerm]);
 
   const getVariant = (id: string | null) => {
-    if (!selectedCategory && id === 'all') return 'default';
-    // This handles both SpecialCategory string and Category object
-    if (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) return 'default';
-    if (typeof selectedCategory === 'string' && selectedCategory === id) return 'default';
+    const isSelected = (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) || 
+                       (typeof selectedCategory === 'string' && selectedCategory === id) ||
+                       (!selectedCategory && id === 'all');
+    if (isSelected) return 'default';
     return 'ghost';
   }
+
+  const getStyleForCategory = (category: Category) => {
+    const isSelected = selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === category.id;
+    const isHovered = hoveredCategoryId === category.id;
+
+    if (isSelected && category.color) {
+      return {
+        backgroundColor: category.color,
+        color: 'white',
+      };
+    }
+    if (isHovered && category.color) {
+        return {
+            backgroundColor: `${category.color}33`, // Add alpha for hover effect
+        }
+    }
+    return {};
+  };
+
+  const isSpecialCategorySelected = (id: string) => {
+      if (id === 'all') return getVariant('all') === 'default' && !(selectedCategory && typeof selectedCategory === 'object');
+      return getVariant(id) === 'default';
+  }
+
 
   return (
     <div className="flex h-full flex-col">
@@ -78,7 +103,7 @@ export function CategoryList({
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-2 p-4">
            <Button
-              variant={getVariant('all')}
+              variant={isSpecialCategorySelected('all') ? 'default' : 'ghost'}
               className="h-12 w-full justify-start text-left"
               onClick={() => onSelectCategory('all')}
             >
@@ -86,7 +111,7 @@ export function CategoryList({
               <span className="text-base">Tout</span>
             </Button>
             <Button
-              variant={getVariant('popular')}
+              variant={isSpecialCategorySelected('popular') ? 'default' : 'ghost'}
               className="h-12 w-full justify-start text-left"
               onClick={() => onSelectCategory('popular')}
             >
@@ -101,16 +126,22 @@ export function CategoryList({
               <Star className={cn("mr-3 h-5 w-5", showFavoritesOnly && 'text-yellow-500 fill-yellow-400')} />
               <span className="text-base">Favoris</span>
             </Button>
-          {filteredCategories.map((category) => (
-            <Button
-              key={category.id}
-              variant={getVariant(category.id)}
-              className="h-12 w-full justify-start text-left"
-              onClick={() => onSelectCategory(category)}
-            >
-              <span className="text-base ml-8">{category.name}</span>
-            </Button>
-          ))}
+          {filteredCategories.map((category) => {
+            const isSelected = selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === category.id;
+            return (
+                <Button
+                key={category.id}
+                variant={isSelected ? 'default' : 'ghost'}
+                style={getStyleForCategory(category)}
+                className="h-12 w-full justify-start text-left"
+                onClick={() => onSelectCategory(category)}
+                onMouseEnter={() => setHoveredCategoryId(category.id)}
+                onMouseLeave={() => setHoveredCategoryId(null)}
+                >
+                <span className="text-base ml-8">{category.name}</span>
+                </Button>
+            )
+          })}
         </div>
       </ScrollArea>
     </div>
