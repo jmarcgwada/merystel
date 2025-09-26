@@ -156,6 +156,7 @@ interface PosContextType {
   confirmNavigation: () => void;
   
   seedInitialData: () => void;
+  resetAllData: () => void;
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
@@ -422,6 +423,36 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
   }, [firestore, companyId, categories, vatRates, paymentMethods, customers, items, toast]);
+
+    const resetAllData = useCallback(async () => {
+        if (!firestore || !companyId) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            return;
+        }
+
+        const collectionsToDelete = ['items', 'categories', 'customers', 'tables', 'sales', 'paymentMethods', 'vatRates', 'heldOrders'];
+        
+        try {
+            const batch = writeBatch(firestore);
+
+            for (const collectionName of collectionsToDelete) {
+                const collRef = getCollectionRef(collectionName);
+                if (collRef) {
+                    const snapshot = await getDocs(query(collRef));
+                    snapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                }
+            }
+
+            await batch.commit();
+            toast({ title: 'Réinitialisation réussie', description: 'Toutes les données de l\'application ont été supprimées.' });
+        } catch (error) {
+            console.error('Error resetting data:', error);
+            toast({ variant: 'destructive', title: 'Erreur de réinitialisation', description: 'Une erreur s\'est produite lors de la suppression des données.' });
+        }
+
+    }, [firestore, companyId, getCollectionRef, toast]);
   // #endregion
 
   // #region Order Management
@@ -1102,6 +1133,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       closeNavConfirm,
       confirmNavigation,
       seedInitialData,
+      resetAllData,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -1175,6 +1207,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       closeNavConfirm,
       confirmNavigation,
       seedInitialData,
+      resetAllData,
       cameFromRestaurant,
       isLoading,
       user,

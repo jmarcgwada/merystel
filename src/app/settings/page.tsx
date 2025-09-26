@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, UserCog } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, UserCog, Trash2 } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -24,8 +25,9 @@ import { useMemo, useState } from 'react';
 
 export default function SettingsPage() {
   const { user } = useUser();
-  const { seedInitialData, categories, vatRates, paymentMethods } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods } = usePos();
   const [isSeedDialogOpen, setSeedDialogOpen] = useState(false);
+  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
 
   const canSeedData = useMemo(() => {
     return !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
@@ -34,6 +36,11 @@ export default function SettingsPage() {
   const handleSeedData = () => {
     seedInitialData();
     setSeedDialogOpen(false);
+  }
+  
+  const handleResetData = () => {
+    resetAllData();
+    setResetDialogOpen(false);
   }
 
   const settingsLinks = [
@@ -136,6 +143,42 @@ export default function SettingsPage() {
             </AlertDialogContent>
         </AlertDialog>
       </div>
+
+       <div className="mt-12">
+            <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
+            <Card className="border-destructive">
+                <CardHeader>
+                    <CardTitle>Réinitialiser l'application</CardTitle>
+                    <CardDescription>
+                        Cette action est irréversible. Toutes les données, y compris les ventes, les articles, et les configurations seront supprimées définitivement.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Réinitialiser toutes les données
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action est irréversible. Toutes vos données seront supprimées de la base de données.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
+                                    Oui, tout supprimer
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+        </div>
     </>
   );
 }
