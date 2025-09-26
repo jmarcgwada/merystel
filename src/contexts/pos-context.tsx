@@ -684,7 +684,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (selectedTable) {
-            updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
+            await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
             setSelectedTable(null);
         }
 
@@ -699,7 +699,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: 'Commande rappelée' });
         routerRef.current.push('/pos');
     }
-  }, [heldOrders, user, selectedTable, updateEntity, toast]);
+  }, [heldOrders, user, selectedTable, updateEntity, toast, firestore, companyId]);
 
 
   const holdOrder = useCallback(async () => {
@@ -717,13 +717,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 const setSelectedTableById = useCallback(
     async (tableId: string | null) => {
-        if (!tables || !user) {
+        if (!tables || !user || !firestore || !companyId) {
             if (!tableId) clearOrder();
             return;
         }
 
         if (selectedTable && selectedTable.id !== tableId) {
-            await updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
+            await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
         }
 
         if (!tableId) {
@@ -746,7 +746,7 @@ const setSelectedTableById = useCallback(
             return;
         }
         
-        await updateEntity('tables', table.id, { lockedBy: user.id }, '');
+        await updateDoc(doc(firestore, 'companies', companyId, 'tables', table.id), { lockedBy: user.id });
 
         setSelectedTable(table);
         setOrder(table.order || []);
@@ -756,7 +756,7 @@ const setSelectedTableById = useCallback(
         });
         routerRef.current.push(`/pos?tableId=${tableId}`);
     },
-    [tables, user, clearOrder, toast, updateEntity, selectedTable]
+    [tables, user, clearOrder, toast, selectedTable, firestore, companyId]
 );
 
 
@@ -784,12 +784,12 @@ const setSelectedTableById = useCallback(
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       await updateTableOrder(tableId, orderData);
-      await updateEntity('tables', tableId, { lockedBy: null }, '');
+      await updateDoc(doc(firestore, 'companies', companyId, 'tables', tableId), { lockedBy: null });
       toast({ title: 'Table sauvegardée' });
       clearOrder();
       setSelectedTable(null);
     },
-    [updateTableOrder, clearOrder, toast, updateEntity]
+    [updateTableOrder, clearOrder, toast, firestore, companyId]
   );
 
   const promoteTableToTicket = useCallback(async (tableId: string) => {
