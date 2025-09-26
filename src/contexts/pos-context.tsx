@@ -214,12 +214,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
-  const [authRequired, setAuthRequired] = useState(() => getFromStorage('authRequired', true));
-  const [showTicketImages, setShowTicketImages] = useState(() => getFromStorage('showTicketImages', true));
-  const [popularItemsCount, setPopularItemsCount] = useState(() => getFromStorage('popularItemsCount', 10));
-  const [itemCardOpacity, setItemCardOpacity] = useState(() => getFromStorage('itemCardOpacity', 30));
+  const [authRequired, setAuthRequired] = useState(true);
+  const [showTicketImages, setShowTicketImages] = useState(true);
+  const [popularItemsCount, setPopularItemsCount] = useState(10);
+  const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
-    useState(() => getFromStorage('enableRestaurantCategoryFilter', true));
+    useState(true);
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -231,6 +231,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
+
+  // Hydration-safe settings loading
+  useEffect(() => {
+    setAuthRequired(getFromStorage('authRequired', true));
+    setShowTicketImages(getFromStorage('showTicketImages', true));
+    setPopularItemsCount(getFromStorage('popularItemsCount', 10));
+    setItemCardOpacity(getFromStorage('itemCardOpacity', 30));
+    setEnableRestaurantCategoryFilter(getFromStorage('enableRestaurantCategoryFilter', true));
+  }, []);
+
 
   // Effect to persist settings to localStorage
   useEffect(() => setInStorage('authRequired', authRequired), [authRequired]);
