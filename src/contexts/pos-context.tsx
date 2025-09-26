@@ -86,7 +86,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
 
@@ -146,7 +146,7 @@ interface PosContextType {
   deleteHeldOrder: (orderId: string) => void;
 
   authRequired: boolean;
-  setAuthRequired: React.Dispatch<React.SetStateAction<boolean>>;
+  setAuthRequired: (required: boolean) => void;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
   popularItemsCount: number;
@@ -214,7 +214,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
-  const [authRequired, setAuthRequired] = useState(true);
   const [showTicketImages, setShowTicketImages] = useState(true);
   const [popularItemsCount, setPopularItemsCount] = useState(10);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
@@ -234,7 +233,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // Hydration-safe settings loading
   useEffect(() => {
-    setAuthRequired(getFromStorage('authRequired', true));
     setShowTicketImages(getFromStorage('showTicketImages', true));
     setPopularItemsCount(getFromStorage('popularItemsCount', 10));
     setItemCardOpacity(getFromStorage('itemCardOpacity', 30));
@@ -243,7 +241,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
   // Effect to persist settings to localStorage
-  useEffect(() => setInStorage('authRequired', authRequired), [authRequired]);
   useEffect(() => setInStorage('showTicketImages', showTicketImages), [showTicketImages]);
   useEffect(() => setInStorage('popularItemsCount', popularItemsCount), [popularItemsCount]);
   useEffect(() => setInStorage('itemCardOpacity', itemCardOpacity), [itemCardOpacity]);
@@ -313,6 +310,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     heldOrdersRef.current = heldOrders;
   }, [heldOrders]);
 
+  const authRequired = useMemo(() => companyInfo?.authRequired ?? true, [companyInfo]);
 
   // #region Base Callbacks
   const getCollectionRef = useCallback(
@@ -1144,6 +1142,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [companyId, firestore]
   );
+  
+  const setAuthRequired = useCallback((required: boolean) => {
+      if (companyInfo) {
+          setCompanyInfo({ ...companyInfo, authRequired: required });
+      }
+  }, [companyInfo, setCompanyInfo]);
   // #endregion
 
   // #region Navigation Confirmation
