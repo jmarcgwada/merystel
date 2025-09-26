@@ -146,7 +146,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">+{todaysSales}</div>
-                 <p className="text-xs text-muted-foreground">{formattedDate || <Skeleton className="h-4 w-24" />}</p>
+                 <div className="text-xs text-muted-foreground">{formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}</div>
             </CardContent>
         </Card>
          <Card>
@@ -244,3 +244,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
