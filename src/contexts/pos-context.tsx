@@ -87,7 +87,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -895,7 +895,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region User Management & Session
   const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'companyId'>) => {
+    async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
       if (!auth || !firestore) {
         toast({
           variant: 'destructive',
@@ -905,10 +905,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const tempPassword = Math.random().toString(36).slice(-8);
+      const finalPassword = password || Math.random().toString(36).slice(-8);
 
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, tempPassword);
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, finalPassword);
         const authUser = userCredential.user;
 
         const userDocData: Omit<User, 'id'> = {
@@ -921,11 +921,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
 
-        toast({
-          title: 'Utilisateur créé avec succès',
-          description: `Mot de passe temporaire : ${tempPassword}`,
-          duration: 15000,
-        });
+        if (!password) {
+          toast({
+            title: 'Utilisateur créé avec succès',
+            description: `Mot de passe temporaire : ${finalPassword}`,
+            duration: 15000,
+          });
+        }
+        // No toast if password is provided (e.g. for initial admin creation)
+
       } catch (error: any) {
         console.error('Error creating user:', error);
         let description = "Une erreur inconnue s'est produite.";
@@ -937,6 +941,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           description = 'Le mot de passe est trop faible.';
         }
         toast({ variant: 'destructive', title: 'Erreur de création', description });
+        throw error; // Re-throw to be caught by the caller if needed
       }
     },
     [auth, firestore, toast]

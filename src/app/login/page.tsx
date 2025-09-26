@@ -35,7 +35,7 @@ export default function LoginPage() {
             lastName: 'Zenith',
             email: 'admin@zenith.com',
             role: 'admin',
-          });
+          }, 'password123'); // Use a fixed password for the first admin
         } catch (error) {
             // This might fail if the user already exists in auth but not in Firestore.
             // We can ignore this for the purpose of ensuring an admin exists.
