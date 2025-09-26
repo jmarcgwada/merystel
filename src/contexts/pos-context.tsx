@@ -43,9 +43,12 @@ import {
   setDoc,
   getDocs,
   query,
+  where,
+  getDoc,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { v4 as uuidv4 } from 'uuid';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -89,6 +92,11 @@ interface PosContextType {
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
+  findUserByEmail: (email: string) => User | undefined;
+  handleLoginWithSession: (email: string, password: string) => Promise<void>;
+  validateSession: (userId: string, token: string) => boolean;
+  forceSignOut: (message: string) => void;
+
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -337,7 +345,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         await setDoc(ref, data, { merge: true });
-        toast({ title: toastTitle });
+        if(toastTitle) toast({ title: toastTitle });
       } catch (error) {
         console.error(`Error updating ${collectionName}:`, error);
         toast({ variant: 'destructive', title: 'Erreur de mise à jour' });
@@ -457,7 +465,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       console.error('Error seeding data:', error);
       toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
-  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, items, tables, toast]);
+  }, [firestore, companyId, categories, vatRates, paymentMethods, toast]);
 
     const resetAllData = useCallback(async () => {
         if (!firestore || !companyId) {
@@ -972,6 +980,37 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [auth, toast]);
 
+    const findUserByEmail = useCallback((email: string) => {
+        return users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    }, [users]);
+    
+    const handleLoginWithSession = useCallback(async (email: string, password: string) => {
+        if (!auth) throw new Error("Auth service not available.");
+
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const newSessionToken = uuidv4();
+        localStorage.setItem('sessionToken', newSessionToken);
+        await updateEntity('users', userCredential.user.uid, { sessionToken: newSessionToken }, '', true);
+
+    }, [auth, updateEntity]);
+
+    const validateSession = useCallback((userId: string, token: string) => {
+        const user = users.find(u => u.id === userId);
+        return user?.sessionToken === token;
+    }, [users]);
+
+    const forceSignOut = useCallback(async (message: string) => {
+        if (!auth) return;
+        localStorage.removeItem('sessionToken');
+        await signOut(auth);
+        toast({
+            variant: 'destructive',
+            title: "Session expirée",
+            description: message,
+        });
+        routerRef.current.push('/login');
+    }, [auth, toast]);
+
   // #endregion
 
   // #region Generic Entity Management
@@ -1214,6 +1253,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
+      findUserByEmail,
+      handleLoginWithSession,
+      validateSession,
+      forceSignOut,
       items,
       addItem,
       updateItem,
@@ -1302,6 +1345,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
+      findUserByEmail,
+      handleLoginWithSession,
+      validateSession,
+      forceSignOut,
       items,
       addItem,
       updateItem,
@@ -1375,5 +1422,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

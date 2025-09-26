@@ -18,6 +18,16 @@ import { Info, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const adminSchema = z.object({
     firstName: z.string().min(1, 'Prénom requis.'),
@@ -28,6 +38,8 @@ const adminSchema = z.object({
 
 type AdminFormValues = z.infer<typeof adminSchema>;
 
+const SESSION_OVERRIDE_PIN = '1791';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,9 +48,14 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
-  const { users, isLoading: posLoading, addUser } = usePos();
+  const { users, isLoading: posLoading, addUser, handleLoginWithSession, findUserByEmail } = usePos();
   const [isReady, setIsReady] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
+  
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState('');
+  const [loginCredentials, setLoginCredentials] = useState<{email: string, password: string} | null>(null);
+
 
   useEffect(() => {
     if (!userLoading && !posLoading) {
@@ -87,11 +104,21 @@ export default function LoginPage() {
   }
 
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent, force: boolean = false) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    const userToLogin = findUserByEmail(email);
+
+    if (userToLogin && userToLogin.sessionToken && !force) {
+        setLoginCredentials({email, password});
+        setShowPinDialog(true);
+        setIsLoading(false);
+        return;
+    }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await handleLoginWithSession(email, password);
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Login Error:", error);
@@ -112,6 +139,26 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pin === SESSION_OVERRIDE_PIN) {
+            setShowPinDialog(false);
+            setPin('');
+            if(loginCredentials) {
+                // Synthesize a form event to pass to handleLogin with force=true
+                handleLogin({ preventDefault: () => {} } as React.FormEvent, true);
+            }
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Code PIN incorrect',
+                description: 'La tentative de connexion a échoué.'
+            });
+            setShowPinDialog(false);
+            setPin('');
+        }
+  }
 
   if (userLoading || posLoading || !isReady) {
     return (
@@ -208,6 +255,7 @@ export default function LoginPage() {
   }
 
   return (
+    <>
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -250,5 +298,35 @@ export default function LoginPage() {
         </form>
       </Card>
     </div>
+    <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <AlertDialogContent>
+            <form onSubmit={handlePinSubmit}>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Session active détectée</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Cet utilisateur est déjà connecté sur un autre appareil. Veuillez entrer le code PIN pour forcer la connexion et déconnecter l'autre session.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="pin" className="sr-only">Code PIN</Label>
+                    <Input 
+                        id="pin"
+                        type="password"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value)}
+                        placeholder="••••"
+                        autoFocus
+                    />
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel type="button" onClick={() => { setPin(''); setShowPinDialog(false)}}>Annuler</AlertDialogCancel>
+                    <AlertDialogAction type="submit">
+                        Forcer la connexion
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </form>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

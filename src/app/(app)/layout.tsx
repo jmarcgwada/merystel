@@ -4,6 +4,7 @@
 import { useUser } from '@/firebase/auth/use-user';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
+import { usePos } from '@/contexts/pos-context';
 
 
 export default function AppLayout({
@@ -12,13 +13,22 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { user, loading } = useUser();
+  const { validateSession, forceSignOut } = usePos();
 
 
   useEffect(() => {
     if (!loading && !user) {
       redirect('/login');
     }
-  }, [user, loading]);
+
+    if (!loading && user) {
+        const sessionToken = localStorage.getItem('sessionToken');
+        if (!sessionToken || !validateSession(user.uid, sessionToken)) {
+            forceSignOut("Une nouvelle session a été démarrée sur un autre appareil.");
+        }
+    }
+
+  }, [user, loading, validateSession, forceSignOut]);
 
   // Show loading screen while we determine auth state.
   if (loading || !user) {
@@ -31,3 +41,4 @@ export default function AppLayout({
 
   return <>{children}</>;
 }
+
