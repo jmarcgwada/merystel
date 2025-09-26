@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,13 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { user } = useUser();
 
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
   if (user) {
-    router.push('/dashboard');
     return (
         <div className="flex h-screen items-center justify-center">
             <p>Déjà connecté. Redirection...</p>
