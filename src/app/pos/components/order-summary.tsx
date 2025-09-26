@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, LayoutDashboard } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, LayoutDashboard, ArrowLeft } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -224,23 +224,33 @@ export function OrderSummary() {
   }, [selectedTable, currentSaleContext]);
   
   const HeaderAction = () => {
-      if (selectedTable) {
-           return (
-                <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
-                  Annuler
-                </Button>
-            )
-      }
-
+    if (selectedTable) {
       if (order.length > 0) {
-          return (
-             <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
-              Tout effacer
-            </Button>
-          )
+        return (
+          <Button variant="ghost" size="sm" onClick={() => setOrder([])} className="text-destructive hover:text-destructive">
+            Tout effacer
+          </Button>
+        );
       }
+      return (
+        <Button asChild variant="ghost" size="sm" onClick={() => setSelectedTable(null)}>
+          <Link href="/restaurant">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour
+          </Link>
+        </Button>
+      );
+    }
 
-      if (order.length === 0 && !selectedTable) {
+    if (order.length > 0) {
+      return (
+        <Button variant="ghost" size="sm" onClick={clearOrder} className="text-destructive hover:text-destructive">
+          Tout effacer
+        </Button>
+      );
+    }
+    
+    if (order.length === 0 && !selectedTable) {
         return (
             <Button asChild variant="ghost" size="sm">
                 <Link href="/dashboard">
@@ -249,9 +259,9 @@ export function OrderSummary() {
                 </Link>
             </Button>
         )
-      }
-      
-      return null;
+    }
+
+    return null;
   }
 
   const handleSaveAndExit = () => {
@@ -470,6 +480,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
