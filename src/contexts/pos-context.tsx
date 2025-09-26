@@ -95,7 +95,6 @@ interface PosContextType {
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
   findUserByEmail: (email: string) => User | undefined;
-  handleLoginWithSession: (email: string, password: string) => Promise<void>;
   handleSignOut: () => Promise<void>;
   validateSession: (userId: string, token: string) => boolean;
   forceSignOut: (message: string) => void;
@@ -987,42 +986,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
-    const handleLoginWithSession = useCallback(async (email: string, password: string) => {
-        if (!auth) throw new Error("Auth service not available.");
-
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const newSessionToken = uuidv4();
-        localStorage.setItem('sessionToken', newSessionToken);
-        await updateEntity('users', userCredential.user.uid, { sessionToken: newSessionToken }, '', true);
-
-    }, [auth, updateEntity]);
-
      const handleSignOut = useCallback(async () => {
-        if (!auth || !user) {
-            console.error("Auth service or user not available for sign out.");
-            return;
-        }
-        try {
-            // Clear the session token in Firestore first
-            const userRef = doc(firestore, 'users', user.uid);
-            await updateDoc(userRef, { sessionToken: deleteField() });
-            
-            // Then sign out from Firebase Auth
-            await signOut(auth);
-
-            // Finally, clear local storage
-            localStorage.removeItem('sessionToken');
-            
-            routerRef.current.push('/login');
-        } catch (error) {
-            console.error('Sign out error:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de déconnexion',
-                description: 'Une erreur s\'est produite lors de la déconnexion.',
-            });
-        }
-    }, [auth, user, firestore, toast]);
+        if (!auth) return;
+        localStorage.removeItem('sessionToken');
+        await signOut(auth);
+        routerRef.current.push('/login');
+    }, [auth]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
@@ -1032,22 +1001,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const forceSignOut = useCallback(async (message: string) => {
         if (!auth) return;
-        
-        const currentUserId = auth.currentUser?.uid;
-        if (currentUserId) {
-            const userRef = doc(firestore, 'users', currentUserId);
-            await updateDoc(userRef, { sessionToken: deleteField() });
-        }
-
-        localStorage.removeItem('sessionToken');
-        await signOut(auth);
+        await handleSignOut();
         toast({
             variant: 'destructive',
             title: "Session expirée",
             description: message,
         });
-        routerRef.current.push('/login');
-    }, [auth, toast, firestore]);
+    }, [auth, toast, handleSignOut]);
 
   // #endregion
 
@@ -1292,7 +1252,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteUser,
       sendPasswordResetEmailForUser,
       findUserByEmail,
-      handleLoginWithSession,
       handleSignOut,
       validateSession,
       forceSignOut,
@@ -1385,7 +1344,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteUser,
       sendPasswordResetEmailForUser,
       findUserByEmail,
-      handleLoginWithSession,
       handleSignOut,
       validateSession,
       forceSignOut,

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { v4 as uuidv4 } from 'uuid';
+import { doc, setDoc } from 'firebase/firestore';
+
 
 const adminSchema = z.object({
     firstName: z.string().min(1, 'Prénom requis.'),
@@ -45,9 +48,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
-  const { users, isLoading: posLoading, addUser, handleLoginWithSession, findUserByEmail } = usePos();
+  const { users, isLoading: posLoading, addUser, findUserByEmail, handleSignOut } = usePos();
   const [isReady, setIsReady] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   
@@ -102,6 +106,25 @@ export default function LoginPage() {
     }
   }
 
+  const performLogin = async (emailToLogin: string, passwordToLogin: string) => {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, passwordToLogin);
+        const newSessionToken = uuidv4();
+        localStorage.setItem('sessionToken', newSessionToken);
+        const userRef = doc(firestore, 'users', userCredential.user.uid);
+        await setDoc(userRef, { sessionToken: newSessionToken }, { merge: true });
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error("Login Error:", error);
+        let description = 'Vérifiez vos identifiants et réessayez.';
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+            description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
+        }
+        toast({ variant: 'destructive', title: 'Échec de la connexion', description });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent, force: boolean = false) => {
     e.preventDefault();
@@ -109,7 +132,6 @@ export default function LoginPage() {
     
     const userToLogin = findUserByEmail(email);
 
-    // Only show PIN dialog if user exists, has a non-empty session token, and we are not forcing the login
     if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0 && !force) {
         setLoginCredentials({email, password});
         setShowPinDialog(true);
@@ -117,27 +139,7 @@ export default function LoginPage() {
         return;
     }
 
-    try {
-      await handleLoginWithSession(email, password);
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error("Login Error:", error);
-      let description = 'Vérifiez vos identifiants et réessayez.';
-      if (error && typeof error === 'object' && 'code' in error) {
-        const errorCode = error.code;
-        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found' || errorCode === 'auth/invalid-email') {
-          description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
-        }
-      }
-      
-      toast({
-        variant: 'destructive',
-        title: 'Échec de la connexion',
-        description: description,
-      });
-    } finally {
-        setIsLoading(false);
-    }
+    await performLogin(email, password);
   };
   
   const generateDynamicPin = () => {
@@ -159,8 +161,7 @@ export default function LoginPage() {
             setShowPinDialog(false);
             setPin('');
             if(loginCredentials) {
-                // Synthesize a form event to pass to handleLogin with force=true
-                handleLogin({ preventDefault: () => {} } as React.FormEvent, true);
+                await performLogin(loginCredentials.email, loginCredentials.password);
             }
         } else {
             toast({
@@ -170,6 +171,7 @@ export default function LoginPage() {
             });
             setShowPinDialog(false);
             setPin('');
+             setIsLoading(false);
         }
   }
 
@@ -332,7 +334,7 @@ export default function LoginPage() {
                     />
                 </div>
                 <AlertDialogFooter>
-                    <AlertDialogCancel type="button" onClick={() => { setPin(''); setShowPinDialog(false)}}>Annuler</AlertDialogCancel>
+                    <AlertDialogCancel type="button" onClick={() => { setPin(''); setShowPinDialog(false); setIsLoading(false);}}>Annuler</AlertDialogCancel>
                     <AlertDialogAction type="submit">
                         Forcer la connexion
                     </AlertDialogAction>
@@ -343,5 +345,3 @@ export default function LoginPage() {
     </>
   );
 }
-
-    
