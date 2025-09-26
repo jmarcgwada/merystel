@@ -96,11 +96,19 @@ function ItemForm() {
           vatId: '',
           description: '',
           isFavorite: false,
-          image: `https://picsum.photos/seed/${itemId || 'new'}/200/150`,
+          image: '', // Leave empty initially
           showImage: true,
         });
     }
-  }, [isEditMode, itemToEdit, form, itemId]);
+  }, [isEditMode, itemToEdit, form]);
+
+  useEffect(() => {
+    if (!isEditMode && !form.getValues('image')) {
+      // Set a client-side only default image for new items
+      setValue('image', `https://picsum.photos/seed/${itemId || 'new'}/200/150`);
+    }
+  }, [isEditMode, form, itemId, setValue]);
+
 
   function onSubmit(data: ItemFormValues) {
     if (isEditMode && itemToEdit) {
@@ -112,7 +120,7 @@ function ItemForm() {
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
     } else {
-      addItem(data);
+      addItem({ ...data, image: data.image || defaultImage });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
     }
     router.push('/management/items');
