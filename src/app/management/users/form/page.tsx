@@ -17,14 +17,23 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const formSchema = z.object({
+const baseSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
   lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   email: z.string().email({ message: "L'email n'est pas valide." }),
   role: z.enum(['admin', 'manager', 'cashier']),
 });
 
-type UserFormValues = z.infer<typeof formSchema>;
+const createUserSchema = baseSchema.extend({
+  password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
+});
+
+const updateUserSchema = baseSchema.extend({
+  password: z.string().optional(),
+});
+
+
+type UserFormValues = z.infer<typeof createUserSchema>;
 
 function UserForm() {
   const router = useRouter();
@@ -36,6 +45,8 @@ function UserForm() {
   const isEditMode = Boolean(userId);
   const userToEdit = isEditMode ? users.find(u => u.id === userId) : null;
 
+  const formSchema = isEditMode ? updateUserSchema : createUserSchema;
+
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,6 +54,7 @@ function UserForm() {
       lastName: '',
       email: '',
       role: 'cashier',
+      password: '',
     },
   });
 
@@ -60,6 +72,7 @@ function UserForm() {
         lastName: '',
         email: '',
         role: 'cashier',
+        password: '',
       });
     }
   }, [isEditMode, userToEdit, form]);
@@ -137,6 +150,21 @@ function UserForm() {
                   </FormItem>
                 )}
               />
+               {!isEditMode && (
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mot de passe</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="role"

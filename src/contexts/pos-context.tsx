@@ -33,6 +33,7 @@ import {
   useCollection,
   useDoc,
   useMemoFirebase,
+  useAuth,
 } from '@/firebase';
 import {
   collection,
@@ -45,6 +46,7 @@ import {
   query,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -177,6 +179,7 @@ const PosContext = createContext<PosContextType | undefined>(undefined);
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -449,7 +452,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       console.error('Error seeding data:', error);
       toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
-  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, items, toast]);
+  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, items, tables, toast]);
 
     const resetAllData = useCallback(async () => {
         if (!firestore || !companyId) {
@@ -497,6 +500,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentOrder.filter((item) => item.id !== itemId)
     );
   }, []);
+
+  const triggerItemHighlight = (itemId: string) => {
+    setRecentlyAddedItemId(itemId);
+  };
 
   const addToOrder = useCallback(
     (itemId: OrderItem['id']) => {
@@ -878,15 +885,40 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Generic Entity Management
   const addUser = useCallback(
-    (userData: Omit<User, 'id' | 'companyId'>) => {
-      const newUser = { ...userData, companyId: SHARED_COMPANY_ID };
-      addEntity('users', newUser, 'Utilisateur ajouté', true);
+    async (userData: Omit<User, 'id' | 'companyId'>) => {
+        if (!auth || !firestore) return;
+        const { email, password, ...profileData } = userData;
+        if (!email || !password) {
+            toast({ variant: 'destructive', title: 'Email et mot de passe requis.' });
+            return;
+        }
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const authUser = userCredential.user;
+
+            const userDoc: Omit<User, 'id'> = {
+                ...profileData,
+                email: authUser.email || '',
+                companyId: SHARED_COMPANY_ID,
+            };
+
+            await setDoc(doc(firestore, "users", authUser.uid), userDoc);
+            toast({ title: "Utilisateur créé avec succès" });
+        } catch (error: any) {
+            console.error("Error creating user:", error);
+            const message = error.code === 'auth/email-already-in-use' 
+                ? 'Cette adresse e-mail est déjà utilisée.' 
+                : "Erreur lors de la création de l'utilisateur.";
+            toast({ variant: 'destructive', title: 'Erreur', description: message });
+        }
     },
-    [addEntity]
-  );
+    [auth, firestore, toast]
+);
+
   const updateUser = useCallback(
-    (userData: User) => updateUser('users', userData.id, userData, 'Utilisateur mis à jour', true),
-    []
+    (userData: User) => updateEntity('users', userData.id, userData, 'Utilisateur mis à jour', true),
+    [updateEntity]
   );
   const deleteUser = useCallback(
     (id: string) => deleteEntity('users', id, 'Utilisateur supprimé', true),

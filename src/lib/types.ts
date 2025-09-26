@@ -117,4 +117,5 @@ export interface User {
   email: string;
   role: 'admin' | 'manager' | 'cashier';
   companyId: string;
+  password?: string;
 }
