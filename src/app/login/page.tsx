@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const adminSchema = z.object({
     firstName: z.string().min(1, 'Prénom requis.'),
@@ -318,14 +319,26 @@ export default function LoginPage() {
                         Cet utilisateur est déjà connecté sur un autre appareil. Veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="py-4">
-                    <Label htmlFor="pin" className="sr-only">Code PIN</Label>
+                <div className="py-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="pin">Code PIN</Label>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Formule : Mois (MM) + Jour (JJ) + |Jour - Mois|</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                     <Input 
                         id="pin"
                         type="password"
                         value={pin}
                         onChange={(e) => setPin(e.target.value)}
-                        placeholder="••••"
+                        placeholder="•••••"
                         autoFocus
                     />
                 </div>
