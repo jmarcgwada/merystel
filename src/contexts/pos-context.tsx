@@ -393,6 +393,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true },
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
       ];
+      const defaultTables = [
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [] },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [] },
+      ];
+
 
       // --- Batch Write ---
       defaultCategories.forEach(data => {
@@ -413,6 +418,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       defaultItems.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
+          batch.set(ref, data);
+      });
+      defaultTables.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
           batch.set(ref, data);
       });
       
