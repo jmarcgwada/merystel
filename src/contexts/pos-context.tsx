@@ -99,6 +99,8 @@ interface PosContextType {
   validateSession: (userId: string, token: string) => boolean;
   forceSignOut: (message: string) => void;
   forceSignOutUser: (userId: string) => void;
+  sessionInvalidated: boolean;
+  setSessionInvalidated: React.Dispatch<React.SetStateAction<boolean>>;
 
 
   items: Item[];
@@ -218,6 +220,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
+  const [sessionInvalidated, setSessionInvalidated] = useState(false);
 
   // #endregion
 
@@ -988,14 +991,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [users]);
     
     const handleSignOut = useCallback(async () => {
-        if (!auth || !user) return;
-        const userRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userRef, {
-            sessionToken: deleteField()
-        });
-        await signOut(auth);
+        if (!auth) return;
+        signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth, user, firestore]);
+    }, [auth]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
@@ -1272,6 +1271,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       validateSession,
       forceSignOut,
       forceSignOutUser,
+      sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -1365,6 +1366,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       validateSession,
       forceSignOut,
       forceSignOutUser,
+      sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
