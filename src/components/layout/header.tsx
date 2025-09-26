@@ -27,6 +27,8 @@ export default function Header() {
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
+  
+  const isInPosOrRestaurant = pathname === '/pos' || pathname === '/restaurant';
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -72,7 +74,7 @@ export default function Header() {
         <div className="flex items-center justify-end gap-2">
           {user && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild disabled={isInPosOrRestaurant}>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
                     <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
