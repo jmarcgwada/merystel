@@ -65,9 +65,10 @@ export default function Header() {
         <div className="flex items-center justify-end gap-4">
           {user && (
             <>
-              <span className="text-sm text-muted-foreground">
-                Connecté en tant que {user.firstName}
-              </span>
+              <div className="text-right">
+                  <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
               <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion">
                 <LogOut className="h-4 w-4" />
               </Button>
