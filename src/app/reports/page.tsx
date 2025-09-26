@@ -16,13 +16,30 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
+import type { Timestamp } from 'firebase/firestore';
 
 
-const ClientFormattedDate = ({ date }: { date: Date }) => {
+const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
-        setFormattedDate(format(date, "d MMM yyyy 'à' HH:mm", { locale: fr }));
+        if (!date) return;
+        
+        let jsDate: Date;
+        if (date instanceof Date) {
+            jsDate = date;
+        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            jsDate = (date as Timestamp).toDate();
+        } else {
+            // Attempt to parse if it's a string or number, though it shouldn't be
+            jsDate = new Date(date as any);
+        }
+
+        if (!isNaN(jsDate.getTime())) {
+            setFormattedDate(format(jsDate, "d MMM yyyy 'à' HH:mm", { locale: fr }));
+        } else {
+            setFormattedDate('Date invalide');
+        }
     }, [date]);
 
     return <>{formattedDate}</>;

@@ -17,13 +17,32 @@ import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Timestamp } from 'firebase/firestore';
 
 
-const ClientFormattedDate = ({ date }: { date: Date }) => {
+const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
-        setFormattedDate(format(date, "d MMMM yyyy 'à' HH:mm", { locale: fr }));
+        if (!date) {
+            setFormattedDate('Date non disponible');
+            return;
+        }
+        
+        let jsDate: Date;
+        if (date instanceof Date) {
+            jsDate = date;
+        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            jsDate = (date as Timestamp).toDate();
+        } else {
+            jsDate = new Date(date as any);
+        }
+
+        if (!isNaN(jsDate.getTime())) {
+            setFormattedDate(format(jsDate, "d MMMM yyyy 'à' HH:mm", { locale: fr }));
+        } else {
+            setFormattedDate('Date invalide');
+        }
     }, [date]);
 
     return <>{formattedDate}</>;
@@ -58,6 +77,7 @@ export default function SaleDetailPage() {
     });
 
     return breakdown;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sale, vatRates]);
 
   if (isLoading) {
