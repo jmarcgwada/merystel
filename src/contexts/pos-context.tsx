@@ -152,6 +152,8 @@ interface PosContextType {
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
+  
+  seedInitialData: () => void;
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
@@ -332,6 +334,79 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast]
   );
+  // #endregion
+
+  // #region Data Seeding
+  const seedInitialData = useCallback(async () => {
+    if (!firestore || !companyId) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+      return;
+    }
+
+    const canSeed = !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
+
+    if (!canSeed) {
+      toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données existent déjà." });
+      return;
+    }
+    
+    const batch = writeBatch(firestore);
+
+    // Seed Categories
+    const defaultCategories = [
+      { name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
+      { name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
+      { name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
+      { name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
+      { name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
+      { name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
+    ];
+    if (!categories || categories.length === 0) {
+      defaultCategories.forEach(cat => {
+        const catRef = doc(collection(firestore, 'companies', companyId, 'categories'));
+        batch.set(catRef, cat);
+      });
+    }
+
+    // Seed VAT Rates
+    const defaultVatRates = [
+      { name: 'Taux Normal', rate: 20, code: 1 },
+      { name: 'Taux Intermédiaire', rate: 10, code: 2 },
+      { name: 'Taux Réduit', rate: 5.5, code: 3 },
+    ];
+    if (!vatRates || vatRates.length === 0) {
+      defaultVatRates.forEach(vat => {
+        const vatRef = doc(collection(firestore, 'companies', companyId, 'vatRates'));
+        batch.set(vatRef, vat);
+      });
+    }
+
+    // Seed Payment Methods
+    const defaultPaymentMethods = [
+      { name: 'Espèces', icon: 'cash', type: 'direct' },
+      { name: 'Carte Bancaire', icon: 'card', type: 'direct' },
+    ];
+    if (!paymentMethods || paymentMethods.length === 0) {
+      defaultPaymentMethods.forEach(pm => {
+        const pmRef = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
+        batch.set(pmRef, pm);
+      });
+    }
+    
+    // Seed Default Customer
+    if (!customers || customers.length === 0) {
+        const customerRef = doc(collection(firestore, 'companies', companyId, 'customers'));
+        batch.set(customerRef, { name: 'Client au comptoir', isDefault: true });
+    }
+
+    try {
+      await batch.commit();
+      toast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
+    } catch (error) {
+      console.error('Error seeding data:', error);
+      toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
+    }
+  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, toast]);
   // #endregion
 
   // #region Order Management
@@ -1011,6 +1086,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       showNavConfirm,
       closeNavConfirm,
       confirmNavigation,
+      seedInitialData,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -1083,6 +1159,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       showNavConfirm,
       closeNavConfirm,
       confirmNavigation,
+      seedInitialData,
       cameFromRestaurant,
       isLoading,
       user,
