@@ -64,6 +64,7 @@ const TAKEAWAY_TABLE: Table = {
   order: [],
   description: 'Pour les ventes à emporter et les commandes rapides.',
   covers: 0,
+  lockedBy: null,
 };
 
 
@@ -126,7 +127,7 @@ interface PosContextType {
 
   tables: Table[];
   addTable: (
-    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
+    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'lockedBy'>
   ) => void;
   updateTable: (table: Table) => void;
   deleteTable: (tableId: string) => void;
@@ -434,8 +435,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
       ];
       const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4, lockedBy: null },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2, lockedBy: null },
       ];
 
 
@@ -797,7 +798,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const total = subtotal + tax;
 
     const existingHeldOrder = heldOrders.find((ho) => ho.tableId === table.id);
-    const newHeldOrderData = {
+    const newHeldOrderData: HeldOrder = {
+      id: existingHeldOrder?.id || uuidv4(),
       date: new Date(),
       items: table.order,
       total: total,
@@ -814,11 +816,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const heldOrderRef = existingHeldOrder
       ? getDocRef('heldOrders', existingHeldOrder.id)
-      : doc(heldOrdersCollRef);
+      : doc(heldOrdersCollRef, newHeldOrderData.id);
       
     if (!heldOrderRef) return;
 
-    batch.set(heldOrderRef, newHeldOrderData);
+    // We can't spread newHeldOrderData because id is not in the Firestore document
+    const { id, ...dataToSave } = newHeldOrderData;
+    batch.set(heldOrderRef, dataToSave);
     batch.update(tableRef, { status: 'paying', lockedBy: null });
     await batch.commit();
 
@@ -857,7 +861,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addTable = useCallback(
-    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
+    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'lockedBy'>) => {
       const newTable = {
         ...tableData,
         number: Date.now() % 10000,
