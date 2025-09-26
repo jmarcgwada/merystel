@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket, ArrowLeft, ShoppingCart, Utensils } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, LogOut, ShoppingCart, Utensils, CreditCard, Save } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ export function OrderSummary() {
     updateQuantityFromKeypad,
     setIsKeypadOpen,
     saveTableOrderAndExit,
+    promoteTableToTicket,
     showTicketImages,
     isKeypadOpen,
     currentSaleContext,
@@ -171,22 +172,11 @@ export function OrderSummary() {
 
   const handleHeaderAction = () => {
     if(selectedTable) {
-        if(order.length === 0) {
-            router.push('/restaurant');
-        } else {
-            clearOrder();
-            setSelectedTable(null);
-            router.push('/restaurant');
-        }
+        clearOrder();
+        setSelectedTable(null);
+        router.push('/restaurant');
     } else {
         clearOrder();
-    }
-  }
-
-  const handleSaveTable = () => {
-    if (selectedTable) {
-      saveTableOrderAndExit(selectedTable.id, order);
-      router.push('/restaurant');
     }
   }
   
@@ -227,14 +217,6 @@ export function OrderSummary() {
   
   const HeaderAction = () => {
       if (selectedTable) {
-          if (order.length === 0) {
-              return (
-                <Button variant="ghost" size="sm" onClick={handleHeaderAction}>
-                  <ArrowLeft className="mr-2 h-4 w-4"/>
-                  Retour
-                </Button>
-              )
-          }
            return (
                 <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
                   Annuler
@@ -252,6 +234,22 @@ export function OrderSummary() {
       
       return null;
   }
+
+  const handleSaveAndExit = () => {
+    if (selectedTable) {
+      saveTableOrderAndExit(selectedTable.id, order);
+    }
+  }
+
+  const handleFinalize = () => {
+    if(selectedTable) {
+        promoteTableToTicket(selectedTable.id, order);
+        setCheckoutOpen(true);
+    } else {
+        setCheckoutOpen(true);
+    }
+  }
+
 
   const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
     <div 
@@ -400,16 +398,26 @@ export function OrderSummary() {
                 </div>
             </div>
             <div className="mt-4 flex gap-2">
-              {selectedTable ? (
+              {selectedTable && selectedTable.id !== 'takeaway' ? (
                 <>
                   <Button
                     size="lg"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    onClick={handleSaveTable}
+                    variant="outline"
+                    className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
+                    onClick={handleSaveAndExit}
                   >
                      <Save className="mr-2 h-4 w-4" />
-                    Sauvegarder la table
+                    Sauvegarder
+                  </Button>
+                   <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={handleFinalize}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Clôturer
                   </Button>
                 </>
               ) : (
@@ -426,9 +434,9 @@ export function OrderSummary() {
                   </Button>
                   <Button
                     size="lg"
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={() => setCheckoutOpen(true)}
+                    onClick={handleFinalize}
                   >
                     Payer maintenant
                   </Button>
@@ -445,3 +453,4 @@ export function OrderSummary() {
     </>
   );
 }
+
