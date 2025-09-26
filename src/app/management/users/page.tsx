@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -25,9 +25,10 @@ import { Badge } from '@/components/ui/badge';
 
 
 export default function UsersPage() {
-  const { users, deleteUser, isLoading } = usePos();
+  const { users, deleteUser, isLoading, user: currentUser, sendPasswordResetEmailForUser } = usePos();
   const router = useRouter();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToReset, setUserToReset] = useState<User | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,13 @@ export default function UsersPage() {
     if (userToDelete) {
       deleteUser(userToDelete.id);
       setUserToDelete(null);
+    }
+  }
+
+  const handleResetPassword = () => {
+    if (userToReset) {
+      sendPasswordResetEmailForUser(userToReset.email);
+      setUserToReset(null);
     }
   }
 
@@ -60,7 +68,7 @@ export default function UsersPage() {
                         <TableHead>Nom</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Rôle</TableHead>
-                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                        <TableHead className="w-[140px] text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -69,7 +77,7 @@ export default function UsersPage() {
                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-52" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
                     {isClient && !isLoading && users && users.map(u => (
@@ -80,6 +88,11 @@ export default function UsersPage() {
                             <Badge variant="secondary" className="capitalize">{u.role}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
+                              {currentUser?.role === 'admin' && currentUser.id !== u.id && (
+                                <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
+                                    <KeyRound className="h-4 w-4"/>
+                                </Button>
+                              )}
                               <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)}>
                                   <Edit className="h-4 w-4"/>
                               </Button>
@@ -104,6 +117,20 @@ export default function UsersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setUserToDelete(null)}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!userToReset} onOpenChange={() => setUserToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser le mot de passe ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Un e-mail sera envoyé à "{userToReset?.email}" pour lui permettre de définir un nouveau mot de passe.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetPassword}>Envoyer l'e-mail</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

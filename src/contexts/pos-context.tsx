@@ -45,7 +45,7 @@ import {
   query,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -88,6 +88,7 @@ interface PosContextType {
   addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
+  sendPasswordResetEmailForUser: (email: string) => void;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -277,12 +278,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!companyInfoLoading) {
-      setShowTicketImages(companyInfo?.showTicketImages ?? true);
-      setPopularItemsCount(companyInfo?.popularItemsCount ?? 10);
-      setItemCardOpacity(companyInfo?.itemCardOpacity ?? 30);
-      setEnableRestaurantCategoryFilter(
-        companyInfo?.enableRestaurantCategoryFilter ?? true
-      );
+      // setShowTicketImages(companyInfo?.showTicketImages ?? true);
+      // setPopularItemsCount(companyInfo?.popularItemsCount ?? 10);
+      // setItemCardOpacity(companyInfo?.itemCardOpacity ?? 30);
+      // setEnableRestaurantCategoryFilter(
+      //   companyInfo?.enableRestaurantCategoryFilter ?? true
+      // );
     }
   }, [companyInfo, companyInfoLoading]);
   
@@ -917,7 +918,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, userData.email, tempPassword);
         const authUser = userCredential.user;
 
-        const userDocData = {
+        const userDocData: Omit<User, 'id'> = {
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userData.email,
@@ -949,13 +950,31 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateUser = useCallback(
-    (userData: User) => updateEntity('users', userData.id, userData, 'Utilisateur mis à jour', true),
+    (userData: User) => {
+      const {id, ...data} = userData;
+      updateEntity('users', id, data, 'Utilisateur mis à jour', true)
+    },
     [updateEntity]
   );
+
   const deleteUser = useCallback(
     (id: string) => deleteEntity('users', id, 'Utilisateur supprimé', true),
     [deleteEntity]
   );
+
+  const sendPasswordResetEmailForUser = useCallback(async (email: string) => {
+    if (!auth) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Service d\'authentification non disponible.' });
+        return;
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({ title: 'E-mail envoyé', description: `Un e-mail de réinitialisation de mot de passe a été envoyé à ${email}.` });
+    } catch (error: any) {
+        console.error("Password reset error:", error);
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
+    }
+  }, [auth, toast]);
 
   const addCategory = useCallback(
     (category: Omit<Category, 'id'>) =>
@@ -1110,8 +1129,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const setCompanyInfo = useCallback(
     (info: CompanyInfo) => {
       if (companyId && firestore) {
+        const { id, ...data } = info;
         const companyRef = doc(firestore, 'companies', companyId);
-        setDoc(companyRef, info, { merge: true });
+        setDoc(companyRef, data, { merge: true });
       }
     },
     [companyId, firestore]
@@ -1123,7 +1143,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
   }, [companyInfo, setCompanyInfo]);
 
-  const updateSetting = useCallback((key: keyof CompanyInfo, value: any) => {
+  const updateSetting = useCallback((key: keyof Omit<CompanyInfo, 'id'>, value: any) => {
     if (companyInfo) {
       setCompanyInfo({ ...companyInfo, [key]: value });
     }
@@ -1200,6 +1220,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       addUser,
       updateUser,
       deleteUser,
+      sendPasswordResetEmailForUser,
       items,
       addItem,
       updateItem,
@@ -1288,6 +1309,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       addUser,
       updateUser,
       deleteUser,
+      sendPasswordResetEmailForUser,
       items,
       addItem,
       updateItem,
@@ -1362,5 +1384,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
