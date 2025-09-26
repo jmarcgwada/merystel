@@ -25,8 +25,10 @@ const formSchema = z.object({
   role: z.enum(['admin', 'manager', 'cashier']),
   password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
 }).refine(data => {
+    // This logic is now client-side only, so window is safe to use.
     const searchParams = new URLSearchParams(window.location.search);
     const isEditMode = Boolean(searchParams.get('id'));
+    // Password is required only if it's not edit mode.
     return isEditMode || (data.password && data.password.length > 0);
 }, {
     message: "Le mot de passe est requis pour un nouvel utilisateur.",
@@ -76,16 +78,21 @@ function UserForm() {
     }
   }, [isEditMode, userToEdit, form]);
 
-  function onSubmit(data: UserFormValues) {
+  async function onSubmit(data: UserFormValues) {
     if (isEditMode && userToEdit) {
       const { password, ...updateData } = data;
       updateUser({ ...userToEdit, ...updateData });
+       router.push('/management/users');
     } else {
       if (data.password) {
-        addUser(data, data.password);
+        try {
+            await addUser(data, data.password);
+            router.push('/management/users');
+        } catch(e) {
+            // Error is handled in context, do nothing here to keep user on page
+        }
       }
     }
-    router.push('/management/users');
   }
 
   return (
@@ -188,7 +195,7 @@ function UserForm() {
                 )}
               />
                {isEditMode && (
-                 <CardDescription>La modification de l'e-mail et du mot de passe n'est pas disponible ici.</CardDescription>
+                 <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription>
                )}
             </CardContent>
           </Card>
@@ -211,5 +218,3 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
-
-    
