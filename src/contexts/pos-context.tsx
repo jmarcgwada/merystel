@@ -22,12 +22,13 @@ import type {
   HeldOrder,
   VatRate,
   CompanyInfo,
+  User,
 } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
-  useUser,
+  useUser as useFirebaseUser,
   useFirestore,
   useCollection,
   useDoc,
@@ -81,6 +82,11 @@ interface PosContextType {
   currentSaleContext: Partial<Sale> | null;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
+
+  users: User[];
+  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
+  updateUser: (user: User) => void;
+  deleteUser: (userId: string) => void;
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -169,7 +175,7 @@ interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -198,6 +204,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Data Fetching
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+
   const itemsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId]);
   const { data: itemsData = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
@@ -211,6 +220,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData] : [TAKEAWAY_TABLE], [tablesData]);
+  const users = useMemo(() => usersData, [usersData]);
   const items = useMemo(() => itemsData, [itemsData]);
   const categories = useMemo(() => categoriesData, [categoriesData]);
   const customers = useMemo(() => customersData, [customersData]);
@@ -234,6 +244,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     userLoading ||
+    usersLoading ||
     itemsLoading ||
     categoriesLoading ||
     customersLoading ||
@@ -257,14 +268,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
   // #region Base Callbacks
-  const triggerItemHighlight = (itemId: string) => {
-    setRecentlyAddedItemId(itemId);
-  };
-
   const getCollectionRef = useCallback(
-    (name: string) => {
-      if (!companyId || !firestore) {
-         console.warn(`Cannot get collection ${name}, companyId or firestore not available.`);
+    (name: string, global: boolean = false) => {
+      if (!firestore) return null;
+      if (global) {
+        return collection(firestore, name);
+      }
+      if (!companyId) {
+         console.warn(`Cannot get collection ${name}, companyId not available.`);
          return null;
       };
       return collection(firestore, 'companies', companyId, name);
@@ -273,9 +284,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getDocRef = useCallback(
-    (collectionName: string, docId: string) => {
-      if (!companyId || !firestore) {
-        console.warn(`Cannot get doc from ${collectionName}, companyId or firestore not available.`);
+    (collectionName: string, docId: string, global: boolean = false) => {
+      if (!firestore) return null;
+      if (global) {
+        return doc(firestore, collectionName, docId);
+      }
+      if (!companyId) {
+        console.warn(`Cannot get doc from ${collectionName}, companyId not available.`);
         return null;
       }
       return doc(firestore, 'companies', companyId, collectionName, docId);
@@ -284,8 +299,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addEntity = useCallback(
-    async (collectionName: string, data: any, toastTitle: string) => {
-      const ref = getCollectionRef(collectionName);
+    async (collectionName: string, data: any, toastTitle: string, global: boolean = false) => {
+      const ref = getCollectionRef(collectionName, global);
       if (!ref) {
         return;
       }
@@ -305,9 +320,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       collectionName: string,
       id: string,
       data: any,
-      toastTitle: string
+      toastTitle: string,
+      global: boolean = false,
     ) => {
-       const ref = getDocRef(collectionName, id);
+       const ref = getDocRef(collectionName, id, global);
        if (!ref) {
         return;
       }
@@ -323,8 +339,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const deleteEntity = useCallback(
-    async (collectionName: string, id: string, toastTitle: string) => {
-      const ref = getDocRef(collectionName, id);
+    async (collectionName: string, id: string, toastTitle: string, global: boolean = false) => {
+      const ref = getDocRef(collectionName, id, global);
       if (!ref) {
         return;
       }
@@ -861,6 +877,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Generic Entity Management
+  const addUser = useCallback(
+    (userData: Omit<User, 'id' | 'companyId'>) => {
+      const newUser = { ...userData, companyId: SHARED_COMPANY_ID };
+      addEntity('users', newUser, 'Utilisateur ajouté', true);
+    },
+    [addEntity]
+  );
+  const updateUser = useCallback(
+    (userData: User) => updateUser('users', userData.id, userData, 'Utilisateur mis à jour', true),
+    []
+  );
+  const deleteUser = useCallback(
+    (id: string) => deleteEntity('users', id, 'Utilisateur supprimé', true),
+    [deleteEntity]
+  );
+
   const addCategory = useCallback(
     (category: Omit<Category, 'id'>) =>
       addEntity('categories', category, 'Catégorie ajoutée'),
@@ -1087,6 +1119,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentSaleContext,
       recentlyAddedItemId,
       setRecentlyAddedItemId,
+      users,
+      addUser,
+      updateUser,
+      deleteUser,
       items,
       addItem,
       updateItem,
@@ -1165,6 +1201,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentSaleId,
       currentSaleContext,
       recentlyAddedItemId,
+      users,
+      addUser,
+      updateUser,
+      deleteUser,
       items,
       addItem,
       updateItem,
