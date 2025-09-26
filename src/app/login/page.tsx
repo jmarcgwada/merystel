@@ -45,8 +45,8 @@ export default function LoginPage() {
       console.error("Login Error:", error);
       let description = 'Vérifiez vos identifiants et réessayez.';
       if (error && typeof error === 'object' && 'code' in error) {
-        const errorCode = (error as {code: string}).code;
-        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found') {
+        const errorCode = error.code;
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found' || errorCode === 'auth/invalid-email') {
           description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
         }
       }
