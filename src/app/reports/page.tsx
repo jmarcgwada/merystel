@@ -11,13 +11,15 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
+type SortKey = 'date' | 'total';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -47,10 +49,61 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
 
 
 export default function ReportsPage() {
-    const { sales, customers, isLoading } = usePos();
+    const { sales: allSales, customers, isLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
-    
+    const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+
+     useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const sortedSales = useMemo(() => {
+        if (!allSales) return [];
+        let sortableSales = [...allSales];
+        if (sortConfig !== null) {
+            sortableSales.sort((a, b) => {
+                let aValue, bValue;
+                
+                if (sortConfig.key === 'date') {
+                    const aDate = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
+                    const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
+                    aValue = aDate.getTime();
+                    bValue = bDate.getTime();
+                } else {
+                    aValue = a[sortConfig.key];
+                    bValue = b[sortConfig.key];
+                }
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableSales;
+    }, [allSales, sortConfig]);
+
+    const requestSort = (key: SortKey) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: SortKey) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+        }
+        return sortConfig.direction === 'asc' ? '▲' : '▼';
+    }
+
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
         {!payments || payments.length === 0 ? (
@@ -75,8 +128,11 @@ export default function ReportsPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports"
-        subtitle="Analysez vos performances de vente."
+        subtitle={isClient && allSales ? `Vous avez ${allSales.length} ventes au total.` : "Analysez vos performances de vente."}
       >
+        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+            <RefreshCw className="h-4 w-4" />
+        </Button>
         {!isCashier && (
             <Button asChild>
                 <Link href="/reports/popular-items">
@@ -96,11 +152,19 @@ export default function ReportsPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Ticket</TableHead>
-                            <TableHead>Date</TableHead>
+                            <TableHead>
+                               <Button variant="ghost" onClick={() => requestSort('date')}>
+                                    Date {getSortIcon('date')}
+                                </Button>
+                            </TableHead>
                             <TableHead>Client</TableHead>
                             <TableHead>Articles</TableHead>
                             <TableHead>Paiement</TableHead>
-                            <TableHead className="text-right">Total (TTC)</TableHead>
+                            <TableHead className="text-right">
+                                <Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">
+                                    Total (TTC) {getSortIcon('total')}
+                                </Button>
+                            </TableHead>
                             <TableHead className="w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -116,7 +180,7 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && sales && sales.map(sale => (
+                        {!isLoading && sortedSales.map(sale => (
                             <TableRow key={sale.id}>
                                  <TableCell className="font-mono text-muted-foreground text-xs">
                                     {sale.ticketNumber}
