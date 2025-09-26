@@ -640,7 +640,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Held Order & Table Management
-  const holdOrder = useCallback(() => {
+  const holdOrder = useCallback(async () => {
+    // If we are in the process of closing a table sale, 'holding' should cancel and go back.
+    if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+        const tableRef = getDocRef('tables', currentSaleContext.tableId);
+        if (tableRef) {
+            await updateDoc(tableRef, { status: 'occupied' });
+        }
+        await clearOrder();
+        routerRef.current.push('/restaurant');
+        return;
+    }
+
     if (order.length === 0) {
       toast({
         variant: 'destructive',
@@ -649,14 +660,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       return;
     }
+
     const newHeldOrder: Omit<HeldOrder, 'id'> = {
       date: new Date(),
       items: order,
       total: orderTotal + orderTax,
     };
     addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
-    clearOrder();
-  }, [order, orderTotal, orderTax, addEntity, clearOrder, toast]);
+    await clearOrder();
+  }, [order, orderTotal, orderTax, addEntity, clearOrder, toast, currentSaleContext, getDocRef]);
   
   const deleteHeldOrder = useCallback(
     async (orderId: string) => {
