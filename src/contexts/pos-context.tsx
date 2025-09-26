@@ -64,7 +64,6 @@ const TAKEAWAY_TABLE: Table = {
   order: [],
   description: 'Pour les ventes à emporter et les commandes rapides.',
   covers: 0,
-  lockedBy: null,
 };
 
 
@@ -127,7 +126,7 @@ interface PosContextType {
 
   tables: Table[];
   addTable: (
-    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'lockedBy'>
+    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
   ) => void;
   updateTable: (table: Table) => void;
   deleteTable: (tableId: string) => void;
@@ -352,6 +351,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
+        if (data.lockedBy === undefined) {
+            data.lockedBy = null;
+        }
         await setDoc(ref, data, { merge: true });
         if(toastTitle) toast({ title: toastTitle });
       } catch (error) {
@@ -378,30 +380,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast]
   );
-  // #endregion
-
-  // #region Locking Mechanism
-    const lockResource = useCallback(async (resourceType: 'table' | 'heldOrder', resourceId: string) => {
-        if (!user || !firestore || !companyId) return;
-        const collectionName = resourceType === 'table' ? 'tables' : 'heldOrders';
-        const resourceRef = doc(firestore, 'companies', companyId, collectionName, resourceId);
-        try {
-            await updateDoc(resourceRef, { lockedBy: user.id });
-        } catch (error) {
-            console.error(`Error locking ${resourceType} ${resourceId}:`, error);
-        }
-    }, [user, firestore, companyId]);
-
-    const unlockResource = useCallback(async (resourceType: 'table' | 'heldOrder', resourceId: string) => {
-        if (!firestore || !companyId) return;
-        const collectionName = resourceType === 'table' ? 'tables' : 'heldOrders';
-        const resourceRef = doc(firestore, 'companies', companyId, collectionName, resourceId);
-        try {
-            await updateDoc(resourceRef, { lockedBy: null });
-        } catch (error) {
-            console.error(`Error unlocking ${resourceType} ${resourceId}:`, error);
-        }
-    }, [firestore, companyId]);
   // #endregion
 
   // #region Data Seeding
@@ -459,8 +437,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
       ];
       const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4, lockedBy: null },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2, lockedBy: null },
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
 
@@ -532,19 +510,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    // Unlock any associated resource before clearing
-    if (selectedTable) {
-        await unlockResource('table', selectedTable.id);
-    }
-    if (currentSaleId) {
-        await unlockResource('heldOrder', currentSaleId);
-    }
-
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, currentSaleId, unlockResource]);
+  }, []);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -686,7 +656,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       date: new Date(),
       items: order,
       total: orderTotal + orderTax,
-      lockedBy: null,
     };
     addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
     clearOrder();
@@ -696,14 +665,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (orderId: string) => {
       if (!heldOrders) return;
       const orderToDelete = heldOrders.find((o) => o.id === orderId);
-      if (orderToDelete?.lockedBy) {
-          toast({ variant: 'destructive', title: 'Ticket verrouillé', description: "Ce ticket est en cours d'utilisation par un autre utilisateur." });
-          return;
-      }
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await updateDoc(tableRef, { status: 'available', lockedBy: null });
+        await updateDoc(tableRef, { status: 'available' });
       }
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
@@ -715,18 +680,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!heldOrders || !user) return;
     const orderToRecall = heldOrders.find((o) => o.id === orderId);
     if (orderToRecall) {
-        if (orderToRecall.lockedBy && orderToRecall.lockedBy !== user.id) {
-            toast({ variant: 'destructive', title: 'Ticket verrouillé', description: "Ce ticket est déjà utilisé par un autre utilisateur." });
-            return;
-        }
-
-        // Unlock previous resource if any
-        if (selectedTable) {
-             await unlockResource('table', selectedTable.id);
-        }
-
-        await lockResource('heldOrder', orderId);
-        
         setOrder(orderToRecall.items);
         setCurrentSaleId(orderToRecall.id);
         setSelectedTable(null); // Ensure no table is selected
@@ -737,24 +690,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: 'Commande rappelée' });
         routerRef.current.push('/pos');
     }
-  }, [heldOrders, user, selectedTable, toast, lockResource, unlockResource]);
+  }, [heldOrders, user, toast]);
 
 
 const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!tables || !user) {
         if (!tableId) await clearOrder();
         return;
-    }
-
-    const previousTableId = selectedTable?.id;
-    const previousHeldOrderId = currentSaleId;
-
-    if (previousTableId && previousTableId !== tableId) {
-        await unlockResource('table', previousTableId);
-    }
-    if (previousHeldOrderId) {
-        await unlockResource('heldOrder', previousHeldOrderId);
-        setCurrentSaleId(null);
     }
     
     if (!tableId) {
@@ -766,19 +708,12 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     const table = tables.find((t) => t.id === tableId);
     if (!table) return;
 
-    if (table.lockedBy && table.lockedBy !== user.id) {
-        toast({ variant: 'destructive', title: 'Table verrouillée', description: 'Cette table est en cours d\'utilisation.' });
-        return;
-    }
-    
     if (table.id === 'takeaway') {
         setCameFromRestaurant(true);
         routerRef.current.push('/pos');
         return;
     }
     
-    await lockResource('table', table.id);
-
     setSelectedTable(table);
     setOrder(table.order || []);
     setCurrentSaleId(null); // Clear any held order sale ID
@@ -787,7 +722,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         tableName: table.name,
     });
     routerRef.current.push(`/pos?tableId=${tableId}`);
-}, [tables, user, clearOrder, toast, selectedTable, lockResource, unlockResource, currentSaleId]);
+}, [tables, user, clearOrder, toast]);
 
 
   const updateTableOrder = useCallback(
@@ -810,11 +745,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       await updateTableOrder(tableId, orderData);
-      await unlockResource('table', tableId);
       toast({ title: 'Table sauvegardée' });
       await clearOrder();
     },
-    [updateTableOrder, clearOrder, toast, unlockResource]
+    [updateTableOrder, clearOrder, toast]
   );
 
   const promoteTableToTicket = useCallback(async (tableId: string) => {
@@ -837,7 +771,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       total: total,
       tableName: table.name,
       tableId: table.id,
-      lockedBy: null,
     };
     
     const tableRef = getDocRef('tables', tableId);
@@ -854,7 +787,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
 
     const { id, ...dataToSave } = newHeldOrderData;
     batch.set(heldOrderRef, dataToSave);
-    batch.update(tableRef, { status: 'paying', order: [], lockedBy: null });
+    batch.update(tableRef, { status: 'paying', order: [] });
     await batch.commit();
 
     await clearOrder();
@@ -872,7 +805,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
+        batch.update(tableRef, { status: 'available', order: [] });
       }
       
       const heldOrderForTable = heldOrders?.find(
@@ -891,13 +824,12 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
   );
 
   const addTable = useCallback(
-    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'lockedBy'>) => {
+    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
       const newTable: Omit<Table, 'id'> = {
         ...tableData,
         number: Date.now() % 10000,
         status: 'available' as const,
         order: [],
-        lockedBy: null,
       };
       addEntity('tables', newTable, 'Table créée');
     },
@@ -929,13 +861,12 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       const batch = writeBatch(firestore);
 
       if (saleIdToUpdate) {
-        await unlockResource('heldOrder', saleIdToUpdate);
         const docRef = getDocRef('heldOrders', saleIdToUpdate);
         if (docRef) batch.delete(docRef);
       }
       if (tableToEnd) {
         const tableRef = getDocRef('tables', tableToEnd);
-        if (tableRef) batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
+        if (tableRef) batch.update(tableRef, { status: 'available', order: [] });
       }
 
       const today = new Date();
@@ -974,7 +905,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       sales,
       getCollectionRef,
       currentSaleContext,
-      unlockResource,
     ]
   );
   // #endregion
@@ -1394,7 +1324,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       updateVatRate,
       deleteVatRate,
       heldOrders,
-      holdOrder,
       recallOrder,
       deleteHeldOrder,
       authRequired,
@@ -1418,6 +1347,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setCameFromRestaurant,
       isLoading,
       user,
+      holdOrder,
     }),
     [
       order,
@@ -1484,7 +1414,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       updateVatRate,
       deleteVatRate,
       heldOrders,
-      holdOrder,
       recallOrder,
       deleteHeldOrder,
       authRequired,
@@ -1503,6 +1432,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       cameFromRestaurant,
       isLoading,
       user,
+      holdOrder,
       updateSetting,
       setSessionInvalidated,
     ]
@@ -1518,3 +1448,4 @@ export function usePos() {
   }
   return context;
 }
+

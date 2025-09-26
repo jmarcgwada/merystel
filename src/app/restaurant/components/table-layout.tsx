@@ -66,17 +66,15 @@ export function TableLayout() {
         }, 0);
         const total = subtotal + tax;
 
-        const isLocked = table.lockedBy && table.lockedBy !== user?.id;
-
         return (
           <Card
             key={table.id}
             className={cn(
-              'transition-all duration-200',
+              'transition-all duration-200 cursor-pointer',
               config.cardClassName,
-              isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:shadow-xl hover:-translate-y-1'
+              'hover:shadow-xl hover:-translate-y-1'
             )}
-            onClick={() => !isLocked && handleTableSelect(table)}
+            onClick={() => handleTableSelect(table)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium font-headline">{table.name}</CardTitle>
@@ -88,15 +86,10 @@ export function TableLayout() {
             <CardContent>
               {table.status !== 'available' && table.id !== 'takeaway' ? (
                 <div className="relative">
-                  {isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center -mt-2">
-                      <Lock className="h-6 w-6 text-destructive animate-pulse" />
-                    </div>
-                  )}
-                  <p className={cn("text-2xl font-bold text-foreground", isLocked && "blur-sm")}>
+                  <p className={cn("text-2xl font-bold text-foreground")}>
                     {total.toFixed(2)}€
                   </p>
-                  <p className={cn("text-xs text-muted-foreground", isLocked && "blur-sm")}>
+                  <p className={cn("text-xs text-muted-foreground")}>
                     {table.order.length} article{table.order.length !== 1 ? 's' : ''}
                   </p>
                 </div>

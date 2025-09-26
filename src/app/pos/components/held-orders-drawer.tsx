@@ -59,14 +59,12 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
           <ScrollArea className="flex-1">
             <Accordion type="multiple" className="w-full">
               {heldOrders.map((order) => {
-                 const isLocked = order.lockedBy && order.lockedBy !== user?.id;
                  return (
-                <AccordionItem value={order.id} key={order.id} className={cn("border-b", isLocked && "bg-muted/50")}>
+                <AccordionItem value={order.id} key={order.id}>
                    <div className="flex items-center pr-4">
-                        <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline" disabled={isLocked}>
+                        <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline">
                              <div className="flex justify-between items-start w-full">
                                 <div className="flex items-center gap-4">
-                                  {isLocked && <Lock className="h-5 w-5 text-destructive" />}
                                   <div>
                                   <p className="font-semibold">
                                       {order.tableName 
@@ -87,7 +85,7 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                                 </div>
                             </div>
                         </AccordionTrigger>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)} disabled={isLocked}>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                    </div>
