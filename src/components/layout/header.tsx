@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
@@ -15,9 +15,10 @@ import { LogOut } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
-  const { showNavConfirm, order, companyInfo, authRequired } = usePos();
+  const { showNavConfirm, order, companyInfo } = usePos();
   const { user } = useUser();
   const auth = useAuth();
+  const router = useRouter();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -26,8 +27,14 @@ export default function Header() {
     }
   };
 
-  const handleSignOut = () => {
-    signOut(auth);
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // You can also add a toast notification here if needed
+    }
   };
 
   return (
@@ -56,7 +63,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-4">
-          {authRequired && user && (
+          {user && (
             <>
               <span className="text-sm text-muted-foreground">
                 Connecté en tant que {user.firstName}
