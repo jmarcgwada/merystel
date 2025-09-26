@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { User as UserIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
@@ -45,7 +46,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 flex-1">
+        <div className={cn("flex items-center gap-4 flex-1", isInPosOrRestaurant && 'opacity-50 pointer-events-none')}>
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
