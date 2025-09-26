@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, {
@@ -86,7 +85,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
 
@@ -178,28 +177,6 @@ interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper to get from localStorage
-const getFromStorage = (key: string, defaultValue: any) => {
-    if (typeof window !== 'undefined') {
-        const storedValue = localStorage.getItem(key);
-        if (storedValue !== null) {
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                return storedValue;
-            }
-        }
-    }
-    return defaultValue;
-};
-
-// Helper to set to localStorage
-const setInStorage = (key: string, value: any) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(key, JSON.stringify(value));
-    }
-};
-
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
@@ -231,20 +208,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
 
-  // Hydration-safe settings loading
-  useEffect(() => {
-    setShowTicketImages(getFromStorage('showTicketImages', true));
-    setPopularItemsCount(getFromStorage('popularItemsCount', 10));
-    setItemCardOpacity(getFromStorage('itemCardOpacity', 30));
-    setEnableRestaurantCategoryFilter(getFromStorage('enableRestaurantCategoryFilter', true));
-  }, []);
-
-
-  // Effect to persist settings to localStorage
-  useEffect(() => setInStorage('showTicketImages', showTicketImages), [showTicketImages]);
-  useEffect(() => setInStorage('popularItemsCount', popularItemsCount), [popularItemsCount]);
-  useEffect(() => setInStorage('itemCardOpacity', itemCardOpacity), [itemCardOpacity]);
-  useEffect(() => setInStorage('enableRestaurantCategoryFilter', enableRestaurantCategoryFilter), [enableRestaurantCategoryFilter]);
   // #endregion
 
   // #region Data Fetching
@@ -312,6 +275,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const authRequired = useMemo(() => companyInfo?.authRequired ?? true, [companyInfo]);
 
+  useEffect(() => {
+    if (!companyInfoLoading) {
+      setShowTicketImages(companyInfo?.showTicketImages ?? true);
+      setPopularItemsCount(companyInfo?.popularItemsCount ?? 10);
+      setItemCardOpacity(companyInfo?.itemCardOpacity ?? 30);
+      setEnableRestaurantCategoryFilter(
+        companyInfo?.enableRestaurantCategoryFilter ?? true
+      );
+    }
+  }, [companyInfo, companyInfoLoading]);
+  
   // #region Base Callbacks
   const getCollectionRef = useCallback(
     (name: string, global: boolean = false) => {
@@ -1148,6 +1122,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           setCompanyInfo({ ...companyInfo, authRequired: required });
       }
   }, [companyInfo, setCompanyInfo]);
+
+  const updateSetting = useCallback((key: keyof CompanyInfo, value: any) => {
+    if (companyInfo) {
+      setCompanyInfo({ ...companyInfo, [key]: value });
+    }
+  }, [companyInfo, setCompanyInfo]);
+
   // #endregion
 
   // #region Navigation Confirmation
@@ -1264,13 +1245,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       setAuthRequired,
       showTicketImages,
-      setShowTicketImages,
+      setShowTicketImages: (val) =>
+        updateSetting('showTicketImages', val),
       popularItemsCount,
-      setPopularItemsCount,
+      setPopularItemsCount: (val) =>
+        updateSetting('popularItemsCount', val),
       itemCardOpacity,
-      setItemCardOpacity,
+      setItemCardOpacity: (val) =>
+        updateSetting('itemCardOpacity', val),
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter: (val) =>
+        updateSetting('enableRestaurantCategoryFilter', val),
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1348,13 +1333,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       setAuthRequired,
       showTicketImages,
-      setShowTicketImages,
       popularItemsCount,
-      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
+      updateSetting,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1380,3 +1362,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
