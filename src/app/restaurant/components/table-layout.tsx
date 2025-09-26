@@ -35,12 +35,13 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, recallOrderForPayment, setCameFromRestaurant, isLoading, setSelectedTableById } = usePos();
+  const { tables, vatRates, setCameFromRestaurant, isLoading, setSelectedTableById, promoteTableToTicket } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.status === 'paying') {
-      recallOrderForPayment(table.id);
+    if (table.id === 'takeaway') {
+      setCameFromRestaurant(true);
+      router.push('/pos');
     } else {
       setSelectedTableById(table.id);
     }
@@ -109,3 +110,4 @@ export function TableLayout() {
     </div>
   );
 }
+

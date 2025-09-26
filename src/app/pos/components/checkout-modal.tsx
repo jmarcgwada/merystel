@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -15,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -38,7 +41,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -129,7 +132,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       
       const isTableSale = currentSaleId && currentSaleId.startsWith('table-');
 
-      if (isTableSale || cameFromRestaurant) {
+      if (isTableSale || cameFromRestaurant || currentSaleContext?.isTableSale) {
         if(cameFromRestaurant) setCameFromRestaurant(false);
         router.push('/restaurant');
       } else {
@@ -138,7 +141,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
@@ -212,10 +215,20 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
-              <div className="absolute top-4 right-16 text-right">
-                <p className="text-sm text-muted-foreground">Total de la commande</p>
-                <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
-              </div>
+               {currentSaleContext?.tableName ? (
+                    <div className="text-sm text-muted-foreground pt-1">
+                        <p>Table: <span className="font-semibold text-foreground">{currentSaleContext.tableName}</span></p>
+                        <p className="flex items-center gap-2">
+                           <span><Calendar className="h-3 w-3"/> {format(new Date(), 'd MMMM yyyy', {locale: fr})}</span>
+                           <span><Clock className="h-3 w-3"/> {format(new Date(), 'HH:mm')}</span>
+                        </p>
+                    </div>
+                ) : (
+                    <div className="absolute top-4 right-16 text-right">
+                        <p className="text-sm text-muted-foreground">Total de la commande</p>
+                        <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
+                    </div>
+                )}
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-4">
                 {/* Left side: Payment input */}
@@ -380,3 +393,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+

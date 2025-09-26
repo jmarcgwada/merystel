@@ -45,6 +45,7 @@ export function OrderSummary() {
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const [isClosingTable, setIsClosingTable] = useState(false);
   const router = useRouter();
 
   const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
@@ -55,6 +56,11 @@ export function OrderSummary() {
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+
+  useEffect(() => {
+    // When the selected table changes, reset the "closing" state
+    setIsClosingTable(false);
+  }, [selectedTable]);
 
   useEffect(() => {
     if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
@@ -174,6 +180,7 @@ export function OrderSummary() {
     if(selectedTable) {
         clearOrder();
         setSelectedTable(null);
+        setIsClosingTable(false); // Reset closing state
         router.push('/restaurant');
     } else {
         clearOrder();
@@ -241,12 +248,10 @@ export function OrderSummary() {
     }
   }
 
-  const handleFinalize = () => {
+  const handleCloturer = () => {
     if(selectedTable) {
         promoteTableToTicket(selectedTable.id, order);
-        setCheckoutOpen(true);
-    } else {
-        setCheckoutOpen(true);
+        setIsClosingTable(true);
     }
   }
 
@@ -398,7 +403,7 @@ export function OrderSummary() {
                 </div>
             </div>
             <div className="mt-4 flex gap-2">
-              {selectedTable && selectedTable.id !== 'takeaway' ? (
+              {selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
                   <Button
                     size="lg"
@@ -414,7 +419,7 @@ export function OrderSummary() {
                     size="lg"
                     className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={handleFinalize}
+                    onClick={handleCloturer}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     Clôturer
@@ -436,7 +441,7 @@ export function OrderSummary() {
                     size="lg"
                     className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={handleFinalize}
+                    onClick={() => setCheckoutOpen(true)}
                   >
                     Payer maintenant
                   </Button>
@@ -453,4 +458,5 @@ export function OrderSummary() {
     </>
   );
 }
+
 

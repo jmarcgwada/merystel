@@ -136,7 +136,7 @@ interface PosContextType {
   setSelectedTableById: (tableId: string | null) => void;
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
   saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
-  recallOrderForPayment: (tableId: string) => void;
+  promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
 
   sales: Sale[];
   recordSale: (
@@ -707,6 +707,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
 
     if (table.id === 'takeaway') {
         setCameFromRestaurant(true);
+        await clearOrder();
         routerRef.current.push('/pos');
         return;
     }
@@ -749,23 +750,29 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     [updateTableOrder, clearOrder, toast]
   );
 
-  const recallOrderForPayment = useCallback(async (tableId: string) => {
-    if (!tables || !user) return;
-    const tableToRecall = tables.find(t => t.id === tableId);
-    if (tableToRecall) {
-        setOrder(tableToRecall.order);
-        setSelectedTable(null);
-        setCurrentSaleId(tableId); // Use tableId as the identifier for the sale
-        setCurrentSaleContext({
-            tableId: tableToRecall.id,
-            tableName: tableToRecall.name,
-            isTableSale: true
+  const promoteTableToTicket = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      const tableRef = getDocRef('tables', tableId);
+      const table = tables.find(t => t.id === tableId);
+      if (!tableRef || !table) return;
+      try {
+        await updateDoc(tableRef, {
+          order: orderData,
+          status: 'paying',
         });
-        toast({ title: `Paiement pour ${tableToRecall.name}` });
-        routerRef.current.push('/pos');
-    }
-  }, [tables, user, toast]);
-
+        setCurrentSaleId(`table-${tableId}`);
+        setCurrentSaleContext({
+          tableId: table.id,
+          tableName: table.name,
+          isTableSale: true,
+        });
+      } catch (error) {
+        console.error('Error promoting table to ticket:', error);
+        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+      }
+    },
+    [getDocRef, toast, tables]
+  );
 
   const forceFreeTable = useCallback(
     async (tableId: string) => {
@@ -1281,7 +1288,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
-      recallOrderForPayment,
+      promoteTableToTicket,
       sales,
       recordSale,
       paymentMethods,
@@ -1371,7 +1378,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
-      recallOrderForPayment,
+      promoteTableToTicket,
       sales,
       recordSale,
       paymentMethods,
@@ -1417,3 +1424,4 @@ export function usePos() {
   }
   return context;
 }
+
