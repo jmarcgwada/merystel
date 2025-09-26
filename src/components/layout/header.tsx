@@ -67,8 +67,12 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
-          <Separator orientation="vertical" className="h-6" />
-          <span className="font-normal text-muted-foreground">{companyInfo?.name}</span>
+          {user && companyInfo?.name && (
+            <>
+              <Separator orientation="vertical" className="h-6" />
+              <span className="font-normal text-muted-foreground">{companyInfo.name}</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2">
