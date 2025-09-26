@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket, ArrowLeft } from 'lucide-react';
+import { X, Hand, Eraser, Badge, Delete, Check, Plus, Minus, Save, Ticket, ArrowLeft, ShoppingCart, Utensils } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,6 @@ export function OrderSummary() {
     updateQuantityFromKeypad,
     setIsKeypadOpen,
     saveTableOrderAndExit,
-    promoteTableToTicket,
     showTicketImages,
     isKeypadOpen,
     currentSaleContext,
@@ -190,22 +189,41 @@ export function OrderSummary() {
       router.push('/restaurant');
     }
   }
-
-  const handlePromoteToTicket = () => {
-    if (selectedTable) {
-      promoteTableToTicket(selectedTable.id);
-    }
-  }
   
   const getTitle = () => {
+    if (currentSaleContext?.isTableSale) {
+        return (
+            <div className='flex items-center gap-2'>
+                <Utensils/>
+                <span>Ticket: {currentSaleContext.tableName}</span>
+            </div>
+        )
+    }
     if (selectedTable) {
-      return `Commande: ${selectedTable.name}`;
+        return (
+             <div className='flex items-center gap-2'>
+                <Utensils/>
+                <span>Commande: {selectedTable.name}</span>
+            </div>
+        )
     }
-    if (currentSaleContext?.tableName) {
-      return `Ticket: ${currentSaleContext.tableName}`;
-    }
-    return '';
+    return (
+        <div className='flex items-center gap-2'>
+            <ShoppingCart/>
+            <span>Commande Actuelle</span>
+        </div>
+    );
   }
+
+  const borderClass = useMemo(() => {
+    if (currentSaleContext?.isTableSale) {
+      return 'border-l-4 border-amber-500';
+    }
+    if (selectedTable) {
+      return 'border-l-4 border-blue-500';
+    }
+    return 'border-l-4 border-transparent';
+  }, [selectedTable, currentSaleContext]);
   
   const HeaderAction = () => {
       if (selectedTable) {
@@ -282,10 +300,10 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card relative">
+      <div className={cn("flex h-full flex-col bg-card relative", borderClass)}>
         <div className="flex items-center justify-between p-2 border-b h-[49px]">
           <h2 className="text-lg font-bold tracking-tight font-headline">
-             {getTitle() || 'Commande actuelle'}
+             {getTitle()}
           </h2>
           <HeaderAction />
         </div>
@@ -384,16 +402,6 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2">
               {selectedTable ? (
                 <>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={handlePromoteToTicket}
-                  >
-                    <Ticket className="mr-2 h-4 w-4" />
-                    Transformer en ticket
-                  </Button>
                   <Button
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

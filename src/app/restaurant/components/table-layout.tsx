@@ -35,11 +35,15 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant, isLoading, setSelectedTableById, user } = usePos();
+  const { tables, vatRates, recallOrderForPayment, setCameFromRestaurant, isLoading, setSelectedTableById } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    setSelectedTableById(table.id);
+    if (table.status === 'paying') {
+      recallOrderForPayment(table.id);
+    } else {
+      setSelectedTableById(table.id);
+    }
   };
 
   if (isLoading) {
@@ -84,7 +88,7 @@ export function TableLayout() {
               </Badge>
             </CardHeader>
             <CardContent>
-              {table.status !== 'available' && table.id !== 'takeaway' ? (
+              {(table.status === 'occupied' || table.status === 'paying') && table.id !== 'takeaway' ? (
                 <div className="relative">
                   <p className={cn("text-2xl font-bold text-foreground")}>
                     {total.toFixed(2)}€

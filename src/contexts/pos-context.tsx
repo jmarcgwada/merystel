@@ -86,7 +86,7 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> | null;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean } | null;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
@@ -136,7 +136,7 @@ interface PosContextType {
   setSelectedTableById: (tableId: string | null) => void;
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
   saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
-  promoteTableToTicket: (tableId: string) => void;
+  recallOrderForPayment: (tableId: string) => void;
 
   sales: Sale[];
   recordSale: (
@@ -215,7 +215,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -351,9 +351,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        if (data.lockedBy === undefined) {
-            data.lockedBy = null;
-        }
         await setDoc(ref, data, { merge: true });
         if(toastTitle) toast({ title: toastTitle });
       } catch (error) {
@@ -751,53 +748,23 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     [updateTableOrder, clearOrder, toast]
   );
 
-  const promoteTableToTicket = useCallback(async (tableId: string) => {
-    if (!tables || !vatRates || !heldOrders || !firestore || !user) return;
-    const table = tables.find((t) => t.id === tableId);
-    if (!table || table.order.length === 0) return;
+  const recallOrderForPayment = useCallback(async (tableId: string) => {
+    if (!tables || !user) return;
+    const tableToRecall = tables.find(t => t.id === tableId);
+    if (tableToRecall) {
+        setOrder(tableToRecall.order);
+        setSelectedTable(null);
+        setCurrentSaleId(tableId); // Use tableId as the identifier for the sale
+        setCurrentSaleContext({
+            tableId: tableToRecall.id,
+            tableName: tableToRecall.name,
+            isTableSale: true
+        });
+        toast({ title: `Paiement pour ${tableToRecall.name}` });
+        routerRef.current.push('/pos');
+    }
+  }, [tables, user, toast]);
 
-    const subtotal = table.order.reduce((sum, item) => sum + item.total, 0);
-    const tax = table.order.reduce((sum, item) => {
-      const vat = vatRates.find((v) => v.id === item.vatId);
-      return sum + item.total * ((vat?.rate || 0) / 100);
-    }, 0);
-    const total = subtotal + tax;
-
-    const existingHeldOrder = heldOrders.find((ho) => ho.tableId === table.id);
-    const newHeldOrderData: HeldOrder = {
-      id: existingHeldOrder?.id || uuidv4(),
-      date: new Date(),
-      items: table.order,
-      total: total,
-      tableName: table.name,
-      tableId: table.id,
-    };
-    
-    const tableRef = getDocRef('tables', tableId);
-    const heldOrdersCollRef = getCollectionRef('heldOrders');
-    if (!tableRef || !heldOrdersCollRef) return;
-    
-    const batch = writeBatch(firestore);
-
-    const heldOrderRef = existingHeldOrder
-      ? getDocRef('heldOrders', existingHeldOrder.id)
-      : doc(heldOrdersCollRef, newHeldOrderData.id);
-      
-    if (!heldOrderRef) return;
-
-    const { id, ...dataToSave } = newHeldOrderData;
-    batch.set(heldOrderRef, dataToSave);
-    batch.update(tableRef, { status: 'paying', order: [] });
-    await batch.commit();
-
-    await clearOrder();
-    routerRef.current.push('/restaurant');
-    toast({
-      title: 'Table transformée en ticket',
-      description:
-        'Le ticket est maintenant en attente dans le point de vente.',
-    });
-  }, [tables, vatRates, heldOrders, firestore, user, getDocRef, getCollectionRef, toast, clearOrder]);
 
   const forceFreeTable = useCallback(
     async (tableId: string) => {
@@ -854,19 +821,20 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
       if (!companyId || !sales || !firestore) return;
       
-      const saleIdToUpdate = currentSaleId;
-      const tableToEnd = saleIdToUpdate
-        ? heldOrdersRef.current?.find((ho) => ho.id === saleIdToUpdate)?.tableId
-        : undefined;
       const batch = writeBatch(firestore);
-
-      if (saleIdToUpdate) {
-        const docRef = getDocRef('heldOrders', saleIdToUpdate);
-        if (docRef) batch.delete(docRef);
+      
+      // If sale comes from a table, free the table.
+      if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+        const tableRef = getDocRef('tables', currentSaleContext.tableId);
+        if (tableRef) {
+          batch.update(tableRef, { status: 'available', order: [] });
+        }
       }
-      if (tableToEnd) {
-        const tableRef = getDocRef('tables', tableToEnd);
-        if (tableRef) batch.update(tableRef, { status: 'available', order: [] });
+
+      // If sale comes from a recalled held order, delete the held order
+      if (currentSaleId && !currentSaleContext?.isTableSale) {
+        const docRef = getDocRef('heldOrders', currentSaleId);
+        if (docRef) batch.delete(docRef);
       }
 
       const today = new Date();
@@ -1312,7 +1280,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
-      promoteTableToTicket,
+      recallOrderForPayment,
       sales,
       recordSale,
       paymentMethods,
@@ -1402,7 +1370,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
-      promoteTableToTicket,
+      recallOrderForPayment,
       sales,
       recordSale,
       paymentMethods,
@@ -1448,4 +1416,3 @@ export function usePos() {
   }
   return context;
 }
-
