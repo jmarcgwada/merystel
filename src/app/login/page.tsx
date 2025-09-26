@@ -38,8 +38,6 @@ const adminSchema = z.object({
 
 type AdminFormValues = z.infer<typeof adminSchema>;
 
-const SESSION_OVERRIDE_PIN = '1791';
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -139,10 +137,23 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   };
+  
+  const generateDynamicPin = () => {
+    const now = new Date();
+    const month = (now.getMonth() + 1);
+    const day = now.getDate();
+    
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const difference = Math.abs(day - month).toString();
+
+    return `${monthStr}${dayStr}${difference}`;
+  };
 
   const handlePinSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (pin === SESSION_OVERRIDE_PIN) {
+        const correctPin = generateDynamicPin();
+        if (pin === correctPin) {
             setShowPinDialog(false);
             setPin('');
             if(loginCredentials) {
@@ -304,7 +315,7 @@ export default function LoginPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Session active détectée</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Cet utilisateur est déjà connecté sur un autre appareil. Veuillez entrer le code PIN pour forcer la connexion et déconnecter l'autre session.
+                        Cet utilisateur est déjà connecté sur un autre appareil. Veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
@@ -330,3 +341,5 @@ export default function LoginPage() {
     </>
   );
 }
+
+    
