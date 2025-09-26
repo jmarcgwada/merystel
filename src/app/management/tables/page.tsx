@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Eraser, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser, Users, RefreshCw } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -48,10 +48,15 @@ export default function TablesPage() {
         setTableToFree(null);
     }
   }
+  
+  const tablesWithoutTakeaway = tables.filter(t => t.id !== 'takeaway');
 
   return (
     <>
-      <PageHeader title="Gérer les tables" subtitle="Ajoutez, modifiez ou supprimez des tables.">
+      <PageHeader title="Gérer les tables" subtitle={isClient && tablesWithoutTakeaway ? `Vous avez ${tablesWithoutTakeaway.length} tables au total.` : "Ajoutez, modifiez ou supprimez des tables."}>
+        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button onClick={() => router.push('/management/tables/form')}>
           <Plus className="mr-2 h-4 w-4" />
           Ajouter une table
@@ -81,7 +86,7 @@ export default function TablesPage() {
                             <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
-                    {isClient && !isLoading && tables && tables.map(table => (
+                    {isClient && !isLoading && tablesWithoutTakeaway.map(table => (
                         <TableRow key={table.id}>
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>

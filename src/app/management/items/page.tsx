@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -115,7 +115,10 @@ export default function ItemsPage() {
 
   return (
     <>
-      <PageHeader title="Gérer les articles" subtitle="Ajoutez, modifiez ou supprimez des produits.">
+      <PageHeader title="Gérer les articles" subtitle={isClient && items ? `Vous avez ${items.length} articles au total.` : "Ajoutez, modifiez ou supprimez des produits."}>
+        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button onClick={() => router.push('/management/items/form')}>
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un article

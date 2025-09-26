@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -22,6 +22,7 @@ import type { VatRate } from '@/lib/types';
 import { AddVatDialog } from './components/add-vat-dialog';
 import { EditVatDialog } from './components/edit-vat-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 
 export default function VatPage() {
@@ -31,6 +32,7 @@ export default function VatPage() {
   const [vatToDelete, setVatToDelete] = useState<VatRate | null>(null);
   const [vatToEdit, setVatToEdit] = useState<VatRate | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -51,7 +53,10 @@ export default function VatPage() {
 
   return (
     <>
-      <PageHeader title="Gérer la TVA" subtitle="Configurez vos taux de TVA.">
+      <PageHeader title="Gérer la TVA" subtitle={isClient && vatRates ? `Vous avez ${vatRates.length} taux de TVA au total.` : "Configurez vos taux de TVA."}>
+        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button onClick={() => setAddVatOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un taux de TVA

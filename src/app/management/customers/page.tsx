@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -23,6 +23,7 @@ import {
 import type { Customer } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 
 export default function CustomersPage() {
@@ -32,6 +33,7 @@ export default function CustomersPage() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -51,7 +53,10 @@ export default function CustomersPage() {
 
   return (
     <>
-      <PageHeader title="Gérer les clients" subtitle="Affichez et gérez votre liste de clients.">
+      <PageHeader title="Gérer les clients" subtitle={isClient && customers ? `Vous avez ${customers.length} clients au total.` : "Affichez et gérez votre liste de clients."}>
+        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button onClick={() => setAddCustomerOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un client
