@@ -744,6 +744,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       await updateTableOrder(tableId, orderData);
       toast({ title: 'Table sauvegardée' });
       await clearOrder();
+      routerRef.current.push('/restaurant');
     },
     [updateTableOrder, clearOrder, toast]
   );
