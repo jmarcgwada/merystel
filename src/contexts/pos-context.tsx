@@ -703,12 +703,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await setDoc(tableRef, { status: 'available', lockedBy: null }, { merge: true });
+        await updateDoc(tableRef, { status: 'available', lockedBy: null });
       }
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
-    [heldOrders, getDocRef, deleteEntity, toast]
+    [heldOrders, getDocRef, deleteEntity, toast, updateDoc]
   );
 
   const recallOrder = useCallback(async (orderId: string) => {
