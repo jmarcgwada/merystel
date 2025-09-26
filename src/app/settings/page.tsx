@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, UserCog } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -50,6 +50,13 @@ export default function SettingsPage() {
         description: "Gérez le nom, l'adresse et les coordonnées de votre entreprise.",
         icon: Building,
         adminOnly: false,
+    },
+    {
+        href: '/management/users',
+        title: "Gestion des utilisateurs",
+        description: "Ajoutez ou modifiez les comptes utilisateurs.",
+        icon: UserCog,
+        adminOnly: true,
     },
     {
         href: '/settings/modes',
