@@ -23,6 +23,9 @@ import type { Item } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Lock } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -42,6 +45,8 @@ function ItemForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { items, categories, vatRates, addItem, updateItem, isLoading } = usePos();
+  const { user } = useUser();
+  const isCashier = user?.role === 'cashier';
   const [isGenerating, setIsGenerating] = useState(false);
   const [defaultImage, setDefaultImage] = useState('');
   const [isClient, setIsClient] = useState(false);
@@ -68,6 +73,13 @@ function ItemForm() {
   const watchedImage = watch('image');
   const watchedName = watch('name');
   const watchedPrice = watch('price');
+
+  useEffect(() => {
+    if(isCashier && !isEditMode) {
+      router.push('/management/items');
+    }
+  }, [isCashier, isEditMode, router]);
+
 
   useEffect(() => {
     // This ensures the component has mounted on the client, avoiding hydration issues.
@@ -111,6 +123,10 @@ function ItemForm() {
 
 
   function onSubmit(data: ItemFormValues) {
+    if (isCashier) {
+        toast({ variant: 'destructive', title: 'Accès non autorisé' });
+        return;
+    }
     if (isEditMode && itemToEdit) {
       const updatedItem: Item = {
         ...itemToEdit,
@@ -175,6 +191,65 @@ function ItemForm() {
           </div>
         </Suspense>
     )
+  }
+
+  if (isCashier && isEditMode) {
+      return (
+        <>
+            <PageHeader
+                title="Détails de l'article"
+                subtitle="Affichage en lecture seule."
+            >
+                <Button variant="outline" asChild>
+                <Link href="/management/items">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Retour à la liste
+                </Link>
+                </Button>
+            </PageHeader>
+            <div className="mt-8">
+                 <Alert>
+                    <Lock className="h-4 w-4" />
+                    <AlertTitle>Mode lecture seule</AlertTitle>
+                    <AlertDescription>
+                        En tant que caissier, vous pouvez uniquement consulter les détails des articles.
+                    </AlertDescription>
+                </Alert>
+            </div>
+             <fieldset disabled className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 opacity-70">
+                <div className="lg:col-span-2">
+                    <Card>
+                    <CardHeader>
+                        <CardTitle>Détails de l'article</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
+                        <p><span className="font-semibold">Prix:</span> {itemToEdit?.price.toFixed(2)}€</p>
+                        <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
+                        <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
+                        <p><span className="font-semibold">Description:</span> {itemToEdit?.description || 'N/A'}</p>
+                    </CardContent>
+                    </Card>
+                </div>
+                 <div className="lg:col-span-1">
+                    <Card>
+                    <CardHeader>
+                        <CardTitle>Image</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Image
+                            src={itemToEdit?.image || 'https://picsum.photos/seed/placeholder/200/150'}
+                            alt={itemToEdit?.name || "Aperçu"}
+                            width={200}
+                            height={150}
+                            className="object-cover rounded-md mx-auto"
+                        />
+                    </CardContent>
+                    </Card>
+                 </div>
+            </fieldset>
+        </>
+      )
   }
 
   return (

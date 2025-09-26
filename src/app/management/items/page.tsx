@@ -27,12 +27,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem } from '@/components/ui/command';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 type SortKey = 'name' | 'price' | 'categoryId';
 
 export default function ItemsPage() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
+  const { user } = useUser();
+  const isCashier = user?.role === 'cashier';
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -119,10 +122,12 @@ export default function ItemsPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        <Button onClick={() => router.push('/management/items/form')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un article
-        </Button>
+        {!isCashier && (
+            <Button onClick={() => router.push('/management/items/form')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un article
+            </Button>
+        )}
       </PageHeader>
 
       <Card className="mt-8">
@@ -244,13 +249,13 @@ export default function ItemsPage() {
                     <TableCell>{getVatRate(item.vatId)}%</TableCell>
                     <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     <TableCell className="text-right">
-                       <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
+                       <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleItemFavorite(item.id)} disabled={isCashier}>
                            <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                        </Button>
-                       <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)}>
+                       <Button variant="ghost" size="icon" onClick={() => !isCashier && router.push(`/management/items/form?id=${item.id}`)} disabled={isCashier}>
                            <Edit className="h-4 w-4"/>
                        </Button>
-                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
+                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setItemToDelete(item)} disabled={isCashier}>
                            <Trash2 className="h-4 w-4"/>
                        </Button>
                     </TableCell>

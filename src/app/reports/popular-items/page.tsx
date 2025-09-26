@@ -13,9 +13,12 @@ import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
 
 export default function PopularItemsPage() {
     const { sales, items, categories, toggleItemFavorite, toggleFavoriteForList, isLoading } = usePos();
+    const { user } = useUser();
+    const isCashier = user?.role === 'cashier';
 
     const popularItems = useMemo(() => {
         if (!sales || !items) return [];
@@ -65,10 +68,12 @@ export default function PopularItemsPage() {
         title="Articles populaires"
         subtitle="Classement des articles les plus vendus."
       >
-        <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>
-            <Star className="mr-2 h-4 w-4" />
-            {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
-        </Button>
+        {!isCashier && (
+            <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>
+                <Star className="mr-2 h-4 w-4" />
+                {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
+            </Button>
+        )}
       </PageHeader>
       <div className="mt-8">
         <Card>
@@ -119,7 +124,7 @@ export default function PopularItemsPage() {
                         <TableCell className="text-right font-semibold text-primary">{count}</TableCell>
                         <TableCell className="text-right font-bold">{revenue.toFixed(2)}€</TableCell>
                         <TableCell className="text-right">
-                           <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
+                           <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleItemFavorite(item.id)} disabled={isCashier}>
                                <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                            </Button>
                         </TableCell>

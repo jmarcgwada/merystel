@@ -15,6 +15,7 @@ import { TrendingUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 const ClientFormattedDate = ({ date }: { date: Date }) => {
@@ -30,6 +31,8 @@ const ClientFormattedDate = ({ date }: { date: Date }) => {
 
 export default function ReportsPage() {
     const { sales, customers, isLoading } = usePos();
+    const { user } = useUser();
+    const isCashier = user?.role === 'cashier';
     
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
@@ -57,12 +60,14 @@ export default function ReportsPage() {
         title="Rapports"
         subtitle="Analysez vos performances de vente."
       >
-        <Button asChild>
-            <Link href="/reports/popular-items">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Voir les articles populaires
-            </Link>
-        </Button>
+        {!isCashier && (
+            <Button asChild>
+                <Link href="/reports/popular-items">
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Voir les articles populaires
+                </Link>
+            </Button>
+        )}
       </PageHeader>
       <div className="mt-8">
         <Card>
