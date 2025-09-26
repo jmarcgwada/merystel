@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -38,7 +37,11 @@ export default function PosPage() {
   }, [inputValue, targetInput]);
 
   useEffect(() => {
-    setSelectedTableById(tableId);
+    if(tableId) {
+      setSelectedTableById(tableId);
+    } else {
+      setSelectedTableById(null);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);
 
@@ -89,7 +92,7 @@ export default function PosPage() {
              isKeypadOpen && 'opacity-50 pointer-events-none'
           )}>
             <div className="p-4 border-b bg-card">
-                 <div className="flex items-center justify-between gap-4">
+                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
                       {pageTitle}
@@ -97,30 +100,32 @@ export default function PosPage() {
                     {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
                     {selectedCategory === 'popular' && <Badge variant="secondary"><Trophy className="h-3 w-3 mr-1"/>Populaires</Badge>}
                   </div>
-                  <div className="relative w-full max-w-sm flex items-center">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Rechercher un article..."
-                        value={itemSearchTerm}
-                        onChange={(e) => setItemSearchTerm(e.target.value)}
-                        className="pl-9 pr-10"
-                    />
-                     <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
-                        <Keyboard className="h-5 w-5" />
+                  <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
+                    <div className="relative w-full max-w-sm flex items-center">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Rechercher un article..."
+                            value={itemSearchTerm}
+                            onChange={(e) => setItemSearchTerm(e.target.value)}
+                            className="pl-9 pr-10"
+                        />
+                        <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+                            <Keyboard className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setHeldOpen(true)} 
+                        className={cn(
+                            "flex-shrink-0",
+                            heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
+                        )}
+                    >
+                        <Hand className="mr-2 h-4 w-4"/>
+                        Tickets
+                        {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
                     </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setHeldOpen(true)} 
-                    className={cn(
-                        "flex-shrink-0",
-                        heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
-                    )}
-                  >
-                    <Hand className="mr-2 h-4 w-4"/>
-                    Tickets en attente
-                    {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
-                  </Button>
                 </div>
             </div>
             <ScrollArea className="flex-1">
