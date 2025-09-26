@@ -86,7 +86,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId' | 'password'>) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
 
@@ -929,42 +929,52 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Generic Entity Management
   const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'companyId' | 'password'>) => {
-        if (!auth || !firestore) return;
-        const { email, ...profileData } = userData;
-        if (!email) {
-            toast({ variant: 'destructive', title: 'Email requis.' });
-            return;
+    async (userData: Omit<User, 'id' | 'companyId'>) => {
+      if (!auth || !firestore) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Le service d\'authentification n\'est pas disponible.',
+        });
+        return;
+      }
+
+      const tempPassword = Math.random().toString(36).slice(-8);
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, tempPassword);
+        const authUser = userCredential.user;
+
+        const userDocData = {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role,
+          companyId: SHARED_COMPANY_ID,
+        };
+
+        await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
+
+        toast({
+          title: 'Utilisateur créé avec succès',
+          description: `Mot de passe temporaire : ${tempPassword}`,
+          duration: 15000,
+        });
+      } catch (error: any) {
+        console.error('Error creating user:', error);
+        let description = "Une erreur inconnue s'est produite.";
+        if (error.code === 'auth/email-already-in-use') {
+          description = 'Cette adresse e-mail est déjà utilisée par un autre compte.';
+        } else if (error.code === 'auth/invalid-email') {
+          description = "L'adresse e-mail n'est pas valide.";
+        } else if (error.code === 'auth/weak-password') {
+          description = 'Le mot de passe est trop faible.';
         }
-
-        const tempPassword = Math.random().toString(36).slice(-8);
-
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, tempPassword);
-            const authUser = userCredential.user;
-
-            const userDoc: Omit<User, 'id'> = {
-                ...profileData,
-                email: authUser.email || '',
-                companyId: SHARED_COMPANY_ID,
-            };
-
-            await setDoc(doc(firestore, "users", authUser.uid), userDoc);
-            toast({ 
-              title: "Utilisateur créé avec succès",
-              description: `Mot de passe temporaire: ${tempPassword}`,
-              duration: 15000,
-            });
-        } catch (error: any) {
-            console.error("Error creating user:", error);
-            const message = error.code === 'auth/email-already-in-use' 
-                ? 'Cette adresse e-mail est déjà utilisée.' 
-                : "Erreur lors de la création de l'utilisateur.";
-            toast({ variant: 'destructive', title: 'Erreur', description: message });
-        }
+        toast({ variant: 'destructive', title: 'Erreur de création', description });
+      }
     },
     [auth, firestore, toast]
-);
+  );
 
   const updateUser = useCallback(
     (userData: User) => updateEntity('users', userData.id, userData, 'Utilisateur mis à jour', true),
