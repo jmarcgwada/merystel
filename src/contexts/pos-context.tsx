@@ -709,17 +709,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [order, orderTotal, orderTax, clearOrder, addEntity]);
   
 
-  const setSelectedTableById = useCallback(
+const setSelectedTableById = useCallback(
     async (tableId: string | null) => {
         if (!tables || !user) {
-            if (!tableId) clearOrder(); // Allow clearing order even if context is not ready
+            if (!tableId) clearOrder();
             return;
         }
-        
+
+        if (selectedTable && selectedTable.id !== tableId) {
+             const tableRef = getDocRef('tables', selectedTable.id);
+             if (tableRef) await setDoc(tableRef, { lockedBy: null }, { merge: true });
+        }
+
         if (!tableId) {
-            if (selectedTable) {
-                await updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
-            }
             setSelectedTable(null);
             clearOrder();
             return;
@@ -749,7 +751,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         routerRef.current.push(`/pos?tableId=${tableId}`);
     },
-    [tables, user, clearOrder, toast, updateEntity]
+    [tables, user, clearOrder, toast, updateEntity, selectedTable, getDocRef]
 );
 
 
