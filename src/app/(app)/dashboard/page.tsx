@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Item } from '@/lib/types';
@@ -50,6 +50,11 @@ const quickLinks = [
 export default function DashboardPage() {
     const { user: authUser } = useUser();
     const { sales, items, isLoading } = usePos();
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
+    }, []);
 
     const totalSales = useMemo(() => {
         if (!sales) return 0;
@@ -141,7 +146,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">+{todaysSales}</div>
-                 <p className="text-xs text-muted-foreground">{format(new Date(), "eeee, d MMMM", { locale: fr })}</p>
+                 <p className="text-xs text-muted-foreground">{formattedDate || <Skeleton className="h-4 w-24" />}</p>
             </CardContent>
         </Card>
          <Card>
