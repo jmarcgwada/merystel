@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 
 const navLinks = [
@@ -13,7 +13,6 @@ const navLinks = [
   { href: '/management/customers', label: 'Clients', icon: Users },
   { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard },
   { href: '/management/vat', label: 'TVA', icon: Percent },
-  { href: '/management/users', label: 'Utilisateurs', icon: UserCog },
 ];
 
 export default function ManagementSideNav() {
