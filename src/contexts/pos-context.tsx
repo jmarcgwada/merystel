@@ -45,6 +45,8 @@ import {
   query,
   where,
   getDoc,
+  updateDoc,
+  deleteField,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -1002,13 +1004,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
         try {
             // Clear the session token in Firestore first
-            await updateEntity('users', user.uid, { sessionToken: '' }, '', true);
+            const userRef = doc(firestore, 'users', user.uid);
+            await updateDoc(userRef, { sessionToken: deleteField() });
             
             // Then sign out from Firebase Auth
             await signOut(auth);
 
-            // Finally, clear local storage and redirect
+            // Finally, clear local storage
             localStorage.removeItem('sessionToken');
+            
             routerRef.current.push('/login');
         } catch (error) {
             console.error('Sign out error:', error);
@@ -1018,7 +1022,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 description: 'Une erreur s\'est produite lors de la déconnexion.',
             });
         }
-    }, [auth, user, updateEntity, toast]);
+    }, [auth, user, firestore, toast]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
@@ -1031,7 +1035,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         const currentUserId = auth.currentUser?.uid;
         if (currentUserId) {
-            await updateEntity('users', currentUserId, { sessionToken: '' }, '', true);
+            const userRef = doc(firestore, 'users', currentUserId);
+            await updateDoc(userRef, { sessionToken: deleteField() });
         }
 
         localStorage.removeItem('sessionToken');
@@ -1042,7 +1047,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: message,
         });
         routerRef.current.push('/login');
-    }, [auth, toast, updateEntity]);
+    }, [auth, toast, firestore]);
 
   // #endregion
 
