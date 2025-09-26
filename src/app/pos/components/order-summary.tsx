@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, LogOut, ShoppingCart, Utensils, CreditCard, Save } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, LayoutDashboard } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { OrderItem } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -238,6 +239,17 @@ export function OrderSummary() {
             </Button>
           )
       }
+
+      if (order.length === 0 && !selectedTable) {
+        return (
+            <Button asChild variant="ghost" size="sm">
+                <Link href="/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Tableau de bord
+                </Link>
+            </Button>
+        )
+      }
       
       return null;
   }
@@ -458,5 +470,6 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
