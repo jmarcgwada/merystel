@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 export default function RootPage() {
   
   useEffect(() => {
-    redirect('/dashboard');
+    redirect('/login');
   }, []);
 
   return <div className="flex h-screen items-center justify-center">Chargement...</div>;
