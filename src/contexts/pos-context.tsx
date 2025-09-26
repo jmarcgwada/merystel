@@ -507,20 +507,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Order Management
-  const clearOrder = useCallback(() => {
+  const clearOrder = useCallback(async () => {
     // Unlock any associated resource before clearing
     if (selectedTable) {
-        updateEntity('tables', selectedTable.id, { lockedBy: null }, '', false);
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+            await updateDoc(tableRef, { lockedBy: null });
+        }
     }
     if (currentSaleId) {
-        updateEntity('heldOrders', currentSaleId, { lockedBy: null }, '', false);
+        const heldOrderRef = getDocRef('heldOrders', currentSaleId);
+        if (heldOrderRef) {
+            await updateDoc(heldOrderRef, { lockedBy: null });
+        }
     }
 
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, currentSaleId, updateEntity]);
+  }, [selectedTable, currentSaleId, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -717,8 +723,7 @@ const setSelectedTableById = useCallback(
         }
 
         if (selectedTable && selectedTable.id !== tableId) {
-             const tableRef = getDocRef('tables', selectedTable.id);
-             if (tableRef) await setDoc(tableRef, { lockedBy: null }, { merge: true });
+            await updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
         }
 
         if (!tableId) {
@@ -751,7 +756,7 @@ const setSelectedTableById = useCallback(
         });
         routerRef.current.push(`/pos?tableId=${tableId}`);
     },
-    [tables, user, clearOrder, toast, updateEntity, selectedTable, getDocRef]
+    [tables, user, clearOrder, toast, updateEntity, selectedTable]
 );
 
 
@@ -864,7 +869,7 @@ const setSelectedTableById = useCallback(
 
   const addTable = useCallback(
     (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'lockedBy'>) => {
-      const newTable = {
+      const newTable: Omit<Table, 'id'> = {
         ...tableData,
         number: Date.now() % 10000,
         status: 'available' as const,
@@ -1043,7 +1048,7 @@ const setSelectedTableById = useCallback(
         const userRef = doc(firestore, 'users', user.uid);
         await updateDoc(userRef, { sessionToken: deleteField() });
         
-        signOut(auth);
+        await signOut(auth);
         localStorage.removeItem('sessionToken');
     }, [auth, user, firestore]);
 
@@ -1492,3 +1497,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
