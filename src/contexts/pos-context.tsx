@@ -723,7 +723,7 @@ const setSelectedTableById = useCallback(
         }
 
         if (selectedTable && selectedTable.id !== tableId) {
-            await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
+             await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
         }
 
         if (!tableId) {
