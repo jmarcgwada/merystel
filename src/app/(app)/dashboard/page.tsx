@@ -45,12 +45,6 @@ const quickLinks = [
         description: "Analyser les performances de vente.",
         icon: BarChart3
     },
-    {
-        href: '/settings',
-        title: 'Paramètres',
-        description: "Configurer l'application.",
-        icon: Settings
-    }
 ]
 
 export default function DashboardPage() {
@@ -201,22 +195,20 @@ export default function DashboardPage() {
                         </Card>
                     </Link>
                 ))}
-                {authUser?.role === 'admin' && (
-                    <Link href="/management/users" className="group">
-                        <Card className="h-full transition-all hover:shadow-md hover:border-primary">
-                            <CardContent className="pt-6">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <Users className="h-8 w-8 text-primary mb-2" />
-                                        <h3 className="text-lg font-semibold font-headline">Gestion des utilisateurs</h3>
-                                        <p className="text-sm text-muted-foreground mt-1">Gérer les comptes et les rôles.</p>
-                                    </div>
-                                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                <Link href="/settings" className="group">
+                    <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                        <CardContent className="pt-6">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <Settings className="h-8 w-8 text-primary mb-2" />
+                                    <h3 className="text-lg font-semibold font-headline">Paramètres</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">Configurer l'application.</p>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                )}
+                                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </div>
          <div className="lg:col-span-1">
