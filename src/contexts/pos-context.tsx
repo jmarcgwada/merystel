@@ -703,7 +703,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await setDoc(tableRef, { status: 'available' }, { merge: true });
+        await setDoc(tableRef, { status: 'available', lockedBy: null }, { merge: true });
       }
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
