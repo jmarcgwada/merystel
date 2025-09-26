@@ -109,7 +109,7 @@ export default function LoginPage() {
     
     const userToLogin = findUserByEmail(email);
 
-    // Only show PIN dialog if user exists, has a session token, and we are not forcing the login
+    // Only show PIN dialog if user exists, has a non-empty session token, and we are not forcing the login
     if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0 && !force) {
         setLoginCredentials({email, password});
         setShowPinDialog(true);
