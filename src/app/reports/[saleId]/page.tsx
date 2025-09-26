@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -13,7 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -218,18 +219,33 @@ export default function SaleDetailPage() {
                 </div>
             </CardFooter>
           </Card>
-          {customer && (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Client</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="font-semibold">{customer.name}</p>
-                    {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
-                    {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
-                </CardContent>
-             </Card>
-          )}
+
+          <div className="space-y-4">
+            {sale.tableName && (
+                 <Card>
+                    <CardHeader className="flex-row items-center gap-4 space-y-0">
+                        <Utensils className="h-6 w-6 text-muted-foreground" />
+                        <CardTitle>Origine de la vente</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p>Cette vente provient de la table : <span className="font-semibold">{sale.tableName}</span>.</p>
+                    </CardContent>
+                </Card>
+            )}
+            {customer && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Client</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-semibold">{customer.name}</p>
+                        {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
+                        {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
+                    </CardContent>
+                </Card>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
