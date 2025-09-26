@@ -1,0 +1,437 @@
+
+
+'use client';
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { usePos } from '@/contexts/pos-context';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, LogOut, ShoppingCart, Utensils, CreditCard } from 'lucide-react';
+import { CheckoutModal } from './checkout-modal';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import type { OrderItem } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+
+const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
+    <Button variant="outline" className={cn("text-xl h-12", className)} onClick={onClick}>
+        {children}
+    </Button>
+)
+
+export function OrderSummary() {
+  const { 
+    order, 
+    setOrder,
+    removeFromOrder, 
+    clearOrder, 
+    orderTotal, 
+    orderTax,
+    selectedTable, 
+    holdOrder, 
+    setSelectedTable,
+    applyDiscount,
+    updateQuantityFromKeypad,
+    setIsKeypadOpen,
+    saveTableOrderAndExit,
+    promoteTableToTicket,
+    showTicketImages,
+    isKeypadOpen,
+    currentSaleContext,
+    recentlyAddedItemId,
+    setRecentlyAddedItemId,
+  } = usePos();
+  
+  const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const router = useRouter();
+
+  const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
+  const [keypadValue, setKeypadValue] = useState('');
+  const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
+  const keypadInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
+
+  const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+
+  useEffect(() => {
+    if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
+        const itemElement = itemRefs.current[recentlyAddedItemId];
+        if (itemElement) {
+            const scrollArea = scrollAreaRef.current;
+            const itemTop = itemElement.offsetTop;
+            const itemBottom = itemTop + itemElement.offsetHeight;
+            const scrollAreaTop = scrollArea.scrollTop;
+            const scrollAreaBottom = scrollAreaTop + scrollArea.clientHeight;
+
+            if (itemTop < scrollAreaTop) {
+                scrollArea.scrollTop = itemTop;
+            } else if (itemBottom > scrollAreaBottom) {
+                scrollArea.scrollTop = itemBottom - scrollArea.clientHeight;
+            }
+        }
+    }
+  }, [recentlyAddedItemId]);
+
+  useEffect(() => {
+    setIsKeypadOpen(!!selectedItem);
+  }, [selectedItem, setIsKeypadOpen]);
+
+  useEffect(() => {
+    if (selectedItem) {
+        if (keypadInputRef.current) {
+            keypadInputRef.current.focus();
+            keypadInputRef.current.select();
+        }
+        setShouldReplaceValue(true);
+    }
+  }, [selectedItem, mode]);
+
+  const handleItemSelect = (item: OrderItem) => {
+    if (selectedItem?.id === item.id) {
+        setSelectedItem(null);
+        setKeypadValue('');
+    } else {
+        setSelectedItem(item);
+        setMode('quantity');
+        setKeypadValue(item.quantity.toString());
+    }
+  }
+
+  const handleModeChange = (newMode: 'quantity' | 'discountPercent' | 'discountFixed') => {
+    setMode(newMode);
+    if (newMode === 'quantity' && selectedItem) {
+        setKeypadValue(selectedItem.quantity.toString());
+    } else {
+        setKeypadValue('');
+    }
+    setShouldReplaceValue(true);
+  }
+
+  const handleKeypadInput = (value: string) => {
+    if (document.activeElement === keypadInputRef.current) {
+        setShouldReplaceValue(false);
+    }
+    
+    if (value === 'del') {
+      setKeypadValue(prev => prev.slice(0, -1));
+    } else if (value === 'C') {
+        setKeypadValue('');
+    } else {
+      if (shouldReplaceValue) {
+        setKeypadValue(value);
+        setShouldReplaceValue(false);
+      } else {
+        setKeypadValue(prev => prev + value);
+      }
+    }
+  }
+  
+  const handleDirectInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setKeypadValue(e.target.value);
+    if (shouldReplaceValue) {
+      setShouldReplaceValue(false);
+    }
+  };
+
+
+  const handleApply = () => {
+    if (!selectedItem) return;
+    const value = parseFloat(keypadValue);
+    if(isNaN(value)) return;
+    
+    if (mode === 'quantity') {
+        updateQuantityFromKeypad(selectedItem.id, value);
+    } else if (mode === 'discountPercent') {
+        applyDiscount(selectedItem.id, value, 'percentage');
+    } else if (mode === 'discountFixed') {
+        applyDiscount(selectedItem.id, value, 'fixed');
+    }
+    setSelectedItem(null);
+    setKeypadValue('');
+  }
+
+  const handleIncrementDecrement = (amount: number) => {
+    const currentValue = parseFloat(keypadValue) || 0;
+    let newValue = currentValue + amount;
+    if (mode === 'quantity' && newValue < 1) {
+        newValue = 1;
+    }
+    setKeypadValue(newValue.toString());
+    if (shouldReplaceValue) {
+      setShouldReplaceValue(false);
+    }
+  }
+  
+  const handleCloseKeypad = () => {
+    setSelectedItem(null);
+    setKeypadValue('');
+  }
+
+  const handleHeaderAction = () => {
+    if(selectedTable) {
+        clearOrder();
+        setSelectedTable(null);
+        router.push('/restaurant');
+    } else {
+        clearOrder();
+    }
+  }
+  
+  const getTitle = () => {
+    if (selectedTable) {
+        return (
+             <div className='flex items-center gap-2'>
+                <Utensils/>
+                <span>Commande: {selectedTable.name}</span>
+            </div>
+        )
+    }
+    return (
+        <div className='flex items-center gap-2'>
+            <ShoppingCart/>
+            <span>Commande Actuelle</span>
+        </div>
+    );
+  }
+
+  const HeaderAction = () => {
+      if (selectedTable) {
+           return (
+                <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
+                  Annuler
+                </Button>
+            )
+      }
+
+      if (order.length > 0) {
+          return (
+             <Button variant="ghost" size="sm" onClick={handleHeaderAction} className="text-destructive hover:text-destructive">
+              Tout effacer
+            </Button>
+          )
+      }
+      
+      return null;
+  }
+
+  const handleSaveAndExit = () => {
+    if (selectedTable) {
+      saveTableOrderAndExit(selectedTable.id, order);
+    }
+  }
+
+  const handleFinalize = () => {
+    if(selectedTable) {
+        promoteTableToTicket(selectedTable.id, order);
+        setCheckoutOpen(true);
+    } else {
+        setCheckoutOpen(true);
+    }
+  }
+
+
+  const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
+    <div 
+        ref={el => itemRefs.current[item.id] = el}
+        className={cn(
+          "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
+          isSelected ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
+          recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
+          showTicketImages ? 'p-4' : 'p-2'
+        )}
+        onClick={() => handleItemSelect(item)}
+        onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
+    >
+        {showTicketImages && (
+          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
+              <Image
+              src={item.image || 'https://picsum.photos/seed/item/100/100'}
+              alt={item.name}
+              fill
+              className="object-cover"
+              data-ai-hint="product image"
+              />
+          </div>
+        )}
+        <div className="flex-1">
+            <div className="flex justify-between items-start">
+              <p className="font-semibold pr-2">{item.name}</p>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
+            </div>
+            {item.discount > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <span className="text-destructive font-semibold">
+                    (-{item.discount.toFixed(2)}€ {item.discountPercent ? `(${item.discountPercent}%)` : ''})
+                </span>
+              </div>
+            )}
+        </div>
+        <div className="text-right">
+            <p className="font-bold">{item.total.toFixed(2)}€</p>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
+            <X className="h-4 w-4" />
+        </Button>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="flex h-full flex-col bg-card relative">
+        <div className="flex items-center justify-between p-2 border-b h-[49px]">
+          <h2 className="text-lg font-bold tracking-tight font-headline">
+             {getTitle()}
+          </h2>
+          <HeaderAction />
+        </div>
+
+        {isKeypadOpen && selectedItem && (
+          <div className="z-10 bg-secondary/95 backdrop-blur-sm border-b shadow-lg">
+              <div className="bg-accent/50">
+                {renderOrderItem(selectedItem, true)}
+              </div>
+              <div className="p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                      <Input 
+                          ref={keypadInputRef}
+                          type="text"
+                          value={keypadValue}
+                          onChange={handleDirectInputChange}
+                          onFocus={(e) => e.target.select()}
+                          className="col-span-4 h-12 text-right px-4 text-3xl font-mono bg-background/50"
+                      />
+
+                      <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
+                      <Button variant="destructive" className="h-12" onClick={() => {
+                          if (selectedItem) {
+                              applyDiscount(selectedItem.id, 0, 'fixed');
+                          }
+                          setKeypadValue('');
+                      }}>
+                          <Eraser/>
+                      </Button>
+                      
+                      <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
+                      <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
+
+                      <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                      <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
+                      
+                      <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
+                      <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
+                      
+                      <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
+                        <Check className="mr-2" /> Valider
+                      </Button>
+                      <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
+                          <X />
+                      </Button>
+                  </div>
+              </div>
+          </div>
+        )}
+
+        <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
+          {order.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground">Aucun article dans la commande.</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+                {order.map((item) => (
+                  <div key={item.id} className={cn(isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
+                      {renderOrderItem(item, false)}
+                  </div>
+                ))}
+              </div>
+          )}
+        </ScrollArea>
+
+        <div className="mt-auto border-t p-4">
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                <span>Sous-total</span>
+                <span>{orderTotal.toFixed(2)}€</span>
+                </div>
+                <div className="flex justify-between">
+                <span>TVA</span>
+                <span>{orderTax.toFixed(2)}€</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-lg">
+                <span>Total (TTC)</span>
+                <span>{(orderTotal + orderTax).toFixed(2)}€</span>
+                </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              {selectedTable ? (
+                <>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={handleSaveAndExit}
+                  >
+                     <LogOut className="mr-2 h-4 w-4" />
+                    Sauvegarder
+                  </Button>
+                   <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={handleFinalize}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Clôturer
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={holdOrder}
+                  >
+                    <Hand className="mr-2 h-4 w-4" />
+                    Mettre en attente
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={handleFinalize}
+                  >
+                    Payer maintenant
+                  </Button>
+                </>
+              )}
+            </div>
+        </div>
+      </div>
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        totalAmount={orderTotal + orderTax}
+      />
+    </>
+  );
+}
