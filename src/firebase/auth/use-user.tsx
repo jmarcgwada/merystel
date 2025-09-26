@@ -2,41 +2,56 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { DocumentData } from 'firebase/firestore';
+import { onAuthStateChanged, User as AuthUser } from 'firebase/auth';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
+import { useAuth, useFirestore } from '@/firebase/provider';
 
-// Mock AuthUser to satisfy the CombinedUser type shape
-type MockAuthUser = {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
-  emailVerified: boolean;
-  phoneNumber: string | null;
-};
-
-export type CombinedUser = MockAuthUser & DocumentData & AppUser;
-
-// This is a mock user that will be used throughout the app.
-// It has admin privileges by default.
-const mockUser: CombinedUser = {
-  uid: 'mock-admin-user-01',
-  email: 'admin@zenith.com',
-  displayName: 'Admin User',
-  photoURL: null,
-  emailVerified: true,
-  phoneNumber: null,
-  id: 'mock-admin-user-01',
-  firstName: 'Admin',
-  lastName: 'User',
-  role: 'admin',
-  companyId: 'main',
-};
-
+// This will be the new user type, combining Firebase Auth user and our Firestore user profile.
+export type CombinedUser = AuthUser & DocumentData & AppUser;
 
 export function useUser() {
-  const [user] = useState<CombinedUser | null>(mockUser);
-  const [loading, setLoading] = useState(false); // Set loading to false as we are not fetching anything.
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const [user, setUser] = useState<CombinedUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth || !firestore) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      if (authUser) {
+        // User is signed in, now fetch their profile from Firestore.
+        const userDocRef = doc(firestore, 'users', authUser.uid);
+        const unsubProfile = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            const profileData = doc.data() as AppUser;
+            // Combine auth data and profile data
+            setUser({ ...authUser, ...profileData, id: doc.id });
+          } else {
+            // Firestore profile doesn't exist. This can happen.
+            // You might want to handle this case, e.g., by creating a default profile.
+            // For now, we treat them as not fully logged in.
+            setUser(null); 
+          }
+          setLoading(false);
+        });
+
+        // Return a cleanup function for the profile listener
+        return () => unsubProfile();
+      } else {
+        // User is signed out.
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [auth, firestore]);
 
   return { user, loading };
 }

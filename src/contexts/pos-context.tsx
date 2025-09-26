@@ -145,6 +145,8 @@ interface PosContextType {
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
 
+  authRequired: boolean;
+  setAuthRequired: React.Dispatch<React.SetStateAction<boolean>>;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
   popularItemsCount: number;
@@ -176,6 +178,28 @@ interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper to get from localStorage
+const getFromStorage = (key: string, defaultValue: any) => {
+    if (typeof window !== 'undefined') {
+        const storedValue = localStorage.getItem(key);
+        if (storedValue !== null) {
+            try {
+                return JSON.parse(storedValue);
+            } catch (e) {
+                return storedValue;
+            }
+        }
+    }
+    return defaultValue;
+};
+
+// Helper to set to localStorage
+const setInStorage = (key: string, value: any) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+};
+
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
@@ -183,17 +207,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const companyId = user ? SHARED_COMPANY_ID : null;
+  const companyId = SHARED_COMPANY_ID;
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
-  const [showTicketImages, setShowTicketImages] = useState(true);
-  const [popularItemsCount, setPopularItemsCount] = useState(10);
-  const [itemCardOpacity, setItemCardOpacity] = useState(30);
+  
+  const [authRequired, setAuthRequired] = useState(() => getFromStorage('authRequired', true));
+  const [showTicketImages, setShowTicketImages] = useState(() => getFromStorage('showTicketImages', true));
+  const [popularItemsCount, setPopularItemsCount] = useState(() => getFromStorage('popularItemsCount', 10));
+  const [itemCardOpacity, setItemCardOpacity] = useState(() => getFromStorage('itemCardOpacity', 30));
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
-    useState(true);
+    useState(() => getFromStorage('enableRestaurantCategoryFilter', true));
+    
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
   );
@@ -204,6 +231,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
+
+  // Effect to persist settings to localStorage
+  useEffect(() => setInStorage('authRequired', authRequired), [authRequired]);
+  useEffect(() => setInStorage('showTicketImages', showTicketImages), [showTicketImages]);
+  useEffect(() => setInStorage('popularItemsCount', popularItemsCount), [popularItemsCount]);
+  useEffect(() => setInStorage('itemCardOpacity', itemCardOpacity), [itemCardOpacity]);
+  useEffect(() => setInStorage('enableRestaurantCategoryFilter', enableRestaurantCategoryFilter), [enableRestaurantCategoryFilter]);
   // #endregion
 
   // #region Data Fetching
@@ -1197,6 +1231,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       holdOrder,
       recallOrder,
       deleteHeldOrder,
+      authRequired,
+      setAuthRequired,
       showTicketImages,
       setShowTicketImages,
       popularItemsCount,
@@ -1279,10 +1315,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       holdOrder,
       recallOrder,
       deleteHeldOrder,
+      authRequired,
+      setAuthRequired,
       showTicketImages,
+      setShowTicketImages,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
       enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1292,6 +1334,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       seedInitialData,
       resetAllData,
       cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
     ]

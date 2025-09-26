@@ -14,7 +14,7 @@ import { ArrowLeft } from 'lucide-react';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter } = usePos();
+  const { authRequired, setAuthRequired, showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter } = usePos();
 
   return (
     <>
@@ -30,6 +30,26 @@ export default function CustomizationPage() {
         </Button>
       </PageHeader>
       <div className="mt-8 space-y-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Sécurité</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                    <Label htmlFor="auth-required" className="text-base">Exiger l'authentification</Label>
+                    <p className="text-sm text-muted-foreground">
+                        Si activé, les utilisateurs devront se connecter pour accéder à l'application.
+                    </p>
+                    </div>
+                    <Switch 
+                    id="auth-required" 
+                    checked={authRequired}
+                    onCheckedChange={setAuthRequired}
+                    />
+                </div>
+            </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Visibilité des éléments</CardTitle>

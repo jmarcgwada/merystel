@@ -7,16 +7,27 @@ import { usePathname } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
 import { Separator } from '../ui/separator';
+import { useUser } from '@/firebase/auth/use-user';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { Button } from '../ui/button';
+import { LogOut } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
-  const { showNavConfirm, order, companyInfo } = usePos();
+  const { showNavConfirm, order, companyInfo, authRequired } = usePos();
+  const { user } = useUser();
+  const auth = useAuth();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
       e.preventDefault();
       showNavConfirm(href);
     }
+  };
+
+  const handleSignOut = () => {
+    signOut(auth);
   };
 
   return (
@@ -45,7 +56,16 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-4">
-          {/* User menu is removed as authentication is disabled */}
+          {authRequired && user && (
+            <>
+              <span className="text-sm text-muted-foreground">
+                Connecté en tant que {user.firstName}
+              </span>
+              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
