@@ -36,12 +36,20 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      let description = 'Vérifiez vos identifiants et réessayez.';
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = (error as {code: string}).code;
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found') {
+          description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
+        }
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Échec de la connexion',
-        description: 'Vérifiez vos identifiants et réessayez.',
+        description: description,
       });
       setIsLoading(false);
     }
