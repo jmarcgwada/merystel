@@ -21,6 +21,7 @@ import Link from 'next/link';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
+  covers: z.coerce.number().min(0, { message: 'Le nombre de couverts doit être positif.' }).optional(),
   description: z.string().optional(),
 });
 
@@ -40,6 +41,7 @@ function TableForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      covers: 0,
       description: '',
     },
   });
@@ -48,10 +50,15 @@ function TableForm() {
     if (isEditMode && tableToEdit) {
       form.reset({
         name: tableToEdit.name,
+        covers: tableToEdit.covers || 0,
         description: tableToEdit.description || '',
       });
     } else {
-      form.reset();
+      form.reset({
+        name: '',
+        covers: 0,
+        description: '',
+      });
     }
   }, [isEditMode, tableToEdit, form]);
 
@@ -95,19 +102,34 @@ function TableForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom de la table</FormLabel>
-                    <FormControl>
-                      <Input placeholder="ex: Terrasse 1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de la table</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ex: Terrasse 1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="covers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre de couverts</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="ex: 4" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="description"

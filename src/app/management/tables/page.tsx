@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Eraser } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser, Users } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -64,6 +64,7 @@ export default function TablesPage() {
                     <TableRow>
                         <TableHead className="w-[100px]">Numéro</TableHead>
                         <TableHead>Nom</TableHead>
+                        <TableHead className="w-[120px]">Couverts</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="w-[160px] text-right">Actions</TableHead>
@@ -74,6 +75,7 @@ export default function TablesPage() {
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -83,6 +85,14 @@ export default function TablesPage() {
                         <TableRow key={table.id}>
                             <TableCell className="font-mono text-muted-foreground">{table.number}</TableCell>
                             <TableCell className="font-medium">{table.name}</TableCell>
+                            <TableCell>
+                                {table.covers && (
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                        <span>{table.covers}</span>
+                                    </div>
+                                )}
+                            </TableCell>
                             <TableCell className="text-muted-foreground">{table.description || ''}</TableCell>
                              <TableCell>
                                 <Badge variant={table.status === 'available' ? 'secondary' : table.status === 'occupied' ? 'default' : 'outline'} className="capitalize">

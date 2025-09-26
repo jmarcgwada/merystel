@@ -54,7 +54,8 @@ const TAKEAWAY_TABLE: Table = {
   number: 999,
   status: 'available',
   order: [],
-  description: 'Pour les ventes à emporter et les commandes rapides.'
+  description: 'Pour les ventes à emporter et les commandes rapides.',
+  covers: 0,
 };
 
 
@@ -394,8 +395,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
       ];
       const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [] },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [] },
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
 

@@ -44,6 +44,7 @@ export interface Table {
   description?: string;
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
+  covers?: number;
 }
 
 export interface Customer {

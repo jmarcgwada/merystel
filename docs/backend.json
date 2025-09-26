@@ -93,7 +93,8 @@
         "number": { "type": "number" },
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["available", "occupied", "paying"] },
-        "order": { "type": "array", "items": { "type": "object" } }
+        "order": { "type": "array", "items": { "type": "object" } },
+        "covers": { "type": "number", "description": "Number of seats at the table." }
       },
       "required": ["name", "number", "status", "order"]
     },
