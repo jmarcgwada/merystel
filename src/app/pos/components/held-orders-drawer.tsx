@@ -23,16 +23,26 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Lock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
+import type { Timestamp } from 'firebase/firestore';
 
 interface HeldOrdersDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const formatDate = (date: Date | Timestamp) => {
+    let jsDate: Date;
+    if (date instanceof Date) {
+        jsDate = date;
+    } else {
+        jsDate = date.toDate();
+    }
+    return format(jsDate, "d MMM, HH:mm", { locale: fr });
+}
+
 export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
-  const { heldOrders, recallOrder, deleteHeldOrder, user } = usePos();
+  const { heldOrders, recallOrder, deleteHeldOrder } = usePos();
 
   const handleRecall = (orderId: string) => {
     recallOrder(orderId);
@@ -69,12 +79,12 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                                   <p className="font-semibold">
                                       {order.tableName 
                                           ? `Ticket: ${order.tableName}`
-                                          : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
+                                          : `Ticket du ${formatDate(order.date)}`
                                       }
                                   </p>
                                   {order.tableName && (
                                       <p className="text-xs text-muted-foreground">
-                                          Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
+                                          Mis en attente le {formatDate(order.date)}
                                       </p>
                                   )}
                                   <p className="text-sm text-muted-foreground mt-1">
