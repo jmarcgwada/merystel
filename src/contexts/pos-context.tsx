@@ -146,7 +146,6 @@ interface PosContextType {
   deleteHeldOrder: (orderId: string) => void;
 
   authRequired: boolean;
-  setAuthRequired: (required: boolean) => void;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
   popularItemsCount: number;
@@ -274,7 +273,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     heldOrdersRef.current = heldOrders;
   }, [heldOrders]);
 
-  const authRequired = useMemo(() => companyInfo?.authRequired ?? true, [companyInfo]);
+  const authRequired = true;
 
   useEffect(() => {
     if (!companyInfoLoading) {
@@ -1137,12 +1136,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [companyId, firestore]
   );
   
-  const setAuthRequired = useCallback((required: boolean) => {
-      if (companyInfo) {
-          setCompanyInfo({ ...companyInfo, authRequired: required });
-      }
-  }, [companyInfo, setCompanyInfo]);
-
   const updateSetting = useCallback((key: keyof Omit<CompanyInfo, 'id'>, value: any) => {
     if (companyInfo) {
       setCompanyInfo({ ...companyInfo, [key]: value });
@@ -1264,7 +1257,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       recallOrder,
       deleteHeldOrder,
       authRequired,
-      setAuthRequired,
       showTicketImages,
       setShowTicketImages: (val) =>
         updateSetting('showTicketImages', val),
@@ -1353,7 +1345,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       recallOrder,
       deleteHeldOrder,
       authRequired,
-      setAuthRequired,
       showTicketImages,
       popularItemsCount,
       itemCardOpacity,

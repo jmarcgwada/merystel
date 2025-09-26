@@ -108,7 +108,6 @@ export interface CompanyInfo {
   iban?: string;
   bic?: string;
   notes?: string;
-  authRequired?: boolean;
 }
 
 export interface User {
