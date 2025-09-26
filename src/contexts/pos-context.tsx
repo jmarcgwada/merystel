@@ -40,6 +40,8 @@ import {
   deleteDoc,
   addDoc,
   setDoc,
+  getDocs,
+  query,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 
@@ -177,7 +179,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [showTicketImages, setShowTicketImages] = useState(true);
-  const [popularItemsCount, setPopularItemsCount] = useState(5);
+  const [popularItemsCount, setPopularItemsCount] = useState(10);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
     useState(true);
@@ -346,67 +348,80 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const canSeed = !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
 
     if (!canSeed) {
-      toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données existent déjà." });
+      toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données de configuration existent déjà." });
       return;
-    }
-    
-    const batch = writeBatch(firestore);
-
-    // Seed Categories
-    const defaultCategories = [
-      { name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
-      { name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
-      { name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
-      { name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
-      { name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
-      { name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
-    ];
-    if (!categories || categories.length === 0) {
-      defaultCategories.forEach(cat => {
-        const catRef = doc(collection(firestore, 'companies', companyId, 'categories'));
-        batch.set(catRef, cat);
-      });
-    }
-
-    // Seed VAT Rates
-    const defaultVatRates = [
-      { name: 'Taux Normal', rate: 20, code: 1 },
-      { name: 'Taux Intermédiaire', rate: 10, code: 2 },
-      { name: 'Taux Réduit', rate: 5.5, code: 3 },
-    ];
-    if (!vatRates || vatRates.length === 0) {
-      defaultVatRates.forEach(vat => {
-        const vatRef = doc(collection(firestore, 'companies', companyId, 'vatRates'));
-        batch.set(vatRef, vat);
-      });
-    }
-
-    // Seed Payment Methods
-    const defaultPaymentMethods = [
-      { name: 'Espèces', icon: 'cash', type: 'direct' },
-      { name: 'Carte Bancaire', icon: 'card', type: 'direct' },
-    ];
-    if (!paymentMethods || paymentMethods.length === 0) {
-      defaultPaymentMethods.forEach(pm => {
-        const pmRef = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
-        batch.set(pmRef, pm);
-      });
-    }
-    
-    // Seed Default Customer
-    if (!customers || customers.length === 0) {
-        const customerRef = doc(collection(firestore, 'companies', companyId, 'customers'));
-        batch.set(customerRef, { name: 'Client au comptoir', isDefault: true });
     }
 
     try {
+      const batch = writeBatch(firestore);
+
+      // --- Define Data ---
+      const defaultCategories = [
+        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
+        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
+        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
+        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
+        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
+        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
+      ];
+      const defaultVatRates = [
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+      ];
+      const defaultPaymentMethods = [
+        { name: 'Espèces', icon: 'cash', type: 'direct' },
+        { name: 'Carte Bancaire', icon: 'card', type: 'direct' },
+      ];
+      const defaultCustomers = [
+        { name: 'Client au comptoir', isDefault: true },
+        { name: 'Marie Dubois', email: 'marie.d@email.com' },
+        { name: 'Ahmed Khan', email: 'ahmed.k@email.com' },
+        { name: 'Sophie Leroy', email: 'sophie.l@email.com' },
+      ];
+      const defaultItems = [
+          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/espresso/200/150' },
+          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true },
+          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/thevert/200/150' },
+          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true },
+          { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150' },
+          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true },
+          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painchoc/200/150' },
+          { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true },
+          { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true },
+          { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
+      ];
+
+      // --- Batch Write ---
+      defaultCategories.forEach(data => {
+          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
+          batch.set(ref, data);
+      });
+      defaultVatRates.forEach(data => {
+          const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
+          batch.set(ref, data);
+      });
+      defaultPaymentMethods.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
+          batch.set(ref, data);
+      });
+      defaultCustomers.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
+          batch.set(ref, data);
+      });
+      defaultItems.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
+          batch.set(ref, data);
+      });
+      
       await batch.commit();
       toast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
+
     } catch (error) {
       console.error('Error seeding data:', error);
       toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
-  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, toast]);
+  }, [firestore, companyId, categories, vatRates, paymentMethods, customers, items, toast]);
   // #endregion
 
   // #region Order Management
