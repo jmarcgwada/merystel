@@ -45,6 +45,7 @@ export interface Table {
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
   covers?: number;
+  lockedBy?: string | null;
 }
 
 export interface Customer {
@@ -90,6 +91,7 @@ export interface HeldOrder {
   total: number;
   tableName?: string;
   tableId?: string;
+  lockedBy?: string | null;
 }
 
 export interface CompanyInfo {

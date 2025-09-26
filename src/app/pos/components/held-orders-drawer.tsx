@@ -23,7 +23,8 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface HeldOrdersDrawerProps {
   isOpen: boolean;
@@ -31,11 +32,11 @@ interface HeldOrdersDrawerProps {
 }
 
 export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
-  const { heldOrders, recallOrder, deleteHeldOrder } = usePos();
+  const { heldOrders, recallOrder, deleteHeldOrder, user } = usePos();
 
   const handleRecall = (orderId: string) => {
     recallOrder(orderId);
-    onClose();
+    // The parent component will close the drawer if recall is successful
   }
 
   return (
@@ -57,31 +58,36 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
         ) : (
           <ScrollArea className="flex-1">
             <Accordion type="multiple" className="w-full">
-              {heldOrders.map((order) => (
-                <AccordionItem value={order.id} key={order.id} className="border-b">
+              {heldOrders.map((order) => {
+                 const isLocked = order.lockedBy && order.lockedBy !== user?.id;
+                 return (
+                <AccordionItem value={order.id} key={order.id} className={cn("border-b", isLocked && "bg-muted/50")}>
                    <div className="flex items-center pr-4">
-                        <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline">
+                        <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline" disabled={isLocked}>
                              <div className="flex justify-between items-start w-full">
-                                <div>
-                                <p className="font-semibold">
-                                    {order.tableName 
-                                        ? `Ticket: ${order.tableName}`
-                                        : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
-                                    }
-                                </p>
-                                {order.tableName && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
-                                    </p>
-                                )}
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    {order.items.length} article{order.items.length > 1 ? 's' : ''}
-                                </p>
-                                <p className="font-bold text-primary mt-1">{order.total.toFixed(2)}€</p>
+                                <div className="flex items-center gap-4">
+                                  {isLocked && <Lock className="h-5 w-5 text-destructive" />}
+                                  <div>
+                                  <p className="font-semibold">
+                                      {order.tableName 
+                                          ? `Ticket: ${order.tableName}`
+                                          : `Ticket du ${format(order.date, "d MMM, HH:mm", { locale: fr })}`
+                                      }
+                                  </p>
+                                  {order.tableName && (
+                                      <p className="text-xs text-muted-foreground">
+                                          Mis en attente le {format(order.date, "d MMM, HH:mm", { locale: fr })}
+                                      </p>
+                                  )}
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                      {order.items.length} article{order.items.length > 1 ? 's' : ''}
+                                  </p>
+                                  <p className="font-bold text-primary mt-1">{order.total.toFixed(2)}€</p>
+                                  </div>
                                 </div>
                             </div>
                         </AccordionTrigger>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)}>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)} disabled={isLocked}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                    </div>
@@ -101,7 +107,8 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                     </Button>
                   </AccordionContent>
                 </AccordionItem>
-              ))}
+                 )
+                })}
             </Accordion>
           </ScrollArea>
         )}

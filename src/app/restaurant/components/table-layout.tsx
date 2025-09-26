@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import type { Table } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Utensils, CircleDollarSign, CheckCircle } from 'lucide-react';
+import { Utensils, CircleDollarSign, CheckCircle, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -34,24 +35,11 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant, isLoading } = usePos();
+  const { tables, vatRates, heldOrders, recallOrder, setCameFromRestaurant, isLoading, setSelectedTableById, user } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.id === 'takeaway') {
-      setCameFromRestaurant(true);
-      router.push(`/pos`);
-      return;
-    }
-    if (table.status === 'paying') {
-      const heldOrderForTable = heldOrders?.find(ho => ho.tableId === table.id);
-      if (heldOrderForTable) {
-        recallOrder(heldOrderForTable.id);
-        router.push('/pos');
-      }
-    } else {
-      router.push(`/pos?tableId=${table.id}`);
-    }
+    setSelectedTableById(table.id);
   };
 
   if (isLoading) {
@@ -78,14 +66,17 @@ export function TableLayout() {
         }, 0);
         const total = subtotal + tax;
 
+        const isLocked = table.lockedBy && table.lockedBy !== user?.id;
+
         return (
           <Card
             key={table.id}
             className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-xl hover:-translate-y-1',
-              config.cardClassName
+              'transition-all duration-200',
+              config.cardClassName,
+              isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:shadow-xl hover:-translate-y-1'
             )}
-            onClick={() => handleTableSelect(table)}
+            onClick={() => !isLocked && handleTableSelect(table)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium font-headline">{table.name}</CardTitle>
@@ -96,11 +87,16 @@ export function TableLayout() {
             </CardHeader>
             <CardContent>
               {table.status !== 'available' && table.id !== 'takeaway' ? (
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
+                <div className="relative">
+                  {isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center -mt-2">
+                      <Lock className="h-6 w-6 text-destructive animate-pulse" />
+                    </div>
+                  )}
+                  <p className={cn("text-2xl font-bold text-foreground", isLocked && "blur-sm")}>
                     {total.toFixed(2)}€
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn("text-xs text-muted-foreground", isLocked && "blur-sm")}>
                     {table.order.length} article{table.order.length !== 1 ? 's' : ''}
                   </p>
                 </div>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, {
@@ -506,13 +507,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(() => {
+    // Unlock any associated resource before clearing
+    if (selectedTable) {
+        updateEntity('tables', selectedTable.id, { lockedBy: null }, '', false);
+    }
+    if (currentSaleId) {
+        updateEntity('heldOrders', currentSaleId, { lockedBy: null }, '', false);
+    }
+
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
-    if (selectedTable) {
-      setSelectedTable(null);
-    }
-  }, [selectedTable]);
+    setSelectedTable(null);
+  }, [selectedTable, currentSaleId, updateEntity]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -645,6 +652,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (orderId: string) => {
       if (!heldOrders) return;
       const orderToDelete = heldOrders.find((o) => o.id === orderId);
+      if (orderToDelete?.lockedBy) {
+          toast({ variant: 'destructive', title: 'Ticket verrouillé', description: "Ce ticket est en cours d'utilisation par un autre utilisateur." });
+          return;
+      }
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
@@ -653,25 +664,35 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
-    [heldOrders, getDocRef, deleteEntity]
+    [heldOrders, getDocRef, deleteEntity, toast]
   );
 
-  const recallOrder = useCallback((orderId: string) => {
-    if (!heldOrders) return;
+  const recallOrder = useCallback(async (orderId: string) => {
+    if (!heldOrders || !user) return;
     const orderToRecall = heldOrders.find((o) => o.id === orderId);
     if (orderToRecall) {
-      if (selectedTable) {
-        setSelectedTable(null);
-      }
-      setOrder(orderToRecall.items);
-      setCurrentSaleId(orderToRecall.id);
-      setCurrentSaleContext({
-        tableId: orderToRecall.tableId,
-        tableName: orderToRecall.tableName,
-      });
-      deleteEntity('heldOrders', orderId, 'Commande rappelée.');
+        if (orderToRecall.lockedBy && orderToRecall.lockedBy !== user.id) {
+            toast({ variant: 'destructive', title: 'Ticket verrouillé', description: "Ce ticket est déjà utilisé par un autre utilisateur." });
+            return;
+        }
+
+        if (selectedTable) {
+            updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
+            setSelectedTable(null);
+        }
+
+        await updateEntity('heldOrders', orderId, { lockedBy: user.id }, '');
+        
+        setOrder(orderToRecall.items);
+        setCurrentSaleId(orderToRecall.id);
+        setCurrentSaleContext({
+            tableId: orderToRecall.tableId,
+            tableName: orderToRecall.tableName,
+        });
+        toast({ title: 'Commande rappelée' });
+        routerRef.current.push('/pos');
     }
-  }, [heldOrders, selectedTable, deleteEntity]);
+  }, [heldOrders, user, selectedTable, updateEntity, toast]);
 
 
   const holdOrder = useCallback(async () => {
@@ -680,6 +701,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       date: new Date(),
       items: order,
       total: orderTotal + orderTax,
+      lockedBy: null,
     };
     await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
     clearOrder();
@@ -687,32 +709,48 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
 
   const setSelectedTableById = useCallback(
-    (tableId: string | null) => {
-      if (!tables || !heldOrdersRef.current) return;
-      const table = tableId ? tables.find((t) => t.id === tableId) || null : null;
-      setSelectedTable(table);
-      if (table) {
-        if (table.status === 'paying') {
-          const heldOrderForTable = heldOrdersRef.current.find(
-            (ho) => ho.tableId === tableId
-          );
-          if (heldOrderForTable) {
-            recallOrder(heldOrderForTable.id);
+    async (tableId: string | null) => {
+        if (!tables || !user) {
+            if (!tableId) clearOrder(); // Allow clearing order even if context is not ready
+            return;
+        }
+        
+        if (!tableId) {
+            if (selectedTable) {
+                await updateEntity('tables', selectedTable.id, { lockedBy: null }, '');
+            }
+            setSelectedTable(null);
+            clearOrder();
+            return;
+        }
+
+        const table = tables.find((t) => t.id === tableId);
+        if (!table) return;
+
+        if (table.lockedBy && table.lockedBy !== user.id) {
+            toast({ variant: 'destructive', title: 'Table verrouillée', description: 'Cette table est en cours d\'utilisation.' });
+            return;
+        }
+        
+        if (table.id === 'takeaway') {
+            setCameFromRestaurant(true);
             routerRef.current.push('/pos');
-          }
-        } else {
-          setOrder(table.order);
-          setCurrentSaleContext({
+            return;
+        }
+        
+        await updateEntity('tables', table.id, { lockedBy: user.id }, '');
+
+        setSelectedTable(table);
+        setOrder(table.order || []);
+        setCurrentSaleContext({
             tableId: table.id,
             tableName: table.name,
-          });
-        }
-      } else {
-        clearOrder();
-      }
+        });
+        routerRef.current.push(`/pos?tableId=${tableId}`);
     },
-    [tables, clearOrder, recallOrder]
-  );
+    [tables, user, clearOrder, toast, updateEntity]
+);
+
 
   const updateTableOrder = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
@@ -738,15 +776,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       await updateTableOrder(tableId, orderData);
+      await updateEntity('tables', tableId, { lockedBy: null }, '');
       toast({ title: 'Table sauvegardée' });
       clearOrder();
       setSelectedTable(null);
     },
-    [updateTableOrder, clearOrder, toast]
+    [updateTableOrder, clearOrder, toast, updateEntity]
   );
 
   const promoteTableToTicket = useCallback(async (tableId: string) => {
-    if (!tables || !vatRates || !heldOrders || !firestore) return;
+    if (!tables || !vatRates || !heldOrders || !firestore || !user) return;
     const table = tables.find((t) => t.id === tableId);
     if (!table || table.order.length === 0) return;
 
@@ -764,6 +803,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       total: total,
       tableName: table.name,
       tableId: table.id,
+      lockedBy: null,
     };
     
     const tableRef = getDocRef('tables', tableId);
@@ -779,7 +819,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!heldOrderRef) return;
 
     batch.set(heldOrderRef, newHeldOrderData);
-    batch.update(tableRef, { status: 'paying' });
+    batch.update(tableRef, { status: 'paying', lockedBy: null });
     await batch.commit();
 
     setSelectedTable(null);
@@ -790,7 +830,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       description:
         'Le ticket est maintenant en attente dans le point de vente.',
     });
-  }, [tables, vatRates, heldOrders, firestore, getDocRef, getCollectionRef, toast, clearOrder]);
+  }, [tables, vatRates, heldOrders, firestore, user, getDocRef, getCollectionRef, toast, clearOrder]);
 
   const forceFreeTable = useCallback(
     async (tableId: string) => {
@@ -798,7 +838,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [] });
+        batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
       }
       
       const heldOrderForTable = heldOrders?.find(
@@ -823,6 +863,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         number: Date.now() % 10000,
         status: 'available' as const,
         order: [],
+        lockedBy: null,
       };
       addEntity('tables', newTable, 'Table créée');
     },
@@ -853,13 +894,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         : undefined;
       const batch = writeBatch(firestore);
 
-      if (saleIdToUpdate && saleIdToUpdate.startsWith('held-')) {
+      if (saleIdToUpdate) {
         const docRef = getDocRef('heldOrders', saleIdToUpdate);
         if (docRef) batch.delete(docRef);
       }
       if (tableToEnd) {
         const tableRef = getDocRef('tables', tableToEnd);
-        if (tableRef) batch.update(tableRef, { status: 'available', order: [] });
+        if (tableRef) batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
       }
 
       const today = new Date();
@@ -991,10 +1032,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [users]);
     
     const handleSignOut = useCallback(async () => {
-        if (!auth) return;
+        if (!auth || !user) return;
+        
+        const userRef = doc(firestore, 'users', user.uid);
+        await updateDoc(userRef, { sessionToken: deleteField() });
+        
         signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth]);
+    }, [auth, user, firestore]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
