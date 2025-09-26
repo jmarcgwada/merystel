@@ -24,9 +24,8 @@ import { User as UserIcon } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
-  const { showNavConfirm, order, companyInfo } = usePos();
+  const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
-  const auth = useAuth();
   const router = useRouter();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -37,13 +36,8 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      // You can also add a toast notification here if needed
-    }
+    await handlePosSignOut();
+    router.push('/login');
   };
 
   return (
