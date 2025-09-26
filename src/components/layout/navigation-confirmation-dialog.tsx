@@ -44,7 +44,7 @@ export function NavigationConfirmationDialog() {
                 </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
-                 <Button variant="destructive" onClick={confirmNavigation}>
+                 <Button variant="destructive" onClick={async () => await confirmNavigation()}>
                     Quitter & Annuler la vente
                 </Button>
             </AlertDialogAction>

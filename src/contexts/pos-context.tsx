@@ -380,6 +380,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   // #endregion
 
+  // #region Locking Mechanism
+    const lockResource = useCallback(async (resourceType: 'table' | 'heldOrder', resourceId: string) => {
+        if (!user || !firestore || !companyId) return;
+        const collectionName = resourceType === 'table' ? 'tables' : 'heldOrders';
+        const resourceRef = doc(firestore, 'companies', companyId, collectionName, resourceId);
+        try {
+            await updateDoc(resourceRef, { lockedBy: user.id });
+        } catch (error) {
+            console.error(`Error locking ${resourceType} ${resourceId}:`, error);
+        }
+    }, [user, firestore, companyId]);
+
+    const unlockResource = useCallback(async (resourceType: 'table' | 'heldOrder', resourceId: string) => {
+        if (!firestore || !companyId) return;
+        const collectionName = resourceType === 'table' ? 'tables' : 'heldOrders';
+        const resourceRef = doc(firestore, 'companies', companyId, collectionName, resourceId);
+        try {
+            await updateDoc(resourceRef, { lockedBy: null });
+        } catch (error) {
+            console.error(`Error unlocking ${resourceType} ${resourceId}:`, error);
+        }
+    }, [firestore, companyId]);
+  // #endregion
+
   // #region Data Seeding
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
@@ -510,23 +534,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const clearOrder = useCallback(async () => {
     // Unlock any associated resource before clearing
     if (selectedTable) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-            await updateDoc(tableRef, { lockedBy: null });
-        }
+        await unlockResource('table', selectedTable.id);
     }
     if (currentSaleId) {
-        const heldOrderRef = getDocRef('heldOrders', currentSaleId);
-        if (heldOrderRef) {
-            await updateDoc(heldOrderRef, { lockedBy: null });
-        }
+        await unlockResource('heldOrder', currentSaleId);
     }
 
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, currentSaleId, getDocRef]);
+  }, [selectedTable, currentSaleId, unlockResource]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -702,15 +720,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // Unlock previous resource if any
         if (selectedTable) {
-             await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
-            setSelectedTable(null);
+             await unlockResource('table', selectedTable.id);
         }
 
-        await updateDoc(doc(firestore, 'companies', companyId, 'heldOrders', orderId), { lockedBy: user.id });
+        await lockResource('heldOrder', orderId);
         
         setOrder(orderToRecall.items);
         setCurrentSaleId(orderToRecall.id);
+        setSelectedTable(null); // Ensure no table is selected
         setCurrentSaleContext({
             tableId: orderToRecall.tableId,
             tableName: orderToRecall.tableName,
@@ -718,52 +737,57 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: 'Commande rappelée' });
         routerRef.current.push('/pos');
     }
-  }, [heldOrders, user, selectedTable, toast, firestore, companyId]);
+  }, [heldOrders, user, selectedTable, toast, lockResource, unlockResource]);
 
 
-const setSelectedTableById = useCallback(
-    async (tableId: string | null) => {
-        if (!tables || !user || !firestore || !companyId) {
-            if (!tableId) clearOrder();
-            return;
-        }
+const setSelectedTableById = useCallback(async (tableId: string | null) => {
+    if (!tables || !user) {
+        if (!tableId) await clearOrder();
+        return;
+    }
 
-        if (selectedTable && selectedTable.id !== tableId) {
-             await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
-        }
+    const previousTableId = selectedTable?.id;
+    const previousHeldOrderId = currentSaleId;
 
-        if (!tableId) {
-            setSelectedTable(null);
-            clearOrder();
-            return;
-        }
+    if (previousTableId && previousTableId !== tableId) {
+        await unlockResource('table', previousTableId);
+    }
+    if (previousHeldOrderId) {
+        await unlockResource('heldOrder', previousHeldOrderId);
+        setCurrentSaleId(null);
+    }
+    
+    if (!tableId) {
+        setSelectedTable(null);
+        await clearOrder();
+        return;
+    }
 
-        const table = tables.find((t) => t.id === tableId);
-        if (!table) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
 
-        if (table.lockedBy && table.lockedBy !== user.id) {
-            toast({ variant: 'destructive', title: 'Table verrouillée', description: 'Cette table est en cours d\'utilisation.' });
-            return;
-        }
-        
-        if (table.id === 'takeaway') {
-            setCameFromRestaurant(true);
-            routerRef.current.push('/pos');
-            return;
-        }
-        
-        await updateDoc(doc(firestore, 'companies', companyId, 'tables', table.id), { lockedBy: user.id });
+    if (table.lockedBy && table.lockedBy !== user.id) {
+        toast({ variant: 'destructive', title: 'Table verrouillée', description: 'Cette table est en cours d\'utilisation.' });
+        return;
+    }
+    
+    if (table.id === 'takeaway') {
+        setCameFromRestaurant(true);
+        routerRef.current.push('/pos');
+        return;
+    }
+    
+    await lockResource('table', table.id);
 
-        setSelectedTable(table);
-        setOrder(table.order || []);
-        setCurrentSaleContext({
-            tableId: table.id,
-            tableName: table.name,
-        });
-        routerRef.current.push(`/pos?tableId=${tableId}`);
-    },
-    [tables, user, clearOrder, toast, selectedTable, firestore, companyId]
-);
+    setSelectedTable(table);
+    setOrder(table.order || []);
+    setCurrentSaleId(null); // Clear any held order sale ID
+    setCurrentSaleContext({
+        tableId: table.id,
+        tableName: table.name,
+    });
+    routerRef.current.push(`/pos?tableId=${tableId}`);
+}, [tables, user, clearOrder, toast, selectedTable, lockResource, unlockResource, currentSaleId]);
 
 
   const updateTableOrder = useCallback(
@@ -771,14 +795,10 @@ const setSelectedTableById = useCallback(
       const tableRef = getDocRef('tables', tableId);
       if (!tableRef) return;
       try {
-        await setDoc(
-          tableRef,
-          {
+        await updateDoc(tableRef, {
             order: orderData,
             status: orderData.length > 0 ? 'occupied' : 'available',
-          },
-          { merge: true }
-        );
+        });
       } catch (error) {
         console.error('Error updating table order:', error);
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
@@ -790,12 +810,11 @@ const setSelectedTableById = useCallback(
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       await updateTableOrder(tableId, orderData);
-      await updateDoc(doc(firestore, 'companies', companyId, 'tables', tableId), { lockedBy: null });
+      await unlockResource('table', tableId);
       toast({ title: 'Table sauvegardée' });
-      clearOrder();
-      setSelectedTable(null);
+      await clearOrder();
     },
-    [updateTableOrder, clearOrder, toast, firestore, companyId]
+    [updateTableOrder, clearOrder, toast, unlockResource]
   );
 
   const promoteTableToTicket = useCallback(async (tableId: string) => {
@@ -833,14 +852,12 @@ const setSelectedTableById = useCallback(
       
     if (!heldOrderRef) return;
 
-    // We can't spread newHeldOrderData because id is not in the Firestore document
     const { id, ...dataToSave } = newHeldOrderData;
     batch.set(heldOrderRef, dataToSave);
-    batch.update(tableRef, { status: 'paying', lockedBy: null });
+    batch.update(tableRef, { status: 'paying', order: [], lockedBy: null });
     await batch.commit();
 
-    setSelectedTable(null);
-    clearOrder();
+    await clearOrder();
     routerRef.current.push('/restaurant');
     toast({
       title: 'Table transformée en ticket',
@@ -912,6 +929,7 @@ const setSelectedTableById = useCallback(
       const batch = writeBatch(firestore);
 
       if (saleIdToUpdate) {
+        await unlockResource('heldOrder', saleIdToUpdate);
         const docRef = getDocRef('heldOrders', saleIdToUpdate);
         if (docRef) batch.delete(docRef);
       }
@@ -956,6 +974,7 @@ const setSelectedTableById = useCallback(
       sales,
       getCollectionRef,
       currentSaleContext,
+      unlockResource,
     ]
   );
   // #endregion
@@ -1051,8 +1070,9 @@ const setSelectedTableById = useCallback(
     const handleSignOut = useCallback(async () => {
         if (!auth || !user) return;
         
-        const userRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userRef, { sessionToken: deleteField() });
+        await updateDoc(doc(firestore, 'users', user.uid), {
+            sessionToken: deleteField()
+        });
         
         await signOut(auth);
         localStorage.removeItem('sessionToken');
@@ -1269,9 +1289,9 @@ const setSelectedTableById = useCallback(
     setNavConfirmOpen(false);
   }, []);
 
-  const confirmNavigation = useCallback(() => {
+  const confirmNavigation = useCallback(async () => {
     if (nextUrl) {
-      clearOrder();
+      await clearOrder();
       routerRef.current.push(nextUrl);
     }
     closeNavConfirm();
@@ -1379,17 +1399,13 @@ const setSelectedTableById = useCallback(
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages: (val) =>
-        updateSetting('showTicketImages', val),
+      setShowTicketImages,
       popularItemsCount,
-      setPopularItemsCount: (val) =>
-        updateSetting('popularItemsCount', val),
+      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity: (val) =>
-        updateSetting('itemCardOpacity', val),
+      setItemCardOpacity,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter: (val) =>
-        updateSetting('enableRestaurantCategoryFilter', val),
+      setEnableRestaurantCategoryFilter,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1429,7 +1445,6 @@ const setSelectedTableById = useCallback(
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
-      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -1477,7 +1492,6 @@ const setSelectedTableById = useCallback(
       popularItemsCount,
       itemCardOpacity,
       enableRestaurantCategoryFilter,
-      updateSetting,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1487,9 +1501,10 @@ const setSelectedTableById = useCallback(
       seedInitialData,
       resetAllData,
       cameFromRestaurant,
-      setCameFromRestaurant,
       isLoading,
       user,
+      updateSetting,
+      setSessionInvalidated,
     ]
   );
 
@@ -1503,5 +1518,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
