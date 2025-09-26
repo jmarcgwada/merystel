@@ -373,6 +373,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const defaultPaymentMethods = [
         { name: 'Espèces', icon: 'cash', type: 'direct' },
         { name: 'Carte Bancaire', icon: 'card', type: 'direct' },
+        { name: 'Chèque', icon: 'check', type: 'direct' },
       ];
       const defaultCustomers = [
         { name: 'Client au comptoir', isDefault: true },
