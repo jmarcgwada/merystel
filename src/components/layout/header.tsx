@@ -12,6 +12,15 @@ import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '../ui/button';
 import { LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { User as UserIcon } from 'lucide-react';
 
 export default function Header() {
   const pathname = usePathname();
@@ -62,17 +71,38 @@ export default function Header() {
           <span className="font-normal text-muted-foreground">{companyInfo?.name}</span>
         </div>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-2">
           {user && (
-            <>
-              <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
+                    <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Mon Profil</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Déconnexion</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
