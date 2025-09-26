@@ -96,7 +96,7 @@ export default function UsersPage() {
                               <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)}>
                                   <Edit className="h-4 w-4"/>
                               </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={currentUser?.id === u.id}>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.id === u.id}>
                                   <Trash2 className="h-4 w-4"/>
                               </Button>
                           </TableCell>

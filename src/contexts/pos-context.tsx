@@ -984,15 +984,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const dbUser = users.find(u => u.id === user.id);
     const dbToken = dbUser?.sessionToken;
 
-    if (localToken && dbToken && localToken !== dbToken) {
+    if (!localToken || !dbToken || localToken !== dbToken) {
       toast({
         variant: 'destructive',
         title: 'Session expirée',
         description: 'Vous avez été déconnecté car une nouvelle session a été ouverte sur un autre appareil.',
+        duration: 10000,
       });
       signOut(auth);
+      router.push('/login');
     }
-  }, [user, users, auth, toast]);
+  }, [user, users, auth, toast, router]);
 
   // #endregion
 
