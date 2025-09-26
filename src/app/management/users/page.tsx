@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -27,12 +27,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function UsersPage() {
-  const { users, deleteUser, isLoading, sendPasswordResetEmailForUser } = usePos();
+  const { users, deleteUser, isLoading, sendPasswordResetEmailForUser, forceSignOutUser } = usePos();
   const { user: currentUser } = useUser();
   const isManager = currentUser?.role === 'manager';
   const router = useRouter();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReset, setUserToReset] = useState<User | null>(null);
+  const [userToSignOut, setUserToSignOut] = useState<User | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -50,6 +51,13 @@ export default function UsersPage() {
     if (userToReset) {
       sendPasswordResetEmailForUser(userToReset.email);
       setUserToReset(null);
+    }
+  }
+
+  const handleForceSignOut = () => {
+    if (userToSignOut) {
+      forceSignOutUser(userToSignOut.id);
+      setUserToSignOut(null);
     }
   }
 
@@ -85,7 +93,8 @@ export default function UsersPage() {
                         <TableHead>Nom</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Rôle</TableHead>
-                        {!isManager && <TableHead className="w-[140px] text-right">Actions</TableHead>}
+                        <TableHead>Statut</TableHead>
+                        {!isManager && <TableHead className="w-[180px] text-right">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -94,18 +103,33 @@ export default function UsersPage() {
                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-52" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                             {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
                         </TableRow>
                     ))}
-                    {isClient && !isLoading && users && users.map(u => (
+                    {isClient && !isLoading && users && users.map(u => {
+                        const isUserConnected = u.sessionToken && u.sessionToken.length > 0;
+                        return (
                         <TableRow key={u.id}>
                           <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
                           <TableCell>{u.email}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="capitalize">{u.role}</Badge>
                           </TableCell>
+                          <TableCell>
+                            {isUserConnected ? (
+                                <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
+                            ) : (
+                                <Badge variant="outline">Déconnecté</Badge>
+                            )}
+                          </TableCell>
                           {!isManager && (
                             <TableCell className="text-right">
+                                {currentUser?.role === 'admin' && currentUser.uid !== u.id && isUserConnected && (
+                                     <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
+                                        <LogOut className="h-4 w-4 text-destructive"/>
+                                    </Button>
+                                )}
                                 {currentUser?.role === 'admin' && currentUser.uid !== u.id && (
                                     <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
                                         <KeyRound className="h-4 w-4"/>
@@ -120,7 +144,7 @@ export default function UsersPage() {
                             </TableCell>
                           )}
                         </TableRow>
-                    ))}
+                    )})}
                 </TableBody>
             </Table>
         </CardContent>
@@ -153,8 +177,20 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={!!userToSignOut} onOpenChange={() => setUserToSignOut(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Déconnecter l'utilisateur ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous êtes sur le point de forcer la déconnexion de l'utilisateur "{userToSignOut?.firstName} {userToSignOut?.lastName}". Il sera déconnecté de sa session active.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleForceSignOut} className="bg-destructive hover:bg-destructive/90">Déconnecter</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    

@@ -98,6 +98,7 @@ interface PosContextType {
   handleSignOut: () => Promise<void>;
   validateSession: (userId: string, token: string) => boolean;
   forceSignOut: (message: string) => void;
+  forceSignOutUser: (userId: string) => void;
 
 
   items: Item[];
@@ -986,12 +987,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
-     const handleSignOut = useCallback(async () => {
-        if (!auth) return;
-        localStorage.removeItem('sessionToken');
+    const handleSignOut = useCallback(async () => {
+        if (!auth || !user) return;
+        const userRef = doc(firestore, 'users', user.uid);
+        await updateDoc(userRef, {
+            sessionToken: deleteField()
+        });
         await signOut(auth);
-        routerRef.current.push('/login');
-    }, [auth]);
+        localStorage.removeItem('sessionToken');
+    }, [auth, user, firestore]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
@@ -1000,14 +1004,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [users]);
 
     const forceSignOut = useCallback(async (message: string) => {
-        if (!auth) return;
         await handleSignOut();
         toast({
             variant: 'destructive',
             title: "Session expirée",
             description: message,
         });
-    }, [auth, toast, handleSignOut]);
+    }, [toast, handleSignOut]);
+
+    const forceSignOutUser = useCallback(async (userId: string) => {
+        const userRef = doc(firestore, 'users', userId);
+        try {
+            await updateDoc(userRef, {
+                sessionToken: deleteField()
+            });
+            toast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
+        } catch (error) {
+            console.error("Error forcing user sign out:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
+        }
+    }, [firestore, toast]);
 
   // #endregion
 
@@ -1255,6 +1271,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       handleSignOut,
       validateSession,
       forceSignOut,
+      forceSignOutUser,
       items,
       addItem,
       updateItem,
@@ -1347,6 +1364,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       handleSignOut,
       validateSession,
       forceSignOut,
+      forceSignOutUser,
       items,
       addItem,
       updateItem,
