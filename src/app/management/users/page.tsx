@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -54,7 +55,7 @@ export default function UsersPage() {
             </TableHeader>
             <TableBody>
               {(isLoading || !isClient) && Array.from({ length: 1 }).map((_, i) => (
-                <TableRow key={i}>
+                <TableRow key={`skeleton-user-${i}`}>
                   <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-52" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20" /></TableCell>
