@@ -46,8 +46,6 @@ import {
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
-import { v4 as uuidv4 } from 'uuid';
-
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -91,9 +89,6 @@ interface PosContextType {
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
-  handleSuccessfulLogin: (userId: string) => Promise<void>;
-  validateSession: () => void;
-
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -905,7 +900,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const finalPassword = password || Math.random().toString(36).slice(-8);
+      const finalPassword = password;
+      if (!finalPassword) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Un mot de passe est requis pour créer un utilisateur.',
+        });
+        return;
+      }
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, userData.email, finalPassword);
@@ -921,14 +924,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
 
-        if (!password) {
-          toast({
+        toast({
             title: 'Utilisateur créé avec succès',
-            description: `Mot de passe temporaire : ${finalPassword}`,
-            duration: 15000,
-          });
-        }
-        // No toast if password is provided (e.g. for initial admin creation)
+        });
 
       } catch (error: any) {
         console.error('Error creating user:', error);
@@ -973,33 +971,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
     }
   }, [auth, toast]);
-
-  const handleSuccessfulLogin = useCallback(async (userId: string) => {
-    const userDocRef = getDocRef('users', userId, true);
-    if (!userDocRef) return;
-    const sessionToken = uuidv4();
-    localStorage.setItem('sessionToken', sessionToken);
-    await setDoc(userDocRef, { sessionToken }, { merge: true });
-  }, [getDocRef]);
-
-  const validateSession = useCallback(() => {
-    if (!user || !users) return;
-    
-    const localToken = localStorage.getItem('sessionToken');
-    const dbUser = users.find(u => u.id === user.id);
-    const dbToken = dbUser?.sessionToken;
-
-    if (!localToken || !dbToken || localToken !== dbToken) {
-      toast({
-        variant: 'destructive',
-        title: 'Session expirée',
-        description: 'Vous avez été déconnecté car une nouvelle session a été ouverte sur un autre appareil.',
-        duration: 10000,
-      });
-      signOut(auth);
-      router.push('/login');
-    }
-  }, [user, users, auth, toast, router]);
 
   // #endregion
 
@@ -1243,8 +1214,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
-      handleSuccessfulLogin,
-      validateSession,
       items,
       addItem,
       updateItem,
@@ -1333,8 +1302,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
-      handleSuccessfulLogin,
-      validateSession,
       items,
       addItem,
       updateItem,
@@ -1408,3 +1375,5 @@ export function usePos() {
   }
   return context;
 }
+
+    

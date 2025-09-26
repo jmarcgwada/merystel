@@ -49,18 +49,12 @@ const quickLinks = [
 
 export default function DashboardPage() {
     const { user: authUser } = useUser();
-    const { sales, items, isLoading, validateSession } = usePos();
+    const { sales, items, isLoading } = usePos();
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
         setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
     }, []);
-
-    useEffect(() => {
-        if (authUser) {
-          validateSession();
-        }
-    }, [authUser, validateSession]);
 
     const totalSales = useMemo(() => {
         if (!sales) return 0;
@@ -250,3 +244,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

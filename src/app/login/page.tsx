@@ -23,32 +23,14 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
-  const { handleSuccessfulLogin, users, addUser, isLoading: posLoading } = usePos();
+  const { users, isLoading: posLoading } = usePos();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const initializeAdmin = async () => {
-      if (!posLoading && users && users.length === 0) {
-        try {
-          await addUser({
-            firstName: 'Admin',
-            lastName: 'Zenith',
-            email: 'admin@zenith.com',
-            role: 'admin',
-          }, 'password123'); // Use a fixed password for the first admin
-        } catch (error) {
-            // This might fail if the user already exists in auth but not in Firestore.
-            // We can ignore this for the purpose of ensuring an admin exists.
-            console.warn("Could not create default admin, it might already exist in auth.", error)
-        }
-      }
-      setIsReady(true);
-    };
-
     if (!userLoading && !posLoading) {
-      initializeAdmin();
+      setIsReady(true);
     }
-  }, [userLoading, posLoading, users, addUser]);
+  }, [userLoading, posLoading]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -65,19 +47,14 @@ export default function LoginPage() {
   }
 
   if (user) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <p>Déjà connecté. Redirection...</p>
-        </div>
-    );
+    return null; // Don't render anything, useEffect will redirect.
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handleSuccessfulLogin(userCredential.user.uid);
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Login Error:", error);
@@ -109,16 +86,14 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="grid gap-4">
-             {users && users.length === 0 && (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Premier Lancement</AlertTitle>
-                <AlertDescription>
-                  Un compte administrateur a été créé pour vous : <br />
-                  Email: <b>admin@zenith.com</b> <br />
-                  Mot de passe: <b>password123</b>
-                </AlertDescription>
-              </Alert>
+            {isReady && users && users.length === 0 && (
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Premier Lancement</AlertTitle>
+                    <AlertDescription>
+                        Aucun utilisateur trouvé. Veuillez en créer un via la page de gestion des utilisateurs dans les paramètres de l'application après avoir contacté le support.
+                    </AlertDescription>
+                </Alert>
             )}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -154,3 +129,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

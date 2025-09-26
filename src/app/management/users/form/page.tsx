@@ -23,6 +23,14 @@ const formSchema = z.object({
   lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   email: z.string().email({ message: "L'email n'est pas valide." }),
   role: z.enum(['admin', 'manager', 'cashier']),
+  password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
+}).refine(data => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isEditMode = Boolean(searchParams.get('id'));
+    return isEditMode || (data.password && data.password.length > 0);
+}, {
+    message: "Le mot de passe est requis pour un nouvel utilisateur.",
+    path: ["password"],
 });
 
 
@@ -45,6 +53,7 @@ function UserForm() {
       lastName: '',
       email: '',
       role: 'cashier',
+      password: '',
     },
   });
 
@@ -62,15 +71,19 @@ function UserForm() {
         lastName: '',
         email: '',
         role: 'cashier',
+        password: '',
       });
     }
   }, [isEditMode, userToEdit, form]);
 
   function onSubmit(data: UserFormValues) {
     if (isEditMode && userToEdit) {
-      updateUser({ ...userToEdit, ...data });
+      const { password, ...updateData } = data;
+      updateUser({ ...userToEdit, ...updateData });
     } else {
-      addUser(data);
+      if (data.password) {
+        addUser(data, data.password);
+      }
     }
     router.push('/management/users');
   }
@@ -94,9 +107,6 @@ function UserForm() {
           <Card>
             <CardHeader>
               <CardTitle>Détails de l'utilisateur</CardTitle>
-              {!isEditMode && (
-                <CardDescription>Le mot de passe sera généré automatiquement et affiché après la création.</CardDescription>
-              )}
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,12 +144,27 @@ function UserForm() {
                   <FormItem>
                     <FormLabel>Adresse e-mail</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="jean.dupont@example.com" {...field} />
+                      <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+               {!isEditMode && (
+                 <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mot de passe</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+               )}
               <FormField
                 control={form.control}
                 name="role"
@@ -163,7 +188,7 @@ function UserForm() {
                 )}
               />
                {isEditMode && (
-                 <CardDescription>La modification du mot de passe n'est pas disponible ici. Utilisez la fonction "mot de passe oublié" de votre fournisseur d'authentification.</CardDescription>
+                 <CardDescription>La modification de l'e-mail et du mot de passe n'est pas disponible ici.</CardDescription>
                )}
             </CardContent>
           </Card>
@@ -186,3 +211,5 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
+
+    
