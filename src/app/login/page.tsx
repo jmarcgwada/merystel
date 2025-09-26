@@ -314,25 +314,13 @@ export default function LoginPage() {
         <AlertDialogContent>
             <form onSubmit={handlePinSubmit}>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Session active détectée</AlertDialogTitle>
+                    <AlertDialogTitle>Conflit de session - Code: Date + Différence</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Cet utilisateur est déjà connecté sur un autre appareil. Veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
+                        Cet utilisateur est déjà connecté sur un autre appareil. Pour continuer, veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="pin">Code PIN</Label>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Formule : Mois (MM) + Jour (JJ) + |Jour - Mois|</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
+                    <Label htmlFor="pin">Code PIN</Label>
                     <Input 
                         id="pin"
                         type="password"
