@@ -655,6 +655,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Held Order & Table Management
+  const holdOrder = useCallback(() => {
+    if (order.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Commande vide',
+        description: 'Ajoutez des articles avant de mettre en attente.',
+      });
+      return;
+    }
+    const newHeldOrder: Omit<HeldOrder, 'id'> = {
+      date: new Date(),
+      items: order,
+      total: orderTotal + orderTax,
+      lockedBy: null,
+    };
+    addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
+    clearOrder();
+  }, [order, orderTotal, orderTax, addEntity, clearOrder, toast]);
+  
   const deleteHeldOrder = useCallback(
     async (orderId: string) => {
       if (!heldOrders) return;
@@ -684,11 +703,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (selectedTable) {
-            await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
+             await updateDoc(doc(firestore, 'companies', companyId, 'tables', selectedTable.id), { lockedBy: null });
             setSelectedTable(null);
         }
 
-        await updateEntity('heldOrders', orderId, { lockedBy: user.id }, '');
+        await updateDoc(doc(firestore, 'companies', companyId, 'heldOrders', orderId), { lockedBy: user.id });
         
         setOrder(orderToRecall.items);
         setCurrentSaleId(orderToRecall.id);
@@ -699,21 +718,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: 'Commande rappelée' });
         routerRef.current.push('/pos');
     }
-  }, [heldOrders, user, selectedTable, updateEntity, toast, firestore, companyId]);
+  }, [heldOrders, user, selectedTable, toast, firestore, companyId]);
 
-
-  const holdOrder = useCallback(async () => {
-    if (order.length === 0) return;
-    const newHeldOrder = {
-      date: new Date(),
-      items: order,
-      total: orderTotal + orderTax,
-      lockedBy: null,
-    };
-    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente.');
-    clearOrder();
-  }, [order, orderTotal, orderTax, clearOrder, addEntity]);
-  
 
 const setSelectedTableById = useCallback(
     async (tableId: string | null) => {
