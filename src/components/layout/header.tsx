@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { usePos } from '@/contexts/pos-context';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { useAuth } from '@/firebase';
@@ -28,8 +28,15 @@ export default function Header() {
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const isInPosOrRestaurant = pathname === '/pos' || pathname === '/restaurant';
+  const shouldBeDisabled = isClient && isInPosOrRestaurant;
+
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -46,7 +53,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className={cn("flex items-center gap-4 flex-1", isInPosOrRestaurant && 'opacity-50 pointer-events-none')}>
+        <div className={cn("flex items-center gap-4 flex-1", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -72,10 +79,10 @@ export default function Header() {
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className={cn("flex items-center justify-end gap-2", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
           {user && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild disabled={isInPosOrRestaurant}>
+              <DropdownMenuTrigger asChild disabled={shouldBeDisabled}>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
                     <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
