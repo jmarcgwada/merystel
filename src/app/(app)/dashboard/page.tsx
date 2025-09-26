@@ -200,20 +200,22 @@ export default function DashboardPage() {
                         </Card>
                     </Link>
                 ))}
-                <Link href="/settings" className="group">
-                    <Card className="h-full transition-all hover:shadow-md hover:border-primary">
-                        <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <Settings className="h-8 w-8 text-primary mb-2" />
-                                    <h3 className="text-lg font-semibold font-headline">Paramètres</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">Configurer l'application.</p>
+                {authUser?.role !== 'cashier' && (
+                    <Link href="/settings" className="group">
+                        <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Settings className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline">Paramètres</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Configurer l'application.</p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
                                 </div>
-                                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                )}
             </div>
         </div>
          <div className="lg:col-span-1">
@@ -243,6 +245,5 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
 
     
