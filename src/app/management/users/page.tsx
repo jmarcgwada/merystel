@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, KeyRound } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -22,10 +22,14 @@ import type { User } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/firebase/auth/use-user';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function UsersPage() {
-  const { users, deleteUser, isLoading, user: currentUser, sendPasswordResetEmailForUser } = usePos();
+  const { users, deleteUser, isLoading, sendPasswordResetEmailForUser } = usePos();
+  const { user: currentUser } = useUser();
+  const isManager = currentUser?.role === 'manager';
   const router = useRouter();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReset, setUserToReset] = useState<User | null>(null);
@@ -52,14 +56,27 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader title="Gérer les utilisateurs" subtitle={isClient && users ? `Vous avez ${users.length} utilisateurs au total.` : "Ajoutez, modifiez ou supprimez des utilisateurs."}>
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        <Button onClick={() => router.push('/management/users/form')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un utilisateur
-        </Button>
+        {!isManager && (
+            <>
+                <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+                <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button onClick={() => router.push('/management/users/form')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un utilisateur
+                </Button>
+            </>
+        )}
       </PageHeader>
+        {isManager && (
+            <Alert className="mt-8">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Mode lecture seule</AlertTitle>
+                <AlertDescription>
+                    En tant que manager, vous ne pouvez que consulter la liste des utilisateurs.
+                </AlertDescription>
+            </Alert>
+        )}
        <Card className="mt-8">
         <CardContent className="pt-6">
             <Table>
@@ -68,7 +85,7 @@ export default function UsersPage() {
                         <TableHead>Nom</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Rôle</TableHead>
-                        <TableHead className="w-[140px] text-right">Actions</TableHead>
+                        {!isManager && <TableHead className="w-[140px] text-right">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -77,7 +94,7 @@ export default function UsersPage() {
                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-52" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                            <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
+                            {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
                         </TableRow>
                     ))}
                     {isClient && !isLoading && users && users.map(u => (
@@ -87,19 +104,21 @@ export default function UsersPage() {
                           <TableCell>
                             <Badge variant="secondary" className="capitalize">{u.role}</Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                              {currentUser?.role === 'admin' && currentUser.id !== u.id && (
-                                <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
-                                    <KeyRound className="h-4 w-4"/>
+                          {!isManager && (
+                            <TableCell className="text-right">
+                                {currentUser?.role === 'admin' && currentUser.uid !== u.id && (
+                                    <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
+                                        <KeyRound className="h-4 w-4"/>
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)} disabled={isManager}>
+                                    <Edit className="h-4 w-4"/>
                                 </Button>
-                              )}
-                              <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)}>
-                                  <Edit className="h-4 w-4"/>
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
-                                  <Trash2 className="h-4 w-4"/>
-                              </Button>
-                          </TableCell>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                     ))}
                 </TableBody>
@@ -137,3 +156,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

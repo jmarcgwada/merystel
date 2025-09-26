@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,8 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase/auth/use-user';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const initialCompanyInfo: CompanyInfo = {
     name: '',
@@ -36,6 +38,8 @@ const initialCompanyInfo: CompanyInfo = {
 
 export default function CompanyPage() {
   const { companyInfo, setCompanyInfo, isLoading } = usePos();
+  const { user } = useUser();
+  const isManager = user?.role === 'manager';
   const { toast } = useToast();
   const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const router = useRouter();
@@ -52,6 +56,10 @@ export default function CompanyPage() {
   };
 
   const handleSave = () => {
+    if (isManager) {
+        toast({ variant: 'destructive', title: 'Accès refusé' });
+        return;
+    }
     setCompanyInfo(localInfo);
     toast({
       title: 'Informations sauvegardées',
@@ -86,8 +94,17 @@ export default function CompanyPage() {
           </Link>
         </Button>
       </PageHeader>
-      <div className="mt-8 space-y-8">
-        <Card>
+        {isManager && (
+            <Alert className="mt-8">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Mode lecture seule</AlertTitle>
+                <AlertDescription>
+                    En tant que manager, vous ne pouvez que consulter ces informations.
+                </AlertDescription>
+            </Alert>
+        )}
+      <fieldset disabled={isManager} className="mt-4 space-y-8 group">
+        <Card className="group-disabled:opacity-70">
           <CardHeader>
               <CardTitle>Informations générales et de contact</CardTitle>
           </CardHeader>
@@ -133,7 +150,7 @@ export default function CompanyPage() {
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-8">
-            <Card>
+            <Card className="group-disabled:opacity-70">
             <CardHeader>
                 <CardTitle>Informations légales et fiscales</CardTitle>
             </CardHeader>
@@ -157,7 +174,7 @@ export default function CompanyPage() {
             </CardContent>
             </Card>
             
-            <Card>
+            <Card className="group-disabled:opacity-70">
             <CardHeader>
                 <CardTitle>Coordonnées bancaires</CardTitle>
                 <CardDescription>Ces informations apparaîtront sur vos factures.</CardDescription>
@@ -175,7 +192,7 @@ export default function CompanyPage() {
             </Card>
         </div>
 
-        <Card>
+        <Card className="group-disabled:opacity-70">
           <CardHeader>
               <CardTitle>Notes / Observations</CardTitle>
           </CardHeader>
@@ -187,10 +204,14 @@ export default function CompanyPage() {
           </CardContent>
         </Card>
 
-      </div>
-       <div className="mt-8 flex justify-end">
-            <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
-        </div>
+      </fieldset>
+       {!isManager && (
+            <div className="mt-8 flex justify-end">
+                <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
+            </div>
+       )}
     </>
   );
 }
+
+    

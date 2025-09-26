@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/page-header';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUser } from '@/firebase/auth/use-user';
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
@@ -42,6 +43,8 @@ function UserForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { user: currentUser } = useUser();
+  const isManager = currentUser?.role === 'manager';
   const { users, addUser, updateUser } = usePos();
 
   const userId = searchParams.get('id');
@@ -79,6 +82,10 @@ function UserForm() {
   }, [isEditMode, userToEdit, form]);
 
   async function onSubmit(data: UserFormValues) {
+    if (isManager) {
+        toast({ variant: 'destructive', title: 'Accès refusé' });
+        return;
+    }
     if (isEditMode && userToEdit) {
       const { password, ...updateData } = data;
       updateUser({ ...userToEdit, ...updateData });
@@ -111,100 +118,104 @@ function UserForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-2xl">
-          <Card>
-            <CardHeader>
-              <CardTitle>Détails de l'utilisateur</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <fieldset disabled={isManager}>
+            <Card className="group-disabled:opacity-70">
+              <CardHeader>
+                <CardTitle>Détails de l'utilisateur</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prénom</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Jean" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Dupont" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prénom</FormLabel>
+                      <FormLabel>Adresse e-mail</FormLabel>
                       <FormControl>
-                        <Input placeholder="Jean" {...field} />
+                        <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                {!isEditMode && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mot de passe</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                />
+                )}
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Dupont" {...field} />
-                      </FormControl>
+                      <FormLabel>Rôle</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez un rôle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrateur</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="cashier">Caissier</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Adresse e-mail</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {isEditMode && (
+                  <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription>
                 )}
-              />
-               {!isEditMode && (
-                 <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mot de passe</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-               )}
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rôle</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez un rôle" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrateur</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="cashier">Caissier</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               {isEditMode && (
-                 <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription>
-               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </fieldset>
           
-          <div className="mt-6 flex justify-end">
-             <Button type="submit" size="lg">
-                {isEditMode ? 'Sauvegarder les modifications' : "Créer l'utilisateur"}
-            </Button>
-          </div>
+          {!isManager && (
+            <div className="mt-6 flex justify-end">
+                <Button type="submit" size="lg">
+                    {isEditMode ? 'Sauvegarder les modifications' : "Créer l'utilisateur"}
+                </Button>
+            </div>
+          )}
         </form>
       </Form>
     </>
@@ -218,3 +229,5 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
+
+    
