@@ -86,7 +86,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId' | 'password'>) => void;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
 
@@ -929,16 +929,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Generic Entity Management
   const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'companyId'>) => {
+    async (userData: Omit<User, 'id' | 'companyId' | 'password'>) => {
         if (!auth || !firestore) return;
-        const { email, password, ...profileData } = userData;
-        if (!email || !password) {
-            toast({ variant: 'destructive', title: 'Email et mot de passe requis.' });
+        const { email, ...profileData } = userData;
+        if (!email) {
+            toast({ variant: 'destructive', title: 'Email requis.' });
             return;
         }
 
+        const tempPassword = Math.random().toString(36).slice(-8);
+
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, tempPassword);
             const authUser = userCredential.user;
 
             const userDoc: Omit<User, 'id'> = {
@@ -948,7 +950,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             };
 
             await setDoc(doc(firestore, "users", authUser.uid), userDoc);
-            toast({ title: "Utilisateur créé avec succès" });
+            toast({ 
+              title: "Utilisateur créé avec succès",
+              description: `Mot de passe temporaire: ${tempPassword}`,
+              duration: 15000,
+            });
         } catch (error: any) {
             console.error("Error creating user:", error);
             const message = error.code === 'auth/email-already-in-use' 

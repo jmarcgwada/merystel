@@ -17,23 +17,15 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const baseSchema = z.object({
+const formSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
   lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   email: z.string().email({ message: "L'email n'est pas valide." }),
   role: z.enum(['admin', 'manager', 'cashier']),
 });
 
-const createUserSchema = baseSchema.extend({
-  password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
-});
 
-const updateUserSchema = baseSchema.extend({
-  password: z.string().optional(),
-});
-
-
-type UserFormValues = z.infer<typeof createUserSchema>;
+type UserFormValues = z.infer<typeof formSchema>;
 
 function UserForm() {
   const router = useRouter();
@@ -45,8 +37,6 @@ function UserForm() {
   const isEditMode = Boolean(userId);
   const userToEdit = isEditMode ? users.find(u => u.id === userId) : null;
 
-  const formSchema = isEditMode ? updateUserSchema : createUserSchema;
-
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,7 +44,6 @@ function UserForm() {
       lastName: '',
       email: '',
       role: 'cashier',
-      password: '',
     },
   });
 
@@ -72,7 +61,6 @@ function UserForm() {
         lastName: '',
         email: '',
         role: 'cashier',
-        password: '',
       });
     }
   }, [isEditMode, userToEdit, form]);
@@ -80,10 +68,8 @@ function UserForm() {
   function onSubmit(data: UserFormValues) {
     if (isEditMode && userToEdit) {
       updateUser({ ...userToEdit, ...data });
-      toast({ title: 'Utilisateur modifié', description: `L'utilisateur "${data.firstName} ${data.lastName}" a été mis à jour.` });
     } else {
       addUser(data);
-      toast({ title: 'Utilisateur créé', description: `L'utilisateur "${data.firstName} ${data.lastName}" a été ajouté.` });
     }
     router.push('/management/users');
   }
@@ -107,6 +93,9 @@ function UserForm() {
           <Card>
             <CardHeader>
               <CardTitle>Détails de l'utilisateur</CardTitle>
+              {!isEditMode && (
+                <CardDescription>Le mot de passe sera généré automatiquement et affiché après la création.</CardDescription>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -150,21 +139,6 @@ function UserForm() {
                   </FormItem>
                 )}
               />
-               {!isEditMode && (
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mot de passe</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
               <FormField
                 control={form.control}
                 name="role"
@@ -187,6 +161,9 @@ function UserForm() {
                   </FormItem>
                 )}
               />
+               {isEditMode && (
+                 <CardDescription>La modification du mot de passe n'est pas disponible ici. Utilisez la fonction "mot de passe oublié" de votre fournisseur d'authentification.</CardDescription>
+               )}
             </CardContent>
           </Card>
           
