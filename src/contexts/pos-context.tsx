@@ -45,7 +45,9 @@ import {
   query,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
+import { v4 as uuidv4 } from 'uuid';
+
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -89,6 +91,9 @@ interface PosContextType {
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
+  handleSuccessfulLogin: (userId: string) => Promise<void>;
+  validateSession: () => void;
+
 
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
@@ -274,17 +279,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [heldOrders]);
 
   const authRequired = true;
-
-  useEffect(() => {
-    if (!companyInfoLoading) {
-      // setShowTicketImages(companyInfo?.showTicketImages ?? true);
-      // setPopularItemsCount(companyInfo?.popularItemsCount ?? 10);
-      // setItemCardOpacity(companyInfo?.itemCardOpacity ?? 30);
-      // setEnableRestaurantCategoryFilter(
-      //   companyInfo?.enableRestaurantCategoryFilter ?? true
-      // );
-    }
-  }, [companyInfo, companyInfoLoading]);
   
   // #region Base Callbacks
   const getCollectionRef = useCallback(
@@ -899,7 +893,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   // #endregion
 
-  // #region Generic Entity Management
+  // #region User Management & Session
   const addUser = useCallback(
     async (userData: Omit<User, 'id' | 'companyId'>) => {
       if (!auth || !firestore) {
@@ -975,6 +969,34 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [auth, toast]);
 
+  const handleSuccessfulLogin = useCallback(async (userId: string) => {
+    const userDocRef = getDocRef('users', userId, true);
+    if (!userDocRef) return;
+    const sessionToken = uuidv4();
+    localStorage.setItem('sessionToken', sessionToken);
+    await setDoc(userDocRef, { sessionToken }, { merge: true });
+  }, [getDocRef]);
+
+  const validateSession = useCallback(() => {
+    if (!user || !users) return;
+    
+    const localToken = localStorage.getItem('sessionToken');
+    const dbUser = users.find(u => u.id === user.id);
+    const dbToken = dbUser?.sessionToken;
+
+    if (localToken && dbToken && localToken !== dbToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Session expirée',
+        description: 'Vous avez été déconnecté car une nouvelle session a été ouverte sur un autre appareil.',
+      });
+      signOut(auth);
+    }
+  }, [user, users, auth, toast]);
+
+  // #endregion
+
+  // #region Generic Entity Management
   const addCategory = useCallback(
     (category: Omit<Category, 'id'>) =>
       addEntity('categories', category, 'Catégorie ajoutée'),
@@ -1214,6 +1236,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
+      handleSuccessfulLogin,
+      validateSession,
       items,
       addItem,
       updateItem,
@@ -1302,6 +1326,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       deleteUser,
       sendPasswordResetEmailForUser,
+      handleSuccessfulLogin,
+      validateSession,
       items,
       addItem,
       updateItem,

@@ -11,6 +11,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
+import { usePos } from '@/contexts/pos-context';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,6 +21,8 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { user } = useUser();
+  const { handleSuccessfulLogin } = usePos();
+
 
   useEffect(() => {
     if (user) {
@@ -39,7 +42,8 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await handleSuccessfulLogin(userCredential.user.uid);
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Login Error:", error);

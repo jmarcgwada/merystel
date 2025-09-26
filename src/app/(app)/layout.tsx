@@ -4,6 +4,8 @@
 import { useUser } from '@/firebase/auth/use-user';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
+import { usePos } from '@/contexts/pos-context';
+
 
 export default function AppLayout({
   children,
@@ -11,12 +13,17 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const { user, loading } = useUser();
+  const { validateSession } = usePos();
+
 
   useEffect(() => {
     if (!loading && !user) {
       redirect('/login');
     }
-  }, [user, loading]);
+    if (user) {
+      validateSession();
+    }
+  }, [user, loading, validateSession]);
 
   // Show loading screen while we determine auth state.
   if (loading || !user) {
