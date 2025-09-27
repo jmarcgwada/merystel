@@ -209,6 +209,34 @@ const cleanDataForFirebase = (data: any) => {
     return cleanedData;
 };
 
+// Helper hook for persisting state to localStorage
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem(key, JSON.stringify(state));
+            } catch (error) {
+                console.error(`Error setting localStorage key “${key}”:`, error);
+            }
+        }
+    }, [key, state]);
+
+    return [state, setState];
+}
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -224,12 +252,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
-  const [showTicketImages, setShowTicketImages] = useState(true);
-  const [descriptionDisplay, setDescriptionDisplay] = useState<'none' | 'first' | 'both'>('none');
-  const [popularItemsCount, setPopularItemsCount] = useState(10);
-  const [itemCardOpacity, setItemCardOpacity] = useState(30);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
-    useState(true);
+  const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
+  const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
+  const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -242,8 +271,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(true);
-  const [notificationDuration, setNotificationDuration] = useState(3000);
   // #endregion
 
   // Custom toast function that respects the user setting
@@ -1270,12 +1297,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     [companyId, firestore]
   );
   
-  const updateSetting = useCallback((key: keyof Omit<CompanyInfo, 'id'>, value: any) => {
-    if (companyInfo) {
-      setCompanyInfo({ ...companyInfo, [key]: value });
-    }
-  }, [companyInfo, setCompanyInfo]);
-
   // #endregion
 
   // #region Navigation Confirmation
@@ -1518,7 +1539,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       isLoading,
       user,
       holdOrder,
-      updateSetting,
       setSessionInvalidated,
     ]
   );
