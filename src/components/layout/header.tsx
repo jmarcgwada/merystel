@@ -34,8 +34,8 @@ export default function Header() {
     setIsClient(true);
   }, []);
   
-  const isInPosOrRestaurant = pathname === '/pos' || pathname === '/restaurant';
-  const shouldBeDisabled = isClient && isInPosOrRestaurant;
+  const isInPosOrRestaurant = isClient && (pathname === '/pos' || pathname === '/restaurant');
+  const shouldBeDisabled = isInPosOrRestaurant;
 
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -49,6 +49,8 @@ export default function Header() {
     await handlePosSignOut();
     router.push('/login');
   };
+  
+  const canAccessCompanySettings = user?.role === 'admin';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -74,7 +76,13 @@ export default function Header() {
           {user && companyInfo?.name && (
             <>
               <Separator orientation="vertical" className="h-6" />
-              <span className="font-normal text-muted-foreground">{companyInfo.name}</span>
+              {canAccessCompanySettings ? (
+                  <Link href="/settings/company" className="text-lg font-semibold text-foreground/90 hover:text-primary transition-colors" onClick={(e) => handleNavClick(e, '/settings/company')}>
+                    {companyInfo.name}
+                  </Link>
+              ) : (
+                  <span className="text-lg font-semibold text-foreground/90">{companyInfo.name}</span>
+              )}
             </>
           )}
         </div>
