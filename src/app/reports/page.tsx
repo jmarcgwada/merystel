@@ -7,12 +7,12 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRange } from 'react-day-picker';
+import { Calendar } from '@/components/ui/calendar';
 
 type SortKey = 'date' | 'total' | 'tableName';
 
@@ -67,6 +69,7 @@ export default function ReportsPage() {
     const [filterCustomer, setFilterCustomer] = useState('all');
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isCustomerPopoverOpen, setCustomerPopoverOpen] = useState(false);
 
      useEffect(() => {
@@ -86,7 +89,18 @@ export default function ReportsPage() {
             const customerMatch = filterCustomer === 'all' || sale.customerId === filterCustomer;
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
-            return customerMatch && originMatch && statusMatch;
+            
+            let dateMatch = true;
+            if (dateRange?.from) {
+                const saleDate = (sale.date as Timestamp)?.toDate ? (sale.date as Timestamp).toDate() : new Date(sale.date);
+                dateMatch = saleDate >= startOfDay(dateRange.from);
+            }
+            if (dateRange?.to) {
+                 const saleDate = (sale.date as Timestamp)?.toDate ? (sale.date as Timestamp).toDate() : new Date(sale.date);
+                dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
+            }
+
+            return customerMatch && originMatch && statusMatch && dateMatch;
         });
 
         // Apply sorting
@@ -117,7 +131,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus]);
+    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus, dateRange]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -138,6 +152,7 @@ export default function ReportsPage() {
         setFilterCustomer('all');
         setFilterOrigin('');
         setFilterStatus('all');
+        setDateRange(undefined);
     }
 
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
@@ -176,7 +191,44 @@ export default function ReportsPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Ventes Récentes</CardTitle>
-                 <div className="pt-4 flex items-center gap-4">
+                 <div className="pt-4 flex items-center gap-2 flex-wrap">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-[300px] justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                                    {format(dateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>Choisir une période</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                            />
+                        </PopoverContent>
+                    </Popover>
+
                     <Popover open={isCustomerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
                         <PopoverTrigger asChild>
                         <Button
@@ -238,7 +290,7 @@ export default function ReportsPage() {
                         placeholder="Filtrer par origine..."
                         value={filterOrigin}
                         onChange={(e) => setFilterOrigin(e.target.value)}
-                        className="max-w-sm"
+                        className="max-w-xs"
                     />
 
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -334,3 +386,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
