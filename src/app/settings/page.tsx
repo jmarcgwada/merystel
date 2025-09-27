@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -52,10 +52,10 @@ export default function SettingsPage() {
         adminOnly: false,
     },
     {
-        href: '/settings/customization',
-        title: "Réglages",
-        description: 'Ajustez les options visuelles de votre point de vente.',
-        icon: Brush,
+        href: '/settings/parameters',
+        title: "Paramétrage",
+        description: "Configurez les paramètres fonctionnels de l'application.",
+        icon: Settings,
         adminOnly: false,
     },
     {
