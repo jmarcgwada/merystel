@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Trash2 } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
 interface HeldOrdersDrawerProps {
@@ -95,9 +95,6 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                                 </div>
                             </div>
                         </AccordionTrigger>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 shrink-0" onClick={() => deleteHeldOrder(order.id)}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
                    </div>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-2 border-l-2 border-dashed pl-4 ml-2 py-2">
@@ -110,10 +107,16 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                             </div>
                         ))}
                     </div>
-                     <Button className="w-full mt-3" onClick={() => handleRecall(order.id)}>
-                        Rappeler ce ticket
-                    </Button>
                   </AccordionContent>
+                   <div className="flex items-center gap-2 px-4 pb-4 border-b">
+                        <Button className="w-full" onClick={() => handleRecall(order.id)}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Rappeler
+                        </Button>
+                        <Button variant="outline" size="icon" className="text-destructive hover:text-destructive shrink-0" onClick={() => deleteHeldOrder(order.id)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                   </div>
                 </AccordionItem>
                  )
                 })}
