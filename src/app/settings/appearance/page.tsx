@@ -32,6 +32,29 @@ const hexToRgba = (hex: string, opacity: number) => {
     return `hsla(var(--card), ${opacity/100})`;
 };
 
+// Function to check if a color is light or dark
+const isColorLight = (hex: string) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        const r = (c >> 16) & 255;
+        const g = (c >> 8) & 255;
+        const b = c & 255;
+        // Using the HSP (Highly Sensitive Poo) equation
+        const hsp = Math.sqrt(
+            0.299 * (r * r) +
+            0.587 * (g * g) +
+            0.114 * (b * b)
+        );
+        return hsp > 127.5;
+    }
+    return true; // Default to light if color is invalid
+}
+
 
 export default function AppearancePage() {
   const { 
@@ -80,7 +103,15 @@ export default function AppearancePage() {
   };
 
   const handleHarmonize = () => {
-    setDashboardButtonBackgroundColor('#ffffff');
+    if (dashboardBgType === 'color') {
+        if (isColorLight(dashboardBackgroundColor)) {
+            setDashboardButtonBackgroundColor('#000000'); // Black for light backgrounds
+        } else {
+            setDashboardButtonBackgroundColor('#ffffff'); // White for dark backgrounds
+        }
+    } else {
+        setDashboardButtonBackgroundColor('#ffffff'); // Default to white for image backgrounds
+    }
     setDashboardButtonOpacity(70);
     setDashboardButtonShowBorder(false);
     setDashboardButtonBorderColor('#e2e8f0');
@@ -184,7 +215,7 @@ export default function AppearancePage() {
                       <Separator />
 
                       {/* Button Settings */}
-                      <div className="space-y-4">
+                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-base font-semibold">Boutons du tableau de bord</h3>
                              <Button onClick={handleHarmonize} size="sm" variant="ghost">
@@ -192,7 +223,6 @@ export default function AppearancePage() {
                                 Harmoniser
                             </Button>
                         </div>
-
                          <div className="grid gap-2">
                             <Label htmlFor="dashboard-button-bg-color">Couleur de fond des boutons</Label>
                             <div className="flex items-center gap-4">
@@ -384,3 +414,4 @@ export default function AppearancePage() {
     </>
   );
 }
+
