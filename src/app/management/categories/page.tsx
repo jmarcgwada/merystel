@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,7 +32,7 @@ import { useUser } from '@/firebase/auth/use-user';
 export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
-  const { categories, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
+  const { categories, deleteCategory, toggleCategoryFavorite, isLoading, items } = usePos();
   const { user } = useUser();
   const isCashier = user?.role === 'cashier';
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
@@ -43,6 +43,11 @@ export default function CategoriesPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const getItemCountForCategory = useCallback((categoryId: string) => {
+    if (!items) return 0;
+    return items.filter(item => item.categoryId === categoryId).length;
+  }, [items]);
 
 
   const handleDeleteCategory = () => {
@@ -78,6 +83,7 @@ export default function CategoriesPage() {
                 <TableRow>
                   <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Nom</TableHead>
+                  <TableHead>Articles</TableHead>
                   <TableHead className="w-[100px]">Couleur</TableHead>
                   <TableHead>Mode Restaurant</TableHead>
                   <TableHead className="w-[160px] text-right">Actions</TableHead>
@@ -88,6 +94,7 @@ export default function CategoriesPage() {
                   <TableRow key={i}>
                       <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -106,6 +113,9 @@ export default function CategoriesPage() {
                         />
                       </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell>
+                        <Badge variant="secondary">{getItemCountForCategory(category.id)}</Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full border" style={{ backgroundColor: category.color || '#e2e8f0' }} />
