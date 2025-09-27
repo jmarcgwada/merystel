@@ -704,20 +704,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const recallOrder = useCallback(async (orderId: string) => {
-    if (!heldOrders || !user) return;
-    const orderToRecall = heldOrders.find((o) => o.id === orderId);
+    if (!heldOrdersRef.current || !user) return;
+    const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
     if (orderToRecall) {
-        setOrder(orderToRecall.items);
-        setCurrentSaleId(orderToRecall.id);
-        setSelectedTable(null); // Ensure no table is selected
-        setCurrentSaleContext({
-            tableId: orderToRecall.tableId,
-            tableName: orderToRecall.tableName,
-        });
-        toast({ title: 'Commande rappelée' });
-        routerRef.current.push('/pos');
+      setOrder(orderToRecall.items);
+      setCurrentSaleId(orderToRecall.id);
+      setSelectedTable(null); // Ensure no table is selected
+      setCurrentSaleContext({
+          tableId: orderToRecall.tableId,
+          tableName: orderToRecall.tableName,
+      });
+      await deleteEntity('heldOrders', orderId, '');
+      toast({ title: 'Commande rappelée' });
+      routerRef.current.push('/pos');
     }
-  }, [heldOrders, user, toast]);
+  }, [user, deleteEntity, toast]);
 
     const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {

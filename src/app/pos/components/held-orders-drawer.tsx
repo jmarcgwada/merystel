@@ -46,7 +46,7 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
 
   const handleRecall = (orderId: string) => {
     recallOrder(orderId);
-    // The parent component will close the drawer if recall is successful
+    onClose();
   }
 
   return (
