@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Palette, Image as ImageIcon, Link as LinkIcon, Upload } from 'lucide-react';
+import { ArrowLeft, Palette, Image as ImageIcon, Link as LinkIcon, Upload, Sparkles, ArrowRight } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -28,7 +29,7 @@ const hexToRgba = (hex: string, opacity: number) => {
         c = '0x' + c.join('');
         return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
     }
-    return hex; // Fallback to original color if format is wrong
+    return `hsla(var(--card), ${opacity/100})`;
 };
 
 
@@ -74,6 +75,18 @@ export default function AppearancePage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleHarmonize = () => {
+    setDashboardButtonOpacity(70);
+    setDashboardButtonShowBorder(false);
+    setDashboardButtonBorderColor('#e2e8f0');
+  }
+
+  const previewButtonStyle = {
+      backgroundColor: hexToRgba('hsl(var(--card))', dashboardButtonOpacity),
+      borderColor: dashboardButtonShowBorder ? dashboardButtonBorderColor : 'transparent',
+      borderWidth: dashboardButtonShowBorder ? '1px' : '0px',
   };
 
   return (
@@ -177,9 +190,20 @@ export default function AppearancePage() {
                             opacity: isClient ? dashboardBgOpacity / 100 : 1,
                         }}
                    />
-                   <div className="relative z-10 p-4 rounded-md bg-background/50 backdrop-blur-sm border">
-                     <p className="font-semibold text-muted-foreground">Aperçu Tableau de Bord</p>
-                   </div>
+                    <div className="relative z-10 w-full max-w-xs">
+                        <Card style={previewButtonStyle}>
+                             <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Palette className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline">Aperçu Bouton</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Ceci est un aperçu</p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
           </CardContent>
@@ -192,6 +216,13 @@ export default function AppearancePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
+                 <Button onClick={handleHarmonize}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Harmoniser automatiquement
+                 </Button>
+
+                 <Separator/>
+
                 <div className="grid gap-2">
                     <div className="flex justify-between items-center">
                         <Label htmlFor="dashboard-button-opacity">Opacité du fond des boutons</Label>
