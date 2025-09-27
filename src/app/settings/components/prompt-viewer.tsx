@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import dbStructure from '@/docs/backend.json';
+import dbStructure from '../../../../docs/backend.json';
 import { Copy } from 'lucide-react';
 
 interface PromptViewerProps {
