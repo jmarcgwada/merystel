@@ -238,7 +238,7 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button variant="outline" size="sm" onClick={() => router.push('/restaurant')} className="btn-back">
+        <Button variant="outline" size="sm" onClick={saveTableOrderAndExit} className="btn-back">
           <ArrowLeft />
           Retour
         </Button>
@@ -265,12 +265,6 @@ export function OrderSummary() {
     }
 
     return null;
-  }
-
-  const handleSaveAndExit = () => {
-    if (selectedTable) {
-      saveTableOrderAndExit(selectedTable.id, order);
-    }
   }
 
   const [isClosingTable, setIsClosingTable] = useState(false);
@@ -359,11 +353,6 @@ export function OrderSummary() {
                 {renderOrderItem(selectedItem, true)}
               </div>
               <div className="p-4">
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
-                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
-                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
-                  </div>
                   {enableSerialNumber && selectedItem.requiresSerialNumber && (
                     <Button 
                       variant="outline" 
@@ -374,6 +363,11 @@ export function OrderSummary() {
                       Gérer les N° de Série
                     </Button>
                   )}
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                  </div>
                   <div className="grid grid-cols-4 gap-2">
                       <Input 
                           ref={keypadInputRef}
@@ -462,7 +456,7 @@ export function OrderSummary() {
                     variant="outline"
                     className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={handleSaveAndExit}
+                    onClick={saveTableOrderAndExit}
                   >
                      <Save className="mr-2 h-4 w-4" />
                     Sauvegarder
@@ -510,4 +504,5 @@ export function OrderSummary() {
     </>
   );
 }
+
 
