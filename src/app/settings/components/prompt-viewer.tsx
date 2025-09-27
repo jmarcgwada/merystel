@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dbStructure from '../../../../docs/backend.json';
-import { Copy } from 'lucide-react';
+import { Copy, Download } from 'lucide-react';
 
 interface PromptViewerProps {
   isOpen: boolean;
@@ -131,6 +131,33 @@ export function PromptViewer({ isOpen, onClose }: PromptViewerProps) {
             });
         });
     };
+
+    const handleDownload = () => {
+        const combinedContent = `
+=========================
+PROJECT PROMPT
+=========================
+
+${projectPrompt}
+
+=========================
+DATABASE STRUCTURE (docs/backend.json)
+=========================
+
+${JSON.stringify(dbStructure, null, 2)}
+        `;
+
+        const blob = new Blob([combinedContent.trim()], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'zenith-pos-project-prompt.txt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({ title: 'Téléchargement lancé', description: 'Le fichier zenith-pos-project-prompt.txt a été généré.' });
+    };
     
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -183,7 +210,11 @@ export function PromptViewer({ isOpen, onClose }: PromptViewerProps) {
                 </TabsContent>
             </Tabs>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="secondary" onClick={handleDownload}>
+            <Download className="mr-2 h-4 w-4" />
+            Télécharger en .txt
+          </Button>
           <Button variant="outline" onClick={onClose}>Fermer</Button>
         </DialogFooter>
       </DialogContent>
