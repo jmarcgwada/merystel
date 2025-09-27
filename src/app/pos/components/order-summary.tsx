@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -62,6 +62,8 @@ export function OrderSummary() {
     restaurantModeBackgroundColor,
     directSaleBgOpacity,
     restaurantModeBgOpacity,
+    enableSerialNumber,
+    setSerialNumberItem
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -362,6 +364,16 @@ export function OrderSummary() {
                       <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
                       <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                   </div>
+                  {enableSerialNumber && selectedItem.requiresSerialNumber && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full mb-3" 
+                      onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
+                    >
+                      <ScanLine className="mr-2 h-4 w-4" />
+                      Gérer les N° de Série
+                    </Button>
+                  )}
                   <div className="grid grid-cols-4 gap-2">
                       <Input 
                           ref={keypadInputRef}
@@ -498,3 +510,4 @@ export function OrderSummary() {
     </>
   );
 }
+
