@@ -181,6 +181,8 @@ interface PosContextType {
   setShowNotifications: React.Dispatch<React.SetStateAction<boolean>>;
   notificationDuration: number;
   setNotificationDuration: React.Dispatch<React.SetStateAction<number>>;
+  enableSerialNumber: boolean;
+  setEnableSerialNumber: React.Dispatch<React.SetStateAction<boolean>>;
   directSaleBackgroundColor: string;
   setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   restaurantModeBackgroundColor: string;
@@ -273,6 +275,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
   const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
@@ -723,20 +726,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (existingItemIndex > -1) {
             const newOrder = [...currentOrder];
             const existingItem = newOrder[existingItemIndex];
-            const newQuantity = existingItem.quantity + quantity;
-            newOrder[existingItemIndex] = {
-                ...existingItem,
-                quantity: newQuantity,
-                total: existingItem.price * newQuantity - (existingItem.discount || 0),
-                serialNumbers: [...(existingItem.serialNumbers || []), ...serialNumbers],
-            };
+            // When updating, we replace the item entirely, including quantity and serials.
+            newOrder[existingItemIndex] = newOrderItem;
             return newOrder;
         }
         return [...currentOrder, newOrderItem];
     });
 
     triggerItemHighlight(item.id);
-    toast({ title: `${item.name} ajouté à la commande` });
+    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
 
   }, [toast]);
 
@@ -750,7 +748,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         (item) => item.id === itemId
       );
 
-      if (itemToAdd.requiresSerialNumber) {
+      if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
           setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
           return;
@@ -781,7 +779,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       triggerItemHighlight(itemId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, order, toast]
+    [items, order, toast, enableSerialNumber]
   );
 
   const updateQuantity = useCallback(
@@ -789,7 +787,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const itemToUpdate = order.find((item) => item.id === itemId);
       if (!itemToUpdate) return;
   
-      if (itemToUpdate.requiresSerialNumber) {
+      if (itemToUpdate.requiresSerialNumber && enableSerialNumber) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
@@ -815,7 +813,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       );
       triggerItemHighlight(itemId);
     },
-    [order, removeFromOrder]
+    [order, removeFromOrder, enableSerialNumber]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -1608,6 +1606,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setShowNotifications,
       notificationDuration,
       setNotificationDuration,
+      enableSerialNumber,
+      setEnableSerialNumber,
       directSaleBackgroundColor,
       setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
@@ -1715,6 +1715,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setShowNotifications,
       notificationDuration,
       setNotificationDuration,
+      enableSerialNumber,
+      setEnableSerialNumber,
       directSaleBackgroundColor,
       setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,

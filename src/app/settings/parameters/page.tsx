@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText, Upload, Download } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,8 @@ export default function ParametersPage() {
     setDescriptionDisplay,
     exportConfiguration,
     importConfiguration,
+    enableSerialNumber,
+    setEnableSerialNumber,
   } = usePos();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,6 +116,33 @@ export default function ParametersPage() {
                     accept=".json"
                     onChange={handleFileChange}
                 />
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+            <CardTitle>Fonctionnalités</CardTitle>
+            <CardDescription>
+                Activez ou désactivez certaines fonctionnalités de l'application.
+            </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="enable-serial-number" className="text-base flex items-center gap-2">
+                            <ScanLine />
+                            Activer la gestion des numéros de série
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                            Si activé, l'application demandera la saisie de numéros de série pour les articles concernés.
+                        </p>
+                    </div>
+                    <Switch 
+                        id="enable-serial-number"
+                        checked={enableSerialNumber}
+                        onCheckedChange={setEnableSerialNumber}
+                    />
+                </div>
             </CardContent>
         </Card>
 
