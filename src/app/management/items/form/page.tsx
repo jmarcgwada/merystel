@@ -292,8 +292,8 @@ function ItemForm() {
   return (
     <>
       <PageHeader
-        title={isEditMode ? "Modifier l'article" : 'Ajouter un nouvel article'}
-        subtitle={isEditMode ? "Mettez à jour les détails de l'article ci-dessous." : "Remplissez le formulaire pour créer un produit."}
+        title={isEditMode ? (itemToEdit?.name || "Modifier l'article") : 'Nouvel article'}
+        subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
         <Button variant="outline" asChild>
           <Link href="/management/items">
