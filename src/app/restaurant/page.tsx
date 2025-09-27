@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,20 +9,22 @@ import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 
 export default function RestaurantPage() {
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Mode Restaurant"
-        subtitle="Sélectionnez une table pour voir ou commencer une commande."
-      >
-        <Button asChild variant="outline" className="btn-back">
-          <Link href="/dashboard">
-            <ArrowLeft />
-            Tableau de bord
-          </Link>
-        </Button>
-      </PageHeader>
-      <div className="mt-8">
-        <TableLayout />
+    <div className="bg-background h-full">
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Mode Restaurant"
+          subtitle="Sélectionnez une table pour voir ou commencer une commande."
+        >
+          <Button asChild variant="outline" className="btn-back">
+            <Link href="/dashboard">
+              <ArrowLeft />
+              Tableau de bord
+            </Link>
+          </Button>
+        </PageHeader>
+        <div className="mt-8">
+          <TableLayout />
+        </div>
       </div>
     </div>
   );
