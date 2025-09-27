@@ -25,6 +25,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   covers: z.coerce.number().min(0, { message: 'Le nombre de couverts doit être positif.' }).optional(),
   description: z.string().optional(),
+  verrou: z.boolean().optional(),
 });
 
 type TableFormValues = z.infer<typeof formSchema>;
@@ -45,6 +46,7 @@ function TableForm() {
       name: '',
       covers: 0,
       description: '',
+      verrou: false,
     },
   });
 
@@ -54,12 +56,14 @@ function TableForm() {
         name: tableToEdit.name,
         covers: tableToEdit.covers || 0,
         description: tableToEdit.description || '',
+        verrou: tableToEdit.verrou || false,
       });
     } else {
       form.reset({
         name: '',
         covers: 0,
         description: '',
+        verrou: false,
       });
     }
   }, [isEditMode, tableToEdit, form]);
@@ -145,6 +149,26 @@ function TableForm() {
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="verrou"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <FormLabel className="text-base">Verrouiller la table</FormLabel>
+                            <FormDescription>
+                                Empêche toute interaction avec cette table depuis le plan de salle.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+                />
             </CardContent>
           </Card>
           
