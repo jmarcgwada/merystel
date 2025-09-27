@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -61,6 +61,12 @@ const quickLinks = [
         description: "Analyser les performances de vente.",
         icon: BarChart3
     },
+     {
+        href: '/help',
+        title: "Assistance et Aide",
+        description: "Obtenir de l'aide et des conseils.",
+        icon: LifeBuoy
+    },
 ]
 
 export default function DashboardPage() {
@@ -76,7 +82,8 @@ export default function DashboardPage() {
         dashboardButtonBackgroundColor,
         dashboardButtonOpacity,
         dashboardButtonShowBorder,
-        dashboardButtonBorderColor
+        dashboardButtonBorderColor,
+        dashboardButtonTextColor,
     } = usePos();
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -204,7 +211,7 @@ export default function DashboardPage() {
         <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Chiffre d'affaires total</CardTitle>
+                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
                   <span className="text-muted-foreground">€</span>
               </CardHeader>
               <CardContent>
@@ -214,7 +221,7 @@ export default function DashboardPage() {
           </Card>
           <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ventes Aujourd'hui</CardTitle>
+                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -227,7 +234,7 @@ export default function DashboardPage() {
           </Card>
           <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Panier Moyen</CardTitle>
                   <span className="text-muted-foreground">€</span>
               </CardHeader>
               <CardContent>
@@ -237,7 +244,7 @@ export default function DashboardPage() {
           </Card>
           <Card style={buttonStyle}>
               <CardHeader>
-                  <CardTitle className="text-sm font-medium">Articles Populaires</CardTitle>
+                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Articles Populaires</CardTitle>
               </CardHeader>
               <CardContent>
                   <div className="space-y-4">
@@ -259,7 +266,7 @@ export default function DashboardPage() {
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
               <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-3">
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
@@ -267,7 +274,7 @@ export default function DashboardPage() {
                                   <div className="flex items-start justify-between">
                                       <div>
                                           <link.icon className="h-8 w-8 text-primary mb-2" />
-                                          <h3 className="text-lg font-semibold font-headline">{link.title}</h3>
+                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>{link.title}</h3>
                                           <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
                                       </div>
                                       <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
@@ -283,7 +290,7 @@ export default function DashboardPage() {
                                   <div className="flex items-start justify-between">
                                       <div>
                                           <Settings className="h-8 w-8 text-primary mb-2" />
-                                          <h3 className="text-lg font-semibold font-headline">Paramètres</h3>
+                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Paramètres</h3>
                                           <p className="text-sm text-muted-foreground mt-1">Configurer l'application.</p>
                                       </div>
                                       <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
@@ -323,3 +330,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
