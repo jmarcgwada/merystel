@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -431,23 +430,20 @@ function ItemForm() {
                             <CardTitle>Gestion des prix</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                 <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Prix de vente (€)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                             </div>
+                            <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Prix de vente (€)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                              {!isCashier && (
-                                <>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                     <FormField
                                         control={form.control}
@@ -488,9 +484,8 @@ function ItemForm() {
                                             </FormItem>
                                         )}
                                     />
-                                    </div>
-                                </>
-                                )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -630,3 +625,5 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
+    
