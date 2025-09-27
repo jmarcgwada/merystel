@@ -181,6 +181,10 @@ interface PosContextType {
   setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   restaurantModeBackgroundColor: string;
   setRestaurantModeBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
+  directSaleBgOpacity: number;
+  setDirectSaleBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  restaurantModeBgOpacity: number;
+  setRestaurantModeBgOpacity: React.Dispatch<React.SetStateAction<number>>;
 
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
@@ -267,6 +271,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
+  const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
+  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -926,7 +932,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', tableId);
 
     try {
-        // Use a transaction to check and set the lock atomically.
         await runTransaction(firestore, async (transaction) => {
             const tableDoc = await transaction.get(tableRef);
             if (!tableDoc.exists()) {
@@ -934,25 +939,23 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
             }
             const tableData = tableDoc.data() as Table;
 
-            // Only lock if the table is 'available' and not already locked by someone else.
+            if (tableData.verrou) {
+                 throw new Error("Cette table est verrouillée et ne peut pas être sélectionnée.");
+            }
+            if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
+                throw new Error("Cette table est actuellement utilisée par un autre utilisateur.");
+            }
             if (tableData.status === 'available') {
-                if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
-                    throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
-                }
-                // Lock the table with the current user's ID
                 transaction.update(tableRef, { lockedBy: user.uid });
             }
         });
         
-        // If transaction is successful, get the data and set state
         const updatedTableDoc = await getDoc(tableRef);
         const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
         
-        // If the table is already in 'paying' status, promote it to a ticket directly
         if (tableData.status === 'paying') {
             promoteTableToTicket(tableData.id, tableData.order);
         } else {
-             // Otherwise, just select the table and load its order
             setSelectedTable(tableData);
             setOrder(tableData.order || []);
         }
@@ -972,7 +975,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         });
     }
 
-}, [firestore, user, clearOrder, toast, promoteTableToTicket]);
+}, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
 
 
   const updateTableOrder = useCallback(
@@ -1551,6 +1554,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
       setRestaurantModeBackgroundColor,
+      directSaleBgOpacity,
+      setDirectSaleBgOpacity,
+      restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1652,6 +1659,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
       setRestaurantModeBackgroundColor,
+      directSaleBgOpacity,
+      setDirectSaleBgOpacity,
+      restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,

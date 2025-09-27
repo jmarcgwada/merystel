@@ -10,13 +10,19 @@ import { ArrowLeft, Palette } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
 
 export default function AppearancePage() {
   const { 
     directSaleBackgroundColor,
     setDirectSaleBackgroundColor,
     restaurantModeBackgroundColor,
-    setRestaurantModeBackgroundColor
+    setRestaurantModeBackgroundColor,
+    directSaleBgOpacity,
+    setDirectSaleBgOpacity,
+    restaurantModeBgOpacity,
+    setRestaurantModeBgOpacity
   } = usePos();
 
   return (
@@ -40,33 +46,68 @@ export default function AppearancePage() {
               Choisissez les couleurs de fond pour la section de la commande dans chaque mode.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 pt-4">
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="direct-sale-bg">Fond de la Vente Directe</Label>
-                   <div className="flex items-center gap-2">
-                     <Input
-                        id="direct-sale-bg"
-                        type="color"
-                        value={directSaleBackgroundColor}
-                        onChange={(e) => setDirectSaleBackgroundColor(e.target.value)}
-                        className="w-12 h-10 p-1"
-                    />
-                    <span className="text-sm text-muted-foreground">{directSaleBackgroundColor}</span>
-                   </div>
+          <CardContent className="space-y-8 pt-4">
+            <div className="p-4 rounded-lg border">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                    <Label htmlFor="direct-sale-bg">Fond de la Vente Directe</Label>
+                    <div className="flex items-center gap-4">
+                        <Input
+                            id="direct-sale-bg"
+                            type="color"
+                            value={directSaleBackgroundColor}
+                            onChange={(e) => setDirectSaleBackgroundColor(e.target.value)}
+                            className="w-16 h-12 p-1"
+                        />
+                        <span className="font-mono text-sm text-muted-foreground">{directSaleBackgroundColor}</span>
+                    </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="direct-sale-opacity">Opacité</Label>
+                            <span className="text-sm font-bold text-primary">{directSaleBgOpacity}%</span>
+                        </div>
+                        <Slider 
+                            id="direct-sale-opacity"
+                            value={[directSaleBgOpacity]} 
+                            onValueChange={(value) => setDirectSaleBgOpacity(value[0])}
+                            min={0}
+                            max={100} 
+                            step={5} 
+                        />
+                    </div>
                 </div>
-                 <div className="grid gap-2">
-                  <Label htmlFor="restaurant-mode-bg">Fond du Mode Restaurant</Label>
-                   <div className="flex items-center gap-2">
-                     <Input
-                        id="restaurant-mode-bg"
-                        type="color"
-                        value={restaurantModeBackgroundColor}
-                        onChange={(e) => setRestaurantModeBackgroundColor(e.target.value)}
-                        className="w-12 h-10 p-1"
-                    />
-                    <span className="text-sm text-muted-foreground">{restaurantModeBackgroundColor}</span>
-                   </div>
+            </div>
+
+            <div className="p-4 rounded-lg border">
+                 <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                    <Label htmlFor="restaurant-mode-bg">Fond du Mode Restaurant</Label>
+                    <div className="flex items-center gap-4">
+                        <Input
+                            id="restaurant-mode-bg"
+                            type="color"
+                            value={restaurantModeBackgroundColor}
+                            onChange={(e) => setRestaurantModeBackgroundColor(e.target.value)}
+                            className="w-16 h-12 p-1"
+                        />
+                        <span className="font-mono text-sm text-muted-foreground">{restaurantModeBackgroundColor}</span>
+                    </div>
+                    </div>
+                     <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="restaurant-mode-opacity">Opacité</Label>
+                            <span className="text-sm font-bold text-primary">{restaurantModeBgOpacity}%</span>
+                        </div>
+                        <Slider 
+                            id="restaurant-mode-opacity"
+                            value={[restaurantModeBgOpacity]} 
+                            onValueChange={(value) => setRestaurantModeBgOpacity(value[0])}
+                            min={0}
+                            max={100} 
+                            step={5} 
+                        />
+                    </div>
                 </div>
             </div>
           </CardContent>

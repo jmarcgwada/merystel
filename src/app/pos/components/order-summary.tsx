@@ -22,6 +22,20 @@ const KeypadButton = ({ children, onClick, className }: { children: React.ReactN
     </Button>
 )
 
+// Function to convert hex to rgba
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return hex; // Fallback to original color if format is wrong
+};
+
 export function OrderSummary() {
   const { 
     order, 
@@ -45,7 +59,9 @@ export function OrderSummary() {
     recentlyAddedItemId,
     setRecentlyAddedItemId,
     directSaleBackgroundColor,
-    restaurantModeBackgroundColor
+    restaurantModeBackgroundColor,
+    directSaleBgOpacity,
+    restaurantModeBgOpacity,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -323,7 +339,9 @@ export function OrderSummary() {
     </div>
   );
   
-  const backgroundColor = selectedTable ? restaurantModeBackgroundColor : directSaleBackgroundColor;
+  const backgroundColor = selectedTable 
+    ? hexToRgba(restaurantModeBackgroundColor, restaurantModeBgOpacity)
+    : hexToRgba(directSaleBackgroundColor, directSaleBgOpacity);
 
   return (
     <>

@@ -19,7 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -79,11 +79,10 @@ export default function PosPage() {
     showKeyboard();
   };
   
-  const backgroundColor = selectedTable ? 'transparent' : directSaleBackgroundColor;
 
   return (
     <>
-      <div className="h-full grid grid-cols-1 md:grid-cols-12" style={{ backgroundColor }}>
+      <div className="h-[calc(100vh-4rem)] grid grid-cols-1 md:grid-cols-12 bg-background">
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card flex flex-col overflow-hidden">
             <CategoryList
               selectedCategory={selectedCategory}
