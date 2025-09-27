@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AppearancePage() {
   const { 
@@ -74,14 +75,18 @@ export default function AppearancePage() {
                             <Label htmlFor="direct-sale-opacity">Opacité</Label>
                             {isClient && <span className="text-sm font-bold text-primary">{directSaleBgOpacity}%</span>}
                         </div>
-                        <Slider 
-                            id="direct-sale-opacity"
-                            value={[directSaleBgOpacity]} 
-                            onValueChange={(value) => setDirectSaleBgOpacity(value[0])}
-                            min={0}
-                            max={100} 
-                            step={5} 
-                        />
+                        {isClient ? (
+                            <Slider 
+                                id="direct-sale-opacity"
+                                value={[directSaleBgOpacity]} 
+                                onValueChange={(value) => setDirectSaleBgOpacity(value[0])}
+                                min={0}
+                                max={100} 
+                                step={5} 
+                            />
+                        ) : (
+                            <Skeleton className="h-5 w-full" />
+                        )}
                     </div>
                 </div>
             </div>
@@ -106,14 +111,18 @@ export default function AppearancePage() {
                             <Label htmlFor="restaurant-mode-opacity">Opacité</Label>
                             {isClient && <span className="text-sm font-bold text-primary">{restaurantModeBgOpacity}%</span>}
                         </div>
-                        <Slider 
-                            id="restaurant-mode-opacity"
-                            value={[restaurantModeBgOpacity]} 
-                            onValueChange={(value) => setRestaurantModeBgOpacity(value[0])}
-                            min={0}
-                            max={100} 
-                            step={5} 
-                        />
+                         {isClient ? (
+                            <Slider 
+                                id="restaurant-mode-opacity"
+                                value={[restaurantModeBgOpacity]} 
+                                onValueChange={(value) => setRestaurantModeBgOpacity(value[0])}
+                                min={0}
+                                max={100} 
+                                step={5} 
+                            />
+                        ) : (
+                            <Skeleton className="h-5 w-full" />
+                        )}
                     </div>
                 </div>
             </div>
