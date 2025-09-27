@@ -108,9 +108,9 @@ function UserForm() {
         title={isEditMode ? "Modifier l'utilisateur" : 'Ajouter un nouvel utilisateur'}
         subtitle={isEditMode ? "Mettez à jour les détails de l'utilisateur." : "Remplissez le formulaire pour créer un utilisateur."}
       >
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="btn-back">
           <Link href="/management/users">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour à la liste
           </Link>
         </Button>

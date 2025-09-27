@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -87,9 +88,9 @@ export default function CompanyPage() {
         title="Détails de l'entreprise"
         subtitle="Gérez les informations légales et commerciales de votre entreprise."
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour aux paramètres
           </Link>
         </Button>

@@ -22,9 +22,9 @@ export default function CustomizationPage() {
         title="Personnalisation de l'interface"
         subtitle="Personnalisez l'apparence de votre point de vente."
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour aux paramètres
           </Link>
         </Button>

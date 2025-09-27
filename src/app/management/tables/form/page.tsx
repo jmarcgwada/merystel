@@ -25,7 +25,6 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   covers: z.coerce.number().min(0, { message: 'Le nombre de couverts doit être positif.' }).optional(),
   description: z.string().optional(),
-  verrou: z.boolean().default(false),
 });
 
 type TableFormValues = z.infer<typeof formSchema>;
@@ -46,7 +45,6 @@ function TableForm() {
       name: '',
       covers: 0,
       description: '',
-      verrou: false,
     },
   });
 
@@ -56,14 +54,12 @@ function TableForm() {
         name: tableToEdit.name,
         covers: tableToEdit.covers || 0,
         description: tableToEdit.description || '',
-        verrou: tableToEdit.verrou || false,
       });
     } else {
       form.reset({
         name: '',
         covers: 0,
         description: '',
-        verrou: false,
       });
     }
   }, [isEditMode, tableToEdit, form]);
@@ -89,9 +85,9 @@ function TableForm() {
         title={isEditMode ? "Modifier la table" : 'Ajouter une nouvelle table'}
         subtitle={isEditMode ? "Mettez à jour les détails de la table." : "Remplissez le formulaire pour créer une table."}
       >
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="btn-back">
           <Link href="/management/tables">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour à la liste
           </Link>
         </Button>
@@ -149,26 +145,6 @@ function TableForm() {
                   </FormItem>
                 )}
               />
-                <FormField
-                    control={form.control}
-                    name="verrou"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <FormLabel className="text-base">Verrouiller la table</FormLabel>
-                            <FormDescription>
-                                Empêche la sélection ou la modification de la table.
-                            </FormDescription>
-                        </div>
-                        <FormControl>
-                            <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
-                        </FormControl>
-                        </FormItem>
-                    )}
-                />
             </CardContent>
           </Card>
           

@@ -120,9 +120,9 @@ export default function SaleDetailPage() {
         title={`Détail de la vente #${sale.ticketNumber}`}
         subtitle={<ClientFormattedDate date={sale.date} />}
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="btn-back">
             <Link href="/reports">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft />
                 Retour aux rapports
             </Link>
         </Button>

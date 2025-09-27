@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -14,9 +15,9 @@ export default function RestaurantPage() {
         title="Mode Restaurant"
         subtitle="Sélectionnez une table pour voir ou commencer une commande."
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="btn-back">
           <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Tableau de bord
           </Link>
         </Button>

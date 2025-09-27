@@ -13,9 +13,9 @@ export default function ModesPage() {
         title="Modes Forcés"
         subtitle="Verrouillez l'application dans un mode spécifique pour certains utilisateurs."
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour aux paramètres
           </Link>
         </Button>

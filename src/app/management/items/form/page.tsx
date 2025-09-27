@@ -220,9 +220,9 @@ function ItemForm() {
                 title="Détails de l'article"
                 subtitle="Affichage en lecture seule."
             >
-                <Button variant="outline" asChild>
+                <Button variant="outline" asChild className="btn-back">
                 <Link href="/management/items">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    <ArrowLeft />
                     Retour à la liste
                 </Link>
                 </Button>
@@ -292,12 +292,12 @@ function ItemForm() {
   return (
     <>
       <PageHeader
-        title={isEditMode ? (itemToEdit?.name || "Modifier l'article") : 'Nouvel article'}
+        title={isEditMode ? (watchedName || "Modifier l'article") : 'Nouvel article'}
         subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="btn-back">
           <Link href="/management/items">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour à la liste
           </Link>
         </Button>
@@ -428,7 +428,7 @@ function ItemForm() {
                             <CardTitle>Gestion des prix</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField
+                             <FormField
                                 control={form.control}
                                 name="price"
                                 render={({ field }) => (
@@ -456,7 +456,7 @@ function ItemForm() {
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
+                                     <FormField
                                         control={form.control}
                                         name="additionalCosts"
                                         render={({ field }) => (

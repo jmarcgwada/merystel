@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -232,9 +233,9 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button asChild variant="ghost" size="sm" onClick={() => setSelectedTable(null)}>
+        <Button asChild variant="outline" size="sm" onClick={() => setSelectedTable(null)} className="btn-back">
           <Link href="/restaurant">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Retour
           </Link>
         </Button>
@@ -251,9 +252,9 @@ export function OrderSummary() {
     
     if (order.length === 0 && !selectedTable) {
         return (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="btn-back">
                 <Link href="/dashboard">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    <ArrowLeft />
                     Tableau de bord
                 </Link>
             </Button>
