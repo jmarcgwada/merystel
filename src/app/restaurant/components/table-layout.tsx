@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 import { Utensils, CircleDollarSign, CheckCircle, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 
 const statusConfig = {
@@ -75,9 +78,9 @@ export function TableLayout() {
           <Card
             key={table.id}
             className={cn(
-              'transition-all duration-200 cursor-pointer',
+              'transition-all duration-200',
               config.cardClassName,
-              'hover:shadow-xl hover:-translate-y-1'
+              table.id !== 'takeaway' && 'cursor-pointer hover:shadow-xl hover:-translate-y-1'
             )}
             onClick={() => handleTableSelect(table)}
           >
@@ -94,9 +97,27 @@ export function TableLayout() {
                   <p className={cn("text-2xl font-bold text-foreground")}>
                     {total.toFixed(2)}€
                   </p>
-                  <p className={cn("text-xs text-muted-foreground")}>
-                    {table.order.length} article{table.order.length !== 1 ? 's' : ''}
-                  </p>
+                   <Popover>
+                        <PopoverTrigger asChild>
+                             <Button variant="link" className="text-xs text-muted-foreground p-0 h-auto" onClick={(e) => e.stopPropagation()}>
+                                {table.order.length} article{table.order.length !== 1 ? 's' : ''}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent onClick={(e) => e.stopPropagation()} className="w-64">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Détail de la commande</h4>
+                                <Separator />
+                                <div className="text-sm space-y-2 max-h-64 overflow-y-auto">
+                                    {table.order.map(item => (
+                                        <div key={item.id} className="flex justify-between">
+                                            <span>{item.quantity}x {item.name}</span>
+                                            <span className="font-mono">{item.total.toFixed(2)}€</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
               ) : (
                  <div className="h-[52px] flex items-center">
