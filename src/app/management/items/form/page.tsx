@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -152,19 +153,30 @@ function ItemForm() {
         toast({ variant: 'destructive', title: 'Accès non autorisé' });
         return;
     }
-    if (isEditMode && itemToEdit) {
-      const updatedItem: Item = {
-        ...itemToEdit,
+
+    const cleanData = {
         ...data,
         price: Number(data.price),
         purchasePrice: Number(data.purchasePrice) || undefined,
         marginCoefficient: Number(data.marginCoefficient) || undefined,
         additionalCosts: Number(data.additionalCosts) || undefined,
+    };
+     // Remove undefined fields to avoid Firestore errors
+    Object.keys(cleanData).forEach(key => {
+        if (cleanData[key as keyof typeof cleanData] === undefined) {
+            delete cleanData[key as keyof typeof cleanData];
+        }
+    });
+
+    if (isEditMode && itemToEdit) {
+      const updatedItem: Item = {
+        ...itemToEdit,
+        ...cleanData,
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
     } else {
-      addItem({ ...data, image: data.image || defaultImage });
+      addItem({ ...cleanData, image: data.image || defaultImage });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
     }
     router.push('/management/items');
