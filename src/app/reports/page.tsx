@@ -26,9 +26,6 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount';
 
@@ -60,15 +57,10 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
 
 
 export default function ReportsPage() {
-    const firestore = useFirestore();
-    const { customers, isLoading: isPosLoading } = usePos();
+    const { sales: allSales, customers, isLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
-
-    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
-    const { data: allSales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
-    const isLoading = isPosLoading || isSalesLoading;
 
     const [isClient, setIsClient] = useState(false);
     
@@ -440,4 +432,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

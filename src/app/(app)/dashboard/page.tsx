@@ -10,14 +10,11 @@ import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Item, Sale } from '@/lib/types';
+import type { Item } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { cn } from '@/lib/utils';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -74,10 +71,10 @@ const quickLinks = [
 
 export default function DashboardPage() {
     const { user: authUser } = useUser();
-    const firestore = useFirestore();
     const { 
         items, 
-        isLoading: isPosLoading, 
+        sales, 
+        isLoading, 
         dashboardBgType, 
         dashboardBackgroundColor, 
         dashboardBackgroundImage, 
@@ -88,10 +85,6 @@ export default function DashboardPage() {
         dashboardButtonBorderColor,
         dashboardButtonTextColor,
     } = usePos();
-
-    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
-    const { data: sales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
-    const isLoading = isPosLoading || isSalesLoading;
 
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -338,5 +331,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
