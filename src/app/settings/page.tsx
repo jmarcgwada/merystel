@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
+import { PromptViewer } from './components/prompt-viewer';
 
 
 export default function SettingsPage() {
@@ -29,6 +30,15 @@ export default function SettingsPage() {
   const { seedInitialData, resetAllData, categories, vatRates, paymentMethods } = usePos();
   const [isSeedDialogOpen, setSeedDialogOpen] = useState(false);
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [titleClickCount, setTitleClickCount] = useState(0);
+  const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
+
+  const handleTitleClick = () => {
+    const newCount = titleClickCount + 1;
+    setTitleClickCount(newCount);
+  };
+  
+  const showHiddenButton = titleClickCount >= 5;
 
   const canSeedData = useMemo(() => {
     return !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
@@ -92,17 +102,26 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Paramètres"
-        subtitle="Configurez et personnalisez l'application selon vos besoins."
-      >
-        <Button asChild variant="outline" className="btn-back">
-          <Link href="/dashboard">
-            <ArrowLeft />
-            Retour au tableau de bord
-          </Link>
-        </Button>
-      </PageHeader>
+      <div onClick={handleTitleClick}>
+        <PageHeader
+            title="Paramètres"
+            subtitle="Configurez et personnalisez l'application selon vos besoins."
+        >
+            <Button asChild variant="outline" className="btn-back">
+            <Link href="/dashboard">
+                <ArrowLeft />
+                Retour au tableau de bord
+            </Link>
+            </Button>
+            {showHiddenButton && (
+                <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
+                    <FileCode className="mr-2 h-4 w-4" />
+                    Générer le Prompt Projet
+                </Button>
+            )}
+        </PageHeader>
+      </div>
+
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsLinks.filter(link => !link.adminOnly || user?.role === 'admin').map(link => (
             <Link href={link.href} key={link.href} className="group" target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
@@ -198,6 +217,7 @@ export default function SettingsPage() {
                 </Card>
             </div>
        )}
+       <PromptViewer isOpen={isPromptViewerOpen} onClose={() => setPromptViewerOpen(false)} />
     </>
   );
 }
