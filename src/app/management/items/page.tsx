@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 
 
-type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice';
+type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode';
 
 export default function ItemsPage() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
@@ -207,11 +207,15 @@ export default function ItemsPage() {
                     </Button>
                   </TableHead>
                   <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('barcode')}>
+                        Code-barres {getSortIcon('barcode')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
                      <Button variant="ghost" onClick={() => requestSort('categoryId')}>
                         Catégorie {getSortIcon('categoryId')}
                     </Button>
                   </TableHead>
-                  <TableHead>TVA (%)</TableHead>
                   {!isCashier && (
                     <TableHead className="text-right">
                         <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
@@ -232,8 +236,8 @@ export default function ItemsPage() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
                     <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                     {!isCashier && <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>}
                     <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -252,10 +256,10 @@ export default function ItemsPage() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
                     <TableCell>
                         <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
                     </TableCell>
-                    <TableCell>{getVatRate(item.vatId)}%</TableCell>
                     {!isCashier && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
                     <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     <TableCell className="text-right">

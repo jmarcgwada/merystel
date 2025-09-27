@@ -30,6 +30,9 @@ export interface Item {
   description?: string;
   description2?: string;
   showImage?: boolean;
+  barcode?: string;
+  marginCoefficient?: number;
+  requiresSerialNumber?: boolean;
 }
 
 export interface OrderItem extends Item {

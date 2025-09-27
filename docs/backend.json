@@ -80,7 +80,10 @@
         "image": { "type": "string" },
         "isFavorite": { "type": "boolean" },
         "description": { "type": "string" },
-        "showImage": { "type": "boolean" }
+        "showImage": { "type": "boolean" },
+        "barcode": { "type": "string" },
+        "marginCoefficient": { "type": "number" },
+        "requiresSerialNumber": { "type": "boolean" }
       },
       "required": ["name", "price", "categoryId", "vatId"]
     },

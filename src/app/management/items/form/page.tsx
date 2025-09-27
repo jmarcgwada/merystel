@@ -40,6 +40,9 @@ const formSchema = z.object({
   isFavorite: z.boolean().default(false),
   image: z.string().optional(),
   showImage: z.boolean().default(true),
+  barcode: z.string().optional(),
+  marginCoefficient: z.coerce.number().optional(),
+  requiresSerialNumber: z.boolean().default(false),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -72,6 +75,9 @@ function ItemForm() {
       isFavorite: false,
       image: '',
       showImage: true,
+      barcode: '',
+      marginCoefficient: 0,
+      requiresSerialNumber: false,
     },
   });
 
@@ -107,6 +113,9 @@ function ItemForm() {
         isFavorite: itemToEdit.isFavorite || false,
         image: itemToEdit.image,
         showImage: itemToEdit.showImage ?? true,
+        barcode: itemToEdit.barcode || '',
+        marginCoefficient: itemToEdit.marginCoefficient || 0,
+        requiresSerialNumber: itemToEdit.requiresSerialNumber || false,
       });
     } else if (!isEditMode) {
         form.reset({
@@ -120,6 +129,9 @@ function ItemForm() {
           isFavorite: false,
           image: '', // Leave empty initially
           showImage: true,
+          barcode: '',
+          marginCoefficient: 0,
+          requiresSerialNumber: false,
         });
     }
   }, [isEditMode, itemToEdit, form]);
@@ -143,6 +155,7 @@ function ItemForm() {
         ...data,
         price: Number(data.price),
         purchasePrice: Number(data.purchasePrice) || undefined,
+        marginCoefficient: Number(data.marginCoefficient) || undefined,
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
@@ -291,19 +304,34 @@ function ItemForm() {
                             <CardTitle>Informations principales</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Nom de l'article</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="ex: Café Latte" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Nom de l'article</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="ex: Café Latte" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name="barcode"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Code-barres / Référence</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="ex: 3037920162002" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
                                 control={form.control}
@@ -332,7 +360,7 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
                                 control={form.control}
                                 name="categoryId"
@@ -377,6 +405,8 @@ function ItemForm() {
                                     </FormItem>
                                 )}
                                 />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                 <FormField
                                 control={form.control}
                                 name="price"
@@ -390,9 +420,8 @@ function ItemForm() {
                                     </FormItem>
                                 )}
                                 />
-                            </div>
-                            {!isCashier && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {!isCashier && (
+                                <>
                                     <FormField
                                     control={form.control}
                                     name="purchasePrice"
@@ -406,8 +435,22 @@ function ItemForm() {
                                         </FormItem>
                                     )}
                                     />
-                                </div>
-                            )}
+                                    <FormField
+                                    control={form.control}
+                                    name="marginCoefficient"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Coeff. Marge</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                </>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -448,6 +491,26 @@ function ItemForm() {
                                                 <FormLabel className="text-base">Afficher l'image</FormLabel>
                                                 <FormDescription>
                                                 Afficher l'image du produit dans le point de vente.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={form.control}
+                                        name="requiresSerialNumber"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Exiger un numéro de série</FormLabel>
+                                                <FormDescription>
+                                                Demander la saisie d'un numéro de série lors de la vente.
                                                 </FormDescription>
                                             </div>
                                             <FormControl>
