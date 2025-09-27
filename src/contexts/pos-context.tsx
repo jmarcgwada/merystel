@@ -789,7 +789,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         routerRef.current.push(`/pos?tableId=${tableId}`);
 
     } catch (error: any) {
-        console.error("Failed to lock table:", error.message);
         toast({
             variant: 'destructive',
             title: 'Accès impossible',
