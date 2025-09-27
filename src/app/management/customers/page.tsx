@@ -108,14 +108,18 @@ export default function CustomersPage() {
                           <TableHead className="w-[160px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
-                  <TableBody>
-                      {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
-                          <TableRow key={i}>
-                              <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
-                          </TableRow>
-                      ))}
+                  
+                      {(isLoading || !isClient) && (
+                        <TableBody>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                      )}
                       {isClient && !isLoading && filteredCustomers && filteredCustomers.map(customer => (
-                          <Collapsible asChild key={customer.id} open={openCollapsibles[customer.id] || false} onOpenChange={() => toggleCollapsible(customer.id)} tagName="tbody">
+                          <Collapsible asChild key={customer.id} open={openCollapsibles[customer.id] || false} onOpenChange={() => toggleCollapsible(customer.id)} tagName="tbody" className="border-b">
                               <>
                                 <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(customer.id)}>
                                     <TableCell className="w-[50px]">
@@ -166,7 +170,7 @@ export default function CustomersPage() {
                               </>
                           </Collapsible>
                       ))}
-                  </TableBody>
+                  
               </Table>
           </CardContent>
         </Card>
