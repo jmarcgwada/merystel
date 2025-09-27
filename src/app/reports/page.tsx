@@ -72,6 +72,7 @@ export default function ReportsPage() {
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [filterSerialNumber, setFilterSerialNumber] = useState('');
     const [isCustomerPopoverOpen, setCustomerPopoverOpen] = useState(false);
     const [isSummaryOpen, setSummaryOpen] = useState(true);
 
@@ -92,6 +93,7 @@ export default function ReportsPage() {
             const customerMatch = filterCustomer === 'all' || sale.customerId === filterCustomer;
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
+            const serialNumberMatch = !filterSerialNumber || sale.items.some(item => item.serialNumbers?.some(sn => sn.toLowerCase().includes(filterSerialNumber.toLowerCase())));
             
             let dateMatch = true;
             if (dateRange?.from) {
@@ -103,7 +105,7 @@ export default function ReportsPage() {
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
-            return customerMatch && originMatch && statusMatch && dateMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch;
         });
 
         // Apply sorting
@@ -134,7 +136,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus, dateRange]);
+    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -170,6 +172,7 @@ export default function ReportsPage() {
         setFilterOrigin('');
         setFilterStatus('all');
         setDateRange(undefined);
+        setFilterSerialNumber('');
     }
 
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
@@ -356,6 +359,13 @@ export default function ReportsPage() {
                         placeholder="Filtrer par origine..."
                         value={filterOrigin}
                         onChange={(e) => setFilterOrigin(e.target.value)}
+                        className="max-w-xs"
+                    />
+
+                    <Input
+                        placeholder="Rechercher par N° de Série..."
+                        value={filterSerialNumber}
+                        onChange={(e) => setFilterSerialNumber(e.target.value)}
                         className="max-w-xs"
                     />
 
