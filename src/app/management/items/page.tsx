@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +24,6 @@ import {
 import type { Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
@@ -46,9 +44,8 @@ export default function ItemsPage() {
   }, []);
 
   const [filterName, setFilterName] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterCategoryName, setFilterCategoryName] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
-  const [isCategoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
@@ -63,7 +60,8 @@ export default function ItemsPage() {
 
     let filtered = items.filter(item => {
       const nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase());
-      const categoryMatch = filterCategory === 'all' || item.categoryId === filterCategory;
+      const categoryName = getCategoryName(item.categoryId).toLowerCase();
+      const categoryMatch = categoryName.includes(filterCategoryName.toLowerCase());
       return nameMatch && categoryMatch;
     });
 
@@ -92,7 +90,7 @@ export default function ItemsPage() {
     }
 
     return filtered;
-  }, [items, filterName, filterCategory, sortConfig, categories]);
+  }, [items, filterName, filterCategoryName, sortConfig, categories]);
 
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -141,65 +139,12 @@ export default function ItemsPage() {
                   onChange={(e) => setFilterName(e.target.value)}
                   className="max-w-sm"
                 />
-                <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isCategoryPopoverOpen}
-                      className="w-[200px] justify-between"
-                    >
-                      {filterCategory === 'all'
-                        ? "Toutes les catégories"
-                        : categories?.find((cat) => cat.id === filterCategory)?.name}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Rechercher une catégorie..." />
-                      <CommandList>
-                        <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
-                        <CommandGroup>
-                            <CommandItem
-                            value="Toutes les catégories"
-                            onSelect={() => {
-                                setFilterCategory("all");
-                                setCategoryPopoverOpen(false);
-                            }}
-                            >
-                            <Check
-                                className={cn(
-                                "mr-2 h-4 w-4",
-                                filterCategory === "all" ? "opacity-100" : "opacity-0"
-                                )}
-                            />
-                            Toutes les catégories
-                            </CommandItem>
-                            {categories && categories.map((cat) => (
-                            <CommandItem
-                                key={cat.id}
-                                value={cat.name}
-                                onSelect={(currentValue) => {
-                                const selectedCategory = categories.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
-                                setFilterCategory(selectedCategory ? selectedCategory.id : "all");
-                                setCategoryPopoverOpen(false);
-                                }}
-                            >
-                                <Check
-                                className={cn(
-                                    "mr-2 h-4 w-4",
-                                    filterCategory === cat.id ? "opacity-100" : "opacity-0"
-                                )}
-                                />
-                                {cat.name}
-                            </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  placeholder="Filtrer par catégorie..."
+                  value={filterCategoryName}
+                  onChange={(e) => setFilterCategoryName(e.target.value)}
+                  className="max-w-sm"
+                />
               </div>
               <Table>
                 <TableHeader>
