@@ -352,32 +352,35 @@ export function OrderSummary() {
               <div className="bg-accent/50">
                 {renderOrderItem(selectedItem, true)}
               </div>
-              <div className="p-4">
-                  {enableSerialNumber && selectedItem.requiresSerialNumber && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full mb-3" 
-                      onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
-                    >
-                      <ScanLine className="mr-2 h-4 w-4" />
-                      Gérer les N° de Série
-                    </Button>
-                  )}
-                  <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
                       <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
                       <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
                       <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                      <Input 
-                          ref={keypadInputRef}
-                          type="text"
-                          value={keypadValue}
-                          onChange={handleDirectInputChange}
-                          onFocus={(e) => e.target.select()}
-                          className="col-span-4 h-12 text-right px-4 text-3xl font-mono bg-background/50"
-                      />
+                  
+                  <div className="flex items-center gap-2">
+                    {enableSerialNumber && selectedItem.requiresSerialNumber && (
+                        <Button 
+                            variant="outline" 
+                            size="icon"
+                            className="h-12 w-12 flex-shrink-0"
+                            onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
+                        >
+                            <ScanLine className="h-6 w-6" />
+                        </Button>
+                    )}
+                    <Input 
+                        ref={keypadInputRef}
+                        type="text"
+                        value={keypadValue}
+                        onChange={handleDirectInputChange}
+                        onFocus={(e) => e.target.select()}
+                        className="h-12 flex-1 text-right px-4 text-3xl font-mono bg-background/50"
+                    />
+                  </div>
 
+                  <div className="grid grid-cols-4 gap-2">
                       <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
                       <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
                       <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
@@ -504,5 +507,6 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
