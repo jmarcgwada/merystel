@@ -54,13 +54,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased flex flex-col min-h-screen">
+      <body className="font-body antialiased flex flex-col h-screen overflow-hidden">
         <FirebaseClientProvider>
           <PosProvider>
               <KeyboardProvider>
                 <React.Suspense fallback={<AppLoading/>}>
                   <Header />
-                  <main className="flex-1">{children}</main>
+                  <main className="flex-1 overflow-auto">{children}</main>
                   <Toaster />
                   <NavigationConfirmationDialog />
                   <VirtualKeyboard />

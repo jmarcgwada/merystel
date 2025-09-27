@@ -10,7 +10,7 @@ export default function ManagementLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-full flex">
       <aside className="w-56 shrink-0 border-r bg-card overflow-y-auto">
         <ManagementSideNav />
       </aside>
