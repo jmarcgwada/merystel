@@ -120,7 +120,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
     };
 
-    recordSale(saleInfo, currentSaleId ?? undefined);
+    recordSale(saleInfo);
     
     setIsPaid(true);
 
@@ -215,7 +215,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
-               {currentSaleContext?.isTableSale ? (
+               {currentSaleContext?.isTableSale && currentSaleContext.tableName ? (
                     <div className="text-sm text-muted-foreground pt-1">
                         <p>Table: <span className="font-semibold text-foreground">{currentSaleContext.tableName}</span></p>
                         <p className="flex items-center gap-2">
@@ -393,4 +393,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-

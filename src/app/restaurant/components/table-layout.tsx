@@ -42,6 +42,9 @@ export function TableLayout() {
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
+    if (table.verrou) {
+        return; // Do nothing if table is locked
+    }
     if (table.id === 'takeaway') {
       setCameFromRestaurant(true);
       router.push('/pos');
@@ -74,22 +77,28 @@ export function TableLayout() {
         }, 0);
         const total = subtotal + tax;
 
+        const isLocked = table.verrou === true;
+
         return (
           <Card
             key={table.id}
             className={cn(
-              'transition-all duration-200',
+              'transition-all duration-200 relative',
               config.cardClassName,
-              table.id !== 'takeaway' && 'cursor-pointer hover:shadow-xl hover:-translate-y-1'
+              table.id !== 'takeaway' && !isLocked && 'cursor-pointer hover:shadow-xl hover:-translate-y-1',
+              isLocked && 'opacity-60 cursor-not-allowed'
             )}
-            onClick={() => handleTableSelect(table)}
+            onClick={() => !isLocked && handleTableSelect(table)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium font-headline">{table.name}</CardTitle>
-               <Badge variant="outline" className={cn('text-xs', config.className)}>
-                <Icon className="mr-1 h-3 w-3" />
-                {config.label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                {isLocked && <Lock className="h-4 w-4 text-destructive" />}
+                <Badge variant="outline" className={cn('text-xs', config.className)}>
+                    <Icon className="mr-1 h-3 w-3" />
+                    {config.label}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               {(table.status === 'occupied' || table.status === 'paying') && table.id !== 'takeaway' ? (
@@ -131,4 +140,3 @@ export function TableLayout() {
     </div>
   );
 }
-

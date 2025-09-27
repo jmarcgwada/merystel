@@ -48,6 +48,7 @@ import {
   getDoc,
   updateDoc,
   deleteField,
+  runTransaction,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -91,7 +92,7 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => void;
+  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -507,11 +508,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
+    if(selectedTable && selectedTable.verrou) {
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+          await updateDoc(tableRef, { verrou: false });
+        }
+    }
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, []);
+  }, [selectedTable, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -641,11 +648,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Held Order & Table Management
   const holdOrder = useCallback(async () => {
-    // If we are in the process of closing a table sale, 'holding' should cancel and go back.
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-            await updateDoc(tableRef, { status: 'occupied' });
+            await updateDoc(tableRef, { status: 'occupied', verrou: false });
         }
         await clearOrder();
         routerRef.current.push('/restaurant');
@@ -677,7 +683,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await updateDoc(tableRef, { status: 'available' });
+        await updateDoc(tableRef, { status: 'available', verrou: false });
       }
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
@@ -701,38 +707,97 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [heldOrders, user, toast]);
 
+  const promoteTableToTicket = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      const tableRef = getDocRef('tables', tableId);
+      const table = tables.find(t => t.id === tableId);
+      if (!tableRef || !table) return;
+      try {
+        await updateDoc(tableRef, {
+          order: orderData,
+          status: 'paying',
+          verrou: true,
+        });
+        setCurrentSaleId(`table-${tableId}`);
+        setCurrentSaleContext({
+          tableId: table.id,
+          tableName: table.name,
+          isTableSale: true,
+        });
+      } catch (error) {
+        console.error('Error promoting table to ticket:', error);
+        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+      }
+    },
+    [getDocRef, toast, tables]
+  );
 
 const setSelectedTableById = useCallback(async (tableId: string | null) => {
-    if (!tables || !user) {
-        if (!tableId) await clearOrder();
+    if (!firestore || !user) {
         return;
     }
     
     if (!tableId) {
-        setSelectedTable(null);
+        if(selectedTable) {
+             const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
+             await updateDoc(tableRef, { verrou: false });
+        }
         await clearOrder();
         return;
     }
 
-    const table = tables.find((t) => t.id === tableId);
-    if (!table) return;
-
-    if (table.id === 'takeaway') {
+    if (tableId === 'takeaway') {
         setCameFromRestaurant(true);
         await clearOrder();
         routerRef.current.push('/pos');
         return;
     }
-    
-    setSelectedTable(table);
-    setOrder(table.order || []);
-    setCurrentSaleId(null); // Clear any held order sale ID
-    setCurrentSaleContext({
-        tableId: table.id,
-        tableName: table.name,
-    });
-    routerRef.current.push(`/pos?tableId=${tableId}`);
-}, [tables, user, clearOrder, toast]);
+
+    const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', tableId);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const tableDoc = await transaction.get(tableRef);
+            if (!tableDoc.exists()) {
+                throw new Error("La table n'existe pas.");
+            }
+            const tableData = tableDoc.data() as Table;
+
+            if (tableData.verrou) {
+                throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
+            }
+            if (tableData.status === 'paying') {
+                 promoteTableToTicket(tableId, tableData.order);
+                 // No need to set verrou here as promote will handle the state
+                 return;
+            }
+
+            transaction.update(tableRef, { verrou: true });
+        });
+        
+        // If transaction is successful, get the data and set state
+        const updatedTableDoc = await getDoc(tableRef);
+        const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
+
+        setSelectedTable(tableData);
+        setOrder(tableData.order || []);
+        setCurrentSaleId(null);
+        setCurrentSaleContext({
+            tableId: tableData.id,
+            tableName: tableData.name,
+        });
+        routerRef.current.push(`/pos?tableId=${tableId}`);
+
+    } catch (error: any) {
+        console.error("Failed to lock table:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Accès impossible',
+            description: error.message,
+        });
+    }
+
+}, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
 
 
   const updateTableOrder = useCallback(
@@ -754,36 +819,19 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
 
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
-      await updateTableOrder(tableId, orderData);
+      const tableRef = getDocRef('tables', tableId);
+      if (tableRef) {
+          await updateDoc(tableRef, {
+            order: orderData,
+            status: orderData.length > 0 ? 'occupied' : 'available',
+            verrou: false
+          });
+      }
       toast({ title: 'Table sauvegardée' });
       await clearOrder();
       routerRef.current.push('/restaurant');
     },
-    [updateTableOrder, clearOrder, toast]
-  );
-
-  const promoteTableToTicket = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      const table = tables.find(t => t.id === tableId);
-      if (!tableRef || !table) return;
-      try {
-        await updateDoc(tableRef, {
-          order: orderData,
-          status: 'paying',
-        });
-        setCurrentSaleId(`table-${tableId}`);
-        setCurrentSaleContext({
-          tableId: table.id,
-          tableName: table.name,
-          isTableSale: true,
-        });
-      } catch (error) {
-        console.error('Error promoting table to ticket:', error);
-        toast({ variant: 'destructive', title: 'Erreur de clôture' });
-      }
-    },
-    [getDocRef, toast, tables]
+    [getDocRef, clearOrder, toast]
   );
 
   const forceFreeTable = useCallback(
@@ -792,7 +840,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [] });
+        batch.update(tableRef, { status: 'available', order: [], verrou: false });
       }
       
       const heldOrderForTable = heldOrders?.find(
@@ -817,6 +865,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         number: Date.now() % 10000,
         status: 'available' as const,
         order: [],
+        verrou: false,
       };
       addEntity('tables', newTable, 'Table créée');
     },
@@ -847,7 +896,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-          batch.update(tableRef, { status: 'available', order: [] });
+          batch.update(tableRef, { status: 'available', order: [], verrou: false });
         }
       }
 
@@ -1436,4 +1485,3 @@ export function usePos() {
   }
   return context;
 }
-
