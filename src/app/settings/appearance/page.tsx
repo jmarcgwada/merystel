@@ -86,6 +86,8 @@ export default function AppearancePage() {
   
   const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [harmonizeCycle, setHarmonizeCycle] = useState(0);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -103,18 +105,29 @@ export default function AppearancePage() {
   };
 
   const handleHarmonize = () => {
-    if (dashboardBgType === 'color') {
-        if (isColorLight(dashboardBackgroundColor)) {
-            setDashboardButtonBackgroundColor('#000000'); // Black for light backgrounds
-        } else {
-            setDashboardButtonBackgroundColor('#ffffff'); // White for dark backgrounds
-        }
-    } else {
-        setDashboardButtonBackgroundColor('#ffffff'); // Default to white for image backgrounds
+    const contrastColor = dashboardBgType === 'color' && !isColorLight(dashboardBackgroundColor) ? '#ffffff' : '#000000';
+    const nextStyle = (harmonizeCycle + 1) % 3;
+    setHarmonizeCycle(nextStyle);
+    
+    switch (nextStyle) {
+        case 0: // Subtle
+            setDashboardButtonBackgroundColor(contrastColor === '#ffffff' ? '#ffffff' : '#000000');
+            setDashboardButtonOpacity(70);
+            setDashboardButtonShowBorder(false);
+            break;
+        case 1: // Contrasted
+            setDashboardButtonBackgroundColor(contrastColor === '#ffffff' ? '#ffffff' : '#000000');
+            setDashboardButtonOpacity(90);
+            setDashboardButtonShowBorder(true);
+            setDashboardButtonBorderColor(contrastColor === '#ffffff' ? '#ffffff' : '#000000');
+            break;
+        case 2: // Elegant
+             setDashboardButtonBackgroundColor('#808080'); // Neutral Gray
+             setDashboardButtonOpacity(30);
+             setDashboardButtonShowBorder(true);
+             setDashboardButtonBorderColor(contrastColor === '#ffffff' ? '#ffffff' : '#000000');
+            break;
     }
-    setDashboardButtonOpacity(70);
-    setDashboardButtonShowBorder(false);
-    setDashboardButtonBorderColor('#e2e8f0');
   }
 
   const previewButtonStyle = isClient ? {
@@ -146,18 +159,18 @@ export default function AppearancePage() {
           </CardHeader>
           <CardContent className="space-y-6 pt-4">
              <div className="grid md:grid-cols-2 gap-8">
-                <div className="p-4 rounded-lg border space-y-6">
+                <div className="space-y-6">
                   {isClient ? (
                     <>
                       {/* Background Settings */}
                       <Tabs value={dashboardBgType} onValueChange={(value) => setDashboardBgType(value as 'color' | 'image')}>
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="color"><Palette className="mr-2 h-4 w-4"/>Couleur de fond</TabsTrigger>
-                            <TabsTrigger value="image"><ImageIcon className="mr-2 h-4 w-4"/>Image de fond</TabsTrigger>
+                            <TabsTrigger value="color"><Palette className="mr-2 h-4 w-4"/>Couleur</TabsTrigger>
+                            <TabsTrigger value="image"><ImageIcon className="mr-2 h-4 w-4"/>Image</TabsTrigger>
                         </TabsList>
                         <TabsContent value="color" className="pt-4 space-y-6">
                            <div className="grid gap-2">
-                                <Label htmlFor="dashboard-bg-color">Couleur</Label>
+                                <Label htmlFor="dashboard-bg-color">Couleur de fond</Label>
                                 <div className="flex items-center gap-4">
                                     <Input
                                         id="dashboard-bg-color"
@@ -224,7 +237,7 @@ export default function AppearancePage() {
                             </Button>
                         </div>
                          <div className="grid gap-2">
-                            <Label htmlFor="dashboard-button-bg-color">Couleur de fond des boutons</Label>
+                            <Label htmlFor="dashboard-button-bg-color">Couleur de fond</Label>
                             <div className="flex items-center gap-4">
                                 <Input
                                     id="dashboard-button-bg-color"
@@ -239,7 +252,7 @@ export default function AppearancePage() {
 
                         <div className="grid gap-2">
                           <div className="flex justify-between items-center">
-                              <Label htmlFor="dashboard-button-opacity">Opacité du fond des boutons</Label>
+                              <Label htmlFor="dashboard-button-opacity">Opacité du fond</Label>
                               <span className="text-sm font-bold text-primary">{dashboardButtonOpacity}%</span>
                           </div>
                           <Slider 
@@ -279,7 +292,7 @@ export default function AppearancePage() {
                     <Skeleton className="h-[280px] w-full" />
                   )}
                 </div>
-                 <div className="p-4 rounded-lg border bg-card flex items-center justify-center relative overflow-hidden">
+                 <div className="p-4 rounded-lg border bg-card flex items-center justify-center relative overflow-hidden h-[40rem]">
                    <div 
                         className="absolute inset-0 bg-cover bg-center transition-all"
                         style={{
@@ -414,4 +427,3 @@ export default function AppearancePage() {
     </>
   );
 }
-
