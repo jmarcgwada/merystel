@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -41,7 +42,7 @@ export default function PosPage() {
       setSelectedTableById(tableId);
     } else {
       // If we are not in restaurant mode (no tableId), ensure selectedTable is null.
-      if (!selectedTable) {
+      if (selectedTable) {
         setSelectedTableById(null);
       }
     }
@@ -77,10 +78,12 @@ export default function PosPage() {
     });
     showKeyboard();
   };
+  
+  const backgroundColor = selectedTable ? 'transparent' : directSaleBackgroundColor;
 
   return (
     <>
-      <div className="h-full grid grid-cols-1 md:grid-cols-12 bg-muted/40">
+      <div className="h-full grid grid-cols-1 md:grid-cols-12" style={{ backgroundColor }}>
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card flex flex-col overflow-hidden">
             <CategoryList
               selectedCategory={selectedCategory}
@@ -142,7 +145,7 @@ export default function PosPage() {
             </ScrollArea>
           </div>
 
-          <div className="md:col-span-4 lg:col-span-4 border-l bg-card flex flex-col overflow-hidden">
+          <div className="md:col-span-4 lg:col-span-4 border-l flex flex-col overflow-hidden">
             <OrderSummary />
           </div>
       </div>

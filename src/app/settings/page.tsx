@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -49,6 +50,13 @@ export default function SettingsPage() {
         title: "Personnalisation de l'interface",
         description: 'Ajustez les options visuelles de votre point de vente.',
         icon: Brush,
+        adminOnly: false,
+    },
+     {
+        href: '/settings/appearance',
+        title: "Apparence & Couleurs",
+        description: "Changez les couleurs des différents modes de l'application.",
+        icon: Palette,
         adminOnly: false,
     },
     {

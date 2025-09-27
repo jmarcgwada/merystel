@@ -44,10 +44,11 @@ export function OrderSummary() {
     currentSaleContext,
     recentlyAddedItemId,
     setRecentlyAddedItemId,
+    directSaleBackgroundColor,
+    restaurantModeBackgroundColor
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
-  const [isClosingTable, setIsClosingTable] = useState(false);
   const router = useRouter();
 
   const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
@@ -261,6 +262,8 @@ export function OrderSummary() {
     }
   }
 
+  const [isClosingTable, setIsClosingTable] = useState(false);
+
   const handleCloturer = () => {
     if(selectedTable) {
         promoteTableToTicket(selectedTable.id, order);
@@ -319,11 +322,13 @@ export function OrderSummary() {
         </Button>
     </div>
   );
+  
+  const backgroundColor = selectedTable ? restaurantModeBackgroundColor : directSaleBackgroundColor;
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card relative">
-        <div className="flex items-center justify-between p-2 border-b h-[49px]">
+      <div className="flex h-full flex-col relative" style={{ backgroundColor }}>
+        <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
           </h2>
@@ -405,7 +410,7 @@ export function OrderSummary() {
           )}
         </ScrollArea>
 
-        <div className="mt-auto border-t p-4">
+        <div className="mt-auto border-t p-4 bg-card">
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                 <span>Sous-total</span>

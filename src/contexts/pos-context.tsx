@@ -177,6 +177,10 @@ interface PosContextType {
   setShowNotifications: React.Dispatch<React.SetStateAction<boolean>>;
   notificationDuration: number;
   setNotificationDuration: React.Dispatch<React.SetStateAction<number>>;
+  directSaleBackgroundColor: string;
+  setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
+  restaurantModeBackgroundColor: string;
+  setRestaurantModeBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
 
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
@@ -261,6 +265,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
+  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -900,6 +906,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         return;
     }
     
+    // Clear order and selection if tableId is null
     if (!tableId) {
         if(selectedTable) {
              const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
@@ -919,6 +926,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', tableId);
 
     try {
+        // Use a transaction to check and set the lock atomically.
         await runTransaction(firestore, async (transaction) => {
             const tableDoc = await transaction.get(tableRef);
             if (!tableDoc.exists()) {
@@ -926,14 +934,13 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
             }
             const tableData = tableDoc.data() as Table;
 
+            // Only lock if the table is 'available' and not already locked by someone else.
             if (tableData.status === 'available') {
                 if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
                     throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
                 }
+                // Lock the table with the current user's ID
                 transaction.update(tableRef, { lockedBy: user.uid });
-            } else {
-                // If the table is occupied or paying, we just want to load it without locking.
-                // The lock is only for claiming an available table.
             }
         });
         
@@ -941,9 +948,11 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         const updatedTableDoc = await getDoc(tableRef);
         const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
         
+        // If the table is already in 'paying' status, promote it to a ticket directly
         if (tableData.status === 'paying') {
             promoteTableToTicket(tableData.id, tableData.order);
         } else {
+             // Otherwise, just select the table and load its order
             setSelectedTable(tableData);
             setOrder(tableData.order || []);
         }
@@ -1009,6 +1018,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField(), verrou: deleteField() });
       }
       
+      // Also delete any associated held order for that table
       const heldOrderForTable = heldOrders?.find(
         (ho) => ho.tableId === tableId
       );
@@ -1537,6 +1547,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setShowNotifications,
       notificationDuration,
       setNotificationDuration,
+      directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1634,6 +1648,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setShowNotifications,
       notificationDuration,
       setNotificationDuration,
+      directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
