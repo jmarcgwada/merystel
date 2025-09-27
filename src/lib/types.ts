@@ -27,6 +27,7 @@ export interface Item {
   image?: string;
   isFavorite?: boolean;
   description?: string;
+  description2?: string;
   showImage?: boolean;
 }
 
@@ -46,6 +47,7 @@ export interface Table {
   order: OrderItem[];
   covers?: number;
   verrou?: boolean;
+  lockedBy?: string;
 }
 
 export interface Customer {

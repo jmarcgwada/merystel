@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -26,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lock } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -33,6 +35,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1, { message: 'Veuillez sélectionner une catégorie.' }),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
+  description2: z.string().optional(),
   isFavorite: z.boolean().default(false),
   image: z.string().optional(),
   showImage: z.boolean().default(true),
@@ -63,6 +66,7 @@ function ItemForm() {
       categoryId: '',
       vatId: '',
       description: '',
+      description2: '',
       isFavorite: false,
       image: '',
       showImage: true,
@@ -96,6 +100,7 @@ function ItemForm() {
         categoryId: itemToEdit.categoryId,
         vatId: itemToEdit.vatId,
         description: itemToEdit.description || '',
+        description2: itemToEdit.description2 || '',
         isFavorite: itemToEdit.isFavorite || false,
         image: itemToEdit.image,
         showImage: itemToEdit.showImage ?? true,
@@ -107,6 +112,7 @@ function ItemForm() {
           categoryId: '',
           vatId: '',
           description: '',
+          description2: '',
           isFavorite: false,
           image: '', // Leave empty initially
           showImage: true,
@@ -180,14 +186,8 @@ function ItemForm() {
           >
             <Skeleton className="h-10 w-40" />
           </PageHeader>
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-                <Skeleton className="h-96 w-full" />
-            </div>
-            <div className="lg:col-span-1 space-y-8">
-                 <Skeleton className="h-64 w-full" />
-                 <Skeleton className="h-80 w-full" />
-            </div>
+          <div className="mt-8">
+            <Skeleton className="h-[700px] w-full" />
           </div>
         </Suspense>
     )
@@ -216,37 +216,44 @@ function ItemForm() {
                     </AlertDescription>
                 </Alert>
             </div>
-             <fieldset disabled className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 opacity-70">
-                <div className="lg:col-span-2">
-                    <Card>
-                    <CardHeader>
-                        <CardTitle>Détails de l'article</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
-                        <p><span className="font-semibold">Prix:</span> {itemToEdit?.price.toFixed(2)}€</p>
-                        <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
-                        <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
-                        <p><span className="font-semibold">Description:</span> {itemToEdit?.description || 'N/A'}</p>
-                    </CardContent>
-                    </Card>
-                </div>
-                 <div className="lg:col-span-1">
-                    <Card>
-                    <CardHeader>
-                        <CardTitle>Image</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Image
-                            src={itemToEdit?.image || 'https://picsum.photos/seed/placeholder/200/150'}
-                            alt={itemToEdit?.name || "Aperçu"}
-                            width={200}
-                            height={150}
-                            className="object-cover rounded-md mx-auto"
-                        />
-                    </CardContent>
-                    </Card>
-                 </div>
+             <fieldset disabled className="mt-4 opacity-70">
+                <Tabs defaultValue="details" className="w-full">
+                    <TabsList>
+                        <TabsTrigger value="details">Détails</TabsTrigger>
+                        <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="details">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle>Détails de l'article</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
+                            <p><span className="font-semibold">Prix:</span> {itemToEdit?.price.toFixed(2)}€</p>
+                            <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
+                            <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
+                            <p><span className="font-semibold">Description 1:</span> {itemToEdit?.description || 'N/A'}</p>
+                            <p><span className="font-semibold">Description 2:</span> {itemToEdit?.description2 || 'N/A'}</p>
+                        </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="image">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle>Image</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center gap-4">
+                            <Image
+                                src={itemToEdit?.image || 'https://picsum.photos/seed/placeholder/200/150'}
+                                alt={itemToEdit?.name || "Aperçu"}
+                                width={200}
+                                height={150}
+                                className="object-cover rounded-md mx-auto"
+                            />
+                        </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </fieldset>
         </>
       )
@@ -267,192 +274,216 @@ function ItemForm() {
       </PageHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Détails de l'article</CardTitle>
-                <CardDescription>Fournissez les informations principales de votre article.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom de l'article</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ex: Café Latte" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (optionnel)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Décrivez brièvement l'article..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Catégorie</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez une catégorie" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories && categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="vatId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Taux de TVA</FormLabel>
-                           <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez un taux" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {vatRates && vatRates.map((vat) => (
-                                <SelectItem key={vat.id} value={vat.id}>{vat.name} ({vat.rate}%)</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                 </div>
-                 <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix de vente (€)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-1 space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Statut & Visibilité</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <FormField
-                        control={form.control}
-                        name="isFavorite"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                                <FormLabel className="text-base">Marquer comme favori</FormLabel>
-                                <FormDescription>
-                                Accès rapide sur la page du point de vente.
-                                </FormDescription>
-                            </div>
-                            <FormControl>
-                                <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="showImage"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                                <FormLabel className="text-base">Afficher l'image</FormLabel>
-                                <FormDescription>
-                                Afficher l'image du produit dans le point de vente.
-                                </FormDescription>
-                            </div>
-                            <FormControl>
-                                <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Image de l'article</CardTitle>
-                <CardDescription>Aperçu de la carte telle qu'elle apparaîtra dans le point de vente.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4">
-                <div className="w-full max-w-[200px]">
-                    <Card className="flex flex-col overflow-hidden">
-                        <div className="relative aspect-video w-full">
-                           {isGenerating ? (
-                              <div className="w-full aspect-video flex items-center justify-center">
-                                  <Skeleton className="w-full h-full" />
-                              </div>
-                            ) : (
-                              <Image
-                                src={watchedImage || defaultImage || 'https://picsum.photos/seed/placeholder/200/150'}
-                                alt={watchedName || "Aperçu de l'article"}
-                                fill
-                                className="object-cover"
-                              />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="details">Détails de l'article</TabsTrigger>
+                    <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
+                </TabsList>
+                <TabsContent value="details">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Informations principales</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Nom de l'article</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="ex: Café Latte" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
                             )}
-                        </div>
-                        <div className="flex-1 p-3">
-                            <h3 className="font-semibold leading-tight truncate">{watchedName || "Nom de l'article"}</h3>
-                        </div>
-                        <div className="flex items-center justify-between p-3 pt-0">
-                            <span className="text-lg font-bold text-primary">
-                            {Number(watchedPrice || 0).toFixed(2)}€
-                            </span>
-                            <PlusCircle className="w-6 h-6 text-muted-foreground" />
-                        </div>
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Description (optionnel)</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Décrivez brièvement l'article..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                 <FormField
+                                control={form.control}
+                                name="description2"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Description 2 (optionnel)</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Autre description..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <FormField
+                                control={form.control}
+                                name="categoryId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Catégorie</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionnez une catégorie" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {categories && categories.map((cat) => (
+                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name="vatId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Taux de TVA</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionnez un taux" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {vatRates && vatRates.map((vat) => (
+                                            <SelectItem key={vat.id} value={vat.id}>{vat.name} ({vat.rate}%)</SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Prix de vente (€)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
+                        </CardContent>
                     </Card>
-                </div>
-                 <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGenerating}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {isGenerating ? "Génération en cours..." : "Générer une image IA"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                </TabsContent>
+                <TabsContent value="image">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Statut & Visibilité</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="isFavorite"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Marquer comme favori</FormLabel>
+                                                <FormDescription>
+                                                Accès rapide sur la page du point de vente.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="showImage"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Afficher l'image</FormLabel>
+                                                <FormDescription>
+                                                Afficher l'image du produit dans le point de vente.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="lg:col-span-1">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Image de l'article</CardTitle>
+                                    <CardDescription>Aperçu de la carte du POS.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex flex-col items-center gap-4">
+                                    <div className="w-full max-w-[200px]">
+                                        <Card className="flex flex-col overflow-hidden">
+                                            <div className="relative aspect-video w-full">
+                                            {isGenerating ? (
+                                                <div className="w-full aspect-video flex items-center justify-center">
+                                                    <Skeleton className="w-full h-full" />
+                                                </div>
+                                                ) : (
+                                                <Image
+                                                    src={watchedImage || defaultImage || 'https://picsum.photos/seed/placeholder/200/150'}
+                                                    alt={watchedName || "Aperçu de l'article"}
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 p-3">
+                                                <h3 className="font-semibold leading-tight truncate">{watchedName || "Nom de l'article"}</h3>
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 pt-0">
+                                                <span className="text-lg font-bold text-primary">
+                                                {Number(watchedPrice || 0).toFixed(2)}€
+                                                </span>
+                                                <PlusCircle className="w-6 h-6 text-muted-foreground" />
+                                            </div>
+                                        </Card>
+                                    </div>
+                                    <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGenerating}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        {isGenerating ? "Génération en cours..." : "Générer une image IA"}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
           
           <div className="lg:col-span-3 flex justify-end">
              <Button type="submit" size="lg" disabled={isGenerating}>
