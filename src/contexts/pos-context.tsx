@@ -163,8 +163,8 @@ interface PosContextType {
   authRequired: boolean;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
-  showDescriptionInOrder: boolean;
-  setShowDescriptionInOrder: React.Dispatch<React.SetStateAction<boolean>>;
+  descriptionDisplay: 'none' | 'first' | 'both';
+  setDescriptionDisplay: React.Dispatch<React.SetStateAction<'none' | 'first' | 'both'>>;
   popularItemsCount: number;
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
   itemCardOpacity: number;
@@ -225,7 +225,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
   const [showTicketImages, setShowTicketImages] = useState(true);
-  const [showDescriptionInOrder, setShowDescriptionInOrder] = useState(false);
+  const [descriptionDisplay, setDescriptionDisplay] = useState<'none' | 'first' | 'both'>('none');
   const [popularItemsCount, setPopularItemsCount] = useState(10);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
@@ -247,7 +247,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -1399,8 +1399,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       authRequired,
       showTicketImages,
       setShowTicketImages,
-      showDescriptionInOrder,
-      setShowDescriptionInOrder,
+      descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
       setPopularItemsCount,
       itemCardOpacity,
@@ -1495,8 +1495,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       authRequired,
       showTicketImages,
       setShowTicketImages,
-      showDescriptionInOrder,
-      setShowDescriptionInOrder,
+      descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
       setPopularItemsCount,
       itemCardOpacity,

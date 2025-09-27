@@ -6,11 +6,12 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Type } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function ParametersPage() {
   const { 
@@ -18,8 +19,8 @@ export default function ParametersPage() {
     setShowNotifications, 
     notificationDuration, 
     setNotificationDuration,
-    showDescriptionInOrder,
-    setShowDescriptionInOrder
+    descriptionDisplay,
+    setDescriptionDisplay
   } = usePos();
 
   return (
@@ -89,21 +90,37 @@ export default function ParametersPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex items-center justify-between rounded-lg border p-4">
+                 <div className="space-y-4 rounded-lg border p-4">
                     <div className="space-y-0.5">
-                        <Label htmlFor="show-description" className="text-base flex items-center gap-2">
+                        <Label className="text-base flex items-center gap-2">
                             <FileText />
-                            Afficher la description dans la commande
+                            Affichage de la description dans la commande
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                        Affiche la description de l'article sous son nom dans la liste de la commande.
+                            Choisissez si et comment les descriptions des articles apparaissent dans la commande.
                         </p>
                     </div>
-                    <Switch
-                        id="show-description"
-                        checked={showDescriptionInOrder}
-                        onCheckedChange={setShowDescriptionInOrder}
-                    />
+                    <RadioGroup 
+                        value={descriptionDisplay} 
+                        onValueChange={(value) => setDescriptionDisplay(value as 'none' | 'first' | 'both')}
+                        className="grid sm:grid-cols-3 gap-4 pt-2"
+                    >
+                        <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            <RadioGroupItem value="none" id="desc-none" className="sr-only" />
+                            <p className="text-base font-semibold">Aucune</p>
+                            <p className="text-xs text-muted-foreground text-center mt-1">Ne pas afficher de description.</p>
+                        </Label>
+                         <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            <RadioGroupItem value="first" id="desc-first" className="sr-only" />
+                            <p className="text-base font-semibold">Description 1</p>
+                            <p className="text-xs text-muted-foreground text-center mt-1">Afficher le premier champ descriptif.</p>
+                        </Label>
+                         <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            <RadioGroupItem value="both" id="desc-both" className="sr-only" />
+                            <p className="text-base font-semibold">Les deux</p>
+                            <p className="text-xs text-muted-foreground text-center mt-1">Afficher les deux descriptions.</p>
+                        </Label>
+                    </RadioGroup>
                 </div>
             </CardContent>
         </Card>

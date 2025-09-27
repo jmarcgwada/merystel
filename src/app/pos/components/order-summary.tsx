@@ -39,7 +39,7 @@ export function OrderSummary() {
     saveTableOrderAndExit,
     promoteTableToTicket,
     showTicketImages,
-    showDescriptionInOrder,
+    descriptionDisplay,
     isKeypadOpen,
     currentSaleContext,
     recentlyAddedItemId,
@@ -307,8 +307,11 @@ export function OrderSummary() {
               <p className="font-semibold pr-2">{item.name}</p>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
-             {showDescriptionInOrder && item.description && (
+             {descriptionDisplay !== 'none' && item.description && (
                 <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
+            )}
+            {descriptionDisplay === 'both' && item.description2 && (
+                <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>
             )}
             {item.discount > 0 && (
               <div className="text-sm text-muted-foreground">
