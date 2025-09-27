@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
 import { helpData } from '../help-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookQuestion } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import React from 'react';
 
 // This function finds the content for a given slug
@@ -72,7 +73,7 @@ export default function HelpTopicPage() {
   if (!topic) {
     return (
         <Alert variant="destructive">
-            <BookQuestion className="h-4 w-4" />
+            <HelpCircle className="h-4 w-4" />
             <AlertTitle>Sujet introuvable</AlertTitle>
             <AlertDescription>
                 La page d'aide que vous recherchez n'existe pas. Veuillez sélectionner un sujet dans le menu de gauche.
