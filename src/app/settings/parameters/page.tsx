@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -23,7 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function ParametersPage() {
@@ -42,6 +42,11 @@ export default function ParametersPage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -137,11 +142,15 @@ export default function ParametersPage() {
                             Si activé, l'application demandera la saisie de numéros de série pour les articles concernés.
                         </p>
                     </div>
-                    <Switch 
-                        id="enable-serial-number"
-                        checked={enableSerialNumber}
-                        onCheckedChange={setEnableSerialNumber}
-                    />
+                    {isClient ? (
+                        <Switch 
+                            id="enable-serial-number"
+                            checked={enableSerialNumber}
+                            onCheckedChange={setEnableSerialNumber}
+                        />
+                    ) : (
+                        <Skeleton className="h-6 w-11" />
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -156,37 +165,45 @@ export default function ParametersPage() {
             <CardContent className="space-y-8">
             <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                    <Label htmlFor="show-notifications" className="text-base flex items-center gap-2">
-                        {showNotifications ? <Bell className="text-primary"/> : <BellOff />}
-                        Afficher les notifications
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                        Active ou désactive toutes les notifications de type "toast" dans l'application.
-                    </p>
+                        <Label htmlFor="show-notifications" className="text-base flex items-center gap-2">
+                            {isClient ? (showNotifications ? <Bell className="text-primary"/> : <BellOff />) : <Skeleton className="h-5 w-5" />}
+                            Afficher les notifications
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                            Active ou désactive toutes les notifications de type "toast" dans l'application.
+                        </p>
                     </div>
-                    <Switch 
-                    id="show-notifications" 
-                    checked={showNotifications}
-                    onCheckedChange={setShowNotifications}
-                    />
+                    {isClient ? (
+                        <Switch 
+                            id="show-notifications" 
+                            checked={showNotifications}
+                            onCheckedChange={setShowNotifications}
+                        />
+                     ) : (
+                        <Skeleton className="h-6 w-11" />
+                    )}
                 </div>
                 <div className="grid gap-2 pt-4">
                     <div className="flex justify-between items-center">
                         <Label htmlFor="notification-duration">Durée d'affichage des notifications</Label>
-                        <span className="text-sm font-bold text-primary">{(notificationDuration / 1000).toFixed(1)} secondes</span>
+                        {isClient && <span className="text-sm font-bold text-primary">{(notificationDuration / 1000).toFixed(1)} secondes</span>}
                     </div>
                     <p className="text-sm text-muted-foreground">
                         Réglez la durée pendant laquelle les notifications restent visibles à l'écran.
                     </p>
-                    <Slider 
-                        id="notification-duration"
-                        value={[notificationDuration]} 
-                        onValueChange={(value) => setNotificationDuration(value[0])}
-                        min={1000}
-                        max={10000} 
-                        step={500}
-                        disabled={!showNotifications}
-                    />
+                     {isClient ? (
+                        <Slider 
+                            id="notification-duration"
+                            value={[notificationDuration]} 
+                            onValueChange={(value) => setNotificationDuration(value[0])}
+                            min={1000}
+                            max={10000} 
+                            step={500}
+                            disabled={!showNotifications}
+                        />
+                    ) : (
+                         <Skeleton className="h-5 w-full" />
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -209,27 +226,35 @@ export default function ParametersPage() {
                             Choisissez si et comment les descriptions des articles apparaissent dans la commande.
                         </p>
                     </div>
-                    <RadioGroup 
-                        value={descriptionDisplay} 
-                        onValueChange={(value) => setDescriptionDisplay(value as 'none' | 'first' | 'both')}
-                        className="grid sm:grid-cols-3 gap-4 pt-2"
-                    >
-                        <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                            <RadioGroupItem value="none" id="desc-none" className="sr-only" />
-                            <p className="text-base font-semibold">Aucune</p>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Ne pas afficher de description.</p>
-                        </Label>
-                         <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                            <RadioGroupItem value="first" id="desc-first" className="sr-only" />
-                            <p className="text-base font-semibold">Description 1</p>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Afficher le premier champ descriptif.</p>
-                        </Label>
-                         <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                            <RadioGroupItem value="both" id="desc-both" className="sr-only" />
-                            <p className="text-base font-semibold">Les deux</p>
-                            <p className="text-xs text-muted-foreground text-center mt-1">Afficher les deux descriptions.</p>
-                        </Label>
-                    </RadioGroup>
+                    {isClient ? (
+                        <RadioGroup 
+                            value={descriptionDisplay} 
+                            onValueChange={(value) => setDescriptionDisplay(value as 'none' | 'first' | 'both')}
+                            className="grid sm:grid-cols-3 gap-4 pt-2"
+                        >
+                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <RadioGroupItem value="none" id="desc-none" className="sr-only" />
+                                <p className="text-base font-semibold">Aucune</p>
+                                <p className="text-xs text-muted-foreground text-center mt-1">Ne pas afficher de description.</p>
+                            </Label>
+                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <RadioGroupItem value="first" id="desc-first" className="sr-only" />
+                                <p className="text-base font-semibold">Description 1</p>
+                                <p className="text-xs text-muted-foreground text-center mt-1">Afficher le premier champ descriptif.</p>
+                            </Label>
+                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <RadioGroupItem value="both" id="desc-both" className="sr-only" />
+                                <p className="text-base font-semibold">Les deux</p>
+                                <p className="text-xs text-muted-foreground text-center mt-1">Afficher les deux descriptions.</p>
+                            </Label>
+                        </RadioGroup>
+                     ) : (
+                        <div className="grid sm:grid-cols-3 gap-4 pt-2">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
