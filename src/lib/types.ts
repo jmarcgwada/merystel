@@ -41,6 +41,7 @@ export interface OrderItem extends Item {
   total: number;
   discount: number;
   discountPercent?: number;
+  serialNumbers?: string[];
 }
 
 export interface Table {

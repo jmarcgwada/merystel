@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, LayoutDashboard, ArrowLeft } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -236,7 +236,7 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button variant="outline" size="sm" onClick={() => saveTableOrderAndExit(selectedTable.id, [])} className="btn-back">
+        <Button variant="outline" size="sm" onClick={() => router.push('/restaurant')} className="btn-back">
           <ArrowLeft />
           Retour
         </Button>
@@ -314,6 +314,11 @@ export function OrderSummary() {
             )}
             {descriptionDisplay === 'both' && item.description2 && (
                 <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>
+            )}
+             {item.serialNumbers && item.serialNumbers.length > 0 && (
+              <div className="text-xs text-muted-foreground mt-1">
+                S/N: {item.serialNumbers.filter(sn => sn).join(', ')}
+              </div>
             )}
             {item.discount > 0 && (
               <div className="text-sm text-muted-foreground">

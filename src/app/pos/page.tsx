@@ -17,9 +17,15 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { SerialNumberModal } from './components/serial-number-modal';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -82,7 +88,7 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="h-[calc(100vh-4rem)] grid grid-cols-1 md:grid-cols-12">
+      <div className="grid grid-cols-1 md:grid-cols-12 h-full" style={{ backgroundColor: isClient ? directSaleBackgroundColor : 'transparent' }}>
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card flex flex-col overflow-hidden">
             <CategoryList
               selectedCategory={selectedCategory}
@@ -149,6 +155,7 @@ export default function PosPage() {
           </div>
       </div>
       <HeldOrdersDrawer isOpen={isHeldOpen} onClose={() => setHeldOpen(false)} />
+      <SerialNumberModal />
     </>
   );
 }
