@@ -155,7 +155,14 @@ export default function SaleDetailPage() {
                             <TableCell>
                                 <Image src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
                             </TableCell>
-                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell className="font-medium">
+                                <div>{item.name}</div>
+                                {item.serialNumbers && item.serialNumbers.length > 0 && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
+                                    </div>
+                                )}
+                            </TableCell>
                             <TableCell className="text-center">{item.quantity}</TableCell>
                             <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                              <TableCell className="text-right text-muted-foreground text-xs">
