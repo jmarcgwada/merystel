@@ -308,7 +308,7 @@ export function OrderSummary() {
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
              {showDescriptionInOrder && item.description && (
-                <p className="text-xs text-muted-foreground mt-1 pr-2">{item.description}</p>
+                <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
             )}
             {item.discount > 0 && (
               <div className="text-sm text-muted-foreground">
