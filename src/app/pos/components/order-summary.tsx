@@ -39,6 +39,7 @@ export function OrderSummary() {
     saveTableOrderAndExit,
     promoteTableToTicket,
     showTicketImages,
+    showDescriptionInOrder,
     isKeypadOpen,
     currentSaleContext,
     recentlyAddedItemId,
@@ -282,7 +283,7 @@ export function OrderSummary() {
     <div 
         ref={el => itemRefs.current[item.id] = el}
         className={cn(
-          "flex items-center gap-4 cursor-pointer transition-colors duration-300", 
+          "flex items-start gap-4 cursor-pointer transition-colors duration-300", 
           isSelected ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
           recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
           showTicketImages ? 'p-4' : 'p-2'
@@ -306,6 +307,9 @@ export function OrderSummary() {
               <p className="font-semibold pr-2">{item.name}</p>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
+             {showDescriptionInOrder && item.description && (
+                <p className="text-xs text-muted-foreground mt-1 pr-2">{item.description}</p>
+            )}
             {item.discount > 0 && (
               <div className="text-sm text-muted-foreground">
                 <span className="text-destructive font-semibold">

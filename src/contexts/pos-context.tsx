@@ -163,6 +163,8 @@ interface PosContextType {
   authRequired: boolean;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
+  showDescriptionInOrder: boolean;
+  setShowDescriptionInOrder: React.Dispatch<React.SetStateAction<boolean>>;
   popularItemsCount: number;
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
   itemCardOpacity: number;
@@ -223,6 +225,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
   const [showTicketImages, setShowTicketImages] = useState(true);
+  const [showDescriptionInOrder, setShowDescriptionInOrder] = useState(false);
   const [popularItemsCount, setPopularItemsCount] = useState(10);
   const [itemCardOpacity, setItemCardOpacity] = useState(30);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] =
@@ -269,7 +272,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const tablesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
-  const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData] : [TAKEAWAY_TABLE], [tablesData]);
+  const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   const users = useMemo(() => usersData, [usersData]);
   const items = useMemo(() => itemsData, [itemsData]);
   const categories = useMemo(() => categoriesData, [categoriesData]);
@@ -871,7 +874,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
+        batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField(), verrou: deleteField() });
       }
       
       const heldOrderForTable = heldOrders?.find(
@@ -1396,6 +1399,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       authRequired,
       showTicketImages,
       setShowTicketImages,
+      showDescriptionInOrder,
+      setShowDescriptionInOrder,
       popularItemsCount,
       setPopularItemsCount,
       itemCardOpacity,
@@ -1489,8 +1494,13 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      setShowTicketImages,
+      showDescriptionInOrder,
+      setShowDescriptionInOrder,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setEnableRestaurantCategoryFilter,
       enableRestaurantCategoryFilter,
       showNotifications,
       setShowNotifications,

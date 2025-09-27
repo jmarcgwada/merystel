@@ -52,6 +52,7 @@ export interface Table {
   order: OrderItem[];
   covers?: number;
   lockedBy?: string;
+  verrou?: boolean;
 }
 
 export interface Customer {
