@@ -192,6 +192,15 @@ interface PosContextType {
   restaurantModeBgOpacity: number;
   setRestaurantModeBgOpacity: React.Dispatch<React.SetStateAction<number>>;
 
+  dashboardBgType: 'color' | 'image';
+  setDashboardBgType: React.Dispatch<React.SetStateAction<'color' | 'image'>>;
+  dashboardBackgroundColor: string;
+  setDashboardBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
+  dashboardBackgroundImage: string;
+  setDashboardBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
+  dashboardBgOpacity: number;
+  setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
 
@@ -280,6 +289,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
   const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
   const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
+  const [dashboardBgType, setDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
+  const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
+  const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
+  const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -1616,6 +1629,14 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
       setRestaurantModeBgOpacity,
+      dashboardBgType,
+      setDashboardBgType,
+      dashboardBackgroundColor,
+      setDashboardBackgroundColor,
+      dashboardBackgroundImage,
+      setDashboardBackgroundImage,
+      dashboardBgOpacity,
+      setDashboardBgOpacity,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1725,6 +1746,14 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
       setRestaurantModeBgOpacity,
+      dashboardBgType,
+      setDashboardBgType,
+      dashboardBackgroundColor,
+      setDashboardBackgroundColor,
+      dashboardBackgroundImage,
+      setDashboardBackgroundImage,
+      dashboardBgOpacity,
+      setDashboardBgOpacity,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
