@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -252,9 +251,9 @@ export function OrderSummary() {
     
     if (order.length === 0 && !selectedTable) {
         return (
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="outline" size="sm">
                 <Link href="/dashboard">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Tableau de bord
                 </Link>
             </Button>
@@ -480,7 +479,3 @@ export function OrderSummary() {
     </>
   );
 }
-
-
-
-

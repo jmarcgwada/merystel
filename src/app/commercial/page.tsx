@@ -9,6 +9,7 @@ import { OrderSummary } from '@/app/pos/components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { OrderItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CommercialPage() {
     const { setOrder, clearOrder } = usePos();
@@ -30,7 +31,7 @@ export default function CommercialPage() {
         title="Gestion Commerciale"
         subtitle="Créez une nouvelle commande ou une facture rapidement."
       >
-        {isOrderConfirmed && <Button onClick={handleNewOrder}>Nouvelle Commande</Button>}
+        {isOrderConfirmed && <Button variant="outline" onClick={handleNewOrder}><ArrowLeft className="mr-2 h-4 w-4" />Nouvelle Commande</Button>}
       </PageHeader>
       
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
