@@ -14,6 +14,21 @@ import type { Item } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
+import { cn } from '@/lib/utils';
+
+// Function to convert hex to rgba
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--card), ${opacity / 100})`;
+};
 
 const quickLinks = [
     {
@@ -57,7 +72,10 @@ export default function DashboardPage() {
         dashboardBgType, 
         dashboardBackgroundColor, 
         dashboardBackgroundImage, 
-        dashboardBgOpacity 
+        dashboardBgOpacity,
+        dashboardButtonOpacity,
+        dashboardButtonShowBorder,
+        dashboardButtonBorderColor
     } = usePos();
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -133,6 +151,20 @@ export default function DashboardPage() {
         return style;
     }, [dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity]);
 
+    const buttonStyle = useMemo(() => {
+        const style: React.CSSProperties = {
+             backgroundColor: hexToRgba('hsl(var(--card))', dashboardButtonOpacity),
+        };
+        if (dashboardButtonShowBorder) {
+            style.borderColor = dashboardButtonBorderColor;
+            style.borderWidth = '1px';
+        } else {
+            style.borderColor = 'transparent';
+        }
+        return style;
+    }, [dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
+
+
     if (isLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -169,7 +201,7 @@ export default function DashboardPage() {
         />
         
         <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Chiffre d'affaires total</CardTitle>
                   <span className="text-muted-foreground">€</span>
@@ -179,7 +211,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">Basé sur toutes les ventes enregistrées</p>
               </CardContent>
           </Card>
-          <Card>
+          <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Ventes Aujourd'hui</CardTitle>
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -192,7 +224,7 @@ export default function DashboardPage() {
                   </div>
               </CardContent>
           </Card>
-          <Card>
+          <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
                   <span className="text-muted-foreground">€</span>
@@ -202,7 +234,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
               </CardContent>
           </Card>
-          <Card>
+          <Card style={buttonStyle}>
               <CardHeader>
                   <CardTitle className="text-sm font-medium">Articles Populaires</CardTitle>
               </CardHeader>
@@ -229,7 +261,7 @@ export default function DashboardPage() {
               <div className="grid gap-6 md:grid-cols-2">
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
-                          <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                          <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
                               <CardContent className="pt-6">
                                   <div className="flex items-start justify-between">
                                       <div>
@@ -245,7 +277,7 @@ export default function DashboardPage() {
                   ))}
                   {authUser?.role !== 'cashier' && (
                       <Link href="/settings" className="group">
-                          <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+                          <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
                               <CardContent className="pt-6">
                                   <div className="flex items-start justify-between">
                                       <div>
@@ -263,7 +295,7 @@ export default function DashboardPage() {
           </div>
           <div className="lg:col-span-1">
               <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Top Articles</h2>
-              <Card>
+              <Card style={buttonStyle}>
                   <CardContent className="pt-6">
                       <div className="space-y-4">
                           {popularItems.map(({ item, count }, index) => (

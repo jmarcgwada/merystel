@@ -200,6 +200,12 @@ interface PosContextType {
   setDashboardBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   dashboardBgOpacity: number;
   setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  dashboardButtonOpacity: number;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
+  dashboardButtonShowBorder: boolean;
+  setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
+  dashboardButtonBorderColor: string;
+  setDashboardButtonBorderColor: React.Dispatch<React.SetStateAction<string>>;
 
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
@@ -293,6 +299,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
   const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
   const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
+  const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
+  const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -1637,6 +1646,12 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDashboardBackgroundImage,
       dashboardBgOpacity,
       setDashboardBgOpacity,
+      dashboardButtonOpacity,
+      setDashboardButtonOpacity,
+      dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
+      dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1754,6 +1769,12 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDashboardBackgroundImage,
       dashboardBgOpacity,
       setDashboardBgOpacity,
+      dashboardButtonOpacity,
+      setDashboardButtonOpacity,
+      dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
+      dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,

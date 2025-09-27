@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { useState, useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -49,6 +50,12 @@ export default function AppearancePage() {
     setDashboardBackgroundImage,
     dashboardBgOpacity,
     setDashboardBgOpacity,
+    dashboardButtonOpacity,
+    setDashboardButtonOpacity,
+    dashboardButtonShowBorder,
+    setDashboardButtonShowBorder,
+    dashboardButtonBorderColor,
+    setDashboardButtonBorderColor,
   } = usePos();
   
   const [isClient, setIsClient] = useState(false);
@@ -176,6 +183,57 @@ export default function AppearancePage() {
                 </div>
             </div>
           </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle>Boutons du tableau de bord</CardTitle>
+                <CardDescription>
+                Personnalisez l'apparence des cartes d'accès rapide.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4">
+                <div className="grid gap-2">
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="dashboard-button-opacity">Opacité du fond des boutons</Label>
+                        {isClient && <span className="text-sm font-bold text-primary">{dashboardButtonOpacity}%</span>}
+                    </div>
+                    {isClient ? (
+                        <Slider 
+                            id="dashboard-button-opacity"
+                            value={[dashboardButtonOpacity]} 
+                            onValueChange={(value) => setDashboardButtonOpacity(value[0])}
+                            min={0} max={100} step={5} 
+                        />
+                    ) : (
+                        <Skeleton className="h-5 w-full" />
+                    )}
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="show-border" className="text-base">Afficher la bordure des boutons</Label>
+                    </div>
+                    <Switch 
+                        id="show-border" 
+                        checked={dashboardButtonShowBorder}
+                        onCheckedChange={setDashboardButtonShowBorder}
+                    />
+                </div>
+                 <div className="grid gap-2" style={{ opacity: dashboardButtonShowBorder ? 1 : 0.5 }}>
+                    <Label htmlFor="dashboard-button-border-color">Couleur de la bordure</Label>
+                    <div className="flex items-center gap-4">
+                        <Input
+                            id="dashboard-button-border-color"
+                            type="color"
+                            value={dashboardButtonBorderColor}
+                            onChange={(e) => setDashboardButtonBorderColor(e.target.value)}
+                            className="w-16 h-12 p-1"
+                            disabled={!dashboardButtonShowBorder}
+                        />
+                        {isClient && <span className="font-mono text-sm text-muted-foreground">{dashboardButtonBorderColor}</span>}
+                    </div>
+                </div>
+            </CardContent>
         </Card>
         <Card>
           <CardHeader>

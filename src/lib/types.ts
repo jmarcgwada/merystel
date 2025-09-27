@@ -13,7 +13,7 @@ export interface Category {
 
 export interface VatRate {
   id: string;
-  name: string;
+  name:string;
   rate: number;
   code: number;
 }
