@@ -926,34 +926,34 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
             }
             const tableData = tableDoc.data() as Table;
 
-            if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
-                throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
+            if (tableData.status === 'available') {
+                if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
+                    throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
+                }
+                transaction.update(tableRef, { lockedBy: user.uid });
+            } else {
+                // If the table is occupied or paying, we just want to load it without locking.
+                // The lock is only for claiming an available table.
             }
-            if (tableData.status === 'paying') {
-                 promoteTableToTicket(tableId, tableData.order);
-                 return;
-            }
-
-            transaction.update(tableRef, { lockedBy: user.uid });
         });
         
         // If transaction is successful, get the data and set state
         const updatedTableDoc = await getDoc(tableRef);
         const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
         
-        // Check again if status is paying, in case it was changed by promoteTableToTicket
-        if(tableData.status !== 'paying') {
+        if (tableData.status === 'paying') {
+            promoteTableToTicket(tableData.id, tableData.order);
+        } else {
             setSelectedTable(tableData);
             setOrder(tableData.order || []);
-            setCurrentSaleId(null);
-            setCurrentSaleContext({
-                tableId: tableData.id,
-                tableName: tableData.name,
-            });
-            routerRef.current.push(`/pos?tableId=${tableId}`);
-        } else {
-             routerRef.current.push(`/pos`);
         }
+        
+        setCurrentSaleId(null);
+        setCurrentSaleContext({
+            tableId: tableData.id,
+            tableName: tableData.name,
+        });
+        routerRef.current.push(`/pos?tableId=${tableId}`);
 
     } catch (error: any) {
         toast({
@@ -963,7 +963,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         });
     }
 
-}, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
+}, [firestore, user, clearOrder, toast, promoteTableToTicket]);
 
 
   const updateTableOrder = useCallback(
