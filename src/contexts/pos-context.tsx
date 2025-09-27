@@ -72,6 +72,7 @@ interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   addToOrder: (itemId: OrderItem['id']) => void;
+  addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
@@ -90,6 +91,9 @@ interface PosContextType {
   currentSaleContext: Partial<Sale> & { isTableSale?: boolean } | null;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
+  serialNumberItem: { item: Item; quantity: number } | null;
+  setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item; quantity: number } | null>>;
+
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
@@ -285,6 +289,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
+  const [serialNumberItem, setSerialNumberItem] = useState<{item: Item, quantity: number} | null>(null);
   // #endregion
 
   // Custom toast function that respects the user setting
@@ -703,21 +708,59 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const triggerItemHighlight = (itemId: string) => {
     setRecentlyAddedItemId(itemId);
   };
+  
+  const addSerializedItemToOrder = useCallback((item: Item, quantity: number, serialNumbers: string[]) => {
+    const newOrderItem: OrderItem = {
+      ...item,
+      quantity,
+      total: item.price * quantity,
+      discount: 0,
+      serialNumbers: serialNumbers,
+    };
+    
+    setOrder(currentOrder => {
+        const existingItemIndex = currentOrder.findIndex(i => i.id === item.id);
+        if (existingItemIndex > -1) {
+            const newOrder = [...currentOrder];
+            const existingItem = newOrder[existingItemIndex];
+            const newQuantity = existingItem.quantity + quantity;
+            newOrder[existingItemIndex] = {
+                ...existingItem,
+                quantity: newQuantity,
+                total: existingItem.price * newQuantity - (existingItem.discount || 0),
+                serialNumbers: [...(existingItem.serialNumbers || []), ...serialNumbers],
+            };
+            return newOrder;
+        }
+        return [...currentOrder, newOrderItem];
+    });
+
+    triggerItemHighlight(item.id);
+    toast({ title: `${item.name} ajouté à la commande` });
+
+  }, [toast]);
 
   const addToOrder = useCallback(
     (itemId: OrderItem['id']) => {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
+      
+      const existingItem = order.find(
+        (item) => item.id === itemId
+      );
+
+      if (itemToAdd.requiresSerialNumber) {
+          const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
+          setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
+          return;
+      }
 
       setOrder((currentOrder) => {
-        const existingItemIndex = currentOrder.findIndex(
-          (item) => item.id === itemId
-        );
-        if (existingItemIndex !== -1) {
+        if (existingItem) {
           const newOrder = [...currentOrder];
-          const existingItem = newOrder[existingItemIndex];
           const newQuantity = existingItem.quantity + 1;
+          const existingItemIndex = newOrder.findIndex(i => i.id === itemId);
           newOrder[existingItemIndex] = {
             ...existingItem,
             quantity: newQuantity,
@@ -738,7 +781,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       triggerItemHighlight(itemId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, toast]
+    [items, order, toast]
   );
 
   const updateQuantity = useCallback(
@@ -1468,6 +1511,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       order,
       setOrder,
       addToOrder,
+      addSerializedItemToOrder,
       removeFromOrder,
       updateQuantity,
       updateQuantityFromKeypad,
@@ -1482,6 +1526,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       currentSaleContext,
       recentlyAddedItemId,
       setRecentlyAddedItemId,
+      serialNumberItem, 
+      setSerialNumberItem,
       users,
       addUser,
       updateUser,
@@ -1578,6 +1624,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       order,
       setOrder,
       addToOrder,
+      addSerializedItemToOrder,
       removeFromOrder,
       updateQuantity,
       updateQuantityFromKeypad,
@@ -1589,6 +1636,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       currentSaleId,
       currentSaleContext,
       recentlyAddedItemId,
+      serialNumberItem, 
       users,
       addUser,
       updateUser,
