@@ -200,17 +200,6 @@ export function OrderSummary() {
     setSelectedItem(null);
     setKeypadValue('');
   }
-
-  const handleHeaderAction = () => {
-    if(selectedTable) {
-        clearOrder();
-        setSelectedTable(null);
-        setIsClosingTable(false); // Reset closing state
-        router.push('/restaurant');
-    } else {
-        clearOrder();
-    }
-  }
   
   const getTitle = () => {
     if (currentSaleContext?.isTableSale) {
@@ -247,7 +236,7 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button variant="outline" size="sm" onClick={handleHeaderAction} className="btn-back">
+        <Button variant="outline" size="sm" onClick={() => saveTableOrderAndExit(selectedTable.id, [])} className="btn-back">
           <ArrowLeft />
           Retour
         </Button>

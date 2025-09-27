@@ -999,15 +999,15 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
+          routerRef.current.push('/restaurant');
           await updateDoc(tableRef, {
             order: orderData,
             status: orderData.length > 0 ? 'occupied' : 'available',
             lockedBy: deleteField()
           });
+          toast({ title: 'Table sauvegardée' });
+          await clearOrder();
       }
-      toast({ title: 'Table sauvegardée' });
-      await clearOrder();
-      routerRef.current.push('/restaurant');
     },
     [getDocRef, clearOrder, toast]
   );
