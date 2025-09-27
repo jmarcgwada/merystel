@@ -192,6 +192,18 @@ interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper function to remove undefined properties from an object before sending to Firebase
+const cleanDataForFirebase = (data: any) => {
+    const cleanedData = { ...data };
+    Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key as keyof typeof cleanedData] === undefined) {
+            delete cleanedData[key as keyof typeof cleanedData];
+        }
+    });
+    return cleanedData;
+};
+
+
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
@@ -329,7 +341,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        await addDoc(ref, data);
+        await addDoc(ref, cleanDataForFirebase(data));
         toast({ title: toastTitle });
       } catch (error) {
         console.error(`Error adding ${collectionName}:`, error);
@@ -352,7 +364,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        await setDoc(ref, data, { merge: true });
+        await setDoc(ref, cleanDataForFirebase(data), { merge: true });
         if(toastTitle) toast({ title: toastTitle });
       } catch (error) {
         console.error(`Error updating ${collectionName}:`, error);
@@ -508,10 +520,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    if(selectedTable && selectedTable.verrou) {
+    if(selectedTable && selectedTable.lockedBy) {
         const tableRef = getDocRef('tables', selectedTable.id);
         if (tableRef) {
-          await updateDoc(tableRef, { verrou: false });
+          await updateDoc(tableRef, { lockedBy: deleteField() });
         }
     }
     setOrder([]);
@@ -651,7 +663,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-            await updateDoc(tableRef, { status: 'occupied', verrou: false });
+            await updateDoc(tableRef, { status: 'occupied', lockedBy: deleteField() });
         }
         await clearOrder();
         routerRef.current.push('/restaurant');
@@ -683,7 +695,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await updateDoc(tableRef, { status: 'available', verrou: false });
+        await updateDoc(tableRef, { status: 'available', lockedBy: deleteField() });
       }
 
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
@@ -716,7 +728,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         await updateDoc(tableRef, {
           order: orderData,
           status: 'paying',
-          verrou: true,
+          lockedBy: user?.uid
         });
         setCurrentSaleId(`table-${tableId}`);
         setCurrentSaleContext({
@@ -729,7 +741,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur de clôture' });
       }
     },
-    [getDocRef, toast, tables]
+    [getDocRef, toast, tables, user]
   );
 
 const setSelectedTableById = useCallback(async (tableId: string | null) => {
@@ -740,7 +752,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!tableId) {
         if(selectedTable) {
              const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
-             await updateDoc(tableRef, { verrou: false });
+             await updateDoc(tableRef, { lockedBy: deleteField() });
         }
         await clearOrder();
         return;
@@ -763,17 +775,15 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
             }
             const tableData = tableDoc.data() as Table;
 
-            if (tableData.verrou) {
+            if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
                 throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
             }
             if (tableData.status === 'paying') {
-                 // The function is defined before this `useCallback`
-                 // so it can be safely used here.
                  promoteTableToTicket(tableId, tableData.order);
                  return;
             }
 
-            transaction.update(tableRef, { verrou: true });
+            transaction.update(tableRef, { lockedBy: user.uid });
         });
         
         // If transaction is successful, get the data and set state
@@ -829,7 +839,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
           await updateDoc(tableRef, {
             order: orderData,
             status: orderData.length > 0 ? 'occupied' : 'available',
-            verrou: false
+            lockedBy: deleteField()
           });
       }
       toast({ title: 'Table sauvegardée' });
@@ -845,7 +855,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], verrou: false });
+        batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
       }
       
       const heldOrderForTable = heldOrders?.find(
@@ -870,7 +880,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         number: Date.now() % 10000,
         status: 'available' as const,
         order: [],
-        verrou: false,
       };
       addEntity('tables', newTable, 'Table créée');
     },
@@ -901,7 +910,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-          batch.update(tableRef, { status: 'available', order: [], verrou: false });
+          batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
         }
       }
 
