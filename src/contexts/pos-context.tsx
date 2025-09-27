@@ -188,6 +188,8 @@ interface PosContextType {
   
   seedInitialData: () => void;
   resetAllData: () => void;
+  exportConfiguration: () => void;
+  importConfiguration: (file: File) => Promise<void>;
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
@@ -435,6 +437,109 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast]
   );
+  // #endregion
+
+  // #region Config Import/Export
+    const exportConfiguration = useCallback(async () => {
+        if (!companyId || !firestore) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            return;
+        }
+
+        toast({ title: 'Exportation en cours...' });
+
+        try {
+            const collectionsToExport = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
+            const config: { [key: string]: any[] } = {};
+
+            for (const collectionName of collectionsToExport) {
+                const collectionRef = collection(firestore, 'companies', companyId, collectionName);
+                const snapshot = await getDocs(collectionRef);
+                config[collectionName] = snapshot.docs.map(doc => ({ ...doc.data(), __id: doc.id }));
+            }
+            
+            const companyDoc = await getDoc(doc(firestore, 'companies', companyId));
+            if(companyDoc.exists()) {
+                config.companyInfo = [{...companyDoc.data(), __id: companyDoc.id}];
+            }
+
+            const jsonString = JSON.stringify(config, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            toast({ title: 'Exportation réussie', description: 'Le fichier de configuration a été téléchargé.' });
+
+        } catch (error) {
+            console.error("Error exporting configuration:", error);
+            toast({ variant: 'destructive', title: 'Erreur d\'exportation' });
+        }
+
+    }, [companyId, firestore, toast]);
+
+    const importConfiguration = useCallback(async (file: File) => {
+        if (!companyId || !firestore) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const jsonString = event.target?.result as string;
+                const config = JSON.parse(jsonString);
+
+                toast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
+
+                // 1. Delete existing data
+                const collectionsToDelete = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
+                const deleteBatch = writeBatch(firestore);
+                for (const collectionName of collectionsToDelete) {
+                    const collectionRef = collection(firestore, 'companies', companyId, collectionName);
+                    const snapshot = await getDocs(collectionRef);
+                    snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
+                }
+                await deleteBatch.commit();
+
+                // 2. Import new data
+                const importBatch = writeBatch(firestore);
+                for (const collectionName in config) {
+                    if (collectionName === 'companyInfo') {
+                        const info = config.companyInfo[0];
+                        if (info) {
+                            const { __id, ...data } = info;
+                            const companyRef = doc(firestore, 'companies', companyId);
+                            importBatch.set(companyRef, data);
+                        }
+                    } else {
+                        const collectionData = config[collectionName] as any[];
+                        collectionData.forEach(item => {
+                            const { __id, ...data } = item;
+                            const docRef = doc(firestore, 'companies', companyId, collectionName, __id);
+                            importBatch.set(docRef, data);
+                        });
+                    }
+                }
+                await importBatch.commit();
+                
+                toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée. L\'application va se recharger.' });
+                
+                // Force reload to reflect all changes
+                setTimeout(() => window.location.reload(), 2000);
+
+            } catch (error) {
+                console.error("Error importing configuration:", error);
+                toast({ variant: 'destructive', title: 'Erreur d\'importation', description: 'Le fichier est peut-être invalide ou corrompu.' });
+            }
+        };
+        reader.readAsText(file);
+    }, [companyId, firestore, toast]);
   // #endregion
 
   // #region Data Seeding
@@ -1440,6 +1545,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       confirmNavigation,
       seedInitialData,
       resetAllData,
+      exportConfiguration,
+      importConfiguration,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -1535,6 +1642,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       confirmNavigation,
       seedInitialData,
       resetAllData,
+      exportConfiguration,
+      importConfiguration,
       cameFromRestaurant,
       isLoading,
       user,
