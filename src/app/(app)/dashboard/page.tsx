@@ -61,15 +61,24 @@ export default function DashboardPage() {
         return sales.reduce((acc, sale) => acc + sale.total, 0);
     }, [sales]);
     
-    const todaysSales = useMemo(() => {
-        if (!sales) return 0;
+    const todaysSalesData = useMemo(() => {
+        if (!sales) return { count: 0, lastSaleDate: null };
         const today = new Date();
-        return sales.filter(sale => {
-            // Firestore timestamps need to be converted to JS Date objects
-            const saleDate = (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date);
-            if (isNaN(saleDate.getTime())) return false; // Invalid date
-            return format(saleDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
-        }).length;
+        const salesOfToday = sales
+            .map(sale => ({
+                ...sale,
+                date: (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date)
+            }))
+            .filter(sale => {
+                if (isNaN(sale.date.getTime())) return false; // Invalid date
+                return format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+            })
+            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending by date
+
+        return {
+            count: salesOfToday.length,
+            lastSaleDate: salesOfToday.length > 0 ? salesOfToday[0].date : null
+        };
     }, [sales]);
 
     const popularItems = useMemo(() => {
@@ -145,8 +154,10 @@ export default function DashboardPage() {
                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">+{todaysSales}</div>
-                 <div className="text-xs text-muted-foreground">{formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}</div>
+                <div className="text-2xl font-bold">+{todaysSalesData.count}</div>
+                 <div className="text-xs text-muted-foreground">
+                    {todaysSalesData.lastSaleDate ? `Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}` : formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
+                 </div>
             </CardContent>
         </Card>
          <Card>
