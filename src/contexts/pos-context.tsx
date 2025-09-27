@@ -786,6 +786,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const updateQuantity = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
+      const itemToUpdate = order.find((item) => item.id === itemId);
+      if (!itemToUpdate) return;
+  
+      if (itemToUpdate.requiresSerialNumber) {
+        if (quantity <= 0) {
+          removeFromOrder(itemId);
+        } else {
+          setSerialNumberItem({ item: itemToUpdate, quantity });
+        }
+        return;
+      }
+      
       if (quantity <= 0) {
         removeFromOrder(itemId);
         return;
@@ -803,7 +815,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       );
       triggerItemHighlight(itemId);
     },
-    [removeFromOrder]
+    [order, removeFromOrder]
   );
   
   const updateQuantityFromKeypad = useCallback(
