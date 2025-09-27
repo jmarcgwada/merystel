@@ -238,7 +238,7 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button variant="outline" size="sm" onClick={saveTableOrderAndExit} className="btn-back">
+        <Button variant="outline" size="sm" onClick={() => saveTableOrderAndExit(selectedTable.id, order)} className="btn-back">
           <ArrowLeft />
           Retour
         </Button>
@@ -360,16 +360,14 @@ export function OrderSummary() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {enableSerialNumber && selectedItem.requiresSerialNumber && (
-                        <Button 
-                            variant="outline" 
-                            size="icon"
-                            className="h-12 w-12 flex-shrink-0"
-                            onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
-                        >
-                            <ScanLine className="h-6 w-6" />
-                        </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 flex-shrink-0"
+                      onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
+                    >
+                      <ScanLine className="h-6 w-6" />
+                    </Button>
                     <Input 
                         ref={keypadInputRef}
                         type="text"
@@ -459,7 +457,7 @@ export function OrderSummary() {
                     variant="outline"
                     className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={saveTableOrderAndExit}
+                    onClick={() => saveTableOrderAndExit(selectedTable.id, order)}
                   >
                      <Save className="mr-2 h-4 w-4" />
                     Sauvegarder
@@ -507,6 +505,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
