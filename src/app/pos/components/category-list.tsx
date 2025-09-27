@@ -25,7 +25,7 @@ export function CategoryList({
   showFavoritesOnly,
   onToggleFavorites,
 }: CategoryListProps) {
-  const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
+  const { categories, popularItemsCount, selectedTable } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
@@ -47,18 +47,21 @@ export function CategoryList({
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
     
+    // Start with search term filter
     let baseCategories = categories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If in restaurant mode (a table is selected) and the filter is enabled, filter for restaurant-only categories
-    if (selectedTable && enableRestaurantCategoryFilter) {
+    // If a table is selected (restaurant mode), show only categories marked for restaurant
+    // or categories where the flag is not set (undefined), assuming they are for both.
+    if (selectedTable) {
         return baseCategories.filter(category => category.isRestaurantOnly === true || category.isRestaurantOnly === undefined);
     }
 
-    // Otherwise, show all categories (respecting search term) but filtering out explicitely non-restaurant ones if not in restaurant mode
-    return baseCategories.filter(category => selectedTable || !category.isRestaurantOnly);
-  }, [categories, searchTerm, selectedTable, enableRestaurantCategoryFilter]);
+    // If no table is selected (direct sale mode), show only categories NOT marked for restaurant.
+    return baseCategories.filter(category => !category.isRestaurantOnly);
+
+  }, [categories, searchTerm, selectedTable]);
 
   const getVariant = (id: string | null) => {
     const isSelected = (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) || 
