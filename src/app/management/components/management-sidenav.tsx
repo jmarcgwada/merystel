@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -7,12 +8,19 @@ import { cn } from '@/lib/utils';
 import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useUser } from '@/firebase/auth/use-user';
+import { useEffect, useState } from 'react';
 
 
 export default function ManagementSideNav() {
   const pathname = usePathname();
   const { user } = useUser();
+  const [isClient, setIsClient] = useState(false);
   const isCashier = user?.role === 'cashier';
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const navLinks = [
     { href: '/management/items', label: 'Articles', icon: Box, cashierVisible: true },
@@ -23,6 +31,17 @@ export default function ManagementSideNav() {
     { href: '/management/vat', label: 'TVA', icon: Percent, cashierVisible: !isCashier },
     { href: '/management/users', label: 'Utilisateurs', icon: UserCog, cashierVisible: !isCashier },
   ];
+
+  if (!isClient) {
+      // Render a placeholder or skeleton while waiting for client-side mount
+      return (
+          <div className="flex flex-col gap-2">
+              {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="h-9 rounded-lg bg-muted animate-pulse" />
+              ))}
+          </div>
+      );
+  }
 
   return (
     <nav className="flex flex-col gap-2">
