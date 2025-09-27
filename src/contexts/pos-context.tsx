@@ -24,7 +24,7 @@ import type {
   CompanyInfo,
   User,
 } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
@@ -171,6 +171,10 @@ interface PosContextType {
   setEnableRestaurantCategoryFilter: React.Dispatch<
     React.SetStateAction<boolean>
   >;
+  showNotifications: boolean;
+  setShowNotifications: React.Dispatch<React.SetStateAction<boolean>>;
+  notificationDuration: number;
+  setNotificationDuration: React.Dispatch<React.SetStateAction<number>>;
 
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
@@ -209,7 +213,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
+  const { toast: shadcnToast } = useShadcnToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -235,8 +239,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
-
+  const [showNotifications, setShowNotifications] = useState(true);
+  const [notificationDuration, setNotificationDuration] = useState(3000);
   // #endregion
+
+  // Custom toast function that respects the user setting
+  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
+    if (showNotifications) {
+      shadcnToast({
+        ...props,
+        duration: props?.duration || notificationDuration,
+      });
+    }
+  }, [showNotifications, notificationDuration, shadcnToast]);
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
@@ -1387,6 +1402,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setItemCardOpacity,
       enableRestaurantCategoryFilter,
       setEnableRestaurantCategoryFilter,
+      showNotifications,
+      setShowNotifications,
+      notificationDuration,
+      setNotificationDuration,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1473,6 +1492,10 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       popularItemsCount,
       itemCardOpacity,
       enableRestaurantCategoryFilter,
+      showNotifications,
+      setShowNotifications,
+      notificationDuration,
+      setNotificationDuration,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
