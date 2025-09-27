@@ -12,15 +12,19 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type SortKey = 'date' | 'total';
+type SortKey = 'date' | 'total' | 'tableName';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -55,17 +59,39 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
+    
+    // Sorting state
     const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+    
+    // Filtering state
+    const [filterCustomer, setFilterCustomer] = useState('all');
+    const [filterOrigin, setFilterOrigin] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [isCustomerPopoverOpen, setCustomerPopoverOpen] = useState(false);
 
      useEffect(() => {
         setIsClient(true);
     }, []);
 
-    const sortedSales = useMemo(() => {
+    const getCustomerName = (customerId?: string) => {
+        if (!customerId || !customers) return 'N/A';
+        return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
+    }
+
+    const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
-        let sortableSales = [...allSales];
+
+        // Apply filters
+        let filteredSales = allSales.filter(sale => {
+            const customerMatch = filterCustomer === 'all' || sale.customerId === filterCustomer;
+            const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
+            const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
+            return customerMatch && originMatch && statusMatch;
+        });
+
+        // Apply sorting
         if (sortConfig !== null) {
-            sortableSales.sort((a, b) => {
+            filteredSales.sort((a, b) => {
                 let aValue, bValue;
                 
                 if (sortConfig.key === 'date') {
@@ -73,6 +99,9 @@ export default function ReportsPage() {
                     const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
                     aValue = aDate.getTime();
                     bValue = bDate.getTime();
+                } else if (sortConfig.key === 'tableName') {
+                    aValue = a.tableName || '';
+                    bValue = b.tableName || '';
                 } else {
                     aValue = a[sortConfig.key];
                     bValue = b[sortConfig.key];
@@ -87,8 +116,8 @@ export default function ReportsPage() {
                 return 0;
             });
         }
-        return sortableSales;
-    }, [allSales, sortConfig]);
+        return filteredSales;
+    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -105,6 +134,12 @@ export default function ReportsPage() {
         return sortConfig.direction === 'asc' ? '▲' : '▼';
     }
 
+    const resetFilters = () => {
+        setFilterCustomer('all');
+        setFilterOrigin('');
+        setFilterStatus('all');
+    }
+
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
       <div className="flex flex-wrap gap-1">
         {!payments || payments.length === 0 ? (
@@ -119,17 +154,11 @@ export default function ReportsPage() {
       </div>
     );
 
-    const getCustomerName = (customerId?: string) => {
-        if (!customerId || !customers) return 'N/A';
-        return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
-    }
-
-
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports"
-        subtitle={isClient && allSales ? `Vous avez ${allSales.length} ventes au total.` : "Analysez vos performances de vente."}
+        subtitle={isClient && filteredAndSortedSales ? `Affichage de ${filteredAndSortedSales.length} ventes sur ${allSales?.length || 0} au total.` : "Analysez vos performances de vente."}
       >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="h-4 w-4" />
@@ -147,6 +176,86 @@ export default function ReportsPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Ventes Récentes</CardTitle>
+                 <div className="pt-4 flex items-center gap-4">
+                    <Popover open={isCustomerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isCustomerPopoverOpen}
+                            className="w-[200px] justify-between"
+                        >
+                            {filterCustomer === 'all'
+                            ? "Tous les clients"
+                            : customers?.find((cust) => cust.id === filterCustomer)?.name}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                            <CommandInput placeholder="Rechercher un client..." />
+                            <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                            <CommandGroup>
+                            <CommandItem
+                                value="all"
+                                onSelect={() => {
+                                setFilterCustomer("all");
+                                setCustomerPopoverOpen(false);
+                                }}
+                            >
+                                <Check
+                                className={cn(
+                                    "mr-2 h-4 w-4",
+                                    filterCustomer === "all" ? "opacity-100" : "opacity-0"
+                                )}
+                                />
+                                Tous les clients
+                            </CommandItem>
+                            {customers && customers.map((cust) => (
+                                <CommandItem
+                                key={cust.id}
+                                value={cust.name}
+                                onSelect={() => {
+                                    setFilterCustomer(cust.id === filterCustomer ? "all" : cust.id);
+                                    setCustomerPopoverOpen(false);
+                                }}
+                                >
+                                <Check
+                                    className={cn(
+                                    "mr-2 h-4 w-4",
+                                    filterCustomer === cust.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                />
+                                {cust.name}
+                                </CommandItem>
+                            ))}
+                            </CommandGroup>
+                        </Command>
+                        </PopoverContent>
+                    </Popover>
+
+                    <Input
+                        placeholder="Filtrer par origine..."
+                        value={filterOrigin}
+                        onChange={(e) => setFilterOrigin(e.target.value)}
+                        className="max-w-sm"
+                    />
+
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Statut de paiement" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tous les statuts</SelectItem>
+                            <SelectItem value="paid">Payé</SelectItem>
+                            <SelectItem value="pending">En attente</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button variant="ghost" onClick={resetFilters}>
+                        <X className="mr-2 h-4 w-4" />
+                        Réinitialiser
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -158,7 +267,11 @@ export default function ReportsPage() {
                                     Date {getSortIcon('date')}
                                 </Button>
                             </TableHead>
-                            <TableHead>Origine</TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => requestSort('tableName')}>
+                                    Origine {getSortIcon('tableName')}
+                                </Button>
+                            </TableHead>
                             <TableHead>Client</TableHead>
                             <TableHead>Articles</TableHead>
                             <TableHead>Paiement</TableHead>
@@ -183,7 +296,7 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && sortedSales.map(sale => (
+                        {!isLoading && filteredAndSortedSales.map(sale => (
                             <TableRow key={sale.id}>
                                  <TableCell className="font-mono text-muted-foreground text-xs">
                                     {sale.ticketNumber}
