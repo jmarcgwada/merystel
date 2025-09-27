@@ -12,15 +12,13 @@ export default function ManagementLayout({
 }) {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 md:grid-cols-[208px_1fr] lg:grid-cols-[224px_1fr] gap-8">
-        <aside className="w-full shrink-0">
-          <div className="sticky top-24">
-            <ManagementSideNav />
-          </div>
+      <div className="relative">
+        <aside className="w-[224px] shrink-0 fixed">
+          <ManagementSideNav />
         </aside>
-        <div className="min-w-0">
+        <main className="pl-[256px] min-w-0">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );
