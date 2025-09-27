@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from 'react';
 
 export default function AppearancePage() {
   const { 
@@ -24,6 +25,12 @@ export default function AppearancePage() {
     restaurantModeBgOpacity,
     setRestaurantModeBgOpacity
   } = usePos();
+  
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <>
@@ -59,13 +66,13 @@ export default function AppearancePage() {
                             onChange={(e) => setDirectSaleBackgroundColor(e.target.value)}
                             className="w-16 h-12 p-1"
                         />
-                        <span className="font-mono text-sm text-muted-foreground">{directSaleBackgroundColor}</span>
+                        {isClient && <span className="font-mono text-sm text-muted-foreground">{directSaleBackgroundColor}</span>}
                     </div>
                     </div>
                     <div className="grid gap-2">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="direct-sale-opacity">Opacité</Label>
-                            <span className="text-sm font-bold text-primary">{directSaleBgOpacity}%</span>
+                            {isClient && <span className="text-sm font-bold text-primary">{directSaleBgOpacity}%</span>}
                         </div>
                         <Slider 
                             id="direct-sale-opacity"
@@ -91,13 +98,13 @@ export default function AppearancePage() {
                             onChange={(e) => setRestaurantModeBackgroundColor(e.target.value)}
                             className="w-16 h-12 p-1"
                         />
-                        <span className="font-mono text-sm text-muted-foreground">{restaurantModeBackgroundColor}</span>
+                         {isClient && <span className="font-mono text-sm text-muted-foreground">{restaurantModeBackgroundColor}</span>}
                     </div>
                     </div>
                      <div className="grid gap-2">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="restaurant-mode-opacity">Opacité</Label>
-                            <span className="text-sm font-bold text-primary">{restaurantModeBgOpacity}%</span>
+                            {isClient && <span className="text-sm font-bold text-primary">{restaurantModeBgOpacity}%</span>}
                         </div>
                         <Slider 
                             id="restaurant-mode-opacity"
