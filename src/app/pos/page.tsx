@@ -88,8 +88,8 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-12 h-full" style={{ backgroundColor: isClient ? directSaleBackgroundColor : 'transparent' }}>
-          <div className="md:col-span-3 lg:col-span-2 border-r bg-card flex flex-col overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4" style={{ backgroundColor: isClient ? directSaleBackgroundColor : 'transparent' }}>
+          <div className="md:col-span-3 lg:col-span-2 border bg-card flex flex-col overflow-hidden rounded-lg">
             <CategoryList
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
@@ -99,10 +99,10 @@ export default function PosPage() {
           </div>
 
           <div className={cn(
-            "md:col-span-5 lg:col-span-6 flex flex-col transition-opacity overflow-hidden",
+            "md:col-span-5 lg:col-span-6 flex flex-col transition-opacity overflow-hidden border bg-card rounded-lg",
              isKeypadOpen && 'opacity-50 pointer-events-none'
           )}>
-            <div className="p-4 border-b bg-card">
+            <div className="p-4 border-b">
                  <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
@@ -150,7 +150,7 @@ export default function PosPage() {
             </ScrollArea>
           </div>
 
-          <div className="md:col-span-4 lg:col-span-4 border-l flex flex-col overflow-hidden">
+          <div className="md:col-span-4 lg:col-span-4 border flex flex-col overflow-hidden rounded-lg">
             <OrderSummary />
           </div>
       </div>

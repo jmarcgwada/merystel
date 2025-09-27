@@ -339,7 +339,7 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col relative" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
+      <div className="flex h-full flex-col relative bg-card" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
         <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
@@ -353,21 +353,27 @@ export function OrderSummary() {
                 {renderOrderItem(selectedItem, true)}
               </div>
               <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
-                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
-                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
-                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-8">
+                      <div className="grid grid-cols-3 gap-2">
+                          <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                          <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                          <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                      </div>
+                    </div>
+                    <div className="col-span-4">
+                      <Button
+                          variant="outline"
+                          className="h-full w-full"
+                          onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
+                      >
+                          <ScanLine className="mr-2 h-4 w-4" />
+                          N° Série
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-12 w-12 flex-shrink-0"
-                      onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
-                    >
-                      <ScanLine className="h-6 w-6" />
-                    </Button>
                     <Input 
                         ref={keypadInputRef}
                         type="text"
@@ -505,6 +511,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
