@@ -166,10 +166,6 @@ export default function ItemsPage() {
                             setFilterCategory("all");
                             setCategoryPopoverOpen(false);
                           }}
-                          onClick={() => {
-                            setFilterCategory("all");
-                            setCategoryPopoverOpen(false);
-                          }}
                         >
                           <Check
                             className={cn(
@@ -182,13 +178,9 @@ export default function ItemsPage() {
                         {categories && categories.map((cat) => (
                           <CommandItem
                             key={cat.id}
-                            value={cat.name}
-                            onSelect={() => {
-                              setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
-                              setCategoryPopoverOpen(false);
-                            }}
-                            onClick={() => {
-                              setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
+                            value={cat.id}
+                            onSelect={(currentValue) => {
+                              setFilterCategory(currentValue === filterCategory ? "all" : currentValue);
                               setCategoryPopoverOpen(false);
                             }}
                           >
