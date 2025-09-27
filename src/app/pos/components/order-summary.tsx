@@ -76,6 +76,12 @@ export function OrderSummary() {
 
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   useEffect(() => {
     // When the selected table changes, reset the "closing" state
     setIsClosingTable(false);
@@ -345,7 +351,7 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col relative" style={{ backgroundColor }}>
+      <div className="flex h-full flex-col relative" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
         <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}

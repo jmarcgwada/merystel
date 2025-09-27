@@ -82,7 +82,7 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="h-[calc(100vh-4rem)] grid grid-cols-1 md:grid-cols-12 bg-background">
+      <div className="h-[calc(100vh-4rem)] grid grid-cols-1 md:grid-cols-12">
           <div className="md:col-span-3 lg:col-span-2 border-r bg-card flex flex-col overflow-hidden">
             <CategoryList
               selectedCategory={selectedCategory}
