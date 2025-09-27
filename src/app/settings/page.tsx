@@ -46,7 +46,7 @@ export default function SettingsPage() {
   const settingsLinks = [
     {
         href: '/settings/customization',
-        title: "Personnalisation de l'interface",
+        title: "Réglages",
         description: 'Ajustez les options visuelles de votre point de vente.',
         icon: Brush,
         adminOnly: false,
