@@ -24,7 +24,6 @@ import type { Customer } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 
@@ -109,67 +108,63 @@ export default function CustomersPage() {
                       </TableRow>
                   </TableHeader>
                   
-                      {(isLoading || !isClient) && (
-                        <TableBody>
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                      )}
-                      {isClient && !isLoading && filteredCustomers && filteredCustomers.map(customer => (
-                          <Collapsible asChild key={customer.id} open={openCollapsibles[customer.id] || false} onOpenChange={() => toggleCollapsible(customer.id)} tagName="tbody" className="border-b">
-                              <>
-                                <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(customer.id)}>
-                                    <TableCell className="w-[50px]">
-                                      <CollapsibleTrigger asChild>
-                                          <Button variant="ghost" size="icon">
-                                              {openCollapsibles[customer.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                          </Button>
-                                      </CollapsibleTrigger>
-                                    </TableCell>
-                                    <TableCell className="font-medium">{customer.name}</TableCell>
-                                    <TableCell>{customer.email}</TableCell>
-                                    <TableCell>{customer.phone}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDefaultCustomer(customer.id)}}>
-                                            <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); handleOpenEditDialog(customer)}}>
-                                            <Edit className="h-4 w-4"/>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); setCustomerToDelete(customer)}}>
-                                            <Trash2 className="h-4 w-4"/>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                                <CollapsibleContent asChild>
-                                   <TableRow>
-                                      <TableCell colSpan={5} className="p-0">
-                                        <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                          <div className="space-y-4">
-                                              <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Adresse</h4>
-                                              <DetailItem icon={Building} label="Adresse" value={customer.address} />
-                                              <DetailItem icon={MapPin} label="Ville / CP" value={customer.city && customer.postalCode ? `${customer.city}, ${customer.postalCode}` : customer.city || customer.postalCode} />
-                                              <DetailItem icon={MapPin} label="Pays" value={customer.country} />
-                                          </div>
-                                          <div className="space-y-4">
-                                              <h4 className="font-semibold flex items-center gap-2"><Banknote className="h-4 w-4"/>Finances</h4>
-                                              <DetailItem icon={Banknote} label="IBAN" value={customer.iban} />
-                                          </div>
-                                           <div className="space-y-4">
-                                              <h4 className="font-semibold flex items-center gap-2"><Notebook className="h-4 w-4"/>Notes</h4>
-                                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes || 'Aucune note.'}</p>
-                                          </div>
-                                        </div>
-                                        <Separator />
-                                      </TableCell>
-                                   </TableRow>
-                                </CollapsibleContent>
-                              </>
-                          </Collapsible>
-                      ))}
+                  {(isLoading || !isClient) && (
+                    <TableBody>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                  )}
+                  {isClient && !isLoading && filteredCustomers && filteredCustomers.map(customer => (
+                      <TableBody key={customer.id} className="border-b">
+                          <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(customer.id)}>
+                              <TableCell className="w-[50px]">
+                                  <Button variant="ghost" size="icon">
+                                      {openCollapsibles[customer.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  </Button>
+                              </TableCell>
+                              <TableCell className="font-medium">{customer.name}</TableCell>
+                              <TableCell>{customer.email}</TableCell>
+                              <TableCell>{customer.phone}</TableCell>
+                              <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDefaultCustomer(customer.id)}}>
+                                      <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); handleOpenEditDialog(customer)}}>
+                                      <Edit className="h-4 w-4"/>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); setCustomerToDelete(customer)}}>
+                                      <Trash2 className="h-4 w-4"/>
+                                  </Button>
+                              </TableCell>
+                          </TableRow>
+                          {openCollapsibles[customer.id] && (
+                             <TableRow>
+                                <TableCell colSpan={5} className="p-0">
+                                  <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Adresse</h4>
+                                        <DetailItem icon={Building} label="Adresse" value={customer.address} />
+                                        <DetailItem icon={MapPin} label="Ville / CP" value={customer.city && customer.postalCode ? `${customer.city}, ${customer.postalCode}` : customer.city || customer.postalCode} />
+                                        <DetailItem icon={MapPin} label="Pays" value={customer.country} />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><Banknote className="h-4 w-4"/>Finances</h4>
+                                        <DetailItem icon={Banknote} label="IBAN" value={customer.iban} />
+                                    </div>
+                                     <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><Notebook className="h-4 w-4"/>Notes</h4>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes || 'Aucune note.'}</p>
+                                    </div>
+                                  </div>
+                                  <Separator />
+                                </TableCell>
+                             </TableRow>
+                          )}
+                      </TableBody>
+                  ))}
                   
               </Table>
           </CardContent>
