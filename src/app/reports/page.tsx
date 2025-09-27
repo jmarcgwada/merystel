@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X, Calendar as CalendarIcon } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,8 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
 
 type SortKey = 'date' | 'total' | 'tableName';
 
@@ -71,6 +73,7 @@ export default function ReportsPage() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isCustomerPopoverOpen, setCustomerPopoverOpen] = useState(false);
+    const [isSummaryOpen, setSummaryOpen] = useState(true);
 
      useEffect(() => {
         setIsClient(true);
@@ -133,6 +136,20 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus, dateRange]);
 
+     const summaryStats = useMemo(() => {
+        const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalSales = filteredAndSortedSales.length;
+        const averageBasket = totalSales > 0 ? totalRevenue / totalSales : 0;
+        const totalItemsSold = filteredAndSortedSales.reduce((acc, sale) => acc + sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0), 0);
+
+        return {
+            totalRevenue,
+            totalSales,
+            averageBasket,
+            totalItemsSold
+        }
+    }, [filteredAndSortedSales]);
+
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -187,7 +204,56 @@ export default function ReportsPage() {
             </Button>
         )}
       </PageHeader>
-      <div className="mt-8">
+      <div className="mt-8 space-y-4">
+        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen}>
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start px-2 mb-2">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", isSummaryOpen && "rotate-180")} />
+                    Résumé de la sélection
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Chiffre d'affaires</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Nombre de ventes</CardTitle>
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">+{summaryStats.totalSales}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                             <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{summaryStats.averageBasket.toFixed(2)}€</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Articles vendus</CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{summaryStats.totalItemsSold}</div>
+                        </CardContent>
+                    </Card>
+                </div>
+                 <Separator className="mb-4" />
+            </CollapsibleContent>
+        </Collapsible>
         <Card>
             <CardHeader>
                 <CardTitle>Ventes Récentes</CardTitle>
@@ -386,5 +452,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
