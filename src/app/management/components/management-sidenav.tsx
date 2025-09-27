@@ -34,7 +34,7 @@ export default function ManagementSideNav() {
   if (!isClient) {
       // Render a placeholder or skeleton while waiting for client-side mount
       return (
-          <div className="flex flex-col gap-2">
+          <div className="p-4 space-y-2">
               {Array.from({ length: 7 }).map((_, i) => (
                   <Skeleton key={i} className="h-9 w-full" />
               ))}
@@ -43,7 +43,7 @@ export default function ManagementSideNav() {
   }
 
   return (
-    <nav className="flex flex-col gap-2">
+    <nav className="flex flex-col gap-2 p-4">
       {navLinks.map((link) => (
         (link.cashierVisible || !isCashier) && (
             <Link

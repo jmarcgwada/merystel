@@ -94,7 +94,7 @@ function TableForm() {
       </PageHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-xl">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-xl space-y-8">
           
           <Card>
             <CardHeader>
@@ -148,7 +148,7 @@ function TableForm() {
             </CardContent>
           </Card>
           
-          <div className="mt-6 flex justify-end">
+          <div className="flex justify-end">
              <Button type="submit" size="lg">
                 {isEditMode ? 'Sauvegarder' : 'Créer la table'}
             </Button>

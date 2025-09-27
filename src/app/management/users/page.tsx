@@ -85,70 +85,72 @@ export default function UsersPage() {
                 </AlertDescription>
             </Alert>
         )}
-       <Card className="mt-8">
-        <CardContent className="pt-6">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Rôle</TableHead>
-                        <TableHead>Statut</TableHead>
-                        {!isManager && <TableHead className="w-[180px] text-right">Actions</TableHead>}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {(isLoading || !isClient) && Array.from({ length: 3 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-52" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                            {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
-                        </TableRow>
-                    ))}
-                    {isClient && !isLoading && users && users.map(u => {
-                        const isUserConnected = u.sessionToken && u.sessionToken.length > 0;
-                        return (
-                        <TableRow key={u.id}>
-                          <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
-                          <TableCell>{u.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="capitalize">{u.role}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {isUserConnected ? (
-                                <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
-                            ) : (
-                                <Badge variant="outline">Déconnecté</Badge>
-                            )}
-                          </TableCell>
-                          {!isManager && (
-                            <TableCell className="text-right">
-                                {currentUser?.role === 'admin' && currentUser.uid !== u.id && isUserConnected && (
-                                     <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
-                                        <LogOut className="h-4 w-4 text-destructive"/>
-                                    </Button>
-                                )}
-                                {currentUser?.role === 'admin' && currentUser.uid !== u.id && (
-                                    <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
-                                        <KeyRound className="h-4 w-4"/>
-                                    </Button>
-                                )}
-                                <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)} disabled={isManager}>
-                                    <Edit className="h-4 w-4"/>
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+       <div className="mt-8">
+        <Card>
+          <CardContent className="pt-6">
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Rôle</TableHead>
+                          <TableHead>Statut</TableHead>
+                          {!isManager && <TableHead className="w-[180px] text-right">Actions</TableHead>}
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {(isLoading || !isClient) && Array.from({ length: 3 }).map((_, i) => (
+                          <TableRow key={i}>
+                              <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-52" /></TableCell>
+                              <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                              <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                              {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
+                          </TableRow>
+                      ))}
+                      {isClient && !isLoading && users && users.map(u => {
+                          const isUserConnected = u.sessionToken && u.sessionToken.length > 0;
+                          return (
+                          <TableRow key={u.id}>
+                            <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
+                            <TableCell>{u.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="capitalize">{u.role}</Badge>
                             </TableCell>
-                          )}
-                        </TableRow>
-                    )})}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
+                            <TableCell>
+                              {isUserConnected ? (
+                                  <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
+                              ) : (
+                                  <Badge variant="outline">Déconnecté</Badge>
+                              )}
+                            </TableCell>
+                            {!isManager && (
+                              <TableCell className="text-right">
+                                  {currentUser?.role === 'admin' && currentUser.uid !== u.id && isUserConnected && (
+                                      <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
+                                          <LogOut className="h-4 w-4 text-destructive"/>
+                                      </Button>
+                                  )}
+                                  {currentUser?.role === 'admin' && currentUser.uid !== u.id && (
+                                      <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
+                                          <KeyRound className="h-4 w-4"/>
+                                      </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)} disabled={isManager}>
+                                      <Edit className="h-4 w-4"/>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
+                                      <Trash2 className="h-4 w-4"/>
+                                  </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                      )})}
+                  </TableBody>
+              </Table>
+          </CardContent>
+        </Card>
+      </div>
       <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

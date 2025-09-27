@@ -70,72 +70,74 @@ export default function CategoriesPage() {
             </Button>
         )}
       </PageHeader>
-      <Card className="mt-8">
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead>Nom</TableHead>
-                <TableHead className="w-[100px]">Couleur</TableHead>
-                <TableHead>Mode Restaurant</TableHead>
-                <TableHead className="w-[160px] text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                    <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+      <div className="mt-8">
+        <Card>
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead>Nom</TableHead>
+                  <TableHead className="w-[100px]">Couleur</TableHead>
+                  <TableHead>Mode Restaurant</TableHead>
+                  <TableHead className="w-[160px] text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-              {isClient && !isLoading && categories && categories.map(category => (
-                <TableRow key={category.id}>
-                   <TableCell>
-                      <Image 
-                        src={category.image || 'https://picsum.photos/seed/placeholder/100/100'} 
-                        alt={category.name}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover"
-                        data-ai-hint="category image"
-                      />
+              </TableHeader>
+              <TableBody>
+                {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                      <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+                {isClient && !isLoading && categories && categories.map(category => (
+                  <TableRow key={category.id}>
+                    <TableCell>
+                        <Image 
+                          src={category.image || 'https://picsum.photos/seed/placeholder/100/100'} 
+                          alt={category.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover"
+                          data-ai-hint="category image"
+                        />
+                      </TableCell>
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full border" style={{ backgroundColor: category.color || '#e2e8f0' }} />
+                          <span className="text-xs text-muted-foreground">{category.color}</span>
+                      </div>
                     </TableCell>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full border" style={{ backgroundColor: category.color || '#e2e8f0' }} />
-                        <span className="text-xs text-muted-foreground">{category.color}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {category.isRestaurantOnly && (
-                      <Badge variant="outline">
-                        <Utensils className="mr-1 h-3 w-3" />
-                        Dédié
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleCategoryFavorite(category.id)} disabled={isCashier}>
-                        <Star className={cn("h-4 w-4", category.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(category)} disabled={isCashier}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setCategoryToDelete(category)} disabled={isCashier}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    <TableCell>
+                      {category.isRestaurantOnly && (
+                        <Badge variant="outline">
+                          <Utensils className="mr-1 h-3 w-3" />
+                          Dédié
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleCategoryFavorite(category.id)} disabled={isCashier}>
+                          <Star className={cn("h-4 w-4", category.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(category)} disabled={isCashier}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setCategoryToDelete(category)} disabled={isCashier}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
       <AddCategoryDialog isOpen={isAddCategoryOpen} onClose={() => setAddCategoryOpen(false)} />
       <EditCategoryDialog isOpen={isEditCategoryOpen} onClose={() => setEditCategoryOpen(false)} category={categoryToEdit} />
 

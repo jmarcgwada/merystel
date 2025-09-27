@@ -27,6 +27,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
 }).refine(data => {
     // This logic is now client-side only, so window is safe to use.
+    if (typeof window === 'undefined') return true; // Pass validation on server
     const searchParams = new URLSearchParams(window.location.search);
     const isEditMode = Boolean(searchParams.get('id'));
     // Password is required only if it's not edit mode.
@@ -117,7 +118,7 @@ function UserForm() {
       </PageHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-2xl">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-2xl space-y-8">
           <fieldset disabled={isManager}>
             <Card className="group-disabled:opacity-70">
               <CardHeader>
@@ -210,7 +211,7 @@ function UserForm() {
           </fieldset>
           
           {!isManager && (
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end">
                 <Button type="submit" size="lg">
                     {isEditMode ? 'Sauvegarder les modifications' : "Créer l'utilisateur"}
                 </Button>
@@ -229,5 +230,3 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
-
-    

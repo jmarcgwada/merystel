@@ -62,48 +62,50 @@ export default function CustomersPage() {
           Ajouter un client
         </Button>
       </PageHeader>
-       <Card className="mt-8">
-        <CardContent className="pt-6">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Téléphone</TableHead>
-                        <TableHead className="w-[160px] text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-52" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                            <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                        </TableRow>
-                    ))}
-                    {isClient && !isLoading && customers && customers.map(customer => (
-                        <TableRow key={customer.id}>
-                            <TableCell className="font-medium">{customer.name}</TableCell>
-                            <TableCell>{customer.email}</TableCell>
-                            <TableCell>{customer.phone}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => setDefaultCustomer(customer.id)}>
-                                    <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(customer)}>
-                                    <Edit className="h-4 w-4"/>
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(customer)}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
+       <div className="mt-8">
+        <Card>
+          <CardContent className="pt-6">
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Téléphone</TableHead>
+                          <TableHead className="w-[160px] text-right">Actions</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {(isLoading || !isClient) && Array.from({ length: 5 }).map((_, i) => (
+                          <TableRow key={i}>
+                              <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-52" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                              <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                          </TableRow>
+                      ))}
+                      {isClient && !isLoading && customers && customers.map(customer => (
+                          <TableRow key={customer.id}>
+                              <TableCell className="font-medium">{customer.name}</TableCell>
+                              <TableCell>{customer.email}</TableCell>
+                              <TableCell>{customer.phone}</TableCell>
+                              <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" onClick={() => setDefaultCustomer(customer.id)}>
+                                      <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(customer)}>
+                                      <Edit className="h-4 w-4"/>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(customer)}>
+                                      <Trash2 className="h-4 w-4"/>
+                                  </Button>
+                              </TableCell>
+                          </TableRow>
+                      ))}
+                  </TableBody>
+              </Table>
+          </CardContent>
+        </Card>
+      </div>
       <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
       <EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={customerToEdit} />
        <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>

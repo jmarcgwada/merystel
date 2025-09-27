@@ -603,7 +603,7 @@ function ItemForm() {
                 </TabsContent>
             </Tabs>
           
-          <div className="lg:col-span-3 flex justify-end">
+          <div className="lg:col-span-3 flex justify-end mt-8">
              <Button type="submit" size="lg" disabled={isGenerating}>
                 {isEditMode ? 'Sauvegarder les modifications' : 'Créer l\'article'}
             </Button>

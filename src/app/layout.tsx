@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className="h-full overflow-hidden">
+    <html lang="fr" suppressHydrationWarning className="h-screen overflow-hidden">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -54,13 +54,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased h-full flex flex-col">
+      <body className="font-body antialiased h-screen flex flex-col">
         <FirebaseClientProvider>
           <PosProvider>
               <KeyboardProvider>
                 <React.Suspense fallback={<AppLoading/>}>
                   <Header />
-                  <main className="flex-1 overflow-y-auto">{children}</main>
+                  <main className="flex-1 overflow-y-hidden">{children}</main>
                   <Toaster />
                   <NavigationConfirmationDialog />
                   <VirtualKeyboard />

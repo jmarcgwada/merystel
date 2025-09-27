@@ -131,154 +131,156 @@ export default function ItemsPage() {
         )}
       </PageHeader>
 
-      <Card className="mt-8">
-        <CardContent className="pt-6">
-            <div className="flex items-center gap-4 mb-4">
-              <Input
-                placeholder="Filtrer par nom..."
-                value={filterName}
-                onChange={(e) => setFilterName(e.target.value)}
-                className="max-w-sm"
-              />
-              <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={isCategoryPopoverOpen}
-                    className="w-[200px] justify-between"
-                  >
-                    {filterCategory === 'all'
-                      ? "Toutes les catégories"
-                      : categories?.find((cat) => cat.id === filterCategory)?.name}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Rechercher une catégorie..." />
-                    <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="all"
-                        onSelect={() => {
-                          setFilterCategory("all");
-                          setCategoryPopoverOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            filterCategory === "all" ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        Toutes les catégories
-                      </CommandItem>
-                      {categories && categories.map((cat) => (
+      <div className="mt-8">
+        <Card>
+          <CardContent className="pt-6">
+              <div className="flex items-center gap-4 mb-4">
+                <Input
+                  placeholder="Filtrer par nom..."
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="max-w-sm"
+                />
+                <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isCategoryPopoverOpen}
+                      className="w-[200px] justify-between"
+                    >
+                      {filterCategory === 'all'
+                        ? "Toutes les catégories"
+                        : categories?.find((cat) => cat.id === filterCategory)?.name}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Rechercher une catégorie..." />
+                      <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
+                      <CommandGroup>
                         <CommandItem
-                          key={cat.id}
-                          value={cat.name}
+                          value="all"
                           onSelect={() => {
-                            setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
+                            setFilterCategory("all");
                             setCategoryPopoverOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              filterCategory === cat.id ? "opacity-100" : "opacity-0"
+                              filterCategory === "all" ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {cat.name}
+                          Toutes les catégories
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">Image</TableHead>
-                  <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('name')}>
-                        Nom {getSortIcon('name')}
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                     <Button variant="ghost" onClick={() => requestSort('barcode')}>
-                        Code-barres {getSortIcon('barcode')}
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                     <Button variant="ghost" onClick={() => requestSort('categoryId')}>
-                        Catégorie {getSortIcon('categoryId')}
-                    </Button>
-                  </TableHead>
-                  {!isCashier && (
-                    <TableHead className="text-right">
-                        <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
-                            Prix Achat {getSortIcon('purchasePrice')}
-                        </Button>
+                        {categories && categories.map((cat) => (
+                          <CommandItem
+                            key={cat.id}
+                            value={cat.name}
+                            onSelect={() => {
+                              setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
+                              setCategoryPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                filterCategory === cat.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {cat.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Image</TableHead>
+                    <TableHead>
+                      <Button variant="ghost" onClick={() => requestSort('name')}>
+                          Nom {getSortIcon('name')}
+                      </Button>
                     </TableHead>
-                  )}
-                  <TableHead className="text-right">
-                     <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
-                        Prix Vente {getSortIcon('price')}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="w-[160px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(isLoading || !isClient) && Array.from({length: 5}).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                    {!isCashier && <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>}
-                    <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                    <TableHead>
+                      <Button variant="ghost" onClick={() => requestSort('barcode')}>
+                          Code-barres {getSortIcon('barcode')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button variant="ghost" onClick={() => requestSort('categoryId')}>
+                          Catégorie {getSortIcon('categoryId')}
+                      </Button>
+                    </TableHead>
+                    {!isCashier && (
+                      <TableHead className="text-right">
+                          <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
+                              Prix Achat {getSortIcon('purchasePrice')}
+                          </Button>
+                      </TableHead>
+                    )}
+                    <TableHead className="text-right">
+                      <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
+                          Prix Vente {getSortIcon('price')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-[160px] text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-                {isClient && !isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <Image 
-                        src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
-                        alt={item.name}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover"
-                        data-ai-hint="product image"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
-                    <TableCell>
-                        <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
-                    </TableCell>
-                    {!isCashier && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
-                    <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
-                    <TableCell className="text-right">
-                       <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleItemFavorite(item.id)} disabled={isCashier}>
-                           <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                       </Button>
-                       <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)} >
-                           <Edit className="h-4 w-4"/>
-                       </Button>
-                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setItemToDelete(item)} disabled={isCashier}>
-                           <Trash2 className="h-4 w-4"/>
-                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {(isLoading || !isClient) && Array.from({length: 5}).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
+                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                      {!isCashier && <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>}
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                  {isClient && !isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Image 
+                          src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
+                          alt={item.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover"
+                          data-ai-hint="product image"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
+                      <TableCell>
+                          <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
+                      </TableCell>
+                      {!isCashier && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
+                      <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleItemFavorite(item.id)} disabled={isCashier}>
+                            <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)} >
+                            <Edit className="h-4 w-4"/>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setItemToDelete(item)} disabled={isCashier}>
+                            <Trash2 className="h-4 w-4"/>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>

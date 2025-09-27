@@ -10,17 +10,13 @@ export default function ManagementLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-       <div className="grid grid-cols-1 md:grid-cols-[208px_1fr] lg:grid-cols-[224px_1fr] gap-8">
-        <aside className="w-full shrink-0">
-           <div className="sticky top-24">
-            <ManagementSideNav />
-          </div>
-        </aside>
-        <main>
-          {children}
-        </main>
-      </div>
+    <div className="h-[calc(100vh-4rem)] flex">
+      <aside className="w-56 shrink-0 border-r bg-card overflow-y-auto">
+        <ManagementSideNav />
+      </aside>
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {children}
+      </main>
     </div>
   );
 }
