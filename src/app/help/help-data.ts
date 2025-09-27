@@ -1,4 +1,3 @@
-'use server';
 
 export interface HelpTopic {
   slug: string;
