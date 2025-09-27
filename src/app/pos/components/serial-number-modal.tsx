@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Item, OrderItem } from '@/lib/types';
+import type { OrderItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function SerialNumberModal() {
@@ -24,6 +24,8 @@ export function SerialNumberModal() {
   const [serialNumbers, setSerialNumbers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const quantity = useMemo(() => {
     if (!serialNumberItem) return 0;
     return serialNumberItem.quantity;
@@ -31,7 +33,7 @@ export function SerialNumberModal() {
 
   useEffect(() => {
     if (serialNumberItem) {
-      // Initialize with existing serials padded with empty strings to match new quantity
+      inputRefs.current = Array(quantity).fill(null);
       const existingSerials = (serialNumberItem.item as OrderItem).serialNumbers || [];
       const newSerials = Array(quantity).fill('');
       for (let i = 0; i < Math.min(existingSerials.length, quantity); i++) {
@@ -39,8 +41,17 @@ export function SerialNumberModal() {
       }
       setSerialNumbers(newSerials);
       setError(null);
+
+      // Focus on the first empty input
+      setTimeout(() => {
+        const firstEmptyIndex = newSerials.findIndex(sn => !sn);
+        inputRefs.current[firstEmptyIndex > -1 ? firstEmptyIndex : 0]?.focus();
+        inputRefs.current[firstEmptyIndex > -1 ? firstEmptyIndex : 0]?.select();
+      }, 100);
+
     } else {
         setSerialNumbers([]);
+        inputRefs.current = [];
     }
   }, [serialNumberItem, quantity]);
   
@@ -49,6 +60,12 @@ export function SerialNumberModal() {
     newSerialNumbers[index] = value;
     setSerialNumbers(newSerialNumbers);
     setError(null); // Clear error on change
+
+    // Auto-focus next input
+    if (value && index < quantity - 1) {
+        inputRefs.current[index + 1]?.focus();
+        inputRefs.current[index + 1]?.select();
+    }
   };
 
   const handleClose = () => {
@@ -56,7 +73,6 @@ export function SerialNumberModal() {
   };
 
   const handleConfirm = () => {
-    // Check for duplicates, ignoring empty strings
     const filledSerialNumbers = serialNumbers.filter(sn => sn && sn.trim() !== '');
     const uniqueSerialNumbers = new Set(filledSerialNumbers);
     if (filledSerialNumbers.length !== uniqueSerialNumbers.size) {
@@ -85,23 +101,23 @@ export function SerialNumberModal() {
         <DialogHeader>
           <DialogTitle>Saisir les numéros de série</DialogTitle>
           <DialogDescription>
-            Veuillez saisir les numéros de série pour l'article "{serialNumberItem.item.name}".
+            Veuillez saisir les {quantity} numéros de série pour l'article "{serialNumberItem.item.name}".
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <ScrollArea className="h-64 pr-6">
-            <div className="grid gap-4">
+            <div className="space-y-3">
                 {[...Array(quantity)].map((_, index) => (
-                    <div key={index} className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor={`sn-${index}`} className="text-right">
+                    <div key={index} className="flex items-center gap-4">
+                        <Label htmlFor={`sn-${index}`} className="w-12 text-right text-muted-foreground">
                             S/N {index + 1}
                         </Label>
                         <Input
                             id={`sn-${index}`}
+                            ref={el => inputRefs.current[index] = el}
                             value={serialNumbers[index] || ''}
                             onChange={(e) => handleSerialNumberChange(index, e.target.value)}
-                            className="col-span-3"
-                            autoFocus={index === 0}
+                            className="flex-1"
                         />
                     </div>
                 ))}
