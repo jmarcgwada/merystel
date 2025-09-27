@@ -232,21 +232,27 @@ export default function ParametersPage() {
                             onValueChange={(value) => setDescriptionDisplay(value as 'none' | 'first' | 'both')}
                             className="grid sm:grid-cols-3 gap-4 pt-2"
                         >
-                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                <RadioGroupItem value="none" id="desc-none" className="sr-only" />
-                                <p className="text-base font-semibold">Aucune</p>
-                                <p className="text-xs text-muted-foreground text-center mt-1">Ne pas afficher de description.</p>
-                            </Label>
-                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                <RadioGroupItem value="first" id="desc-first" className="sr-only" />
-                                <p className="text-base font-semibold">Description 1</p>
-                                <p className="text-xs text-muted-foreground text-center mt-1">Afficher le premier champ descriptif.</p>
-                            </Label>
-                            <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                <RadioGroupItem value="both" id="desc-both" className="sr-only" />
-                                <p className="text-base font-semibold">Les deux</p>
-                                <p className="text-xs text-muted-foreground text-center mt-1">Afficher les deux descriptions.</p>
-                            </Label>
+                           <div className="flex items-center">
+                                <RadioGroupItem value="none" id="desc-none" />
+                                <Label htmlFor="desc-none" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                  <p className="text-base font-semibold">Aucune</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Ne pas afficher de description.</p>
+                                </Label>
+                            </div>
+                             <div className="flex items-center">
+                                <RadioGroupItem value="first" id="desc-first" />
+                                <Label htmlFor="desc-first" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                  <p className="text-base font-semibold">Description 1</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Afficher le premier champ descriptif.</p>
+                                </Label>
+                            </div>
+                             <div className="flex items-center">
+                                <RadioGroupItem value="both" id="desc-both" />
+                                <Label htmlFor="desc-both" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                  <p className="text-base font-semibold">Les deux</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Afficher les deux descriptions.</p>
+                                </Label>
+                            </div>
                         </RadioGroup>
                      ) : (
                         <div className="grid sm:grid-cols-3 gap-4 pt-2">
