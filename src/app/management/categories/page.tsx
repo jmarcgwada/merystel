@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, Utensils, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Utensils, RefreshCw, X } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
 import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -20,8 +20,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import type { Category } from '@/lib/types';
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import type { Category, Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +40,11 @@ export default function CategoriesPage() {
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+
+  const [isItemListOpen, setIsItemListOpen] = useState(false);
+  const [selectedCategoryItems, setSelectedCategoryItems] = useState<Item[]>([]);
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
+
 
   useEffect(() => {
     setIsClient(true);
@@ -61,6 +67,14 @@ export default function CategoriesPage() {
     setCategoryToEdit(category);
     setEditCategoryOpen(true);
   }
+
+  const handleShowItems = (category: Category) => {
+    const itemsForCategory = items.filter(item => item.categoryId === category.id);
+    setSelectedCategoryItems(itemsForCategory);
+    setSelectedCategoryName(category.name);
+    setIsItemListOpen(true);
+  };
+
 
   return (
     <>
@@ -94,7 +108,7 @@ export default function CategoriesPage() {
                   <TableRow key={i}>
                       <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -114,7 +128,9 @@ export default function CategoriesPage() {
                       </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell>
-                        <Badge variant="secondary">{getItemCountForCategory(category.id)}</Badge>
+                        <Button variant="link" className="p-0 h-auto" onClick={() => handleShowItems(category)}>
+                            <Badge variant="secondary">{getItemCountForCategory(category.id)}</Badge>
+                        </Button>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -165,6 +181,43 @@ export default function CategoriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isItemListOpen} onOpenChange={setIsItemListOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Articles de la catégorie "{selectedCategoryName}"</DialogTitle>
+            <DialogDescription>
+              Liste de tous les articles appartenant à cette catégorie.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto my-4 pr-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Article</TableHead>
+                  <TableHead className="text-right">Prix</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedCategoryItems.length > 0 ? (
+                  selectedCategoryItems.map(item => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      Aucun article dans cette catégorie.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
