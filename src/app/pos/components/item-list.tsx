@@ -22,7 +22,7 @@ interface ItemListProps {
 }
 
 export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListProps) {
-  const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity } = usePos();
+  const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity, selectedTable } = usePos();
   const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
   const handleItemClick = (itemId: string) => {
@@ -36,25 +36,34 @@ export function ItemList({ category, searchTerm, showFavoritesOnly }: ItemListPr
   const filteredItems = useMemo(() => {
     if (!allItems || !popularItems || !categories) return [];
 
-    if (category === 'popular') {
-        return popularItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    let itemsToFilter = allItems;
+
+    // Determine the base list of items to filter
+    if (showFavoritesOnly) {
+      itemsToFilter = allItems.filter(item => item.isFavorite);
+    } else if (category === 'popular') {
+      itemsToFilter = popularItems;
     }
 
-    return allItems.filter(item => {
-      let matchesCategory = true;
-      if (category === 'all' || category === null) {
-          matchesCategory = true;
-      } else if (typeof category === 'object' && category.id) {
-          matchesCategory = item.categoryId === category.id;
-      }
-      
-      const matchesSearch = searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+    // Filter by selected category (only if not 'all' or special views)
+    if (category && typeof category === 'object' && category.id) {
+        itemsToFilter = itemsToFilter.filter(item => item.categoryId === category.id);
+    }
 
-      const matchesFavorites = showFavoritesOnly ? !!item.isFavorite : true;
+    // Apply search term filter
+    let searchedItems = itemsToFilter.filter(item => 
+        searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true
+    );
+    
+    // In restaurant mode, further filter items to only include those in restaurant-dedicated categories
+    if (selectedTable) {
+        const restaurantCategoryIds = new Set(categories.filter(c => c.isRestaurantOnly).map(c => c.id));
+        return searchedItems.filter(item => restaurantCategoryIds.has(item.categoryId));
+    }
 
-      return matchesCategory && matchesSearch && matchesFavorites;
-    });
-  }, [allItems, popularItems, categories, category, searchTerm, showFavoritesOnly]);
+    return searchedItems;
+
+  }, [allItems, popularItems, categories, category, searchTerm, showFavoritesOnly, selectedTable]);
 
   const getCategoryColor = (categoryId: string) => {
     if (!categories) return 'transparent';

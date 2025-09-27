@@ -53,13 +53,12 @@ export function CategoryList({
     );
 
     // If a table is selected (restaurant mode), show only categories marked for restaurant
-    // or categories where the flag is not set (undefined), assuming they are for both.
     if (selectedTable) {
-        return baseCategories.filter(category => category.isRestaurantOnly === true || category.isRestaurantOnly === undefined);
+        return baseCategories.filter(category => category.isRestaurantOnly === true);
     }
 
-    // If no table is selected (direct sale mode), show only categories NOT marked for restaurant.
-    return baseCategories.filter(category => !category.isRestaurantOnly);
+    // In direct sale mode, show all categories matching the search
+    return baseCategories;
 
   }, [categories, searchTerm, selectedTable]);
 
