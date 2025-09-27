@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Eraser, Users, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser, Users, RefreshCw, Lock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -73,6 +73,7 @@ export default function TablesPage() {
                         <TableHead className="w-[120px]">Couverts</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Statut</TableHead>
+                        <TableHead>Verrou</TableHead>
                         <TableHead className="w-[160px] text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -84,6 +85,7 @@ export default function TablesPage() {
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-12" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                         </TableRow>
                     ))}
@@ -104,6 +106,9 @@ export default function TablesPage() {
                                 <Badge variant={table.status === 'available' ? 'secondary' : table.status === 'occupied' ? 'default' : 'outline'} className="capitalize">
                                     {table.status === 'available' ? 'Disponible' : table.status === 'occupied' ? 'Occupée' : 'Paiement'}
                                 </Badge>
+                            </TableCell>
+                            <TableCell>
+                                {table.verrou && <Lock className="h-4 w-4 text-destructive" />}
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end items-center">
@@ -157,4 +162,3 @@ export default function TablesPage() {
     </>
   );
 }
-

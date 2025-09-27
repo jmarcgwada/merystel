@@ -45,6 +45,7 @@ export interface Table {
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
   covers?: number;
+  verrou?: boolean;
 }
 
 export interface Customer {

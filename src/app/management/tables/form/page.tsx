@@ -12,18 +12,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
 import { ArrowLeft } from 'lucide-react';
 import type { Table } from '@/lib/types';
 import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   covers: z.coerce.number().min(0, { message: 'Le nombre de couverts doit être positif.' }).optional(),
   description: z.string().optional(),
+  verrou: z.boolean().default(false),
 });
 
 type TableFormValues = z.infer<typeof formSchema>;
@@ -44,6 +46,7 @@ function TableForm() {
       name: '',
       covers: 0,
       description: '',
+      verrou: false,
     },
   });
 
@@ -53,12 +56,14 @@ function TableForm() {
         name: tableToEdit.name,
         covers: tableToEdit.covers || 0,
         description: tableToEdit.description || '',
+        verrou: tableToEdit.verrou || false,
       });
     } else {
       form.reset({
         name: '',
         covers: 0,
         description: '',
+        verrou: false,
       });
     }
   }, [isEditMode, tableToEdit, form]);
@@ -144,6 +149,26 @@ function TableForm() {
                   </FormItem>
                 )}
               />
+                <FormField
+                    control={form.control}
+                    name="verrou"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <FormLabel className="text-base">Verrouiller la table</FormLabel>
+                            <FormDescription>
+                                Empêche la sélection ou la modification de la table.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        </FormItem>
+                    )}
+                />
             </CardContent>
           </Card>
           
