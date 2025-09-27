@@ -25,7 +25,7 @@ import type { Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
@@ -158,42 +158,45 @@ export default function ItemsPage() {
                   <PopoverContent className="w-[200px] p-0">
                     <Command>
                       <CommandInput placeholder="Rechercher une catégorie..." />
-                      <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value="all"
-                          onSelect={() => {
-                            setFilterCategory("all");
-                            setCategoryPopoverOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              filterCategory === "all" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          Toutes les catégories
-                        </CommandItem>
-                        {categories && categories.map((cat) => (
-                          <CommandItem
-                            key={cat.id}
-                            value={cat.id}
-                            onSelect={(currentValue) => {
-                              setFilterCategory(currentValue === filterCategory ? "all" : currentValue);
-                              setCategoryPopoverOpen(false);
+                      <CommandList>
+                        <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem
+                            value="Toutes les catégories"
+                            onSelect={() => {
+                                setFilterCategory("all");
+                                setCategoryPopoverOpen(false);
                             }}
-                          >
+                            >
                             <Check
-                              className={cn(
+                                className={cn(
                                 "mr-2 h-4 w-4",
-                                filterCategory === cat.id ? "opacity-100" : "opacity-0"
-                              )}
+                                filterCategory === "all" ? "opacity-100" : "opacity-0"
+                                )}
                             />
-                            {cat.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                            Toutes les catégories
+                            </CommandItem>
+                            {categories && categories.map((cat) => (
+                            <CommandItem
+                                key={cat.id}
+                                value={cat.name}
+                                onSelect={(currentValue) => {
+                                const selectedCategory = categories.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
+                                setFilterCategory(selectedCategory ? selectedCategory.id : "all");
+                                setCategoryPopoverOpen(false);
+                                }}
+                            >
+                                <Check
+                                className={cn(
+                                    "mr-2 h-4 w-4",
+                                    filterCategory === cat.id ? "opacity-100" : "opacity-0"
+                                )}
+                                />
+                                {cat.name}
+                            </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
