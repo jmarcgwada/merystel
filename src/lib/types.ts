@@ -33,6 +33,7 @@ export interface Item {
   barcode?: string;
   marginCoefficient?: number;
   requiresSerialNumber?: boolean;
+  additionalCosts?: number;
 }
 
 export interface OrderItem extends Item {
@@ -50,7 +51,6 @@ export interface Table {
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
   covers?: number;
-  verrou?: boolean;
   lockedBy?: string;
 }
 

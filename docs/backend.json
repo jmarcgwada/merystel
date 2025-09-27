@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -80,10 +81,12 @@
         "image": { "type": "string" },
         "isFavorite": { "type": "boolean" },
         "description": { "type": "string" },
+        "description2": { "type": "string" },
         "showImage": { "type": "boolean" },
         "barcode": { "type": "string" },
         "marginCoefficient": { "type": "number" },
-        "requiresSerialNumber": { "type": "boolean" }
+        "requiresSerialNumber": { "type": "boolean" },
+        "additionalCosts": { "type": "number" }
       },
       "required": ["name", "price", "categoryId", "vatId"]
     },
@@ -98,7 +101,8 @@
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["available", "occupied", "paying"] },
         "order": { "type": "array", "items": { "type": "object" } },
-        "covers": { "type": "number", "description": "Number of seats at the table." }
+        "covers": { "type": "number", "description": "Number of seats at the table." },
+        "lockedBy": { "type": "string", "description": "ID of the user who locked the table." }
       },
       "required": ["name", "number", "status", "order"]
     },

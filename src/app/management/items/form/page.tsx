@@ -43,6 +43,7 @@ const formSchema = z.object({
   barcode: z.string().optional(),
   marginCoefficient: z.coerce.number().optional(),
   requiresSerialNumber: z.boolean().default(false),
+  additionalCosts: z.coerce.number().optional(),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -78,6 +79,7 @@ function ItemForm() {
       barcode: '',
       marginCoefficient: 0,
       requiresSerialNumber: false,
+      additionalCosts: 0,
     },
   });
 
@@ -116,6 +118,7 @@ function ItemForm() {
         barcode: itemToEdit.barcode || '',
         marginCoefficient: itemToEdit.marginCoefficient || 0,
         requiresSerialNumber: itemToEdit.requiresSerialNumber || false,
+        additionalCosts: itemToEdit.additionalCosts || 0,
       });
     } else if (!isEditMode) {
         form.reset({
@@ -132,6 +135,7 @@ function ItemForm() {
           barcode: '',
           marginCoefficient: 0,
           requiresSerialNumber: false,
+          additionalCosts: 0,
         });
     }
   }, [isEditMode, itemToEdit, form]);
@@ -156,6 +160,7 @@ function ItemForm() {
         price: Number(data.price),
         purchasePrice: Number(data.purchasePrice) || undefined,
         marginCoefficient: Number(data.marginCoefficient) || undefined,
+        additionalCosts: Number(data.additionalCosts) || undefined,
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
@@ -238,6 +243,7 @@ function ItemForm() {
                 <Tabs defaultValue="details" className="w-full">
                     <TabsList>
                         <TabsTrigger value="details">Détails</TabsTrigger>
+                        <TabsTrigger value="pricing">Prix</TabsTrigger>
                         <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details">
@@ -247,11 +253,20 @@ function ItemForm() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
-                            <p><span className="font-semibold">Prix:</span> {itemToEdit?.price.toFixed(2)}€</p>
                             <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
                             <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
                             <p><span className="font-semibold">Description 1:</span> {itemToEdit?.description || 'N/A'}</p>
                             <p><span className="font-semibold">Description 2:</span> {itemToEdit?.description2 || 'N/A'}</p>
+                        </CardContent>
+                        </Card>
+                    </TabsContent>
+                     <TabsContent value="pricing">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle>Prix de l'article</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <p><span className="font-semibold">Prix de vente:</span> {itemToEdit?.price.toFixed(2)}€</p>
                         </CardContent>
                         </Card>
                     </TabsContent>
@@ -296,6 +311,7 @@ function ItemForm() {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Détails de l'article</TabsTrigger>
+                    <TabsTrigger value="pricing">Prix</TabsTrigger>
                     <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                 </TabsList>
                 <TabsContent value="details">
@@ -406,51 +422,75 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                                <FormField
-                                control={form.control}
-                                name="price"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Prix de vente (€)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="pricing">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gestion des prix</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <FormField
+                                    control={form.control}
+                                    name="price"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Prix de vente (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
-                                {!isCashier && (
+                             </div>
+                             {!isCashier && (
                                 <>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                     <FormField
-                                    control={form.control}
-                                    name="purchasePrice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Prix d'achat (€)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
+                                        control={form.control}
+                                        name="purchasePrice"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Prix d'achat (€)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
                                     <FormField
-                                    control={form.control}
-                                    name="marginCoefficient"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Coeff. Marge</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
+                                        control={form.control}
+                                        name="additionalCosts"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Coûts additionnels (€)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.01" placeholder="ex: 0.25" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
+                                    <FormField
+                                        control={form.control}
+                                        name="marginCoefficient"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Coeff. Marge</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    </div>
                                 </>
                                 )}
-                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
