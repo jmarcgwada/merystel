@@ -214,16 +214,6 @@ export function OrderSummary() {
     );
   }
 
-  const borderClass = useMemo(() => {
-    if (currentSaleContext?.isTableSale) {
-      return 'border-l-4 border-amber-500';
-    }
-    if (selectedTable) {
-      return 'border-l-4 border-blue-500';
-    }
-    return 'border-l-4 border-transparent';
-  }, [selectedTable, currentSaleContext]);
-  
   const HeaderAction = () => {
     if (selectedTable) {
       if (order.length > 0) {
@@ -332,7 +322,7 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className={cn("flex h-full flex-col bg-card relative", borderClass)}>
+      <div className="flex h-full flex-col bg-card relative">
         <div className="flex items-center justify-between p-2 border-b h-[49px]">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
