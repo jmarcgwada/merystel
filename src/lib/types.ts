@@ -62,6 +62,12 @@ export interface Customer {
     email?: string;
     phone?: string;
     isDefault?: boolean;
+    address?: string;
+    postalCode?: string;
+    city?: string;
+    country?: string;
+    iban?: string;
+    notes?: string;
 }
 
 export interface PaymentMethod {
