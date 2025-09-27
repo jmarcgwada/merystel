@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -87,7 +87,14 @@ export default function SettingsPage() {
       <PageHeader
         title="Paramètres"
         subtitle="Configurez et personnalisez l'application selon vos besoins."
-      />
+      >
+        <Button asChild variant="outline" className="btn-back">
+          <Link href="/dashboard">
+            <ArrowLeft />
+            Retour au tableau de bord
+          </Link>
+        </Button>
+      </PageHeader>
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsLinks.filter(link => !link.adminOnly || user?.role === 'admin').map(link => (
             <Link href={link.href} key={link.href} className="group" target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
