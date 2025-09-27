@@ -18,7 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable } = usePos();
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -40,7 +40,10 @@ export default function PosPage() {
     if(tableId) {
       setSelectedTableById(tableId);
     } else {
-      setSelectedTableById(null);
+      // If we are not in restaurant mode (no tableId), ensure selectedTable is null.
+      if (!selectedTable) {
+        setSelectedTableById(null);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);

@@ -9,7 +9,7 @@ import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 
 export default function RestaurantPage() {
   return (
-    <div className="bg-background h-full">
+    <div className="bg-blue-50 dark:bg-blue-950 h-full">
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Mode Restaurant"
