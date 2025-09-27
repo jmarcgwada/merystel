@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, ChevronsUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +21,6 @@ import type { Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
@@ -68,12 +67,11 @@ export default function ReportsPage() {
     const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
     
     // Filtering state
-    const [filterCustomer, setFilterCustomer] = useState('all');
+    const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterSerialNumber, setFilterSerialNumber] = useState('');
-    const [isCustomerPopoverOpen, setCustomerPopoverOpen] = useState(false);
     const [isSummaryOpen, setSummaryOpen] = useState(true);
 
      useEffect(() => {
@@ -90,7 +88,8 @@ export default function ReportsPage() {
 
         // Apply filters
         let filteredSales = allSales.filter(sale => {
-            const customerMatch = filterCustomer === 'all' || sale.customerId === filterCustomer;
+            const customerName = sale.customerId ? getCustomerName(sale.customerId) : '';
+            const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
             const serialNumberMatch = !filterSerialNumber || sale.items.some(item => item.serialNumbers?.some(sn => sn.toLowerCase().includes(filterSerialNumber.toLowerCase())));
@@ -136,7 +135,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, sortConfig, filterCustomer, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
+    }, [allSales, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -168,7 +167,7 @@ export default function ReportsPage() {
     }
 
     const resetFilters = () => {
-        setFilterCustomer('all');
+        setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
         setDateRange(undefined);
@@ -298,62 +297,12 @@ export default function ReportsPage() {
                         </PopoverContent>
                     </Popover>
 
-                    <Popover open={isCustomerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
-                        <PopoverTrigger asChild>
-                        <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isCustomerPopoverOpen}
-                            className="w-[200px] justify-between"
-                        >
-                            {filterCustomer === 'all'
-                            ? "Tous les clients"
-                            : customers?.find((cust) => cust.id === filterCustomer)?.name}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                            <CommandInput placeholder="Rechercher un client..." />
-                            <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                            <CommandGroup>
-                            <CommandItem
-                                value="all"
-                                onSelect={() => {
-                                setFilterCustomer("all");
-                                setCustomerPopoverOpen(false);
-                                }}
-                            >
-                                <Check
-                                className={cn(
-                                    "mr-2 h-4 w-4",
-                                    filterCustomer === "all" ? "opacity-100" : "opacity-0"
-                                )}
-                                />
-                                Tous les clients
-                            </CommandItem>
-                            {customers && customers.map((cust) => (
-                                <CommandItem
-                                key={cust.id}
-                                value={cust.name}
-                                onSelect={() => {
-                                    setFilterCustomer(cust.id === filterCustomer ? "all" : cust.id);
-                                    setCustomerPopoverOpen(false);
-                                }}
-                                >
-                                <Check
-                                    className={cn(
-                                    "mr-2 h-4 w-4",
-                                    filterCustomer === cust.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                />
-                                {cust.name}
-                                </CommandItem>
-                            ))}
-                            </CommandGroup>
-                        </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Input
+                        placeholder="Filtrer par client..."
+                        value={filterCustomerName}
+                        onChange={(e) => setFilterCustomerName(e.target.value)}
+                        className="max-w-xs"
+                    />
 
                     <Input
                         placeholder="Filtrer par origine..."
