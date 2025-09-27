@@ -22,6 +22,7 @@ export interface Item {
   id: string;
   name: string;
   price: number;
+  purchasePrice?: number;
   categoryId: string;
   vatId: string;
   image?: string;

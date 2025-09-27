@@ -74,6 +74,7 @@
       "properties": {
         "name": { "type": "string" },
         "price": { "type": "number" },
+        "purchasePrice": { "type": "number" },
         "categoryId": { "type": "string" },
         "vatId": { "type": "string" },
         "image": { "type": "string" },

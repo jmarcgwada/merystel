@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
+  purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
   categoryId: z.string().min(1, { message: 'Veuillez sélectionner une catégorie.' }),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
@@ -63,6 +64,7 @@ function ItemForm() {
     defaultValues: {
       name: '',
       price: 0,
+      purchasePrice: 0,
       categoryId: '',
       vatId: '',
       description: '',
@@ -97,6 +99,7 @@ function ItemForm() {
       form.reset({
         name: itemToEdit.name,
         price: itemToEdit.price,
+        purchasePrice: itemToEdit.purchasePrice || 0,
         categoryId: itemToEdit.categoryId,
         vatId: itemToEdit.vatId,
         description: itemToEdit.description || '',
@@ -109,6 +112,7 @@ function ItemForm() {
         form.reset({
           name: '',
           price: 0,
+          purchasePrice: 0,
           categoryId: '',
           vatId: '',
           description: '',
@@ -138,6 +142,7 @@ function ItemForm() {
         ...itemToEdit,
         ...data,
         price: Number(data.price),
+        purchasePrice: Number(data.purchasePrice) || undefined,
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
@@ -386,6 +391,23 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
+                            {!isCashier && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <FormField
+                                    control={form.control}
+                                    name="purchasePrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Prix d'achat (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

@@ -707,7 +707,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [heldOrders, user, toast]);
 
-  const promoteTableToTicket = useCallback(
+    const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
       const table = tables.find(t => t.id === tableId);
@@ -767,8 +767,9 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
                 throw new Error("Cette table est actuellement verrouillée par un autre utilisateur.");
             }
             if (tableData.status === 'paying') {
+                 // The function is defined before this `useCallback`
+                 // so it can be safely used here.
                  promoteTableToTicket(tableId, tableData.order);
-                 // No need to set verrou here as promote will handle the state
                  return;
             }
 
@@ -778,15 +779,20 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
         // If transaction is successful, get the data and set state
         const updatedTableDoc = await getDoc(tableRef);
         const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
-
-        setSelectedTable(tableData);
-        setOrder(tableData.order || []);
-        setCurrentSaleId(null);
-        setCurrentSaleContext({
-            tableId: tableData.id,
-            tableName: tableData.name,
-        });
-        routerRef.current.push(`/pos?tableId=${tableId}`);
+        
+        // Check again if status is paying, in case it was changed by promoteTableToTicket
+        if(tableData.status !== 'paying') {
+            setSelectedTable(tableData);
+            setOrder(tableData.order || []);
+            setCurrentSaleId(null);
+            setCurrentSaleContext({
+                tableId: tableData.id,
+                tableName: tableData.name,
+            });
+            routerRef.current.push(`/pos?tableId=${tableId}`);
+        } else {
+             routerRef.current.push(`/pos`);
+        }
 
     } catch (error: any) {
         toast({
