@@ -5,21 +5,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog } from 'lucide-react';
-import { usePos } from '@/contexts/pos-context';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function ManagementSideNav() {
   const pathname = usePathname();
   const { user } = useUser();
   const [isClient, setIsClient] = useState(false);
-  const isCashier = user?.role === 'cashier';
-
+  
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const isCashier = user?.role === 'cashier';
 
   const navLinks = [
     { href: '/management/items', label: 'Articles', icon: Box, cashierVisible: true },
@@ -36,7 +36,7 @@ export default function ManagementSideNav() {
       return (
           <div className="flex flex-col gap-2">
               {Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} className="h-9 rounded-lg bg-muted animate-pulse" />
+                  <Skeleton key={i} className="h-9 w-full" />
               ))}
           </div>
       );
@@ -45,7 +45,7 @@ export default function ManagementSideNav() {
   return (
     <nav className="flex flex-col gap-2">
       {navLinks.map((link) => (
-        link.cashierVisible && (
+        (link.cashierVisible || !isCashier) && (
             <Link
             key={link.href}
             href={link.href}

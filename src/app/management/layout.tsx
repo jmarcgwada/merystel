@@ -17,7 +17,7 @@ export default function ManagementLayout({
             <ManagementSideNav />
           </div>
         </aside>
-        <main className="min-w-0">
+        <main>
           {children}
         </main>
       </div>
