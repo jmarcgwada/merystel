@@ -113,55 +113,59 @@ export default function AppearancePage() {
           <CardContent className="space-y-6 pt-4">
              <div className="grid md:grid-cols-2 gap-8">
                 <div className="p-4 rounded-lg border">
-                  <Tabs value={dashboardBgType} onValueChange={(value) => setDashboardBgType(value as 'color' | 'image')}>
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="color"><Palette className="mr-2 h-4 w-4"/>Couleur</TabsTrigger>
-                        <TabsTrigger value="image"><ImageIcon className="mr-2 h-4 w-4"/>Image</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="color" className="pt-4 space-y-6">
-                       <div className="grid gap-2">
-                            <Label htmlFor="dashboard-bg-color">Couleur de fond</Label>
-                            <div className="flex items-center gap-4">
-                                <Input
-                                    id="dashboard-bg-color"
-                                    type="color"
-                                    value={dashboardBackgroundColor}
-                                    onChange={(e) => setDashboardBackgroundColor(e.target.value)}
-                                    className="w-16 h-12 p-1"
-                                />
-                                {isClient && <span className="font-mono text-sm text-muted-foreground">{dashboardBackgroundColor}</span>}
-                            </div>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="image" className="pt-4 space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="dashboard-bg-image-url">URL de l'image</Label>
-                             <div className="flex items-center">
-                                <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
-                                <Input 
-                                    id="dashboard-bg-image-url"
-                                    value={dashboardBackgroundImage.startsWith('data:') ? '' : dashboardBackgroundImage}
-                                    onChange={(e) => setDashboardBackgroundImage(e.target.value)}
-                                    placeholder="https://example.com/image.jpg"
-                                    className="pl-9"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Separator className="flex-1"/>
-                            <span className="text-xs text-muted-foreground">OU</span>
-                            <Separator className="flex-1"/>
-                        </div>
+                  {isClient ? (
+                    <Tabs value={dashboardBgType} onValueChange={(value) => setDashboardBgType(value as 'color' | 'image')}>
+                      <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="color"><Palette className="mr-2 h-4 w-4"/>Couleur</TabsTrigger>
+                          <TabsTrigger value="image"><ImageIcon className="mr-2 h-4 w-4"/>Image</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="color" className="pt-4 space-y-6">
                          <div className="grid gap-2">
-                            <Label htmlFor="dashboard-bg-image-file">Téléverser une image</Label>
-                             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Choisir un fichier
-                            </Button>
-                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*"/>
-                        </div>
-                    </TabsContent>
-                  </Tabs>
+                              <Label htmlFor="dashboard-bg-color">Couleur de fond</Label>
+                              <div className="flex items-center gap-4">
+                                  <Input
+                                      id="dashboard-bg-color"
+                                      type="color"
+                                      value={dashboardBackgroundColor}
+                                      onChange={(e) => setDashboardBackgroundColor(e.target.value)}
+                                      className="w-16 h-12 p-1"
+                                  />
+                                  {isClient && <span className="font-mono text-sm text-muted-foreground">{dashboardBackgroundColor}</span>}
+                              </div>
+                          </div>
+                      </TabsContent>
+                      <TabsContent value="image" className="pt-4 space-y-6">
+                          <div className="grid gap-2">
+                              <Label htmlFor="dashboard-bg-image-url">URL de l'image</Label>
+                               <div className="flex items-center">
+                                  <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                                  <Input 
+                                      id="dashboard-bg-image-url"
+                                      value={dashboardBackgroundImage.startsWith('data:') ? '' : dashboardBackgroundImage}
+                                      onChange={(e) => setDashboardBackgroundImage(e.target.value)}
+                                      placeholder="https://example.com/image.jpg"
+                                      className="pl-9"
+                                  />
+                              </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <Separator className="flex-1"/>
+                              <span className="text-xs text-muted-foreground">OU</span>
+                              <Separator className="flex-1"/>
+                          </div>
+                           <div className="grid gap-2">
+                              <Label htmlFor="dashboard-bg-image-file">Téléverser une image</Label>
+                               <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                  <Upload className="mr-2 h-4 w-4" />
+                                  Choisir un fichier
+                              </Button>
+                              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*"/>
+                          </div>
+                      </TabsContent>
+                    </Tabs>
+                  ) : (
+                    <Skeleton className="h-[280px] w-full" />
+                  )}
                    <div className="grid gap-2 pt-6">
                       <div className="flex justify-between items-center">
                           <Label htmlFor="dashboard-opacity">Opacité du fond</Label>
@@ -185,13 +189,14 @@ export default function AppearancePage() {
                    <div 
                         className="absolute inset-0 bg-cover bg-center transition-all"
                         style={{
-                            backgroundColor: dashboardBgType === 'color' ? dashboardBackgroundColor : 'transparent',
-                            backgroundImage: dashboardBgType === 'image' ? `url(${dashboardBackgroundImage})` : 'none',
+                            backgroundColor: isClient && dashboardBgType === 'color' ? dashboardBackgroundColor : 'transparent',
+                            backgroundImage: isClient && dashboardBgType === 'image' ? `url(${dashboardBackgroundImage})` : 'none',
                             opacity: isClient ? dashboardBgOpacity / 100 : 1,
                         }}
                    />
                     <div className="relative z-10 w-full max-w-xs">
-                        <Card style={previewButtonStyle}>
+                       {isClient ? (
+                         <Card style={previewButtonStyle}>
                              <CardContent className="pt-6">
                                 <div className="flex items-start justify-between">
                                     <div>
@@ -203,6 +208,9 @@ export default function AppearancePage() {
                                 </div>
                             </CardContent>
                         </Card>
+                       ) : (
+                         <Skeleton className="h-32 w-full" />
+                       )}
                     </div>
                 </div>
             </div>
@@ -244,11 +252,15 @@ export default function AppearancePage() {
                     <div className="space-y-0.5">
                         <Label htmlFor="show-border" className="text-base">Afficher la bordure des boutons</Label>
                     </div>
-                    <Switch 
-                        id="show-border" 
-                        checked={dashboardButtonShowBorder}
-                        onCheckedChange={setDashboardButtonShowBorder}
-                    />
+                    {isClient ? (
+                      <Switch 
+                          id="show-border" 
+                          checked={dashboardButtonShowBorder}
+                          onCheckedChange={setDashboardButtonShowBorder}
+                      />
+                    ) : (
+                      <Skeleton className="h-6 w-11" />
+                    )}
                 </div>
                  <div className="grid gap-2" style={{ opacity: dashboardButtonShowBorder ? 1 : 0.5 }}>
                     <Label htmlFor="dashboard-button-border-color">Couleur de la bordure</Label>
