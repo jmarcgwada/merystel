@@ -166,6 +166,10 @@ export default function ItemsPage() {
                             setFilterCategory("all");
                             setCategoryPopoverOpen(false);
                           }}
+                          onClick={() => {
+                            setFilterCategory("all");
+                            setCategoryPopoverOpen(false);
+                          }}
                         >
                           <Check
                             className={cn(
@@ -180,6 +184,10 @@ export default function ItemsPage() {
                             key={cat.id}
                             value={cat.name}
                             onSelect={() => {
+                              setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
+                              setCategoryPopoverOpen(false);
+                            }}
+                            onClick={() => {
                               setFilterCategory(cat.id === filterCategory ? "all" : cat.id);
                               setCategoryPopoverOpen(false);
                             }}
