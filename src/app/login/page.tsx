@@ -117,7 +117,7 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Login Error:", error);
         let description = 'Vérifiez vos identifiants et réessayez.';
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
+        if (error.code === 'auth/invalid-credential') {
             description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
         }
         toast({ variant: 'destructive', title: 'Échec de la connexion', description });
