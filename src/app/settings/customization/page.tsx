@@ -14,7 +14,7 @@ import { ArrowLeft } from 'lucide-react';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showDescriptionInOrder, setShowDescriptionInOrder } = usePos();
+  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter } = usePos();
 
   return (
     <>
@@ -50,19 +50,6 @@ export default function CustomizationPage() {
                   checked={showTicketImages}
                   onCheckedChange={setShowTicketImages}
                 />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="show-description" className="text-base">Afficher la description de l'article dans la commande</Label>
-                <p className="text-sm text-muted-foreground">
-                  Affiche la description de l'article sous son nom dans la liste de la commande.
-                </p>
-              </div>
-              <Switch
-                id="show-description"
-                checked={showDescriptionInOrder}
-                onCheckedChange={setShowDescriptionInOrder}
-              />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
