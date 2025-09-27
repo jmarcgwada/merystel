@@ -19,6 +19,10 @@ import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
+import { useDoc, useMemoFirebase } from '@/firebase';
+import type { Sale } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
@@ -52,9 +56,13 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) =>
 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
-  const { sales, customers, vatRates, isLoading } = usePos();
+  const firestore = useFirestore();
+  const { customers, vatRates, isLoading: isPosLoading } = usePos();
 
-  const sale = sales?.find(s => s.id === saleId);
+  const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
+  const { data: sale, isLoading: isSaleLoading } = useDoc<Sale>(saleDocRef);
+  const isLoading = isPosLoading || isSaleLoading;
+
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
 
   const getVatInfo = (vatId: string) => {
@@ -258,3 +266,4 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+

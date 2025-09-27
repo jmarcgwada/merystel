@@ -115,7 +115,6 @@ interface PosContextType {
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
-  popularItems: Item[];
 
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
@@ -143,10 +142,9 @@ interface PosContextType {
   saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
   promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
 
-  sales: Sale[];
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    saleIdToUpdate?: string
+    allSales: Sale[]
   ) => void;
 
   paymentMethods: PaymentMethod[];
@@ -352,10 +350,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const categories = useMemo(() => categoriesData, [categoriesData]);
   const customers = useMemo(() => customersData, [customersData]);
 
-
-  const salesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId]);
-  const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
-
   const paymentMethodsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId]);
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
 
@@ -376,7 +370,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     categoriesLoading ||
     customersLoading ||
     tablesLoading ||
-    salesLoading ||
     paymentMethodsLoading ||
     vatRatesLoading ||
     heldOrdersLoading ||
@@ -1143,8 +1136,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
 
   // #region Sales
   const recordSale = useCallback(
-    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-      if (!companyId || !sales || !firestore) return;
+    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, allSales: Sale[]) => {
+      if (!companyId || !firestore) return;
       
       const batch = writeBatch(firestore);
       
@@ -1164,7 +1157,7 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
 
       const today = new Date();
       const datePrefix = format(today, 'yyyyMMdd');
-      const todaysSalesCount = sales.filter((s) =>
+      const todaysSalesCount = allSales.filter((s) =>
         s.ticketNumber.startsWith(datePrefix)
       ).length;
       const ticketNumber =
@@ -1195,7 +1188,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       currentSaleId,
       firestore,
       getDocRef,
-      sales,
       getCollectionRef,
       currentSaleContext,
     ]
@@ -1515,32 +1507,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
   }, [nextUrl, clearOrder, closeNavConfirm]);
   // #endregion
 
-  // #region Derived State
-  const popularItems = useMemo(() => {
-    if (!sales || !items) return [];
-    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
-    sales.forEach((sale) => {
-      sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.id]) {
-          itemCounts[orderItem.id].count += orderItem.quantity;
-        } else {
-          const itemDetails = items.find((i) => i.id === orderItem.id);
-          if (itemDetails) {
-            itemCounts[orderItem.id] = {
-              item: itemDetails,
-              count: orderItem.quantity,
-            };
-          }
-        }
-      });
-    });
-    return Object.values(itemCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, popularItemsCount)
-      .map((i) => i.item);
-  }, [sales, items, popularItemsCount]);
-  // #endregion
-
   const value = useMemo(
     () => ({
       order,
@@ -1581,7 +1547,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       deleteItem,
       toggleItemFavorite,
       toggleFavoriteForList,
-      popularItems,
       categories,
       addCategory,
       updateCategory,
@@ -1603,7 +1568,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       updateTableOrder,
       saveTableOrderAndExit,
       promoteTableToTicket,
-      sales,
       recordSale,
       paymentMethods,
       addPaymentMethod,
@@ -1707,7 +1671,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       deleteItem,
       toggleItemFavorite,
       toggleFavoriteForList,
-      popularItems,
       categories,
       addCategory,
       updateCategory,
@@ -1729,7 +1692,6 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       updateTableOrder,
       saveTableOrderAndExit,
       promoteTableToTicket,
-      sales,
       recordSale,
       paymentMethods,
       addPaymentMethod,
@@ -1810,3 +1772,4 @@ export function usePos() {
   }
   return context;
 }
+

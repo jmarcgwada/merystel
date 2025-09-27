@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo } from 'react';
@@ -6,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Item } from '@/lib/types';
+import type { Item, Sale } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -14,11 +15,19 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 export default function PopularItemsPage() {
-    const { sales, items, categories, toggleItemFavorite, toggleFavoriteForList, isLoading } = usePos();
+    const firestore = useFirestore();
+    const { items, categories, toggleItemFavorite, toggleFavoriteForList, isLoading: isPosLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
+
+    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
+    const { data: sales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
+    const isLoading = isPosLoading || isSalesLoading;
 
     const popularItems = useMemo(() => {
         if (!sales || !items) return [];
@@ -138,3 +147,4 @@ export default function PopularItemsPage() {
     </div>
   );
 }
+
