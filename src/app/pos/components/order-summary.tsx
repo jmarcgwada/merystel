@@ -247,11 +247,9 @@ export function OrderSummary() {
         );
       }
       return (
-        <Button asChild variant="outline" size="sm" onClick={() => setSelectedTable(null)} className="btn-back">
-          <Link href="/restaurant">
-            <ArrowLeft />
-            Retour
-          </Link>
+        <Button variant="outline" size="sm" onClick={handleHeaderAction} className="btn-back">
+          <ArrowLeft />
+          Retour
         </Button>
       );
     }
