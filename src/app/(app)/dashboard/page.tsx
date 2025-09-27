@@ -73,6 +73,7 @@ export default function DashboardPage() {
         dashboardBackgroundColor, 
         dashboardBackgroundImage, 
         dashboardBgOpacity,
+        dashboardButtonBackgroundColor,
         dashboardButtonOpacity,
         dashboardButtonShowBorder,
         dashboardButtonBorderColor
@@ -153,7 +154,7 @@ export default function DashboardPage() {
 
     const buttonStyle = useMemo(() => {
         const style: React.CSSProperties = {
-             backgroundColor: hexToRgba('hsl(var(--card))', dashboardButtonOpacity),
+             backgroundColor: hexToRgba(dashboardButtonBackgroundColor, dashboardButtonOpacity),
         };
         if (dashboardButtonShowBorder) {
             style.borderColor = dashboardButtonBorderColor;
@@ -162,7 +163,7 @@ export default function DashboardPage() {
             style.borderColor = 'transparent';
         }
         return style;
-    }, [dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
+    }, [dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
 
 
     if (isLoading) {

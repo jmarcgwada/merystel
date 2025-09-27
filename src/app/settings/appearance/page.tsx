@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -50,6 +51,8 @@ export default function AppearancePage() {
     setDashboardBackgroundImage,
     dashboardBgOpacity,
     setDashboardBgOpacity,
+    dashboardButtonBackgroundColor,
+    setDashboardButtonBackgroundColor,
     dashboardButtonOpacity,
     setDashboardButtonOpacity,
     dashboardButtonShowBorder,
@@ -77,13 +80,14 @@ export default function AppearancePage() {
   };
 
   const handleHarmonize = () => {
+    setDashboardButtonBackgroundColor('#ffffff');
     setDashboardButtonOpacity(70);
     setDashboardButtonShowBorder(false);
     setDashboardButtonBorderColor('#e2e8f0');
   }
 
   const previewButtonStyle = isClient ? {
-      backgroundColor: hexToRgba('hsl(var(--card))', dashboardButtonOpacity),
+      backgroundColor: hexToRgba(dashboardButtonBackgroundColor, dashboardButtonOpacity),
       borderColor: dashboardButtonShowBorder ? dashboardButtonBorderColor : 'transparent',
       borderWidth: dashboardButtonShowBorder ? '1px' : '0px',
   } : {};
@@ -181,11 +185,28 @@ export default function AppearancePage() {
 
                       {/* Button Settings */}
                       <div className="space-y-4">
-                        <h3 className="text-base font-semibold">Boutons du tableau de bord</h3>
-                         <Button onClick={handleHarmonize} size="sm">
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Harmoniser automatiquement
-                          </Button>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-semibold">Boutons du tableau de bord</h3>
+                             <Button onClick={handleHarmonize} size="sm" variant="ghost">
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Harmoniser
+                            </Button>
+                        </div>
+
+                         <div className="grid gap-2">
+                            <Label htmlFor="dashboard-button-bg-color">Couleur de fond des boutons</Label>
+                            <div className="flex items-center gap-4">
+                                <Input
+                                    id="dashboard-button-bg-color"
+                                    type="color"
+                                    value={dashboardButtonBackgroundColor}
+                                    onChange={(e) => setDashboardButtonBackgroundColor(e.target.value)}
+                                    className="w-16 h-12 p-1"
+                                />
+                                <span className="font-mono text-sm text-muted-foreground">{dashboardButtonBackgroundColor}</span>
+                            </div>
+                        </div>
+
                         <div className="grid gap-2">
                           <div className="flex justify-between items-center">
                               <Label htmlFor="dashboard-button-opacity">Opacité du fond des boutons</Label>

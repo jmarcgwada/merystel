@@ -200,6 +200,8 @@ interface PosContextType {
   setDashboardBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   dashboardBgOpacity: number;
   setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  dashboardButtonBackgroundColor: string;
+  setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
   setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
@@ -299,6 +301,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
   const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
   const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
@@ -1646,6 +1649,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDashboardBackgroundImage,
       dashboardBgOpacity,
       setDashboardBgOpacity,
+      dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
       setDashboardButtonOpacity,
       dashboardButtonShowBorder,
@@ -1769,6 +1774,8 @@ const setSelectedTableById = useCallback(async (tableId: string | null) => {
       setDashboardBackgroundImage,
       dashboardBgOpacity,
       setDashboardBgOpacity,
+      dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
       setDashboardButtonOpacity,
       dashboardButtonShowBorder,
