@@ -27,7 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 
-type SortKey = 'date' | 'total' | 'tableName';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -110,19 +110,31 @@ export default function ReportsPage() {
         // Apply sorting
         if (sortConfig !== null) {
             filteredSales.sort((a, b) => {
-                let aValue, bValue;
+                let aValue: string | number, bValue: string | number;
                 
-                if (sortConfig.key === 'date') {
-                    const aDate = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
-                    const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-                    aValue = aDate.getTime();
-                    bValue = bDate.getTime();
-                } else if (sortConfig.key === 'tableName') {
-                    aValue = a.tableName || '';
-                    bValue = b.tableName || '';
-                } else {
-                    aValue = a[sortConfig.key];
-                    bValue = b[sortConfig.key];
+                switch (sortConfig.key) {
+                    case 'date':
+                        const aDate = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
+                        const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
+                        aValue = aDate.getTime();
+                        bValue = bDate.getTime();
+                        break;
+                    case 'tableName':
+                        aValue = a.tableName || '';
+                        bValue = b.tableName || '';
+                        break;
+                    case 'customerName':
+                        aValue = getCustomerName(a.customerId);
+                        bValue = getCustomerName(b.customerId);
+                        break;
+                    case 'itemCount':
+                        aValue = a.items.reduce((acc, item) => acc + item.quantity, 0);
+                        bValue = b.items.reduce((acc, item) => acc + item.quantity, 0);
+                        break;
+                    default:
+                        aValue = a[sortConfig.key] || 0;
+                        bValue = b[sortConfig.key] || 0;
+                        break;
                 }
 
                 if (aValue < bValue) {
@@ -135,7 +147,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
+    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -349,8 +361,16 @@ export default function ReportsPage() {
                                     Origine {getSortIcon('tableName')}
                                 </Button>
                             </TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Articles</TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => requestSort('customerName')}>
+                                    Client {getSortIcon('customerName')}
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => requestSort('itemCount')}>
+                                    Articles {getSortIcon('itemCount')}
+                                </Button>
+                            </TableHead>
                             <TableHead>Paiement</TableHead>
                             <TableHead className="text-right">
                                 <Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">
