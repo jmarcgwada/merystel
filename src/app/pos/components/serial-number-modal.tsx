@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Item } from '@/lib/types';
+import type { Item, OrderItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function SerialNumberModal() {
@@ -31,8 +31,13 @@ export function SerialNumberModal() {
 
   useEffect(() => {
     if (serialNumberItem) {
-      // Initialize with empty strings or existing serials if editing
-      setSerialNumbers(serialNumberItem.item.serialNumbers || Array(quantity).fill(''));
+      // Initialize with existing serials padded with empty strings to match new quantity
+      const existingSerials = (serialNumberItem.item as OrderItem).serialNumbers || [];
+      const newSerials = Array(quantity).fill('');
+      for (let i = 0; i < Math.min(existingSerials.length, quantity); i++) {
+        newSerials[i] = existingSerials[i];
+      }
+      setSerialNumbers(newSerials);
       setError(null);
     } else {
         setSerialNumbers([]);
@@ -52,7 +57,7 @@ export function SerialNumberModal() {
 
   const handleConfirm = () => {
     // Check for duplicates, ignoring empty strings
-    const filledSerialNumbers = serialNumbers.filter(sn => sn.trim() !== '');
+    const filledSerialNumbers = serialNumbers.filter(sn => sn && sn.trim() !== '');
     const uniqueSerialNumbers = new Set(filledSerialNumbers);
     if (filledSerialNumbers.length !== uniqueSerialNumbers.size) {
       setError('Les numéros de série doivent être uniques.');
