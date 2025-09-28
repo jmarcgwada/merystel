@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -39,6 +38,8 @@ const iconMap: { [key: string]: Icon } = {
   other: Landmark
 };
 
+const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire'];
+
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user } = usePos();
   const { toast } = useToast();
@@ -61,8 +62,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
   
-  const mainPaymentMethods = useMemo(() => paymentMethods?.filter(m => m.isActive && m.name !== 'AUTRE') || [], [paymentMethods]);
-  const otherPaymentMethod = useMemo(() => paymentMethods?.find(m => m.name === 'AUTRE'), [paymentMethods]);
+  const mainPaymentMethods = useMemo(() => 
+    paymentMethods?.filter(m => m.isActive && MAIN_PAYMENT_NAMES.includes(m.name)) || [],
+    [paymentMethods]
+  );
+  const otherPaymentMethod = useMemo(() => 
+    paymentMethods?.find(m => m.isActive && m.name === 'AUTRE'),
+    [paymentMethods]
+  );
+  const advancedPaymentMethods = useMemo(() => 
+    paymentMethods?.filter(m => m.isActive && !MAIN_PAYMENT_NAMES.includes(m.name) && m.name !== 'AUTRE') || [],
+    [paymentMethods]
+  );
 
 
   const selectAndFocusInput = () => {
@@ -396,6 +407,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="secondary"
                             className="h-12"
                             onClick={() => setView('advanced')}
+                            disabled={advancedPaymentMethods.length === 0}
                          >
                             Avancé <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
@@ -556,9 +568,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       <div className="py-4 h-[60vh]">
         <ScrollArea className="h-full">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pr-4">
-                {paymentMethods?.map(method => {
+                {advancedPaymentMethods?.map(method => {
                     const IconComponent = getIcon(method.icon);
-                    const isDisabled = method.name === 'AUTRE' || (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0));
+                    const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0));
                     return (
                         <Button
                             key={method.id}
@@ -569,7 +581,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         >
                             <IconComponent className="h-6 w-6"/>
                             <span className="text-sm whitespace-normal text-center">{method.name}</span>
-                            {!method.isActive && <Badge variant="destructive" className="absolute -top-1 -right-1">Inactif</Badge>}
                         </Button>
                     );
                 })}
@@ -616,5 +627,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 }
 
     
-
-
