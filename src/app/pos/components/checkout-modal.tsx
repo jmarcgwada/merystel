@@ -10,6 +10,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +61,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
 
   const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,12 +142,16 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
     
-    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+    const totalPaid = finalPayments.reduce((acc, p) => acc + p.amount, 0);
+    const change = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
+
+    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userName' | 'userId'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
       payments: finalPayments,
+      ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
     };
 
@@ -176,15 +189,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    // Rule 3: Forbid overpayment with direct, non-cash methods
     if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > balanceDue + 0.009) {
-        toast({
-            variant: 'destructive',
-            title: 'Paiement impossible',
-            description: `Le montant pour "${method.name}" ne peut pas être supérieur au solde restant.`,
-        });
-        setCurrentAmount(balanceDue.toFixed(2));
-        selectAndFocusInput();
+        setShowOverpaymentAlert(true);
         return;
     }
 
@@ -204,7 +210,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newAmountPaid = amountPaid + amountToAdd;
     const newBalance = totalAmount - newAmountPaid;
     
-    // Rule 2: Auto-finalize if paid exactly
     if (Math.abs(newBalance) < 0.009) {
         setCurrentAmount('0.00');
         handleFinalizeSale(newPayments);
@@ -215,8 +220,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
     } else { // Fully paid or overpaid
-        setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
-        // Don't auto-finalize, wait for user confirmation (Rule 1)
+        setCurrentAmount(Math.abs(newBalance).toFixed(2));
     }
   }
   
@@ -373,7 +377,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </div>
 
             <fieldset disabled={isOverpaid} className="space-y-2">
-                 <div className="grid grid-cols-3 gap-2">
+                 <div className="flex gap-2">
                     {mainPaymentMethods.map((method) => {
                         const IconComponent = getIcon(method.icon);
                         const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
@@ -628,9 +632,27 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
-     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+    <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+    <AlertDialog open={showOverpaymentAlert} onOpenChange={setShowOverpaymentAlert}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Paiement impossible</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Le montant saisi est supérieur au solde restant. Les paiements par carte ou chèque ne peuvent pas excéder le montant dû.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogAction onClick={() => {
+                setCurrentAmount(balanceDue.toFixed(2));
+                selectAndFocusInput();
+                setShowOverpaymentAlert(false);
+            }}>
+                J'ai compris
+            </AlertDialogAction>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
+
 
 
