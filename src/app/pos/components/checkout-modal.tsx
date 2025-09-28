@@ -62,6 +62,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
+  const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
   
   const mainPaymentMethods = useMemo(() => 
     paymentMethods?.filter(m => m.isActive && MAIN_PAYMENT_NAMES.includes(m.name)) || [],
@@ -165,15 +166,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user]);
   
   const handleAddPayment = (method: PaymentMethod) => {
-    if (payments.length >= 4) {
-      toast({
-        variant: 'destructive',
-        title: 'Limite atteinte',
-        description: 'Vous ne pouvez pas utiliser plus de 4 moyens de paiement.'
-      });
-      return;
-    }
-
     let amountToAdd: number;
 
     if (method.type === 'indirect' && method.value) {
@@ -184,6 +176,27 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
+    // Rule 3: Forbid overpayment with direct, non-cash methods
+    if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > balanceDue + 0.009) {
+        toast({
+            variant: 'destructive',
+            title: 'Paiement impossible',
+            description: `Le montant pour "${method.name}" ne peut pas être supérieur au solde restant.`,
+        });
+        setCurrentAmount(balanceDue.toFixed(2));
+        selectAndFocusInput();
+        return;
+    }
+
+    if (payments.length >= 4) {
+      toast({
+        variant: 'destructive',
+        title: 'Limite atteinte',
+        description: 'Vous ne pouvez pas utiliser plus de 4 moyens de paiement.'
+      });
+      return;
+    }
+
     const newPayment: Payment = { method, amount: amountToAdd };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
@@ -191,12 +204,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newAmountPaid = amountPaid + amountToAdd;
     const newBalance = totalAmount - newAmountPaid;
     
+    // Rule 2: Auto-finalize if paid exactly
+    if (Math.abs(newBalance) < 0.009) {
+        setCurrentAmount('0.00');
+        handleFinalizeSale(newPayments);
+        return;
+    }
+
     if (newBalance > 0.009) { // More to pay
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
     } else { // Fully paid or overpaid
         setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
-        // DO NOT finalize sale automatically. Wait for user confirmation.
+        // Don't auto-finalize, wait for user confirmation (Rule 1)
     }
   }
   
@@ -313,25 +333,27 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       </DialogHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
-            <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
-              <h3 className="font-semibold text-secondary-foreground">Client</h3>
-              {selectedCustomer ? (
-                <div className="flex items-center justify-between">
-                    <div onClick={() => setView('customer')} className="cursor-pointer flex-1">
-                        <p className="font-medium">{selectedCustomer.name}</p>
-                        <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+            <fieldset disabled={isOverpaid}>
+                <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
+                  <h3 className="font-semibold text-secondary-foreground">Client</h3>
+                  {selectedCustomer ? (
+                    <div className="flex items-center justify-between">
+                        <div onClick={() => setView('customer')} className="cursor-pointer flex-1">
+                            <p className="font-medium">{selectedCustomer.name}</p>
+                            <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+                        </div>
+                        <Button variant="destructive" onClick={() => setSelectedCustomer(null)}>
+                            Effacer client
+                        </Button>
                     </div>
-                    <Button variant="destructive" onClick={() => setSelectedCustomer(null)}>
-                        Effacer client
+                  ) : (
+                    <Button variant="outline" className="w-full justify-start" onClick={() => setView('customer')}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      Associer un client
                     </Button>
+                  )}
                 </div>
-              ) : (
-                <Button variant="outline" className="w-full justify-start" onClick={() => setView('customer')}>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  Associer un client
-                </Button>
-              )}
-            </div>
+            </fieldset>
             
             <div className="space-y-2 flex-1">
                  <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
@@ -342,7 +364,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         type="text"
                         value={currentAmount}
                         onChange={handleAmountChange}
-                        disabled={balanceDue <= 0}
+                        disabled={isOverpaid}
                         className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
                         onFocus={(e) => e.target.select()}
                     />
@@ -350,7 +372,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <div className="space-y-2">
+            <fieldset disabled={isOverpaid} className="space-y-2">
                  <div className="grid grid-cols-3 gap-2">
                     {mainPaymentMethods.map((method) => {
                         const IconComponent = getIcon(method.icon);
@@ -364,7 +386,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                               variant="outline"
                               className="h-24 flex-grow flex flex-col items-center justify-center gap-2"
                               onClick={() => handleAddPayment(method)}
-                              disabled={isDisabled}
+                              disabled={isDisabled || isOverpaid}
                           >
                               <IconComponent className="h-6 w-6" />
                               <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
@@ -383,7 +405,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="outline"
                             className="h-12 flex-1 flex items-center justify-center gap-2"
                             onClick={() => handleAddPayment(otherPaymentMethod)}
-                            disabled={isDisabled}
+                            disabled={isDisabled || isOverpaid}
                         >
                             <Landmark className="h-5 w-5" />
                             <span className="text-sm">{otherPaymentMethod.name}</span>
@@ -392,14 +414,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="secondary"
                             className="h-12"
                             onClick={() => setView('advanced')}
-                            disabled={advancedPaymentMethods.length === 0}
+                            disabled={advancedPaymentMethods.length === 0 || isOverpaid}
                          >
                             Avancé <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
                       </div>
                     );
                 })()}
-            </div>
+            </fieldset>
         </div>
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
           <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
@@ -444,7 +466,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
           Annuler
         </Button>
-        {balanceDue < 0.009 && (
+        {isOverpaid && (
           <Button onClick={() => handleFinalizeSale(payments)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               Finaliser la vente
           </Button>
@@ -562,7 +584,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="outline"
                             className="h-24 flex-col gap-2"
                             onClick={() => handleAdvancedPaymentSelect(method)}
-                            disabled={isDisabled}
+                            disabled={isDisabled || isOverpaid}
                         >
                             <IconComponent className="h-6 w-6"/>
                             <span className="text-sm whitespace-normal text-center">{method.name}</span>
@@ -610,4 +632,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
 
