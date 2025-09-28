@@ -27,6 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
@@ -51,13 +52,16 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
-  const { users, isLoading: posLoading, addUser, findUserByEmail, handleSignOut } = usePos();
+  const { users, isLoading: posLoading, addUser, findUserByEmail, handleSignOut, sendPasswordResetEmailForUser } = usePos();
   const [isReady, setIsReady] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [pin, setPin] = useState('');
   const [loginCredentials, setLoginCredentials] = useState<{email: string, password: string} | null>(null);
+
+  const [isForgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
 
   useEffect(() => {
@@ -117,7 +121,7 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Login Error:", error);
         let description = 'Vérifiez vos identifiants et réessayez.';
-        if (error.code === 'auth/invalid-credential') {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
         }
         toast({ variant: 'destructive', title: 'Échec de la connexion', description });
@@ -175,6 +179,21 @@ export default function LoginPage() {
              setIsLoading(false);
         }
   }
+
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email requis',
+        description: 'Veuillez entrer une adresse e-mail.',
+      });
+      return;
+    }
+    await sendPasswordResetEmailForUser(resetEmail);
+    setForgotPasswordOpen(false);
+    setResetEmail('');
+  };
+
 
   if (userLoading || posLoading || !isReady) {
     return (
@@ -295,7 +314,17 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Mot de passe</Label>
+                <div className="flex items-center">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <Button 
+                        type="button"
+                        variant="link"
+                        className="ml-auto inline-block h-auto p-0 text-sm underline"
+                        onClick={() => setForgotPasswordOpen(true)}
+                    >
+                        Mot de passe oublié ?
+                    </Button>
+                </div>
               <Input
                 id="password"
                 type="password"
@@ -342,6 +371,33 @@ export default function LoginPage() {
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </form>
+        </AlertDialogContent>
+    </AlertDialog>
+     <AlertDialog open={isForgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Mot de passe oublié</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Entrez votre adresse e-mail. Si un compte correspondant est trouvé, nous y enverrons un lien pour réinitialiser votre mot de passe.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4 space-y-2">
+                <Label htmlFor="reset-email">Adresse e-mail</Label>
+                <Input 
+                    id="reset-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="votre.email@example.com"
+                    autoFocus
+                />
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel type="button" onClick={() => setResetEmail('')}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePasswordReset}>
+                    Envoyer le lien
+                </AlertDialogAction>
+            </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
     </>
