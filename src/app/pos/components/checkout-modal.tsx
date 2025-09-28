@@ -479,13 +479,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </Button>
         </div>
       </div>
-      <DialogFooter>
-          <Button variant="outline" onClick={() => setView('payment')}>
-              Annuler
-          </Button>
-          <Button onClick={() => setAddCustomerOpen(true)}>
+      <DialogFooter className="justify-between">
+          <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               Créer un nouveau client
+          </Button>
+           <Button variant="outline" onClick={() => setView('payment')}>
+              Annuler
           </Button>
       </DialogFooter>
     </>
