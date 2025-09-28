@@ -77,6 +77,7 @@ export interface PaymentMethod {
   type: 'direct' | 'indirect';
   value?: number;
   isActive?: boolean;
+  image?: string;
 }
 
 export interface Payment {

@@ -42,6 +42,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [image, setImage] = useState('');
 
 
   const handleAddMethod = () => {
@@ -59,6 +60,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
       icon, 
       type,
       isActive,
+      image,
       value: type === 'indirect' && value ? parseFloat(value) : undefined
     });
     
@@ -67,6 +69,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
     setType('direct');
     setValue('');
     setIsActive(true);
+    setImage('');
     onClose();
   };
 
@@ -144,6 +147,12 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
                 />
             </div>
           )}
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="image-url" className="text-right">
+              URL de l'image
+            </Label>
+            <Input id="image-url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="col-span-3" />
+          </div>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="active" className="text-base">Actif</Label>

@@ -43,6 +43,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [image, setImage] = useState('');
 
   useEffect(() => {
     if (paymentMethod) {
@@ -51,6 +52,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
         setType(paymentMethod.type || 'direct');
         setValue(paymentMethod.value?.toString() || '');
         setIsActive(paymentMethod.isActive ?? true);
+        setImage(paymentMethod.image || '');
     }
   }, [paymentMethod]);
 
@@ -72,6 +74,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
             icon, 
             type,
             isActive,
+            image,
             value: type === 'indirect' && value ? parseFloat(value) : undefined
         });
         onClose();
@@ -152,6 +155,12 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
                 />
             </div>
           )}
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="edit-image-url" className="text-right">
+              URL de l'image
+            </Label>
+            <Input id="edit-image-url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="col-span-3" />
+          </div>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="active-edit" className="text-base">Actif</Label>

@@ -25,6 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 
 const iconMap: { [key: string]: Icon } = {
   card: CreditCard,
@@ -82,7 +83,7 @@ export default function PaymentMethodsPage() {
               <Table>
                   <TableHeader>
                       <TableRow>
-                          <TableHead className="w-[50px]"></TableHead>
+                          <TableHead className="w-[80px]">Image</TableHead>
                           <TableHead>Nom</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead className="w-[100px]">Statut</TableHead>
@@ -92,7 +93,7 @@ export default function PaymentMethodsPage() {
                   <TableBody>
                       {(isLoading || !isClient) && Array.from({length: 3}).map((_, i) => (
                           <TableRow key={i}>
-                              <TableCell><Skeleton className="h-5 w-5 rounded-full" /></TableCell>
+                              <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-12" /></TableCell>
@@ -104,7 +105,13 @@ export default function PaymentMethodsPage() {
                           return (
                               <TableRow key={method.id}>
                                   <TableCell>
-                                      <IconComponent className="h-5 w-5 text-muted-foreground" />
+                                      <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center relative overflow-hidden">
+                                        {method.image ? (
+                                            <Image src={method.image} alt={method.name} fill className="object-cover" />
+                                        ) : (
+                                            <IconComponent className="h-5 w-5 text-muted-foreground" />
+                                        )}
+                                      </div>
                                   </TableCell>
                                   <TableCell className="font-medium">{method.name}</TableCell>
                                   <TableCell>

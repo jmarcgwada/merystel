@@ -33,6 +33,7 @@ import { AddCustomerDialog } from '@/app/management/customers/components/add-cus
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Image from 'next/image';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -388,12 +389,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                           <Button
                               key={method.id}
                               variant="outline"
-                              className="h-24 flex-grow flex flex-col items-center justify-center gap-2"
+                              className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
                               onClick={() => handleAddPayment(method)}
                               disabled={isDisabled || isOverpaid}
                           >
-                              <IconComponent className="h-6 w-6" />
-                              <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
+                              {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md opacity-20" />}
+                              <IconComponent className="h-6 w-6 z-10" />
+                              <span className="text-sm whitespace-normal text-center leading-tight z-10">{method.name}</span>
                           </Button>
                         );
                     })}
@@ -586,12 +588,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         <Button
                             key={method.id}
                             variant="outline"
-                            className="h-24 flex-col gap-2"
+                            className="h-24 flex-col gap-2 relative"
                             onClick={() => handleAdvancedPaymentSelect(method)}
                             disabled={isDisabled || isOverpaid}
                         >
-                            <IconComponent className="h-6 w-6"/>
-                            <span className="text-sm whitespace-normal text-center">{method.name}</span>
+                            {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md opacity-20" />}
+                            <IconComponent className="h-6 w-6 z-10"/>
+                            <span className="text-sm whitespace-normal text-center z-10">{method.name}</span>
                         </Button>
                     );
                 })}
@@ -653,6 +656,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-
 
