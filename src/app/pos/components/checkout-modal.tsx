@@ -20,10 +20,10 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -351,29 +351,38 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
       </DialogHeader>
       <div className="py-4 space-y-4">
-        <Command>
-            <CommandInput 
-                placeholder="Rechercher par nom ou email..." 
-                value={customerSearch}
-                onValueChange={setCustomerSearch}
-            />
-            <CommandList className="max-h-[50vh]">
-                <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                <CommandGroup>
-                {filteredCustomers.map((customer) => (
-                    <CommandItem
-                        key={customer.id}
-                        onSelect={() => {
-                            setSelectedCustomer(customer);
-                            setView('payment');
-                        }}
-                    >
-                    {customer.name}
-                    </CommandItem>
-                ))}
-                </CommandGroup>
-            </CommandList>
-        </Command>
+        <Input 
+            placeholder="Rechercher par nom ou email..." 
+            value={customerSearch}
+            onChange={(e) => setCustomerSearch(e.target.value)}
+            autoFocus
+        />
+        <ScrollArea className="h-[50vh] border rounded-md">
+            <div className="p-2">
+                {filteredCustomers.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground p-4">Aucun client trouvé.</p>
+                ) : (
+                    <div className="space-y-1">
+                        {filteredCustomers.map((customer) => (
+                            <Button
+                                key={customer.id}
+                                variant="ghost"
+                                className="w-full justify-start h-auto py-2 px-3 text-left"
+                                onClick={() => {
+                                    setSelectedCustomer(customer);
+                                    setView('payment');
+                                }}
+                            >
+                                <div>
+                                    <p className="font-semibold">{customer.name}</p>
+                                    <p className="text-xs text-muted-foreground">{customer.email}</p>
+                                </div>
+                            </Button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </ScrollArea>
       </div>
       <DialogFooter>
           <Button variant="outline" onClick={() => setView('payment')}>
@@ -412,3 +421,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   );
 }
 
+    
