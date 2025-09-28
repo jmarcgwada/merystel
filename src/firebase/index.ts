@@ -39,7 +39,7 @@ let firestoreInstance: Firestore | null = null;
 export function getSdks(firebaseApp: FirebaseApp) {
   if (!firestoreInstance) {
     const db = getFirestore(firebaseApp);
-    enableIndexedDbPersistence(db).catch((err) => {
+    enableIndexedDbPersistence(db, {force: true}).catch((err) => {
       if (err.code === 'failed-precondition') {
         // This can happen if multiple tabs are open.
         console.warn('Firestore persistence could not be enabled: multiple tabs open.');
@@ -66,3 +66,5 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+
+
