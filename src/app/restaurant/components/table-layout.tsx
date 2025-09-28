@@ -38,11 +38,11 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, setCameFromRestaurant, isLoading, setSelectedTableById, promoteTableToTicket } = usePos();
+  const { tables, vatRates, setCameFromRestaurant, isLoading, setSelectedTableById, user } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.verrou) {
+    if (table.verrou || (table.lockedBy && table.lockedBy !== user?.uid)) {
         return; // Do nothing if table is locked
     }
     if (table.id === 'takeaway') {
@@ -77,7 +77,10 @@ export function TableLayout() {
         }, 0);
         const total = subtotal + tax;
 
-        const isLocked = table.verrou === true;
+        const isPermanentlyLocked = table.verrou === true;
+        const isTemporarilyLocked = table.lockedBy && table.lockedBy !== user?.uid;
+        const isLocked = isPermanentlyLocked || isTemporarilyLocked;
+
 
         return (
           <Card
@@ -88,7 +91,7 @@ export function TableLayout() {
               table.id !== 'takeaway' && !isLocked && 'cursor-pointer hover:shadow-xl hover:-translate-y-1',
               isLocked && 'opacity-60 cursor-not-allowed'
             )}
-            onClick={() => !isLocked && handleTableSelect(table)}
+            onClick={() => handleTableSelect(table)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium font-headline">{table.name}</CardTitle>

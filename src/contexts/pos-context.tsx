@@ -1032,7 +1032,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                  throw new Error("Cette table est verrouillée et ne peut pas être sélectionnée.");
             }
             if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
-                throw new Error("Cette table est actuellement utilisée par un autre utilisateur.");
+                const lockingUserDoc = await getDoc(doc(firestore, 'users', tableData.lockedBy));
+                const lockingUserName = lockingUserDoc.exists() ? `${lockingUserDoc.data().firstName} ${lockingUserDoc.data().lastName}` : "un autre utilisateur";
+                throw new Error(`Table actuellement utilisée par ${lockingUserName}.`);
             }
             if (tableData.status === 'available') {
                 transaction.update(tableRef, { lockedBy: user.uid });
@@ -1827,4 +1829,3 @@ export function usePos() {
   }
   return context;
 }
-
