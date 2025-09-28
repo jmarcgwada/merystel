@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -138,8 +139,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       total: totalAmount,
       payments: finalPayments,
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
-      ...(user?.uid && { userId: user.uid }),
-      ...(user?.firstName && user.lastName && { userName: `${user.firstName} ${user.lastName}` }),
     };
 
     recordSale(saleInfo);
@@ -175,14 +174,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       return;
     }
 
+    let amountToAdd: number;
+
     if (method.type === 'indirect' && method.value) {
-        const amountToSet = method.value > balanceDue ? balanceDue : method.value;
-        setCurrentAmount(amountToSet.toFixed(2));
-        selectAndFocusInput();
-        return; // Stop here, user must validate with a direct payment method
+      amountToAdd = method.value;
+    } else {
+      amountToAdd = parseFloat(String(currentAmount));
     }
-    
-    const amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -193,14 +191,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newAmountPaid = amountPaid + amountToAdd;
     const newBalance = totalAmount - newAmountPaid;
     
-    if (newBalance > 0.009) {
+    if (newBalance > 0.009) { // More to pay
         setCurrentAmount(newBalance.toFixed(2));
         selectAndFocusInput();
-    } else { 
-        setCurrentAmount(Math.abs(newBalance).toFixed(2));
-        if (newBalance > -0.009 && newBalance < 0.009) { // Exactly paid
-            handleFinalizeSale(newPayments);
-        }
+    } else { // Fully paid or overpaid
+        setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
+        handleFinalizeSale(newPayments);
     }
   }
   
@@ -292,15 +288,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, []);
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
-      if (method.type === 'direct') {
-          handleAddPayment(method);
-          setView('payment');
-      } else if (method.type === 'indirect' && method.value) {
-          const amountToSet = method.value > balanceDue ? balanceDue : method.value;
-          setCurrentAmount(amountToSet.toFixed(2));
-          setView('payment');
-          selectAndFocusInput();
-      }
+      handleAddPayment(method);
+      setView('payment');
     };
 
   const renderPaymentView = () => (
