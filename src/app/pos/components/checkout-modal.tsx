@@ -61,8 +61,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
   
-  const mainPaymentMethods = useMemo(() => paymentMethods.filter(m => m.isActive && m.name !== 'AUTRE'), [paymentMethods]);
-  const otherPaymentMethod = useMemo(() => paymentMethods.find(m => m.name === 'AUTRE'), [paymentMethods]);
+  const mainPaymentMethods = useMemo(() => paymentMethods?.filter(m => m.isActive && m.name !== 'AUTRE') || [], [paymentMethods]);
+  const otherPaymentMethod = useMemo(() => paymentMethods?.find(m => m.name === 'AUTRE'), [paymentMethods]);
 
 
   const selectAndFocusInput = () => {
@@ -556,7 +556,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       <div className="py-4 h-[60vh]">
         <ScrollArea className="h-full">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pr-4">
-                {paymentMethods.map(method => {
+                {paymentMethods?.map(method => {
                     const IconComponent = getIcon(method.icon);
                     const isDisabled = method.name === 'AUTRE' || (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0));
                     return (
@@ -616,4 +616,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 }
 
     
+
 
