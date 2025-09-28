@@ -40,7 +40,7 @@ const iconMap: { [key: string]: Icon } = {
 };
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -123,8 +123,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       total: totalAmount,
       payments: finalPayments,
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
-      ...(currentSaleContext?.userName && { userName: currentSaleContext.userName }),
-      ...(currentSaleContext?.userId && { userId: currentSaleContext.userId }),
+      ...(user?.uid && { userId: user.uid }),
+      ...(user?.firstName && user.lastName && { userName: `${user.firstName} ${user.lastName}` }),
     };
 
     recordSale(saleInfo);
@@ -148,7 +148,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user]);
   
   const handleAddPayment = (method: PaymentMethod) => {
     if (payments.length >= 4) {
