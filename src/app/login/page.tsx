@@ -126,13 +126,13 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent, force: boolean = false) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     const userToLogin = findUserByEmail(email);
 
-    if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0 && !force) {
+    if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0) {
         setLoginCredentials({email, password});
         setShowPinDialog(true);
         setIsLoading(false);
@@ -161,6 +161,7 @@ export default function LoginPage() {
             setShowPinDialog(false);
             setPin('');
             if(loginCredentials) {
+                setIsLoading(true);
                 await performLogin(loginCredentials.email, loginCredentials.password);
             }
         } else {
