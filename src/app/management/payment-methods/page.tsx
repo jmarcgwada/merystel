@@ -123,11 +123,11 @@ export default function PaymentMethodsPage() {
                                     <div className="flex items-center space-x-2">
                                         <Switch
                                             id={`active-switch-${method.id}`}
-                                            checked={method.isActive}
+                                            checked={method.isActive ?? true}
                                             onCheckedChange={() => toggleActive(method)}
                                         />
                                         <label htmlFor={`active-switch-${method.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            {method.isActive ? "Actif" : "Inactif"}
+                                            {method.isActive ?? true ? "Actif" : "Inactif"}
                                         </label>
                                     </div>
                                   </TableCell>
@@ -167,3 +167,4 @@ export default function PaymentMethodsPage() {
   );
 }
 
+    

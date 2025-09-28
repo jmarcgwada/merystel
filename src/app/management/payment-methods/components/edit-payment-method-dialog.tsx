@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,10 @@ import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Wallet, Landmark, StickyNote } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, StickyNote, Upload, Link as LinkIcon } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 interface EditPaymentMethodDialogProps {
   paymentMethod: PaymentMethod | null;
@@ -44,6 +45,8 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const [value, setValue] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [image, setImage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (paymentMethod) {
@@ -55,6 +58,17 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
         setImage(paymentMethod.image || '');
     }
   }, [paymentMethod]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
 
   const handleEditMethod = () => {
@@ -155,12 +169,31 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
                 />
             </div>
           )}
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="edit-image-url" className="text-right">
-              URL de l'image
-            </Label>
-            <Input id="edit-image-url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="col-span-3" />
-          </div>
+          <Separator />
+           <div className="space-y-2">
+              <Label>Image du moyen de paiement</Label>
+              <div className="flex items-center">
+                  <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                  <Input 
+                      id="edit-image-url" 
+                      value={image.startsWith('data:') ? '' : image} 
+                      onChange={(e) => setImage(e.target.value)} 
+                      placeholder="https://..." 
+                      className="pl-9"
+                  />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <Separator className="flex-1"/>
+                <span className="text-xs text-muted-foreground">OU</span>
+                <Separator className="flex-1"/>
+            </div>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" />
+                Téléverser une image
+            </Button>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*"/>
+          <Separator />
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="active-edit" className="text-base">Actif</Label>
@@ -183,3 +216,5 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
     </Dialog>
   );
 }
+
+    
