@@ -117,6 +117,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       total: totalAmount,
       payments: finalPayments,
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
+      ...(currentSaleContext?.userName && { userName: currentSaleContext.userName }),
+      ...(currentSaleContext?.userId && { userId: currentSaleContext.userId }),
     };
 
     recordSale(saleInfo);
@@ -210,6 +212,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if (!customers) return [];
     return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase()));
   }, [customers, customerSearch]);
+
+  const onCustomerAdded = (newCustomer: Customer) => {
+      setSelectedCustomer(newCustomer);
+      setView('payment');
+  }
 
   const renderPaymentView = () => (
     <>
@@ -417,8 +424,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
-     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} />
+     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
     </>
   );
 }
-

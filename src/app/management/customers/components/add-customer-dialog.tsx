@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -17,13 +18,15 @@ import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Customer } from '@/lib/types';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onCustomerAdded?: (customer: Customer) => void;
 }
 
-export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
+export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCustomerDialogProps) {
     const { toast } = useToast();
     const { addCustomer } = usePos();
     const [name, setName] = useState('');
@@ -36,7 +39,7 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
 
-    const handleAddCustomer = () => {
+    const handleAddCustomer = async () => {
         if (!name) {
              toast({
                 variant: 'destructive',
@@ -46,7 +49,7 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
             return;
         }
 
-        addCustomer({
+        const newCustomer = await addCustomer({
             name,
             email,
             phone,
@@ -58,22 +61,28 @@ export function AddCustomerDialog({ isOpen, onClose }: AddCustomerDialogProps) {
             notes,
         });
 
-        toast({
-            title: 'Client ajouté',
-            description: 'Le nouveau client a été créé avec succès.',
-        });
-        
-        // Reset form
-        setName('');
-        setEmail('');
-        setPhone('');
-        setAddress('');
-        setPostalCode('');
-        setCity('');
-        setCountry('');
-        setIban('');
-        setNotes('');
-        onClose();
+        if (newCustomer) {
+            toast({
+                title: 'Client ajouté',
+                description: 'Le nouveau client a été créé avec succès.',
+            });
+
+            if(onCustomerAdded) {
+                onCustomerAdded(newCustomer);
+            }
+            
+            // Reset form
+            setName('');
+            setEmail('');
+            setPhone('');
+            setAddress('');
+            setPostalCode('');
+            setCity('');
+            setCountry('');
+            setIban('');
+            setNotes('');
+            onClose();
+        }
     }
 
   return (

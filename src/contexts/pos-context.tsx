@@ -124,7 +124,7 @@ interface PosContextType {
   toggleCategoryFavorite: (categoryId: string) => void;
 
   customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'id'>) => void;
+  addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
@@ -428,14 +428,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (collectionName: string, data: any, toastTitle: string, global: boolean = false) => {
       const ref = getCollectionRef(collectionName, global);
       if (!ref) {
-        return;
+        return null;
       }
       try {
-        await addDoc(ref, cleanDataForFirebase(data));
+        const docRef = await addDoc(ref, cleanDataForFirebase(data));
         toast({ title: toastTitle });
+        return { ...data, id: docRef.id };
       } catch (error) {
         console.error(`Error adding ${collectionName}:`, error);
         toast({ variant: 'destructive', title: `Erreur lors de l'ajout` });
+        return null;
       }
     },
     [getCollectionRef, toast]
@@ -1403,12 +1405,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addCustomer = useCallback(
-    (customer: Omit<Customer, 'id' | 'isDefault'>) => {
-      const newCustomer = {
-        ...customer,
-        isDefault: !customers || !customers.some((c) => c.isDefault),
-      };
-      addEntity('customers', newCustomer, 'Client ajouté');
+    async (customer: Omit<Customer, 'id' | 'isDefault'>): Promise<Customer | null> => {
+        const newCustomerData = {
+            ...customer,
+            isDefault: !customers || !customers.some((c) => c.isDefault),
+        };
+        const newCustomer = await addEntity('customers', newCustomerData, 'Client ajouté');
+        return newCustomer ? newCustomer as Customer : null;
     },
     [addEntity, customers]
   );
