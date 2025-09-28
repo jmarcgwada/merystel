@@ -474,19 +474,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             >
                 <ArrowDown className="h-8 w-8" />
             </Button>
-            <Button className="h-full text-2xl" onClick={handleSelectCustomer} disabled={filteredCustomers.length === 0}>
-                <Check className="h-8 w-8 mr-4" /> Sélectionner
-            </Button>
         </div>
       </div>
-      <DialogFooter className="justify-between">
-          <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Créer un nouveau client
+      <DialogFooter className="justify-between items-center">
+        <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Créer un nouveau client
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => setView('payment')}>
+            Annuler
           </Button>
-           <Button variant="outline" onClick={() => setView('payment')}>
-              Annuler
+          <Button className="h-12 text-lg" onClick={handleSelectCustomer} disabled={filteredCustomers.length === 0}>
+            <Check className="mr-2 h-5 w-5" /> Sélectionner
           </Button>
+        </div>
       </DialogFooter>
     </>
   );
