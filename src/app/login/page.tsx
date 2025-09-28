@@ -317,7 +317,7 @@ export default function LoginPage() {
         <AlertDialogContent>
             <form onSubmit={handlePinSubmit}>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Conflit de session - Code: Date + Différence</AlertDialogTitle>
+                    <AlertDialogTitle>Conflit de session</AlertDialogTitle>
                     <AlertDialogDescription>
                         Cet utilisateur est déjà connecté sur un autre appareil. Pour continuer, veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
                     </AlertDialogDescription>
@@ -346,5 +346,3 @@ export default function LoginPage() {
     </>
   );
 }
-
-    
