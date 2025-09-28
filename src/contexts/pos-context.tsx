@@ -641,6 +641,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true },
           { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true },
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
+          { name: 'Crème Brûlée', price: 7.00, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/cremebrulee/200/150' },
+          { name: 'Tarte Tatin', price: 7.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/tartetatin/200/150' },
+          { name: 'Salade Niçoise', price: 13.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladenicoise/200/150', isRestaurantOnly: true },
+          { name: 'Steak Frites', price: 18.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/steakfrites/200/150', isRestaurantOnly: true },
+          { name: 'Soupe à l\'oignon', price: 8.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/soupeoignon/200/150', isRestaurantOnly: true },
+          { name: 'Escargots de Bourgogne', price: 12.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/escargots/200/150', isRestaurantOnly: true },
+          { name: 'Coca-Cola', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/cocacola/200/150' },
+          { name: 'Orangina', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/orangina/200/150' },
+          { name: 'Pain au Raisin', price: 1.80, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painraisin/200/150' },
+          { name: 'Chausson aux Pommes', price: 2.00, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/chaussonpommes/200/150' },
       ];
       const defaultTables = [
         { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
@@ -1817,3 +1827,4 @@ export function usePos() {
   }
   return context;
 }
+
