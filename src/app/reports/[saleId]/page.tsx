@@ -227,6 +227,12 @@ export default function SaleDetailPage() {
                                   <span className="font-medium">{p.amount.toFixed(2)}€</span>
                               </div>
                           ))}
+                           {sale.change && sale.change > 0 && (
+                            <div className="flex justify-between items-center text-sm text-amber-600">
+                                <Badge variant="secondary" className="bg-amber-200 text-amber-800">Monnaie Rendue</Badge>
+                                <span className="font-medium">{sale.change.toFixed(2)}€</span>
+                            </div>
+                        )}
                       </div>
                     ) : (
                        <Badge variant="destructive" className="font-normal">Paiement en attente</Badge>

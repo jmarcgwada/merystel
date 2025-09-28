@@ -1173,6 +1173,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const shortUuid = uuidv4().substring(0, 4).toUpperCase();
       const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
 
+      const totalPaid = saleData.payments.reduce((acc, p) => acc + p.amount, 0);
+      const change = totalPaid - saleData.total;
+
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
         date: today,
@@ -1180,6 +1183,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         status: 'paid',
         userId: user.uid,
         userName: `${user.firstName} ${user.lastName}`,
+        ...(change > 0.009 && { change: change }),
         ...(currentSaleContext?.tableId && {
           tableId: currentSaleContext.tableId,
           tableName: currentSaleContext.tableName,

@@ -194,18 +194,25 @@ export default function ReportsPage() {
         setFilterSellerName('');
     }
 
-    const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
-      <div className="flex flex-wrap gap-1">
-        {!payments || payments.length === 0 ? (
-          <Badge variant="destructive" className="font-normal">En attente</Badge>
-        ) : (
-          payments.map((p, index) => (
-            <Badge key={index} variant="outline" className="capitalize font-normal">
-              {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
-            </Badge>
-          ))
-        )}
-      </div>
+    const PaymentBadges = ({ sale }: { sale: Sale }) => (
+        <div className="flex flex-wrap gap-1">
+            {!sale.payments || sale.payments.length === 0 ? (
+            <Badge variant="destructive" className="font-normal">En attente</Badge>
+            ) : (
+            <>
+                {sale.payments.map((p, index) => (
+                <Badge key={index} variant="outline" className="capitalize font-normal">
+                    {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
+                </Badge>
+                ))}
+                {sale.change && sale.change > 0 && (
+                <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
+                    Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
+                </Badge>
+                )}
+            </>
+            )}
+        </div>
     );
 
   return (
@@ -435,7 +442,7 @@ export default function ReportsPage() {
                                     {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
                                 </TableCell>
                                 <TableCell>
-                                     <PaymentBadges payments={sale.payments} />
+                                     <PaymentBadges sale={sale} />
                                 </TableCell>
                                 <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                 <TableCell className="text-right">

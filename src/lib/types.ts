@@ -93,6 +93,7 @@ export interface Sale {
   tax: number;
   total: number;
   payments: Payment[];
+  change?: number;
   customerId?: string;
   tableId?: string;
   tableName?: string;
