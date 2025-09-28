@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +44,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const { toast } = useToast();
   const router = useRouter();
   
-  const [view, setView] = useState<'payment' | 'customer'>('payment');
+  const [view, setView] = useState<'payment' | 'customer' | 'advanced'>('payment');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
@@ -62,7 +62,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
   
   const mainPaymentMethods = useMemo(() => paymentMethods.filter(m => m.isActive && m.name !== 'AUTRE'), [paymentMethods]);
-  const otherPaymentMethod = useMemo(() => paymentMethods.find(m => m.isActive && m.name === 'AUTRE'), [paymentMethods]);
+  const otherPaymentMethod = useMemo(() => paymentMethods.find(m => m.name === 'AUTRE'), [paymentMethods]);
 
 
   const selectAndFocusInput = () => {
@@ -278,6 +278,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         return () => stopScrolling();
     }, []);
 
+    const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
+      if (method.type === 'direct') {
+          handleAddPayment(method);
+          setView('payment');
+      } else {
+          // For indirect, we go back to the main screen to let user see/edit the amount.
+          // We can pre-fill the amount with the method's value if it exists.
+          if(method.value) {
+            setCurrentAmount(method.value.toString());
+          }
+          setView('payment');
+          selectAndFocusInput();
+      }
+    };
+
   const renderPaymentView = () => (
     <>
       <DialogHeader>
@@ -307,7 +322,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         <p className="font-medium">{selectedCustomer.name}</p>
                         <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                     </div>
-                    <Button variant="destructive" size="sm" onClick={() => setSelectedCustomer(null)}>
+                    <Button variant="destructive" onClick={() => setSelectedCustomer(null)}>
                         Effacer client
                     </Button>
                 </div>
@@ -318,9 +333,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </Button>
               )}
             </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
+            
+            <div className="space-y-2 flex-1">
+                 <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
                 <div className="relative mt-1 w-full">
                     <Input
                         id="amount-to-pay"
@@ -337,43 +352,54 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </div>
 
             <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                    {mainPaymentMethods.map((method) => {
-                        const IconComponent = getIcon(method.icon);
-                        const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
-                                            (!currentAmount && !method.value) || 
-                                            (parseFloat(String(currentAmount)) <= 0 && !method.value);
+                 <ScrollArea className="w-full whitespace-nowrap">
+                    <div className="flex w-max space-x-2 pb-2">
+                        {mainPaymentMethods.map((method) => {
+                            const IconComponent = getIcon(method.icon);
+                            const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                                                (!currentAmount && !method.value) || 
+                                                (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
-                        return (
-                          <Button
-                              key={method.id}
-                              variant="outline"
-                              className="h-20 w-full flex-shrink-0 flex flex-col items-center justify-center gap-2"
-                              onClick={() => handleAddPayment(method)}
-                              disabled={isDisabled}
-                          >
-                              <IconComponent className="h-5 w-5" />
-                              <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
-                          </Button>
-                        );
-                    })}
-                </div>
+                            return (
+                              <Button
+                                  key={method.id}
+                                  variant="outline"
+                                  className="h-20 w-24 flex-shrink-0 flex flex-col items-center justify-center gap-2"
+                                  onClick={() => handleAddPayment(method)}
+                                  disabled={isDisabled}
+                              >
+                                  <IconComponent className="h-5 w-5" />
+                                  <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
+                              </Button>
+                            );
+                        })}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 {otherPaymentMethod && (() => {
-                    const IconComponent = getIcon(otherPaymentMethod.icon);
                     const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
                                         (!currentAmount && !otherPaymentMethod.value) || 
                                         (parseFloat(String(currentAmount)) <= 0 && !otherPaymentMethod.value);
                     return (
+                      <div className="flex items-center gap-2 border rounded-md p-2 bg-secondary/30">
                         <Button
                             key={otherPaymentMethod.id}
                             variant="outline"
-                            className="h-16 w-full flex-shrink-0 flex items-center justify-center gap-2"
+                            className="h-12 flex-1 flex items-center justify-center gap-2"
                             onClick={() => handleAddPayment(otherPaymentMethod)}
                             disabled={isDisabled}
                         >
-                            <IconComponent className="h-5 w-5" />
+                            <Landmark className="h-5 w-5" />
                             <span className="text-sm">{otherPaymentMethod.name}</span>
                         </Button>
+                         <Button
+                            variant="secondary"
+                            className="h-12"
+                            onClick={() => setView('advanced')}
+                         >
+                            Avancé <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
                     );
                 })()}
             </div>
@@ -519,12 +545,57 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 
+  const renderAdvancedView = () => (
+    <>
+       <DialogHeader className="flex-row items-center gap-4">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setView('payment')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <DialogTitle className="text-2xl font-headline">Paiements avancés</DialogTitle>
+      </DialogHeader>
+      <div className="py-4 h-[60vh]">
+        <ScrollArea className="h-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pr-4">
+                {paymentMethods.map(method => {
+                    const IconComponent = getIcon(method.icon);
+                    const isDisabled = method.name === 'AUTRE' || (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0));
+                    return (
+                        <Button
+                            key={method.id}
+                            variant="outline"
+                            className="h-24 flex-col gap-2"
+                            onClick={() => handleAdvancedPaymentSelect(method)}
+                            disabled={isDisabled}
+                        >
+                            <IconComponent className="h-6 w-6"/>
+                            <span className="text-sm whitespace-normal text-center">{method.name}</span>
+                            {!method.isActive && <Badge variant="destructive" className="absolute -top-1 -right-1">Inactif</Badge>}
+                        </Button>
+                    );
+                })}
+            </div>
+        </ScrollArea>
+      </div>
+    </>
+  );
+
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-4xl">
         {!isPaid ? (
-            view === 'payment' ? renderPaymentView() : renderCustomerView()
+            (() => {
+                switch(view) {
+                    case 'payment':
+                        return renderPaymentView();
+                    case 'customer':
+                        return renderCustomerView();
+                    case 'advanced':
+                        return renderAdvancedView();
+                    default:
+                        return renderPaymentView();
+                }
+            })()
         ) : (
           <>
             <DialogHeader>
@@ -545,3 +616,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 }
 
     
+
