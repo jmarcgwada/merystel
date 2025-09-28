@@ -145,7 +145,7 @@ interface PosContextType {
 
   sales: Sale[];
   recordSale: (
-    sale: Omit<Sale, 'id' | 'date' | 'ticketNumber'>
+    sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>
   ) => void;
 
   paymentMethods: PaymentMethod[];
@@ -1145,7 +1145,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Sales
   const recordSale = useCallback(
-    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
+    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>) => {
       if (!companyId || !firestore || !user) return;
       
       const batch = writeBatch(firestore);
@@ -1813,4 +1813,3 @@ export function usePos() {
   }
   return context;
 }
-
