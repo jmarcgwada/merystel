@@ -8,7 +8,7 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
 import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
