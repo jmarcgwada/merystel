@@ -174,13 +174,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       });
       return;
     }
-    
-    let amountToAdd : number;
+
     if (method.type === 'indirect' && method.value) {
-      amountToAdd = method.value > balanceDue ? balanceDue : method.value;
-    } else {
-      amountToAdd = parseFloat(String(currentAmount));
+        const amountToSet = method.value > balanceDue ? balanceDue : method.value;
+        setCurrentAmount(amountToSet.toFixed(2));
+        selectAndFocusInput();
+        return; // Stop here, user must validate with a direct payment method
     }
+    
+    const amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -293,12 +295,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       if (method.type === 'direct') {
           handleAddPayment(method);
           setView('payment');
-      } else {
-          // For indirect, we go back to the main screen to let user see/edit the amount.
-          // We can pre-fill the amount with the method's value if it exists.
-          if(method.value) {
-            setCurrentAmount(method.value.toString());
-          }
+      } else if (method.type === 'indirect' && method.value) {
+          const amountToSet = method.value > balanceDue ? balanceDue : method.value;
+          setCurrentAmount(amountToSet.toFixed(2));
           setView('payment');
           selectAndFocusInput();
       }
@@ -625,3 +624,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
