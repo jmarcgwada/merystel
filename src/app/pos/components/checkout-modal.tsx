@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -331,27 +332,29 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {paymentMethods && paymentMethods.map((method) => {
-                  const IconComponent = getIcon(method.icon);
-                  const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
-                                      (!currentAmount && !method.value) || 
-                                      (parseFloat(String(currentAmount)) <= 0 && !method.value);
+            <ScrollArea className="flex-1 h-48">
+              <div className="grid grid-cols-2 gap-4 pr-4">
+                {paymentMethods && paymentMethods.map((method) => {
+                    const IconComponent = getIcon(method.icon);
+                    const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                                        (!currentAmount && !method.value) || 
+                                        (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
-                  return (
-                    <Button
-                        key={method.id}
-                        variant="outline"
-                        className="h-16 flex flex-col items-center justify-center gap-2"
-                        onClick={() => handleAddPayment(method)}
-                        disabled={isDisabled}
-                    >
-                        <IconComponent className="h-5 w-5" />
-                        <span className="text-sm">{method.name}</span>
-                    </Button>
-                  );
-              })}
-            </div>
+                    return (
+                      <Button
+                          key={method.id}
+                          variant="outline"
+                          className="h-16 flex flex-col items-center justify-center gap-2"
+                          onClick={() => handleAddPayment(method)}
+                          disabled={isDisabled}
+                      >
+                          <IconComponent className="h-5 w-5" />
+                          <span className="text-sm">{method.name}</span>
+                      </Button>
+                    );
+                })}
+              </div>
+            </ScrollArea>
         </div>
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
           <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
