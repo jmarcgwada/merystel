@@ -60,6 +60,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
+  
+  const mainPaymentMethods = useMemo(() => paymentMethods.filter(m => m.isActive && m.name !== 'AUTRE'), [paymentMethods]);
+  const otherPaymentMethod = useMemo(() => paymentMethods.find(m => m.isActive && m.name === 'AUTRE'), [paymentMethods]);
+
 
   const selectAndFocusInput = () => {
     setTimeout(() => {
@@ -332,30 +336,47 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <ScrollArea className="w-full whitespace-nowrap">
-              <div className="flex w-max space-x-2 pb-4">
-                {paymentMethods && paymentMethods.filter(m => m.isActive).map((method) => {
-                    const IconComponent = getIcon(method.icon);
-                    const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
-                                        (!currentAmount && !method.value) || 
-                                        (parseFloat(String(currentAmount)) <= 0 && !method.value);
+            <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                    {mainPaymentMethods.map((method) => {
+                        const IconComponent = getIcon(method.icon);
+                        const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                                            (!currentAmount && !method.value) || 
+                                            (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
+                        return (
+                          <Button
+                              key={method.id}
+                              variant="outline"
+                              className="h-20 w-full flex-shrink-0 flex flex-col items-center justify-center gap-2"
+                              onClick={() => handleAddPayment(method)}
+                              disabled={isDisabled}
+                          >
+                              <IconComponent className="h-5 w-5" />
+                              <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
+                          </Button>
+                        );
+                    })}
+                </div>
+                {otherPaymentMethod && (() => {
+                    const IconComponent = getIcon(otherPaymentMethod.icon);
+                    const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                                        (!currentAmount && !otherPaymentMethod.value) || 
+                                        (parseFloat(String(currentAmount)) <= 0 && !otherPaymentMethod.value);
                     return (
-                      <Button
-                          key={method.id}
-                          variant="outline"
-                          className="h-20 w-24 flex-shrink-0 flex flex-col items-center justify-center gap-2"
-                          onClick={() => handleAddPayment(method)}
-                          disabled={isDisabled}
-                      >
-                          <IconComponent className="h-5 w-5" />
-                          <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
-                      </Button>
+                        <Button
+                            key={otherPaymentMethod.id}
+                            variant="outline"
+                            className="h-16 w-full flex-shrink-0 flex items-center justify-center gap-2"
+                            onClick={() => handleAddPayment(otherPaymentMethod)}
+                            disabled={isDisabled}
+                        >
+                            <IconComponent className="h-5 w-5" />
+                            <span className="text-sm">{otherPaymentMethod.name}</span>
+                        </Button>
                     );
-                })}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                })()}
+            </div>
         </div>
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
           <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
