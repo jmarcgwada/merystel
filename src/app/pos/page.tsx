@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
@@ -11,7 +11,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, Keyboard } from 'lucide-react';
+import { Hand, Search, Star, Trophy, Keyboard, ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -23,10 +23,6 @@ export default function PosPage() {
   const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
   const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
   const [isHeldOpen, setHeldOpen] = useState(false);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
@@ -36,6 +32,69 @@ export default function PosPage() {
   const tableId = searchParams.get('tableId');
   
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+
+  const checkScrollability = () => {
+    const scrollArea = scrollAreaRef.current;
+    if (scrollArea) {
+      setCanScrollUp(scrollArea.scrollTop > 0);
+      setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight);
+    }
+  };
+
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea || !contentRef.current) return;
+    
+    // Check initially and on content change
+    checkScrollability();
+
+    const resizeObserver = new ResizeObserver(checkScrollability);
+    resizeObserver.observe(contentRef.current);
+    scrollArea.addEventListener('scroll', checkScrollability);
+
+    return () => {
+      if (contentRef.current) {
+        resizeObserver.unobserve(contentRef.current);
+      }
+      scrollArea.removeEventListener('scroll', checkScrollability);
+    };
+  }, [filteredItems]); // Re-check when items change
+
+  const handleScroll = (direction: 'up' | 'down') => {
+    const scrollArea = scrollAreaRef.current;
+    if (scrollArea) {
+      const scrollAmount = scrollArea.clientHeight * 0.8; // Scroll by 80% of the viewport height
+      scrollArea.scrollBy({
+        top: direction === 'up' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  const startScrolling = (direction: 'up' | 'down') => {
+    stopScrolling();
+    handleScroll(direction); // Initial scroll
+    scrollIntervalRef.current = setInterval(() => {
+      handleScroll(direction);
+    }, 300); // Continuous scroll every 300ms
+  };
+
+  const stopScrolling = () => {
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+    }
+  };
 
   useEffect(() => {
     if (targetInput?.name === 'item-search') {
@@ -85,6 +144,14 @@ export default function PosPage() {
     showKeyboard();
   };
   
+  const filteredItems = useMemo(() => (
+    <ItemList 
+        ref={contentRef}
+        category={selectedCategory} 
+        searchTerm={itemSearchTerm} 
+        showFavoritesOnly={showFavoritesOnly}
+    />
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly]);
 
   return (
     <>
@@ -124,28 +191,54 @@ export default function PosPage() {
                             <Keyboard className="h-5 w-5" />
                         </Button>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setHeldOpen(true)} 
-                        className={cn(
-                            "flex-shrink-0",
-                            heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
-                        )}
-                    >
-                        <Hand className="mr-2 h-4 w-4"/>
-                        Tickets
-                        {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      {(canScrollUp || canScrollDown) && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onMouseDown={() => startScrolling('up')} 
+                            onMouseUp={stopScrolling} 
+                            onMouseLeave={stopScrolling}
+                            onTouchStart={() => startScrolling('up')}
+                            onTouchEnd={stopScrolling}
+                            disabled={!canScrollUp}
+                          >
+                              <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onMouseDown={() => startScrolling('down')} 
+                            onMouseUp={stopScrolling} 
+                            onMouseLeave={stopScrolling}
+                            onTouchStart={() => startScrolling('down')}
+                            onTouchEnd={stopScrolling}
+                            disabled={!canScrollDown}
+                          >
+                              <ArrowDown className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      <Button 
+                          variant="outline" 
+                          onClick={() => setHeldOpen(true)} 
+                          className={cn(
+                              "flex-shrink-0",
+                              heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
+                          )}
+                      >
+                          <Hand className="mr-2 h-4 w-4"/>
+                          Tickets
+                          {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
+                      </Button>
+                    </div>
                   </div>
                 </div>
             </div>
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
                 <div className="p-4">
-                  <ItemList 
-                    category={selectedCategory} 
-                    searchTerm={itemSearchTerm} 
-                    showFavoritesOnly={showFavoritesOnly}
-                  />
+                  {filteredItems}
                 </div>
             </ScrollArea>
           </div>
