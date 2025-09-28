@@ -897,6 +897,31 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Held Order & Table Management
+  const promoteTableToTicket = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      const tableRef = getDocRef('tables', tableId);
+      const table = tables.find(t => t.id === tableId);
+      if (!tableRef || !table) return;
+      try {
+        await updateDoc(tableRef, {
+          order: orderData,
+          status: 'paying',
+          lockedBy: user?.uid
+        });
+        setCurrentSaleId(`table-${tableId}`);
+        setCurrentSaleContext({
+          tableId: table.id,
+          tableName: table.name,
+          isTableSale: true,
+        });
+      } catch (error) {
+        console.error('Error promoting table to ticket:', error);
+        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+      }
+    },
+    [getDocRef, toast, tables, user]
+  );
+  
   const holdOrder = useCallback(async () => {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
@@ -957,31 +982,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       routerRef.current.push('/pos');
     }
   }, [user, deleteEntity, toast]);
-
-  const promoteTableToTicket = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      const table = tables.find(t => t.id === tableId);
-      if (!tableRef || !table) return;
-      try {
-        await updateDoc(tableRef, {
-          order: orderData,
-          status: 'paying',
-          lockedBy: user?.uid
-        });
-        setCurrentSaleId(`table-${tableId}`);
-        setCurrentSaleContext({
-          tableId: table.id,
-          tableName: table.name,
-          isTableSale: true,
-        });
-      } catch (error) {
-        console.error('Error promoting table to ticket:', error);
-        toast({ variant: 'destructive', title: 'Erreur de clôture' });
-      }
-    },
-    [getDocRef, toast, tables, user]
-  );
 
   const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!firestore || !user) {
@@ -1143,7 +1143,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region Sales
   const recordSale = useCallback(
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>) => {
-      if (!companyId || !firestore) return;
+      if (!companyId || !firestore || !user) return;
       
       const batch = writeBatch(firestore);
       
@@ -1175,6 +1175,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         date: today,
         ticketNumber,
         status: 'paid',
+        userId: user.uid,
+        userName: `${user.firstName} ${user.lastName}`,
         ...(currentSaleContext?.tableId && {
           tableId: currentSaleContext.tableId,
           tableName: currentSaleContext.tableName,
@@ -1194,6 +1196,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       getDocRef,
       getCollectionRef,
       currentSaleContext,
+      user
     ]
   );
   // #endregion

@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Utensils } from 'lucide-react';
+import { ArrowLeft, Utensils, User } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -236,6 +236,17 @@ export default function SaleDetailPage() {
           </Card>
 
           <div className="space-y-4">
+            {sale.userName && (
+                <Card>
+                    <CardHeader className="flex-row items-center gap-4 space-y-0">
+                        <User className="h-6 w-6 text-muted-foreground" />
+                        <CardTitle>Vendeur</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p>{sale.userName}</p>
+                    </CardContent>
+                </Card>
+            )}
             {sale.tableName && (
                  <Card>
                     <CardHeader className="flex-row items-center gap-4 space-y-0">
@@ -266,4 +277,5 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+
 

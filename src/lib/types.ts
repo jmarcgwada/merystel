@@ -96,6 +96,8 @@ export interface Sale {
   tableId?: string;
   tableName?: string;
   status?: 'paid' | 'pending';
+  userId?: string;
+  userName?: string;
 }
 
 export interface HeldOrder {

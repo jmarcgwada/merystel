@@ -27,7 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 
-type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -74,6 +74,7 @@ export default function ReportsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterSerialNumber, setFilterSerialNumber] = useState('');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
+    const [filterSellerName, setFilterSellerName] = useState('');
 
      useEffect(() => {
         setIsClient(true);
@@ -94,6 +95,7 @@ export default function ReportsPage() {
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
             const serialNumberMatch = !filterSerialNumber || sale.items.some(item => item.serialNumbers?.some(sn => sn.toLowerCase().includes(filterSerialNumber.toLowerCase())));
+            const sellerMatch = !filterSellerName || (sale.userName && sale.userName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
             let dateMatch = true;
             if (dateRange?.from) {
@@ -105,7 +107,7 @@ export default function ReportsPage() {
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
-            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch && sellerMatch;
         });
 
         // Apply sorting
@@ -132,6 +134,10 @@ export default function ReportsPage() {
                         aValue = a.items.reduce((acc, item) => acc + item.quantity, 0);
                         bValue = b.items.reduce((acc, item) => acc + item.quantity, 0);
                         break;
+                    case 'userName':
+                        aValue = a.userName || '';
+                        bValue = b.userName || '';
+                        break;
                     default:
                         aValue = a[sortConfig.key] || 0;
                         bValue = b[sortConfig.key] || 0;
@@ -148,7 +154,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber]);
+    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber, filterSellerName]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -185,6 +191,7 @@ export default function ReportsPage() {
         setFilterStatus('all');
         setDateRange(undefined);
         setFilterSerialNumber('');
+        setFilterSellerName('');
     }
 
     const PaymentBadges = ({ payments }: { payments: Payment[] }) => (
@@ -317,6 +324,13 @@ export default function ReportsPage() {
                         className="max-w-xs"
                     />
 
+                     <Input
+                        placeholder="Filtrer par vendeur..."
+                        value={filterSellerName}
+                        onChange={(e) => setFilterSellerName(e.target.value)}
+                        className="max-w-xs"
+                    />
+
                     <Input
                         placeholder="Filtrer par origine..."
                         value={filterOrigin}
@@ -358,6 +372,11 @@ export default function ReportsPage() {
                                 </Button>
                             </TableHead>
                             <TableHead>
+                                <Button variant="ghost" onClick={() => requestSort('userName')}>
+                                    Vendeur {getSortIcon('userName')}
+                                </Button>
+                            </TableHead>
+                            <TableHead>
                                 <Button variant="ghost" onClick={() => requestSort('tableName')}>
                                     Origine {getSortIcon('tableName')}
                                 </Button>
@@ -386,6 +405,7 @@ export default function ReportsPage() {
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-12" /></TableCell>
@@ -401,6 +421,9 @@ export default function ReportsPage() {
                                 </TableCell>
                                 <TableCell className="font-medium whitespace-nowrap">
                                     <ClientFormattedDate date={sale.date} />
+                                </TableCell>
+                                <TableCell>
+                                    {sale.userName}
                                 </TableCell>
                                 <TableCell>
                                     {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
