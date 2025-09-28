@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Wallet, Landmark, StickyNote } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
 
 interface AddPaymentMethodDialogProps {
   isOpen: boolean;
@@ -39,6 +41,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
   const [icon, setIcon] = useState<PaymentMethod['icon']>('other');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
+  const [isActive, setIsActive] = useState(true);
 
 
   const handleAddMethod = () => {
@@ -55,6 +58,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
       name, 
       icon, 
       type,
+      isActive,
       value: type === 'indirect' && value ? parseFloat(value) : undefined
     });
     
@@ -62,6 +66,7 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
     setIcon('other');
     setType('direct');
     setValue('');
+    setIsActive(true);
     onClose();
   };
 
@@ -139,6 +144,19 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
                 />
             </div>
           )}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="active" className="text-base">Actif</Label>
+              <p className="text-sm text-muted-foreground">
+                Seuls les moyens de paiement actifs apparaissent à la caisse.
+              </p>
+            </div>
+            <Switch
+              id="active"
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>

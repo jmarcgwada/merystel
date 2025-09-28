@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Wallet, Landmark, StickyNote } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
 
 interface EditPaymentMethodDialogProps {
   paymentMethod: PaymentMethod | null;
@@ -40,6 +42,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
   const [icon, setIcon] = useState<PaymentMethod['icon']>('other');
   const [type, setType] = useState<PaymentMethod['type']>('direct');
   const [value, setValue] = useState('');
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     if (paymentMethod) {
@@ -47,6 +50,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
         setIcon(paymentMethod.icon || 'other');
         setType(paymentMethod.type || 'direct');
         setValue(paymentMethod.value?.toString() || '');
+        setIsActive(paymentMethod.isActive ?? true);
     }
   }, [paymentMethod]);
 
@@ -67,6 +71,7 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
             name, 
             icon, 
             type,
+            isActive,
             value: type === 'indirect' && value ? parseFloat(value) : undefined
         });
         onClose();
@@ -147,6 +152,19 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
                 />
             </div>
           )}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="active-edit" className="text-base">Actif</Label>
+              <p className="text-sm text-muted-foreground">
+                Seuls les moyens de paiement actifs apparaissent à la caisse.
+              </p>
+            </div>
+            <Switch
+              id="active-edit"
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>

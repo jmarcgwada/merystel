@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -332,9 +332,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <ScrollArea className="w-full">
-              <div className="flex w-max space-x-4 pb-4">
-                {paymentMethods && paymentMethods.map((method) => {
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex w-max space-x-2 pb-4">
+                {paymentMethods && paymentMethods.filter(m => m.isActive).map((method) => {
                     const IconComponent = getIcon(method.icon);
                     const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
                                         (!currentAmount && !method.value) || 
@@ -344,16 +344,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                       <Button
                           key={method.id}
                           variant="outline"
-                          className="h-16 w-24 flex-shrink-0 flex flex-col items-center justify-center gap-2"
+                          className="h-20 w-24 flex-shrink-0 flex flex-col items-center justify-center gap-2"
                           onClick={() => handleAddPayment(method)}
                           disabled={isDisabled}
                       >
                           <IconComponent className="h-5 w-5" />
-                          <span className="text-sm">{method.name}</span>
+                          <span className="text-sm whitespace-normal text-center leading-tight">{method.name}</span>
                       </Button>
                     );
                 })}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </div>
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">

@@ -76,6 +76,7 @@ export interface PaymentMethod {
   icon?: 'card' | 'cash' | 'check' | 'other';
   type: 'direct' | 'indirect';
   value?: number;
+  isActive?: boolean;
 }
 
 export interface Payment {
