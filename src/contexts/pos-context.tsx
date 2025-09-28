@@ -1162,15 +1162,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       const today = new Date();
-      const datePrefix = format(today, 'yyyyMMdd');
-      const todaysSalesCount = sales.filter((s) =>
-        s.ticketNumber.startsWith(datePrefix)
-      ).length;
-      const ticketNumber =
-        `${datePrefix}-0001`.slice(
-          0,
-          -(todaysSalesCount + 1).toString().length
-        ) + (todaysSalesCount + 1).toString();
+      const dayMonth = format(today, 'ddMM');
+      const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
+      const todaysSalesSnapshot = await getDocs(salesQuery);
+      const todaysSalesCount = todaysSalesSnapshot.size;
+
+      const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+      const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
@@ -1194,7 +1192,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentSaleId,
       firestore,
       getDocRef,
-      sales,
       getCollectionRef,
       currentSaleContext,
     ]
