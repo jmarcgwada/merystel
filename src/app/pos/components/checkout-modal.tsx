@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -421,4 +422,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   );
 }
 
-    
