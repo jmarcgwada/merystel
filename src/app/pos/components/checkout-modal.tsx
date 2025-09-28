@@ -299,12 +299,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               <h3 className="font-semibold text-secondary-foreground">Client</h3>
               {selectedCustomer ? (
                 <div className="flex items-center justify-between">
-                    <div onClick={() => setView('customer')} className="cursor-pointer">
+                    <div onClick={() => setView('customer')} className="cursor-pointer flex-1">
                         <p className="font-medium">{selectedCustomer.name}</p>
                         <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setSelectedCustomer(null)}>
-                        <XCircle className="h-4 w-4" />
+                    <Button variant="destructive" size="sm" onClick={() => setSelectedCustomer(null)}>
+                        Effacer client
                     </Button>
                 </div>
               ) : (
@@ -437,7 +437,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                         key={customer.id}
                                         ref={el => customerListRef.current[index] = el}
                                         className={cn(
-                                            'w-full justify-start h-auto p-3 text-left border-2 border-transparent rounded-lg',
+                                            'w-full justify-start h-auto p-3 text-left border-2 border-transparent rounded-lg cursor-pointer',
                                             index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                                         )}
                                         onClick={() => setHighlightedCustomerIndex(index)}
@@ -478,7 +478,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 <ArrowDown className="h-8 w-8" />
             </Button>
              <Button 
-                className="h-24 text-2xl mt-auto"
+                className="h-24 text-2xl"
                 onClick={handleSelectCustomer} 
                 disabled={filteredCustomers.length === 0}
             >
