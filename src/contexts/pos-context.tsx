@@ -619,10 +619,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
       ];
       const defaultPaymentMethods = [
-        { name: 'Espèces', icon: 'cash', type: 'direct' },
-        { name: 'Carte Bancaire', icon: 'card', type: 'direct' },
-        { name: 'Chèque', icon: 'check', type: 'direct' },
-        { name: 'AUTRE', icon: 'other', type: 'direct' },
+        { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
+        { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
+        { name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
+        { name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
       ];
       const defaultCustomers = [
         { name: 'Client au comptoir', isDefault: true },
