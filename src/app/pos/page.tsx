@@ -43,6 +43,14 @@ export default function PosPage() {
     setIsClient(true);
   }, []);
 
+  const filteredItems = useMemo(() => (
+    <ItemList 
+        ref={contentRef}
+        category={selectedCategory} 
+        searchTerm={itemSearchTerm} 
+        showFavoritesOnly={showFavoritesOnly}
+    />
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly]);
 
   const checkScrollability = () => {
     const scrollArea = scrollAreaRef.current;
@@ -65,6 +73,7 @@ export default function PosPage() {
 
     return () => {
       if (contentRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         resizeObserver.unobserve(contentRef.current);
       }
       scrollArea.removeEventListener('scroll', checkScrollability);
@@ -144,14 +153,6 @@ export default function PosPage() {
     showKeyboard();
   };
   
-  const filteredItems = useMemo(() => (
-    <ItemList 
-        ref={contentRef}
-        category={selectedCategory} 
-        searchTerm={itemSearchTerm} 
-        showFavoritesOnly={showFavoritesOnly}
-    />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly]);
 
   return (
     <>
