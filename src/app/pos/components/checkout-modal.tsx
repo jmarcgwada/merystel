@@ -38,7 +38,7 @@ const iconMap: { [key: string]: Icon } = {
   other: Landmark
 };
 
-const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire'];
+const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire', 'Chèque'];
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user } = usePos();
@@ -625,5 +625,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    
