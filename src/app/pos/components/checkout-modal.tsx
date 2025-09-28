@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
 
+  const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const customerListRef = useRef<(HTMLDivElement | null)[]>([]);
+
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
@@ -86,6 +90,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setSelectedCustomer(null);
             setView('payment');
             setCustomerSearch('');
+            setHighlightedCustomerIndex(0);
         }, 300);
     }
   }, [isOpen, isPaid, totalAmount, customers]);
@@ -98,6 +103,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setSelectedCustomer(null);
     setView('payment');
     setCustomerSearch('');
+    setHighlightedCustomerIndex(0);
   }
 
   const handleOpenChange = (open: boolean) => {
@@ -217,6 +223,56 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       setSelectedCustomer(newCustomer);
       setView('payment');
   }
+
+    useEffect(() => {
+        if (view === 'customer') {
+            setHighlightedCustomerIndex(0);
+        }
+    }, [customerSearch, view]);
+
+    useEffect(() => {
+        customerListRef.current[highlightedCustomerIndex]?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+        });
+    }, [highlightedCustomerIndex]);
+
+    const handleSelectCustomer = () => {
+        const customer = filteredCustomers[highlightedCustomerIndex];
+        if (customer) {
+            setSelectedCustomer(customer);
+            setView('payment');
+        }
+    };
+
+    const handleNavigation = (direction: 'up' | 'down') => {
+        setHighlightedCustomerIndex(prevIndex => {
+            const newIndex = direction === 'up' ? prevIndex - 1 : prevIndex + 1;
+            if (newIndex >= 0 && newIndex < filteredCustomers.length) {
+                return newIndex;
+            }
+            return prevIndex; // Stay at bounds
+        });
+    };
+
+    const startScrolling = (direction: 'up' | 'down') => {
+        stopScrolling();
+        scrollIntervalRef.current = setInterval(() => {
+            handleNavigation(direction);
+        }, 100);
+    };
+    
+    const stopScrolling = () => {
+        if (scrollIntervalRef.current) {
+            clearInterval(scrollIntervalRef.current);
+            scrollIntervalRef.current = null;
+        }
+    };
+
+    useEffect(() => {
+        // Cleanup interval on unmount
+        return () => stopScrolling();
+    }, []);
 
   const renderPaymentView = () => (
     <>
@@ -358,39 +414,70 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         </Button>
         <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
       </DialogHeader>
-      <div className="py-4 space-y-4">
-        <Input 
-            placeholder="Rechercher par nom ou email..." 
-            value={customerSearch}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-            autoFocus
-        />
-        <ScrollArea className="h-[50vh] border rounded-md">
-            <div className="p-2">
-                {filteredCustomers.length === 0 ? (
-                    <p className="text-center text-sm text-muted-foreground p-4">Aucun client trouvé.</p>
-                ) : (
-                    <div className="space-y-1">
-                        {filteredCustomers.map((customer) => (
-                            <Button
-                                key={customer.id}
-                                variant="ghost"
-                                className="w-full justify-start h-auto py-2 px-3 text-left"
-                                onClick={() => {
-                                    setSelectedCustomer(customer);
-                                    setView('payment');
-                                }}
-                            >
-                                <div>
-                                    <p className="font-semibold">{customer.name}</p>
-                                    <p className="text-xs text-muted-foreground">{customer.email}</p>
-                                </div>
-                            </Button>
-                        ))}
+      <div className="py-4 grid grid-cols-3 gap-4 h-[60vh]">
+        <div className="col-span-2 flex flex-col space-y-4">
+            <Input 
+                placeholder="Rechercher par nom ou email..." 
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                autoFocus
+            />
+            <div className="flex-1 relative">
+                <ScrollArea className="absolute inset-0">
+                    <div className="p-1 pr-2">
+                        {filteredCustomers.length === 0 ? (
+                            <p className="text-center text-sm text-muted-foreground p-4">Aucun client trouvé.</p>
+                        ) : (
+                            <div className="space-y-1">
+                                {filteredCustomers.map((customer, index) => (
+                                    <div
+                                        key={customer.id}
+                                        ref={el => customerListRef.current[index] = el}
+                                        className={cn(
+                                            'w-full justify-start h-auto p-3 text-left border-2 border-transparent rounded-lg',
+                                            index === highlightedCustomerIndex && 'border-primary bg-primary/10'
+                                        )}
+                                        onClick={() => setHighlightedCustomerIndex(index)}
+                                    >
+                                        <p className="font-semibold">{customer.name}</p>
+                                        <p className="text-xs text-muted-foreground">{customer.email}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
+                </ScrollArea>
             </div>
-        </ScrollArea>
+        </div>
+         <div className="col-span-1 flex flex-col space-y-4">
+             <Button 
+                className="h-24 text-2xl" 
+                variant="outline"
+                onMouseDown={() => startScrolling('up')}
+                onMouseUp={stopScrolling}
+                onMouseLeave={stopScrolling}
+                onTouchStart={() => startScrolling('up')}
+                onTouchEnd={stopScrolling}
+                onClick={() => handleNavigation('up')}
+             >
+                <ArrowUp className="h-8 w-8" />
+            </Button>
+            <Button 
+                className="h-24 text-2xl"
+                variant="outline"
+                onMouseDown={() => startScrolling('down')}
+                onMouseUp={stopScrolling}
+                onMouseLeave={stopScrolling}
+                onTouchStart={() => startScrolling('down')}
+                onTouchEnd={stopScrolling}
+                onClick={() => handleNavigation('down')}
+            >
+                <ArrowDown className="h-8 w-8" />
+            </Button>
+            <Button className="h-full text-2xl" onClick={handleSelectCustomer} disabled={filteredCustomers.length === 0}>
+                <Check className="h-8 w-8 mr-4" /> Sélectionner
+            </Button>
+        </div>
       </div>
       <DialogFooter>
           <Button variant="outline" onClick={() => setView('payment')}>
@@ -428,3 +515,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
