@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -293,7 +292,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </div>
         )}
       </DialogHeader>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
             <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
               <h3 className="font-semibold text-secondary-foreground">Client</h3>
@@ -314,6 +313,24 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </Button>
               )}
             </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
+                <div className="relative mt-1 w-full">
+                    <Input
+                        id="amount-to-pay"
+                        ref={amountInputRef}
+                        type="text"
+                        value={currentAmount}
+                        onChange={handleAmountChange}
+                        disabled={balanceDue <= 0}
+                        className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
+                        onFocus={(e) => e.target.select()}
+                    />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
+                </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               {paymentMethods && paymentMethods.map((method) => {
                   const IconComponent = getIcon(method.icon);
@@ -334,24 +351,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </Button>
                   );
               })}
-            </div>
-        </div>
-        <div className="md:col-span-1 text-center">
-            <div className="space-y-2">
-                <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
-                <div className="relative mt-1 w-full">
-                    <Input
-                        id="amount-to-pay"
-                        ref={amountInputRef}
-                        type="text"
-                        value={currentAmount}
-                        onChange={handleAmountChange}
-                        disabled={balanceDue <= 0}
-                        className="!text-6xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
-                        onFocus={(e) => e.target.select()}
-                    />
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
-                </div>
             </div>
         </div>
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
@@ -520,3 +519,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   );
 }
 
+    
