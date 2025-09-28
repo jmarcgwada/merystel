@@ -196,7 +196,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         selectAndFocusInput();
     } else { // Fully paid or overpaid
         setCurrentAmount(Math.abs(newBalance).toFixed(2)); // Show change
-        handleFinalizeSale(newPayments);
+        // DO NOT finalize sale automatically. Wait for user confirmation.
     }
   }
   
@@ -610,3 +610,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
