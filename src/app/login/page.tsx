@@ -327,6 +327,7 @@ export default function LoginPage() {
                     <Input 
                         id="pin"
                         type="password"
+                        autoComplete="off"
                         value={pin}
                         onChange={(e) => setPin(e.target.value)}
                         placeholder="•••••"
