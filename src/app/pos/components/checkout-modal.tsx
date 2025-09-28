@@ -332,8 +332,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <ScrollArea className="flex-1 h-48">
-              <div className="grid grid-cols-2 gap-4 pr-4">
+            <ScrollArea className="w-full">
+              <div className="flex w-max space-x-4 pb-4">
                 {paymentMethods && paymentMethods.map((method) => {
                     const IconComponent = getIcon(method.icon);
                     const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
@@ -344,7 +344,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                       <Button
                           key={method.id}
                           variant="outline"
-                          className="h-16 flex flex-col items-center justify-center gap-2"
+                          className="h-16 w-24 flex-shrink-0 flex flex-col items-center justify-center gap-2"
                           onClick={() => handleAddPayment(method)}
                           disabled={isDisabled}
                       >
