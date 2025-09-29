@@ -1255,8 +1255,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const totalPaid = saleData.payments.reduce((acc, p) => acc + p.amount, 0);
       const change = totalPaid - saleData.total;
 
+      // Clean up items before saving
+      const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
+        items: cleanedItems,
         date: today,
         ticketNumber,
         status: 'paid',
@@ -1913,4 +1917,3 @@ export function usePos() {
   }
   return context;
 }
-
