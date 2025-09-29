@@ -11,6 +11,8 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function CustomizationPage() {
@@ -26,6 +28,12 @@ export default function CustomizationPage() {
     paymentMethodImageOpacity,
     setPaymentMethodImageOpacity,
    } = usePos();
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <>
@@ -56,11 +64,13 @@ export default function CustomizationPage() {
                     Affiche ou masque les miniatures des articles dans la colonne de la commande actuelle.
                   </p>
                 </div>
-                <Switch 
-                  id="ticket-images" 
-                  checked={showTicketImages}
-                  onCheckedChange={setShowTicketImages}
-                />
+                {isClient ? (
+                  <Switch 
+                    id="ticket-images" 
+                    checked={showTicketImages}
+                    onCheckedChange={setShowTicketImages}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
@@ -69,45 +79,51 @@ export default function CustomizationPage() {
                     Si activé, seules les catégories dédiées au restaurant seront visibles lors d'une commande à table.
                   </p>
                 </div>
-                <Switch 
-                  id="restaurant-filter" 
-                  checked={enableRestaurantCategoryFilter}
-                  onCheckedChange={setEnableRestaurantCategoryFilter}
-                />
+                {isClient ? (
+                  <Switch 
+                    id="restaurant-filter" 
+                    checked={enableRestaurantCategoryFilter}
+                    onCheckedChange={setEnableRestaurantCategoryFilter}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
             </div>
              <div className="grid gap-2 pt-4">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="item-card-opacity">Opacité du dégradé des articles</Label>
-                    <span className="text-sm font-bold text-primary">{itemCardOpacity}%</span>
+                     {isClient ? <span className="text-sm font-bold text-primary">{itemCardOpacity}%</span> : <Skeleton className="h-5 w-10" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Réglez l'opacité du dégradé de couleur sur les cartes d'articles.
                 </p>
-                <Slider 
-                    id="item-card-opacity"
-                    value={[itemCardOpacity]} 
-                    onValueChange={(value) => setItemCardOpacity(value[0])}
-                    min={0}
-                    max={100} 
-                    step={5} 
-                />
+                {isClient ? (
+                  <Slider 
+                      id="item-card-opacity"
+                      value={[itemCardOpacity]} 
+                      onValueChange={(value) => setItemCardOpacity(value[0])}
+                      min={0}
+                      max={100} 
+                      step={5} 
+                  />
+                ) : <Skeleton className="h-5 w-full" />}
              </div>
               <div className="grid gap-2 pt-4">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="payment-method-image-opacity">Opacité de l'image des moyens de paiement</Label>
-                    <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span>
+                     {isClient ? <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span> : <Skeleton className="h-5 w-10" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Réglez l'opacité de l'image de fond sur les boutons de paiement.
                 </p>
-                <Slider 
-                    id="payment-method-image-opacity"
-                    value={[paymentMethodImageOpacity]} 
-                    onValueChange={(value) => setPaymentMethodImageOpacity(value[0])}
-                    min={0}
-                    max={100} 
-                    step={5} 
-                />
+                {isClient ? (
+                  <Slider 
+                      id="payment-method-image-opacity"
+                      value={[paymentMethodImageOpacity]} 
+                      onValueChange={(value) => setPaymentMethodImageOpacity(value[0])}
+                      min={0}
+                      max={100} 
+                      step={5} 
+                  />
+                ) : <Skeleton className="h-5 w-full" />}
              </div>
           </CardContent>
         </Card>
@@ -122,19 +138,21 @@ export default function CustomizationPage() {
              <div className="grid gap-2">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="popular-items-count">Articles populaires</Label>
-                    <span className="text-sm font-bold text-primary">{popularItemsCount} articles</span>
+                    {isClient ? <span className="text-sm font-bold text-primary">{popularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
                 </p>
-                <Slider 
-                    id="popular-items-count"
-                    value={[popularItemsCount]} 
-                    onValueChange={(value) => setPopularItemsCount(value[0])}
-                    min={1}
-                    max={50} 
-                    step={1} 
-                />
+                {isClient ? (
+                  <Slider 
+                      id="popular-items-count"
+                      value={[popularItemsCount]} 
+                      onValueChange={(value) => setPopularItemsCount(value[0])}
+                      min={1}
+                      max={50} 
+                      step={1} 
+                  />
+                ) : <Skeleton className="h-5 w-full" />}
              </div>
           </CardContent>
         </Card>

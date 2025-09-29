@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -94,7 +95,7 @@ export default function ParametersPage() {
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" onClick={handleImportClick}>
+                        <Button variant="destructive">
                             <Upload className="mr-2" />
                             Importer la configuration
                         </Button>
