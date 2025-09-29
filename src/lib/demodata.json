@@ -8,7 +8,9 @@
         { "name": "Pain au chocolat", "price": 1.70, "description": "Généreux avec ses deux barres de chocolat noir." },
         { "name": "Pain aux raisins", "price": 2.00, "description": "Spirale de pâte levée avec crème pâtissière et raisins secs." },
         { "name": "Chausson aux pommes", "price": 2.20, "description": "Compotée de pommes maison dans une pâte feuilletée." },
-        { "name": "Baguette tradition", "price": 1.30, "description": "Croûte croustillante et mie alvéolée." }
+        { "name": "Baguette tradition", "price": 1.30, "description": "Croûte croustillante et mie alvéolée." },
+        { "name": "Brioche au sucre", "price": 2.50, "description": "Moelleuse et parsemée de grains de sucre." },
+        { "name": "Pain complet bio", "price": 2.80, "description": "Tranché ou entier, à la farine complète biologique." }
       ]
     },
     {
@@ -20,7 +22,17 @@
         { "name": "Mille-feuille", "price": 4.50, "description": "Pâte feuilletée caramélisée et crème diplomate à la vanille de Madagascar." },
         { "name": "Paris-Brest", "price": 4.80, "description": "Pâte à choux, crème mousseline praliné et amandes effilées." },
         { "name": "Opéra", "price": 5.00, "description": "Biscuit joconde, ganache chocolat, crème au beurre café." },
-        { "name": "Macaron (à l'unité)", "price": 1.80, "description": "Parfums variés selon la saison." }
+        { "name": "Fraisier", "price": 5.20, "description": "Génoise, crème mousseline et fraises fraîches (en saison)." },
+        { "name": "Macaron (à l'unité)", "price": 1.80, "description": "Parfums variés : chocolat, vanille, pistache, framboise." }
+      ]
+    },
+    {
+      "name": "Sandwichs & Salades",
+      "items": [
+        { "name": "Sandwich Jambon-Beurre", "price": 5.50, "description": "Le classique parisien : baguette tradition, jambon blanc supérieur, beurre AOP." },
+        { "name": "Sandwich Poulet-Crudités", "price": 6.80, "description": "Baguette, filet de poulet, mayonnaise, salade, tomate." },
+        { "name": "Salade César", "price": 12.50, "description": "Salade romaine, poulet grillé, croûtons, copeaux de parmesan, sauce César maison." },
+        { "name": "Salade Niçoise", "price": 13.00, "description": "Thon, tomates, poivrons, olives, anchois, œuf dur." }
       ]
     },
     {
@@ -28,7 +40,8 @@
       "items": [
         { "name": "Velouté de saison", "price": 7.50, "description": "Selon les légumes du marché, servi avec croûtons à l'ail." },
         { "name": "Œuf parfait, crème de lard", "price": 9.00, "description": "Œuf cuit à 64°C, émulsion de lard fumé et champignons poêlés." },
-        { "name": "Terrine de campagne maison", "price": 8.50, "description": "Servie avec ses cornichons et pain de campagne grillé." }
+        { "name": "Terrine de campagne maison", "price": 8.50, "description": "Servie avec ses cornichons et pain de campagne grillé." },
+        { "name": "Salade de chèvre chaud", "price": 9.50, "description": "Crottins de chèvre sur toasts, salade et noix." }
       ]
     },
     {
@@ -36,36 +49,42 @@
       "items": [
         { "name": "Quiche Lorraine", "price": 12.50, "description": "Servie avec une salade verte vinaigrette balsamique." },
         { "name": "Croque-Monsieur truffé", "price": 14.00, "description": "Pain de mie artisanal, jambon blanc à l'os, béchamel à la truffe et comté." },
-        { "name": "Salade Zénith", "price": 15.00, "description": "Volaille fermière, avocat, tomates confites, copeaux de parmesan, œuf poché." },
+        { "name": "Risotto aux champignons", "price": 16.50, "description": "Riz Arborio, champignons de Paris, cèpes et parmesan." },
+        { "name": "Filet de bar, purée de carottes", "price": 21.00, "description": "Cuit sur peau, servi avec une purée fine de carottes au cumin." },
         { "name": "Plat du Marché", "price": 18.00, "description": "Variable chaque jour, demandez au personnel." }
       ]
     },
     {
       "name": "Boissons Chaudes",
       "items": [
-        { "name": "Espresso", "price": 2.50, "description": "Café court et intense." },
+        { "name": "Espresso", "price": 2.50, "description": "Café court et intense, 100% Arabica." },
         { "name": "Café allongé", "price": 2.80, "description": "Espresso dilué à l'eau chaude." },
         { "name": "Cappuccino", "price": 4.00, "description": "Espresso, lait chaud et mousse de lait." },
+        { "name": "Latte Macchiato", "price": 4.20, "description": "Lait chaud, espresso et mousse de lait en couches." },
         { "name": "Chocolat chaud maison", "price": 4.50, "description": "Chocolat noir fondu et lait entier." },
-        { "name": "Thé (sélection du moment)", "price": 3.80, "description": "Noir, vert ou infusion." }
+        { "name": "Thé (sélection du moment)", "price": 3.80, "description": "Thé noir English Breakfast, thé vert Sencha, infusion verveine." }
       ]
     },
     {
       "name": "Boissons Fraîches",
       "items": [
-        { "name": "Jus d'orange pressé", "price": 4.50, "description": "Oranges fraîches pressées à la minute." },
-        { "name": "Citronnade maison", "price": 4.00, "description": "Citron, eau, sucre et menthe fraîche." },
-        { "name": "Coca-Cola / Coca-Cola Zéro", "price": 3.50, "description": "33cl." },
-        { "name": "Eau minérale (Evian / Badoit)", "price": 3.00, "description": "50cl." }
+        { "name": "Jus d'orange pressé", "price": 4.50, "description": "Oranges fraîches pressées à la minute (25cl)." },
+        { "name": "Citronnade maison", "price": 4.00, "description": "Citron, eau, sucre et menthe fraîche (25cl)." },
+        { "name": "Ice Tea Pêche maison", "price": 4.20, "description": "Thé noir infusé, sirop de pêche (25cl)." },
+        { "name": "Coca-Cola / Coca-Cola Zéro", "price": 3.50, "description": "Bouteille en verre 33cl." },
+        { "name": "Eau minérale (Evian / Badoit)", "price": 3.00, "description": "Bouteille 50cl." }
       ]
     },
     {
       "name": "Apéritifs & Vins",
       "items": [
-        { "name": "Kir (cassis, mûre, pêche)", "price": 5.00, "description": "12cl." },
-        { "name": "Coupe de Champagne", "price": 9.00, "description": "Brut, 12cl." },
-        { "name": "Verre de vin (Rouge/Blanc/Rosé)", "price": 6.00, "description": "Sélection du sommelier, 12cl." },
-        { "name": "Bière pression", "price": 4.50, "description": "25cl." }
+        { "name": "Kir (cassis, mûre, pêche)", "price": 5.00, "description": "Vin blanc Aligoté, 12cl." },
+        { "name": "Coupe de Champagne Brut", "price": 9.00, "description": "Champagne de producteur, 12cl." },
+        { "name": "Verre de vin (Rouge - Bordeaux)", "price": 6.00, "description": "Sélection du sommelier, 12cl." },
+        { "name": "Verre de vin (Blanc - Chardonnay)", "price": 6.00, "description": "Sélection du sommelier, 12cl." },
+        { "name": "Verre de vin (Rosé - Provence)", "price": 6.00, "description": "Sélection du sommelier, 12cl." },
+        { "name": "Bière pression (Pils)", "price": 4.50, "description": "25cl." },
+        { "name": "Mojito", "price": 10.00, "description": "Rhum, menthe fraîche, citron vert, sucre de canne, Perrier." }
       ]
     },
     {
@@ -73,7 +92,8 @@
       "items": [
         { "name": "Cognac VSOP", "price": 10.00, "description": "4cl." },
         { "name": "Armagnac XO", "price": 12.00, "description": "4cl." },
-        { "name": "Get 27 / Get 31", "price": 8.00, "description": "4cl." }
+        { "name": "Get 27 / Get 31", "price": 8.00, "description": "4cl, servi sur glace." },
+        { "name": "Limoncello", "price": 7.00, "description": "Liqueur de citron italienne, 4cl." }
       ]
     }
   ]
