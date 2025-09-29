@@ -19,6 +19,37 @@ import { Textarea } from '@/components/ui/textarea';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import type { Timestamp } from 'firebase/firestore';
+
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        if (!date) {
+            setFormattedDate('Date non disponible');
+            return;
+        }
+        
+        let jsDate: Date;
+        if (date instanceof Date) {
+            jsDate = date;
+        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            jsDate = (date as Timestamp).toDate();
+        } else {
+            jsDate = new Date(date as any);
+        }
+
+        if (!isNaN(jsDate.getTime())) {
+            setFormattedDate(format(jsDate, formatString, { locale: fr }));
+        } else {
+            setFormattedDate('Date invalide');
+        }
+    }, [date, formatString]);
+
+    return <>{formattedDate}</>;
+}
+
 
 const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
     <Button variant="outline" className={cn("text-xl h-12", className)} onClick={onClick}>
@@ -258,8 +289,8 @@ export function OrderSummary() {
                 </div>
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span>#{sale.ticketNumber}</span>
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {format(new Date(sale.date), 'd MMM yyyy', {locale: fr})}</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/> {format(new Date(sale.date), 'HH:mm')}</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="d MMM yyyy" /></span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="HH:mm" /></span>
                     {sale.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{sale.userName}</span>}
                 </div>
             </div>
@@ -273,7 +304,7 @@ export function OrderSummary() {
                     <span>Ticket: {currentSaleContext.tableName}</span>
                 </div>
                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
-                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {format(new Date(), 'd MMM yyyy', {locale: fr})}</span>
+                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {format(new Date(), 'd MMMM yyyy', {locale: fr})}</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3"/> {format(new Date(), 'HH:mm')}</span>
                  </div>
             </div>
@@ -661,5 +692,7 @@ export function OrderSummary() {
 
 
 
+
+    
 
     

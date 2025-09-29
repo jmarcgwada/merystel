@@ -25,7 +25,7 @@ import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 
 
-const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
@@ -44,11 +44,11 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) =>
         }
 
         if (!isNaN(jsDate.getTime())) {
-            setFormattedDate(format(jsDate, "d MMMM yyyy 'à' HH:mm", { locale: fr }));
+            setFormattedDate(format(jsDate, formatString, { locale: fr }));
         } else {
             setFormattedDate('Date invalide');
         }
-    }, [date]);
+    }, [date, formatString]);
 
     return <>{formattedDate}</>;
 }
@@ -152,7 +152,7 @@ export default function SaleDetailPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title={`Détail de la vente #${sale.ticketNumber}`}
-        subtitle={<ClientFormattedDate date={sale.date} />}
+        subtitle={<ClientFormattedDate date={sale.date} formatString="d MMMM yyyy 'à' HH:mm" />}
       >
         <div className="flex items-center gap-2">
             <Button asChild variant="outline" className="btn-back">
@@ -334,3 +334,5 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+
+    
