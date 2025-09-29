@@ -305,8 +305,8 @@ export function OrderSummary() {
               <div>
                 <p className="font-semibold pr-2">{item.name}</p>
                 {item.selectedVariants && (
-                  <p className="text-xs text-muted-foreground">
-                    {item.selectedVariants.map(v => v.value).join(', ')}
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
                   </p>
                 )}
               </div>
@@ -518,10 +518,3 @@ export function OrderSummary() {
     </>
   );
 }
-
-
-
-
-
-
-
