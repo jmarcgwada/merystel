@@ -124,7 +124,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {settingsLinks.filter(link => !link.adminOnly || user?.role === 'admin').map(link => (
+        {settingsLinks.filter(link => !link.adminOnly || showAdminSections).map(link => (
             <Link href={link.href} key={link.href} className="group" target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
                 <Card className="h-full transition-all hover:shadow-md hover:border-primary">
                     <CardContent className="pt-6">
