@@ -25,9 +25,9 @@ import { PromptViewer } from './components/prompt-viewer';
 
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user, loading: isUserLoading } = useUser();
   const isManager = user?.role === 'manager';
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading } = usePos();
   const [isSeedDialogOpen, setSeedDialogOpen] = useState(false);
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
@@ -139,7 +139,7 @@ export default function SettingsPage() {
                 </Card>
             </Link>
         ))}
-        {!isManager && (
+        {!isUserLoading && !isManager && (
             <AlertDialog open={isSeedDialogOpen} onOpenChange={setSeedDialogOpen}>
                 <AlertDialogTrigger asChild>
                     <Card className="group h-full transition-all hover:shadow-md hover:border-accent cursor-pointer">
@@ -180,7 +180,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-       {!isManager && (
+       {!isUserLoading && !isManager && (
             <div className="mt-12">
                 <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
                 <Card className="border-destructive">
