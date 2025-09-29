@@ -41,31 +41,11 @@ export default function ParametersPage() {
     setEnableSerialNumber,
   } = usePos();
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    await importConfiguration(file);
-    setIsImporting(false);
-    
-    // Reset file input
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-  };
 
   return (
     <>
@@ -81,50 +61,6 @@ export default function ParametersPage() {
         </Button>
       </PageHeader>
       <div className="mt-8 space-y-8">
-        <Card>
-            <CardHeader>
-                <CardTitle>Gestion de la configuration</CardTitle>
-                <CardDescription>
-                    Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, TVA, etc.).
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={exportConfiguration} variant="outline">
-                    <Download className="mr-2" />
-                    Exporter la configuration
-                </Button>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive">
-                            <Upload className="mr-2" />
-                            Importer la configuration
-                        </Button>
-                    </AlertDialogTrigger>
-                     <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action est irréversible. L'importation d'un nouveau fichier de configuration écrasera et remplacera TOUTES les données actuelles (articles, catégories, paramètres, etc.).
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleImportClick} disabled={isImporting}>
-                            {isImporting ? "Importation en cours..." : "Continuer et importer"}
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-                 <input 
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".json"
-                    onChange={handleFileChange}
-                />
-            </CardContent>
-        </Card>
-
         <Card>
             <CardHeader>
             <CardTitle>Fonctionnalités</CardTitle>

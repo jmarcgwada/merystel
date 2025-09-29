@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -19,17 +19,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { PromptViewer } from './components/prompt-viewer';
 import { Separator } from '@/components/ui/separator';
 
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration } = usePos();
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
 
   const handleTitleClick = () => {
     const newCount = titleClickCount + 1;
@@ -51,6 +55,24 @@ export default function SettingsPage() {
     resetAllData();
     setResetDialogOpen(false);
   }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    await importConfiguration(file);
+    setIsImporting(false);
+    
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+
 
   const settingsLinks = [
     {
@@ -183,6 +205,49 @@ export default function SettingsPage() {
                                     <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données. L'initialisation est désactivée.
                                 </p>
                             )}
+                        </CardContent>
+                    </Card>
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Gestion de la configuration</CardTitle>
+                            <CardDescription>
+                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, TVA, etc.).
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col sm:flex-row gap-4">
+                            <Button onClick={exportConfiguration} variant="outline">
+                                <Download className="mr-2" />
+                                Exporter la configuration
+                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Upload className="mr-2" />
+                                        Importer la configuration
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Cette action est irréversible. L'importation d'un nouveau fichier de configuration écrasera et remplacera TOUTES les données actuelles (articles, catégories, paramètres, etc.).
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleImportClick} disabled={isImporting}>
+                                        {isImporting ? "Importation en cours..." : "Continuer et importer"}
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            <input 
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept=".json"
+                                onChange={handleFileChange}
+                            />
                         </CardContent>
                     </Card>
                 </div>
