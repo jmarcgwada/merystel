@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -71,7 +72,7 @@ export default function ReportsPage() {
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [filterSerialNumber, setFilterSerialNumber] = useState('');
+    const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState('');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(true);
@@ -95,7 +96,7 @@ export default function ReportsPage() {
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
-            const serialNumberMatch = !filterSerialNumber || sale.items.some(item => item.serialNumbers?.some(sn => sn.toLowerCase().includes(filterSerialNumber.toLowerCase())));
+            const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
             const sellerMatch = !filterSellerName || (sale.userName && sale.userName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
             let dateMatch = true;
@@ -117,7 +118,7 @@ export default function ReportsPage() {
                 return nameMatch || noteMatch || serialMatch || variantMatch;
             });
 
-            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch && sellerMatch && generalMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch;
         });
 
         // Apply sorting
@@ -164,7 +165,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber, filterSellerName, generalFilter]);
+    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -200,7 +201,7 @@ export default function ReportsPage() {
         setFilterOrigin('');
         setFilterStatus('all');
         setDateRange(undefined);
-        setFilterSerialNumber('');
+        setFilterArticleRef('');
         setFilterSellerName('');
         setGeneralFilter('');
     }
@@ -370,9 +371,9 @@ export default function ReportsPage() {
                             />
 
                             <Input
-                                placeholder="Rechercher par N° de Série..."
-                                value={filterSerialNumber}
-                                onChange={(e) => setFilterSerialNumber(e.target.value)}
+                                placeholder="Rechercher par article/référence..."
+                                value={filterArticleRef}
+                                onChange={(e) => setFilterArticleRef(e.target.value)}
                                 className="max-w-xs"
                             />
 
