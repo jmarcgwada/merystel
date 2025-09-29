@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -42,6 +42,10 @@ export function OrderSummary() {
   const { 
     order, 
     setOrder,
+    readOnlyOrder,
+    loadTicketForViewing,
+    lastDirectSale,
+    lastRestaurantSale,
     removeFromOrder, 
     clearOrder, 
     orderTotal, 
@@ -96,10 +100,12 @@ export function OrderSummary() {
     }
   }, [inputValue, targetInput, selectedItem, updateItemNote]);
 
+  const [isClosingTable, setIsClosingTable] = useState(false);
   useEffect(() => {
-    // When the selected table changes, reset the "closing" state
+    // When the selected table ID changes, reset the "closing" state
     setIsClosingTable(false);
   }, [selectedTable?.id]);
+
 
   useEffect(() => {
     if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
@@ -138,6 +144,7 @@ export function OrderSummary() {
   }, [selectedItem, mode]);
 
   const handleItemSelect = (item: OrderItem) => {
+    if (readOnlyOrder) return; // Disable interaction in read-only mode
     if (selectedItem?.id === item.id) {
         setSelectedItem(null);
         setKeypadValue('');
@@ -239,6 +246,14 @@ export function OrderSummary() {
   }
   
   const getTitle = () => {
+    if (readOnlyOrder) {
+        return (
+            <div className='flex items-center gap-2'>
+                <History/>
+                <span>Consultation Ticket</span>
+            </div>
+        )
+    }
     if (currentSaleContext?.isTableSale) {
         return (
             <div className='flex items-center gap-2'>
@@ -264,6 +279,7 @@ export function OrderSummary() {
   }
 
   const HeaderAction = () => {
+    if (readOnlyOrder) return null;
     if (selectedTable) {
       if (order.length > 0) {
         return (
@@ -302,8 +318,6 @@ export function OrderSummary() {
     return null;
   }
 
-  const [isClosingTable, setIsClosingTable] = useState(false);
-
   const handleCloturer = () => {
     if(selectedTable) {
         promoteTableToTicket(selectedTable.id, order);
@@ -316,8 +330,10 @@ export function OrderSummary() {
     <div 
         ref={el => itemRefs.current[item.id] = el}
         className={cn(
-          "flex items-start gap-4 cursor-pointer transition-colors duration-300", 
-          isSelected ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
+          "flex items-start gap-4 transition-colors duration-300",
+          !readOnlyOrder && "cursor-pointer",
+          isSelected ? 'bg-accent/50' : 'bg-transparent',
+          !readOnlyOrder && !isSelected && "hover:bg-secondary/50",
           recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
           showTicketImages ? 'p-4' : 'p-2'
         )}
@@ -372,7 +388,7 @@ export function OrderSummary() {
         <div className="text-right">
             <p className="font-bold">{item.total.toFixed(2)}€</p>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
+        <Button variant="ghost" size="icon" className={cn("h-8 w-8 text-muted-foreground hover:text-destructive shrink-0", readOnlyOrder && "hidden")} onClick={(e) => {e.stopPropagation(); removeFromOrder(item.id)}}>
             <X className="h-4 w-4" />
         </Button>
     </div>
@@ -381,6 +397,8 @@ export function OrderSummary() {
   const backgroundColor = selectedTable 
     ? hexToRgba(restaurantModeBackgroundColor, restaurantModeBgOpacity)
     : hexToRgba(directSaleBackgroundColor, directSaleBgOpacity);
+
+  const currentOrder = readOnlyOrder || order;
 
   return (
     <>
@@ -490,13 +508,32 @@ export function OrderSummary() {
         )}
 
         <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
-          {order.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-muted-foreground">Aucun article dans la commande.</p>
+          {currentOrder.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-4">
+              <div className="text-center text-muted-foreground space-y-4">
+                <p>Aucun article dans la commande.</p>
+                <Separator />
+                <p className="text-sm">Consulter un ticket récent :</p>
+                <div className="flex flex-col gap-2">
+                    {lastDirectSale && (
+                        <Button variant="outline" onClick={() => loadTicketForViewing(lastDirectSale)}>
+                            Dernier ticket (Vente directe)
+                        </Button>
+                    )}
+                    {lastRestaurantSale && (
+                        <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
+                            Dernier ticket (Restaurant)
+                        </Button>
+                    )}
+                    {!lastDirectSale && !lastRestaurantSale && (
+                        <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>
+                    )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="divide-y">
-                {order.map((item) => (
+                {currentOrder.map((item) => (
                   <div key={item.id} className={cn(isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
                       {renderOrderItem(item, false)}
                   </div>
@@ -522,7 +559,12 @@ export function OrderSummary() {
                 </div>
             </div>
             <div className="mt-4 flex gap-2">
-              {selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
+              {readOnlyOrder ? (
+                <Button size="lg" className="w-full" onClick={clearOrder}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouvelle Commande
+                </Button>
+              ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
                   <Button
                     size="lg"
@@ -577,4 +619,5 @@ export function OrderSummary() {
     </>
   );
 }
+
 

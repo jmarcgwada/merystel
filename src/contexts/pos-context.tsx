@@ -98,6 +98,8 @@ interface PosContextType {
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item; quantity: number } | null>>;
   variantItem: Item | null;
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
+  readOnlyOrder: OrderItem[] | null;
+  loadTicketForViewing: (sale: Sale) => void;
 
 
   users: User[];
@@ -149,6 +151,8 @@ interface PosContextType {
   promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
 
   sales: Sale[];
+  lastDirectSale: Sale | null;
+  lastRestaurantSale: Sale | null;
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>
   ) => void;
@@ -289,6 +293,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
+  const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
@@ -788,6 +793,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     }
     setOrder([]);
+    setReadOnlyOrder(null);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
@@ -961,18 +967,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const orderTotal = useMemo(
-    () => order.reduce((sum, item) => sum + item.total, 0),
-    [order]
+    () => (readOnlyOrder || order).reduce((sum, item) => sum + item.total, 0),
+    [order, readOnlyOrder]
   );
 
   const orderTax = useMemo(() => {
     if (!vatRates) return 0;
-    return order.reduce((sum, item) => {
+    return (readOnlyOrder || order).reduce((sum, item) => {
       const vat = vatRates.find((v) => v.id === item.vatId);
       const taxForItem = item.total * ((vat?.rate || 0) / 100);
       return sum + taxForItem;
     }, 0);
-  }, [order, vatRates]);
+  }, [order, readOnlyOrder, vatRates]);
   // #endregion
 
   // #region Held Order & Table Management
@@ -1026,6 +1032,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!heldOrdersRef.current || !user) return;
     const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
     if (orderToRecall) {
+      setReadOnlyOrder(null);
       setOrder(orderToRecall.items);
       setCurrentSaleId(orderToRecall.id);
       setSelectedTable(null); // Ensure no table is selected
@@ -1121,6 +1128,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setOrder(tableData.order || []);
         }
         
+        setReadOnlyOrder(null);
         setCurrentSaleId(null);
         setCurrentSaleContext({
             tableId: tableData.id,
@@ -1611,7 +1619,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [nextUrl, clearOrder, closeNavConfirm]);
   // #endregion
 
-  // #region Derived State
+  // #region Derived State & Last Tickets
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
@@ -1635,6 +1643,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       .slice(0, popularItemsCount)
       .map((i) => i.item);
   }, [sales, items, popularItemsCount]);
+  
+  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    if (!sales || sales.length === 0) {
+      return { lastDirectSale: null, lastRestaurantSale: null };
+    }
+    const sortedSales = [...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
+    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
+    return { lastDirectSale, lastRestaurantSale };
+  }, [sales]);
+
+  const loadTicketForViewing = useCallback((sale: Sale) => {
+    setReadOnlyOrder(sale.items);
+  }, []);
   // #endregion
   
   useEffect(() => {
@@ -1654,6 +1676,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     () => ({
       order,
       setOrder,
+      readOnlyOrder,
+      loadTicketForViewing,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -1716,6 +1740,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saveTableOrderAndExit,
       promoteTableToTicket,
       sales,
+      lastDirectSale,
+      lastRestaurantSale,
       recordSale,
       paymentMethods,
       addPaymentMethod,
@@ -1790,6 +1816,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       order,
+      readOnlyOrder,
+      loadTicketForViewing,
       setOrder,
       addToOrder,
       addSerializedItemToOrder,
@@ -1848,6 +1876,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saveTableOrderAndExit,
       promoteTableToTicket,
       sales,
+      lastDirectSale,
+      lastRestaurantSale,
       recordSale,
       paymentMethods,
       addPaymentMethod,
@@ -1916,8 +1946,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setShowTicketImages,
       setDescriptionDisplay,
       setEnableSerialNumber,
-      setShowNotifications,
-      setNotificationDuration,
       setSerialNumberItem,
       setIsKeypadOpen,
       setRecentlyAddedItemId,
