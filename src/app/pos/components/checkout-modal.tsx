@@ -73,6 +73,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const customerListRef = useRef<(HTMLDivElement | null)[]>([]);
+  const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
+
 
   const amountInputRef = useRef<HTMLInputElement>(null);
   
@@ -103,53 +105,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         amountInputRef.current?.select();
     }, 100);
   }
-
-  useEffect(() => {
-    if (isOpen) {
-        const defaultCustomer = customers?.find(c => c.isDefault);
-        if (defaultCustomer) {
-            setSelectedCustomer(defaultCustomer);
-        }
-
-        if (!isPaid) {
-            const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
-            setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
-        }
-    } else {
-        setTimeout(() => {
-            setPayments([]);
-            setIsPaid(false);
-            setCurrentAmount('');
-            setSelectedCustomer(null);
-            setView('payment');
-            setCustomerSearch('');
-            setHighlightedCustomerIndex(0);
-            setShowCalculator(false);
-        }, 300);
-    }
-  }, [isOpen, isPaid, totalAmount, customers]);
-
-
-  const handleReset = () => {
-    setPayments([]);
-    setIsPaid(false);
-    setCurrentAmount('');
-    setSelectedCustomer(null);
-    setView('payment');
-    setCustomerSearch('');
-    setHighlightedCustomerIndex(0);
-    setShowCalculator(false);
-  }
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      onClose();
-      setTimeout(handleReset, 300);
-    }
-  };
   
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
+    if (autoFinalizeTimer.current) {
+        clearTimeout(autoFinalizeTimer.current);
+        autoFinalizeTimer.current = null;
+    }
     
     const totalPaid = finalPayments.reduce((acc, p) => acc + p.amount, 0);
     const change = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
@@ -176,7 +138,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       
       const isTableSale = currentSaleContext?.isTableSale;
 
-      if (isTableSale || (cameFromRestaurant && tableId !== 'takeaway')) {
+      if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
           if(cameFromRestaurant) setCameFromRestaurant(false);
           router.push('/restaurant');
       } else {
@@ -185,7 +147,69 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, handleOpenChange, selectedCustomer, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user]);
+
+
+  useEffect(() => {
+    if (isOverpaid && !autoFinalizeTimer.current && !isPaid) {
+      autoFinalizeTimer.current = setTimeout(() => {
+        handleFinalizeSale(payments);
+      }, 3000);
+    }
+
+    return () => {
+      if (autoFinalizeTimer.current) {
+        clearTimeout(autoFinalizeTimer.current);
+        autoFinalizeTimer.current = null;
+      }
+    };
+  }, [isOverpaid, payments, handleFinalizeSale, isPaid]);
+
+
+  useEffect(() => {
+    if (isOpen) {
+        const defaultCustomer = customers?.find(c => c.isDefault);
+        if (defaultCustomer) {
+            setSelectedCustomer(defaultCustomer);
+        }
+
+        if (!isPaid) {
+            const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
+            setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
+        }
+    } else {
+        setTimeout(() => {
+            setPayments([]);
+            setIsPaid(false);
+            setCurrentAmount('');
+            setSelectedCustomer(null);
+            setView('payment');
+            setCustomerSearch('');
+            setHighlightedCustomerIndex(0);
+            setShowCalculator(false);
+        }, 300);
+    }
+  }, [isOpen, isPaid, totalAmount, customers, payments]);
+
+
+  const handleReset = () => {
+    setPayments([]);
+    setIsPaid(false);
+    setCurrentAmount('');
+    setSelectedCustomer(null);
+    setView('payment');
+    setCustomerSearch('');
+    setHighlightedCustomerIndex(0);
+    setShowCalculator(false);
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+      setTimeout(handleReset, 300);
+    }
+  };
+  
   
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd: number;
