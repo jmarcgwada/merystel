@@ -341,9 +341,9 @@ function ItemForm() {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Détails de l'article</TabsTrigger>
-                    <TabsTrigger value="variants">Déclinaisons</TabsTrigger>
                     <TabsTrigger value="pricing">Prix</TabsTrigger>
                     <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
+                    <TabsTrigger value="variants">Déclinaisons</TabsTrigger>
                 </TabsList>
                 <TabsContent value="details">
                      <Card>
@@ -453,74 +453,6 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="variants">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gestion des déclinaisons</CardTitle>
-                            <CardDescription>Gérez les différentes versions de cet article, comme les tailles ou les couleurs.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                             <FormField
-                                control={form.control}
-                                name="hasVariants"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Activer les déclinaisons</FormLabel>
-                                        <FormDescription>
-                                        Permet de définir plusieurs options pour cet article (ex: Taille, Couleur).
-                                        </FormDescription>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    </FormItem>
-                                )}
-                                />
-                                {watchedHasVariants && (
-                                    <div className="space-y-4 pt-4">
-                                        {fields.map((field, index) => (
-                                            <Card key={field.id} className="p-4">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="font-semibold">Déclinaison #{index + 1}</h4>
-                                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`variantOptions.${index}.name`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                            <FormLabel>Nom de l'option</FormLabel>
-                                                            <FormControl>
-                                                                <Input placeholder="ex: Taille, Couleur..." {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <VariantValues control={control} optionIndex={index} />
-                                                </div>
-                                            </Card>
-                                        ))}
-                                         <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => append({ name: '', values: [{ value: '' }] })}
-                                        >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
-                                            Ajouter une déclinaison
-                                        </Button>
-                                    </div>
-                                )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -702,6 +634,74 @@ function ItemForm() {
                             </Card>
                         </div>
                     </div>
+                </TabsContent>
+                <TabsContent value="variants">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gestion des déclinaisons</CardTitle>
+                            <CardDescription>Gérez les différentes versions de cet article, comme les tailles ou les couleurs.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                             <FormField
+                                control={form.control}
+                                name="hasVariants"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Activer les déclinaisons</FormLabel>
+                                        <FormDescription>
+                                        Permet de définir plusieurs options pour cet article (ex: Taille, Couleur).
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                                {watchedHasVariants && (
+                                    <div className="space-y-4 pt-4">
+                                        {fields.map((field, index) => (
+                                            <Card key={field.id} className="p-4">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="font-semibold">Déclinaison #{index + 1}</h4>
+                                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`variantOptions.${index}.name`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                            <FormLabel>Nom de l'option</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="ex: Taille, Couleur..." {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <VariantValues control={control} optionIndex={index} />
+                                                </div>
+                                            </Card>
+                                        ))}
+                                         <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => append({ name: '', values: [{ value: '' }] })}
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Ajouter une déclinaison
+                                        </Button>
+                                    </div>
+                                )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
           

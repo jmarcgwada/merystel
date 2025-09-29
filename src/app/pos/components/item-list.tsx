@@ -56,9 +56,13 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
       }
 
       // Apply search term filter
-      let searchedItems = itemsToFilter.filter(item => 
-          searchTerm ? item.name.toLowerCase().includes(searchTerm.toLowerCase()) : true
-      );
+      let searchedItems = itemsToFilter.filter(item => {
+        if (!searchTerm) return true;
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const nameMatch = item.name.toLowerCase().includes(lowerSearchTerm);
+        const barcodeMatch = item.barcode ? item.barcode.toLowerCase().includes(lowerSearchTerm) : false;
+        return nameMatch || barcodeMatch;
+      });
       
       // In restaurant mode, further filter items to only include those in restaurant-dedicated categories
       if (selectedTable) {
