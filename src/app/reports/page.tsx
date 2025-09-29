@@ -94,8 +94,8 @@ export default function ReportsPage() {
         }
         if (!userId || !users) return 'N/A';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : (user?.email || 'Utilisateur inconnu');
-    }, [users, user]);
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : 'N/A';
+    }, [users]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -485,7 +485,7 @@ export default function ReportsPage() {
                                         <ClientFormattedDate date={sale.date} />
                                     </TableCell>
                                     <TableCell>
-                                        {sellerName === 'undefined undefined' || !sellerName ? 'N/A' : sellerName}
+                                        {sellerName}
                                     </TableCell>
                                     <TableCell>
                                         {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
@@ -518,4 +518,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
