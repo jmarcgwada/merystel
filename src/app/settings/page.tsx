@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -22,12 +21,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
 import { PromptViewer } from './components/prompt-viewer';
+import { Separator } from '@/components/ui/separator';
 
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
   const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading } = usePos();
-  const [isSeedDialogOpen, setSeedDialogOpen] = useState(false);
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
@@ -37,7 +36,7 @@ export default function SettingsPage() {
     setTitleClickCount(newCount);
   };
   
-  const showHiddenButton = titleClickCount >= 5;
+  const showHiddenButtons = titleClickCount >= 5;
 
   const canSeedData = useMemo(() => {
     if (isLoading) return false;
@@ -46,7 +45,6 @@ export default function SettingsPage() {
 
   const handleSeedData = () => {
     seedInitialData();
-    setSeedDialogOpen(false);
   }
   
   const handleResetData = () => {
@@ -108,18 +106,20 @@ export default function SettingsPage() {
             title="Paramètres"
             subtitle="Configurez et personnalisez l'application selon vos besoins."
         >
-            <Button asChild variant="outline" className="btn-back">
-            <Link href="/dashboard">
-                <ArrowLeft />
-                Retour au tableau de bord
-            </Link>
-            </Button>
-            {showHiddenButton && (
-                <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
-                    <FileCode className="mr-2 h-4 w-4" />
-                    Générer le Prompt Projet
+            <div className="flex items-center gap-2">
+                 <Button asChild variant="outline" className="btn-back">
+                    <Link href="/dashboard">
+                        <ArrowLeft />
+                        Retour au tableau de bord
+                    </Link>
                 </Button>
-            )}
+                {showHiddenButtons && (
+                    <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
+                        <FileCode className="mr-2 h-4 w-4" />
+                        Générer le Prompt Projet
+                    </Button>
+                )}
+            </div>
         </PageHeader>
       </div>
 
@@ -140,46 +140,52 @@ export default function SettingsPage() {
                 </Card>
             </Link>
         ))}
-        {showAdminSections && (
-            <AlertDialog open={isSeedDialogOpen} onOpenChange={setSeedDialogOpen}>
-                <AlertDialogTrigger asChild>
-                    <Card className="group h-full transition-all hover:shadow-md hover:border-accent cursor-pointer">
-                        <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <Sparkles className="h-8 w-8 text-accent mb-2" />
-                                    <h3 className="text-lg font-semibold font-headline">Initialiser les données</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">Créez un jeu de données de démonstration (catégories, TVA...).</p>
-                                </div>
-                                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Initialiser les données de démonstration ?</AlertDialogTitle>
-                        {canSeedData ? (
-                            <AlertDialogDescription>
-                                Cette action va créer un jeu de données de base (catégories, TVA, modes de paiement, etc.) pour vous aider à démarrer. Elle ne s'exécutera pas si des données existent déjà.
-                            </AlertDialogDescription>
-                        ) : (
-                            <AlertDialogDescription className="text-destructive font-semibold flex items-center gap-2">
-                                <AlertTriangle className="h-4 w-4"/>
-                                L'application contient déjà des données de configuration. L'initialisation ne peut pas continuer pour éviter d'écraser vos données.
-                            </AlertDialogDescription>
-                        )}
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleSeedData} disabled={!canSeedData}>
-                            Confirmer et initialiser
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        )}
       </div>
+      
+       {showAdminSections && showHiddenButtons && (
+        <>
+            <Separator className="my-8"/>
+            <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
+             <Card>
+                 <CardHeader>
+                    <CardTitle>Initialiser l'application</CardTitle>
+                    <CardDescription>
+                        Créez un jeu de données de démonstration (catégories, TVA...). Cette option n'est disponible que si l'application est vide.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                             <Button disabled={!canSeedData}>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Initialiser avec les données de démo
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Initialiser les données de démonstration ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action va créer un jeu de données de base. Elle ne s'exécutera pas si des données existent déjà.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleSeedData}>
+                                    Confirmer et initialiser
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    {!canSeedData && (
+                        <p className="text-sm text-destructive mt-2 flex items-center gap-2">
+                             <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données. L'initialisation est désactivée.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+        </>
+       )}
+
 
        {showAdminSections && (
             <div className="mt-12">
