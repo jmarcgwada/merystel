@@ -787,18 +787,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    if(selectedTable && selectedTable.lockedBy) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-          await updateDoc(tableRef, { lockedBy: deleteField() });
+    // Retain the selected table context if there is one.
+    if (selectedTable?.id) {
+        setOrder([]);
+        setReadOnlyOrder(null);
+        setCurrentSaleId(null);
+        // Do not clear currentSaleContext if a table is selected
+        if (!currentSaleContext?.isTableSale) {
+            setCurrentSaleContext(null);
         }
+    } else {
+        // Full clear if not in table context
+        setOrder([]);
+        setReadOnlyOrder(null);
+        setCurrentSaleId(null);
+        setCurrentSaleContext(null);
+        setSelectedTable(null);
     }
-    setOrder([]);
-    setReadOnlyOrder(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    setSelectedTable(null);
-  }, [selectedTable, getDocRef]);
+  }, [selectedTable, currentSaleContext]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
