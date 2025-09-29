@@ -50,6 +50,7 @@ import {
   updateDoc,
   deleteField,
   runTransaction,
+  Timestamp,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -304,7 +305,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 2000);
   const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
@@ -1269,7 +1270,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       // Clean up items before saving
       const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
       
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : '';
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email || '';
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
@@ -1278,7 +1279,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         ticketNumber,
         status: 'paid',
         userId: user.uid,
-        userName: sellerName || '',
+        userName: sellerName,
         ...(change > 0.009 && { change: change }),
         ...(currentSaleContext?.tableId && {
           tableId: currentSaleContext.tableId,
@@ -1646,13 +1647,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
     if (!sales || sales.length === 0) {
-      return { lastDirectSale: null, lastRestaurantSale: null };
+        return { lastDirectSale: null, lastRestaurantSale: null };
     }
-    const sortedSales = [...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
+        const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+    });
     const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
     const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
     return { lastDirectSale, lastRestaurantSale };
-  }, [sales]);
+}, [sales]);
 
   const loadTicketForViewing = useCallback((sale: Sale) => {
     const itemsWithSource = sale.items.map(item => ({ ...item, sourceSale: sale }));
