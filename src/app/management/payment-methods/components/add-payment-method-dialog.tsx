@@ -35,6 +35,42 @@ const icons = [
   { value: 'other', label: 'Autre', icon: Landmark },
 ];
 
+const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx?.drawImage(img, 0, 0, width, height);
+
+            resolve(canvas.toDataURL(file.type));
+        };
+        img.onerror = (error) => {
+            reject(error);
+        };
+    });
+};
+
 export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDialogProps) {
   const { toast } = useToast();
   const { addPaymentMethod } = usePos();
@@ -46,14 +82,20 @@ export function AddPaymentMethodDialog({ isOpen, onClose }: AddPaymentMethodDial
   const [image, setImage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const resizedImage = await resizeImage(file, 200, 200); // Resize to max 200x200
+        setImage(resizedImage);
+      } catch (error) {
+        console.error("Error resizing image:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de redimensionnement',
+          description: "Impossible de traiter l'image sélectionnée.",
+        });
+      }
     }
   };
 
