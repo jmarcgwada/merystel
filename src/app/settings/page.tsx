@@ -113,7 +113,7 @@ export default function SettingsPage() {
                         Retour au tableau de bord
                     </Link>
                 </Button>
-                {showHiddenButtons && (
+                {showHiddenButtons && showAdminSections && (
                     <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
                         <FileCode className="mr-2 h-4 w-4" />
                         Générer le Prompt Projet
@@ -142,7 +142,7 @@ export default function SettingsPage() {
         ))}
       </div>
       
-       {showAdminSections && showHiddenButtons && (
+       {showHiddenButtons && showAdminSections && (
         <>
             <Separator className="my-8"/>
             <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
