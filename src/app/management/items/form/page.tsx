@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import type { Item } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
@@ -28,6 +28,8 @@ import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -44,6 +46,13 @@ const formSchema = z.object({
   marginCoefficient: z.coerce.number().optional(),
   requiresSerialNumber: z.boolean().default(false),
   additionalCosts: z.coerce.number().optional(),
+  hasVariants: z.boolean().default(false),
+  variantOptions: z.array(z.object({
+    name: z.string().min(1, { message: "Le nom est requis." }),
+    values: z.array(z.object({
+        value: z.string().min(1, { message: "La valeur est requise." })
+    })).min(1, { message: "Au moins une valeur est requise." })
+  })).optional(),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -80,10 +89,19 @@ function ItemForm() {
       marginCoefficient: 0,
       requiresSerialNumber: false,
       additionalCosts: 0,
+      hasVariants: false,
+      variantOptions: [],
     },
   });
 
-  const { watch, setValue } = form;
+  const { control, watch, setValue } = form;
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "variantOptions"
+  });
+
+  const watchedHasVariants = watch('hasVariants');
   const watchedImage = watch('image');
   const watchedName = watch('name');
   const watchedPrice = watch('price');
@@ -119,6 +137,11 @@ function ItemForm() {
         marginCoefficient: itemToEdit.marginCoefficient || 0,
         requiresSerialNumber: itemToEdit.requiresSerialNumber || false,
         additionalCosts: itemToEdit.additionalCosts || 0,
+        hasVariants: itemToEdit.hasVariants || false,
+        variantOptions: itemToEdit.variantOptions?.map(opt => ({
+            name: opt.name,
+            values: opt.values.map(val => ({ value: val }))
+        })) || [],
       });
     } else if (!isEditMode) {
         form.reset({
@@ -136,6 +159,8 @@ function ItemForm() {
           marginCoefficient: 0,
           requiresSerialNumber: false,
           additionalCosts: 0,
+          hasVariants: false,
+          variantOptions: [],
         });
     }
   }, [isEditMode, itemToEdit, form]);
@@ -154,15 +179,23 @@ function ItemForm() {
         return;
     }
 
+    const submissionData = {
+        ...data,
+        variantOptions: data.variantOptions?.map(opt => ({
+            name: opt.name,
+            values: opt.values.map(val => val.value)
+        }))
+    };
+
     if (isEditMode && itemToEdit) {
       const updatedItem: Item = {
         ...itemToEdit,
-        ...data,
+        ...submissionData,
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
     } else {
-      addItem({ ...data, image: data.image || defaultImage });
+      addItem({ ...submissionData, image: data.image || defaultImage });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
     }
     router.push('/management/items');
@@ -308,6 +341,7 @@ function ItemForm() {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Détails de l'article</TabsTrigger>
+                    <TabsTrigger value="variants">Déclinaisons</TabsTrigger>
                     <TabsTrigger value="pricing">Prix</TabsTrigger>
                     <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                 </TabsList>
@@ -419,6 +453,74 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="variants">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gestion des déclinaisons</CardTitle>
+                            <CardDescription>Gérez les différentes versions de cet article, comme les tailles ou les couleurs.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                             <FormField
+                                control={form.control}
+                                name="hasVariants"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Activer les déclinaisons</FormLabel>
+                                        <FormDescription>
+                                        Permet de définir plusieurs options pour cet article (ex: Taille, Couleur).
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                                {watchedHasVariants && (
+                                    <div className="space-y-4 pt-4">
+                                        {fields.map((field, index) => (
+                                            <Card key={field.id} className="p-4">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="font-semibold">Déclinaison #{index + 1}</h4>
+                                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`variantOptions.${index}.name`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                            <FormLabel>Nom de l'option</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="ex: Taille, Couleur..." {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <VariantValues name={`variantOptions.${index}.values`} />
+                                                </div>
+                                            </Card>
+                                        ))}
+                                         <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => append({ name: '', values: [{ value: '' }] })}
+                                        >
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Ajouter une déclinaison
+                                        </Button>
+                                    </div>
+                                )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -615,6 +717,46 @@ function ItemForm() {
   );
 }
 
+const VariantValues = ({ name }: { name: `variantOptions.${number}.values` }) => {
+    const { fields, append, remove } = useFieldArray({
+      control: useForm().control,
+      name
+    });
+  
+    return (
+      <div className="space-y-2 pl-4 border-l-2">
+        <FormLabel>Valeurs de l'option</FormLabel>
+        {fields.map((field, index) => (
+          <div key={field.id} className="flex items-center gap-2">
+            <FormField
+              control={useForm().control}
+              name={`${name}.${index}.value`}
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input placeholder={`ex: S, M, Rouge, Bleu...`} {...field} />
+                  </FormControl>
+                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => append({ value: '' })}
+        >
+            Ajouter une valeur
+        </Button>
+      </div>
+    );
+  };
+
 // Wrap the component in Suspense to handle the useSearchParams() hook.
 export default function ItemFormPage() {
     return (
@@ -623,3 +765,5 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
+    
