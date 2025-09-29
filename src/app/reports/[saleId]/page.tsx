@@ -3,7 +3,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Utensils, User, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,11 +57,37 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) =>
 export default function SaleDetailPage() {
   const { saleId } = useParams();
   const firestore = useFirestore();
-  const { customers, vatRates, isLoading: isPosLoading } = usePos();
+  const { customers, vatRates, sales: allSales, isLoading: isPosLoading } = usePos();
+  const router = useRouter();
 
   const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
   const { data: sale, isLoading: isSaleLoading } = useDoc<Sale>(saleDocRef);
   const isLoading = isPosLoading || isSaleLoading;
+
+  const { previousSaleId, nextSaleId } = useMemo(() => {
+    if (!allSales || allSales.length === 0 || !saleId) {
+      return { previousSaleId: null, nextSaleId: null };
+    }
+    const sortedSales = [...allSales].sort((a, b) => {
+        const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
+        const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const currentIndex = sortedSales.findIndex(s => s.id === saleId);
+    if (currentIndex === -1) {
+        return { previousSaleId: null, nextSaleId: null };
+    }
+    
+    const previousSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
+    const nextSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
+
+    return { 
+        previousSaleId: previousSale ? previousSale.id : null,
+        nextSaleId: nextSale ? nextSale.id : null
+    };
+
+  }, [allSales, saleId]);
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
 
@@ -128,12 +154,26 @@ export default function SaleDetailPage() {
         title={`Détail de la vente #${sale.ticketNumber}`}
         subtitle={<ClientFormattedDate date={sale.date} />}
       >
-        <Button asChild variant="outline" className="btn-back">
-            <Link href="/reports">
-                <ArrowLeft />
-                Retour aux rapports
-            </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline" className="btn-back">
+                <Link href="/reports">
+                    <ArrowLeft />
+                    Retour
+                </Link>
+            </Button>
+            <div className="flex items-center">
+                <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
+                    <Link href={`/reports/${previousSaleId}`} scroll={false}>
+                        <ArrowLeft />
+                    </Link>
+                </Button>
+                <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
+                    <Link href={`/reports/${nextSaleId}`} scroll={false}>
+                        <ArrowRight />
+                    </Link>
+                </Button>
+            </div>
+        </div>
       </PageHeader>
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -294,8 +334,3 @@ export default function SaleDetailPage() {
     </div>
   );
 }
-
-
-
-
-
