@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -26,7 +27,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData } = usePos();
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
@@ -50,6 +51,10 @@ export default function SettingsPage() {
   const handleSeedData = () => {
     seedInitialData();
   }
+
+  const handleImportDemoData = () => {
+    importDemoData();
+  };
   
   const handleResetData = () => {
     resetAllData();
@@ -170,43 +175,78 @@ export default function SettingsPage() {
             <div className="space-y-8">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Initialiser l'application</CardTitle>
-                            <CardDescription>
-                                Créez un jeu de données de démonstration (catégories, TVA...). Cette option n'est disponible que si l'application est vide.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button disabled={!canSeedData}>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Initialiser avec les données de démo
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Initialiser les données de démonstration ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action va créer un jeu de données de base. Elle ne s'exécutera pas si des données existent déjà.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleSeedData}>
-                                            Confirmer et initialiser
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            {!canSeedData && (
-                                <p className="text-sm text-destructive mt-2 flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données. L'initialisation est désactivée.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Initialiser l'application</CardTitle>
+                                <CardDescription>
+                                    Créez un jeu de données de base (catégories, TVA...). N'est possible que si l'application est vide.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button disabled={!canSeedData}>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Initialiser avec données de base
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Initialiser les données ?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Cette action va créer un jeu de données de base.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleSeedData}>
+                                                Confirmer et initialiser
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                {!canSeedData && (
+                                    <p className="text-sm text-destructive mt-2 flex items-center gap-2">
+                                        <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Importer les articles de démo</CardTitle>
+                                <CardDescription>
+                                    Importe les catégories et articles depuis le fichier `demodata.json`.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="secondary">
+                                            <FileJson className="mr-2 h-4 w-4" />
+                                            Importer articles (JSON)
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Importer les articles de démo ?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Cette action ajoutera les articles et catégories du fichier `demodata.json` à vos données actuelles.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleImportDemoData}>
+                                                Oui, importer
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Gestion de la configuration</CardTitle>

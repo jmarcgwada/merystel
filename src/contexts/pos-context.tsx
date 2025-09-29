@@ -53,6 +53,7 @@ import {
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
+import demoData from '@/lib/demodata.json';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -222,6 +223,7 @@ interface PosContextType {
   resetAllData: () => void;
   exportConfiguration: () => void;
   importConfiguration: (file: File) => Promise<void>;
+  importDemoData: () => Promise<void>;
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
@@ -591,6 +593,51 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Data Seeding
+  const importDemoData = useCallback(async () => {
+    if (!firestore || !companyId || !vatRates) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Les services ne sont pas prêts.' });
+        return;
+    }
+
+    toast({ title: 'Importation des données de démo...' });
+    
+    try {
+        const batch = writeBatch(firestore);
+        const categoryIdMap: { [key: string]: string } = {};
+        const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
+
+        if (!defaultVatId) {
+            toast({ variant: 'destructive', title: 'Erreur de configuration', description: 'Aucun taux de TVA n\'est configuré. Veuillez en ajouter un avant d\'importer.' });
+            return;
+        }
+
+        for (const category of demoData.categories) {
+            const newCategoryRef = doc(collection(firestore, 'companies', companyId, 'categories'));
+            categoryIdMap[category.name] = newCategoryRef.id;
+            batch.set(newCategoryRef, { name: category.name, image: `https://picsum.photos/seed/${newCategoryRef.id}/200/150` });
+
+            for (const item of category.items) {
+                const newItemRef = doc(collection(firestore, 'companies', companyId, 'items'));
+                batch.set(newItemRef, {
+                    name: item.name,
+                    price: item.price,
+                    description: item.description,
+                    categoryId: newCategoryRef.id,
+                    vatId: defaultVatId,
+                    image: `https://picsum.photos/seed/${newItemRef.id}/200/150`
+                });
+            }
+        }
+
+        await batch.commit();
+        toast({ title: 'Importation réussie', description: 'Les articles et catégories de démonstration ont été ajoutés.' });
+
+    } catch (error) {
+        console.error('Error importing demo data:', error);
+        toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+    }
+  }, [firestore, companyId, vatRates, toast]);
+
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
@@ -1691,6 +1738,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       resetAllData,
       exportConfiguration,
       importConfiguration,
+      importDemoData,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -1819,6 +1867,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       resetAllData,
       exportConfiguration,
       importConfiguration,
+      importDemoData,
       cameFromRestaurant,
       isLoading,
       user,
