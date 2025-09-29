@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { OrderItem } from '@/lib/types';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
     <Button variant="outline" className={cn("text-xl h-12", className)} onClick={onClick}>
@@ -49,6 +51,7 @@ export function OrderSummary() {
     setSelectedTable,
     applyDiscount,
     updateQuantityFromKeypad,
+    updateItemNote,
     setIsKeypadOpen,
     saveTableOrderAndExit,
     promoteTableToTicket,
@@ -71,11 +74,13 @@ export function OrderSummary() {
 
   const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
   const [keypadValue, setKeypadValue] = useState('');
-  const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed'>('quantity');
+  const [mode, setMode] = useState<'quantity' | 'discountPercent' | 'discountFixed' | 'note'>('quantity');
   const keypadInputRef = useRef<HTMLInputElement>(null);
+  const noteInputRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
+  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   const [isClient, setIsClient] = useState(false);
@@ -83,6 +88,13 @@ export function OrderSummary() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (targetInput?.name === `item-note-${selectedItem?.id}` && selectedItem) {
+        updateItemNote(selectedItem.id, inputValue);
+        setKeypadValue(inputValue);
+    }
+  }, [inputValue, targetInput, selectedItem, updateItemNote]);
 
   useEffect(() => {
     // When the selected table changes, reset the "closing" state
@@ -114,7 +126,10 @@ export function OrderSummary() {
 
   useEffect(() => {
     if (selectedItem) {
-        if (keypadInputRef.current) {
+        if (mode === 'note') {
+            noteInputRef.current?.focus();
+            noteInputRef.current?.select();
+        } else if (keypadInputRef.current) {
             keypadInputRef.current.focus();
             keypadInputRef.current.select();
         }
@@ -133,10 +148,12 @@ export function OrderSummary() {
     }
   }
 
-  const handleModeChange = (newMode: 'quantity' | 'discountPercent' | 'discountFixed') => {
+  const handleModeChange = (newMode: 'quantity' | 'discountPercent' | 'discountFixed' | 'note') => {
     setMode(newMode);
     if (newMode === 'quantity' && selectedItem) {
         setKeypadValue(selectedItem.quantity.toString());
+    } else if (newMode === 'note' && selectedItem) {
+        setKeypadValue(selectedItem.note || '');
     } else {
         setKeypadValue('');
     }
@@ -169,18 +186,36 @@ export function OrderSummary() {
     }
   };
 
+  const handleNoteInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setKeypadValue(e.target.value);
+  }
+
+  const handleOpenVirtualKeyboardForNote = () => {
+    if(!selectedItem) return;
+    setTargetInput({
+        value: selectedItem.note || '',
+        name: `item-note-${selectedItem.id}`
+    });
+    showKeyboard();
+  }
+
 
   const handleApply = () => {
     if (!selectedItem) return;
-    const value = parseFloat(keypadValue);
-    if(isNaN(value)) return;
     
-    if (mode === 'quantity') {
-        updateQuantityFromKeypad(selectedItem.id, value);
-    } else if (mode === 'discountPercent') {
-        applyDiscount(selectedItem.id, value, 'percentage');
-    } else if (mode === 'discountFixed') {
-        applyDiscount(selectedItem.id, value, 'fixed');
+    if (mode === 'note') {
+        updateItemNote(selectedItem.id, keypadValue);
+    } else {
+        const value = parseFloat(keypadValue);
+        if(isNaN(value)) return;
+        
+        if (mode === 'quantity') {
+            updateQuantityFromKeypad(selectedItem.id, value);
+        } else if (mode === 'discountPercent') {
+            applyDiscount(selectedItem.id, value, 'percentage');
+        } else if (mode === 'discountFixed') {
+            applyDiscount(selectedItem.id, value, 'fixed');
+        }
     }
     setSelectedItem(null);
     setKeypadValue('');
@@ -312,6 +347,9 @@ export function OrderSummary() {
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
+            {item.note && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap">Note: {item.note}</p>
+            )}
             {descriptionDisplay !== 'none' && item.description && (
                 <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
             )}
@@ -362,10 +400,11 @@ export function OrderSummary() {
               <div className="p-4 space-y-3">
                   <div className="grid grid-cols-12 gap-2">
                     <div className="col-span-8">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                           <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
                           <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
                           <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                          <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
                       </div>
                     </div>
                     <div className="col-span-4">
@@ -381,45 +420,65 @@ export function OrderSummary() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Input 
-                        ref={keypadInputRef}
-                        type="text"
-                        value={keypadValue}
-                        onChange={handleDirectInputChange}
-                        onFocus={(e) => e.target.select()}
-                        className="h-12 flex-1 text-right px-4 text-3xl font-mono bg-background/50"
-                    />
+                    {mode === 'note' ? (
+                       <div className="relative w-full">
+                         <Textarea 
+                            ref={noteInputRef}
+                            value={keypadValue}
+                            onChange={handleNoteInputChange}
+                            onFocus={(e) => e.target.select()}
+                            className="h-20 flex-1 px-4 py-2 text-base font-sans bg-background/50"
+                            placeholder='Note pour la cuisine, etc...'
+                        />
+                         <Button variant="ghost" size="icon" onClick={handleOpenVirtualKeyboardForNote} className="absolute right-1 bottom-1 h-8 w-8">
+                            <KeyboardIcon className="h-5 w-5" />
+                        </Button>
+                       </div>
+                    ) : (
+                        <Input 
+                            ref={keypadInputRef}
+                            type="text"
+                            value={keypadValue}
+                            onChange={handleDirectInputChange}
+                            onFocus={(e) => e.target.select()}
+                            className="h-12 flex-1 text-right px-4 text-3xl font-mono bg-background/50"
+                        />
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2">
-                      <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
-                      <Button variant="destructive" className="h-12" onClick={() => {
-                          if (selectedItem) {
-                              applyDiscount(selectedItem.id, 0, 'fixed');
-                          }
-                          setKeypadValue('');
-                      }}>
-                          <Eraser/>
-                      </Button>
-                      
-                      <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
-                      <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
+                  {mode !== 'note' && (
+                    <div className="grid grid-cols-4 gap-2">
+                        <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
+                        <Button variant="destructive" className="h-12" onClick={() => {
+                            if (selectedItem) {
+                                applyDiscount(selectedItem.id, 0, 'fixed');
+                            }
+                            setKeypadValue('');
+                        }}>
+                            <Eraser/>
+                        </Button>
+                        
+                        <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
+                        <KeypadButton onClick={() => handleIncrementDecrement(1)}><Plus /></KeypadButton>
 
-                      <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
-                      <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
-                      
-                      <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
-                      <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
-                      
-                      <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
+                        <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                        <KeypadButton onClick={() => handleIncrementDecrement(-1)}><Minus /></KeypadButton>
+                        
+                        <KeypadButton onClick={() => handleKeypadInput('C')} className="h-auto"><small>C</small></KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('0')} className="">0</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('.')} >.</KeypadButton>
+                        <KeypadButton onClick={() => handleKeypadInput('del')}><Delete /></KeypadButton>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-4 gap-2">
+                     <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
                         <Check className="mr-2" /> Valider
                       </Button>
                       <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
@@ -518,3 +577,4 @@ export function OrderSummary() {
     </>
   );
 }
+

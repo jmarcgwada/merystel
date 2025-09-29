@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Utensils, User } from 'lucide-react';
+import { ArrowLeft, Utensils, User, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -170,6 +170,12 @@ export default function SaleDetailPage() {
                                         {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
                                     </div>
                                 )}
+                                {item.note && (
+                                    <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5">
+                                        <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
+                                        <span>{item.note}</span>
+                                    </div>
+                                )}
                                 {item.serialNumbers && item.serialNumbers.length > 0 && (
                                     <div className="text-xs text-muted-foreground mt-1">
                                         <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
@@ -288,6 +294,7 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+
 
 
 

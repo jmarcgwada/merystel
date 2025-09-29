@@ -78,6 +78,7 @@ interface PosContextType {
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
+  updateItemNote: (itemId: OrderItem['id'], note: string) => void;
   applyDiscount: (
     itemId: OrderItem['id'],
     value: number,
@@ -239,12 +240,12 @@ const PosContext = createContext<PosContextType | undefined>(undefined);
 
 // Helper function to remove undefined properties from an object before sending to Firebase
 const cleanDataForFirebase = (data: any) => {
-    const cleanedData = { ...data };
-    Object.keys(cleanedData).forEach(key => {
-        if (cleanedData[key as keyof typeof cleanedData] === undefined) {
-            delete cleanedData[key as keyof typeof cleanedData];
-        }
-    });
+    const cleanedData: any = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
+        cleanedData[key] = data[key];
+      }
+    }
     return cleanedData;
 };
 
@@ -914,6 +915,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [updateQuantity]
   );
 
+   const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item =>
+        item.id === itemId ? { ...item, note } : item
+      )
+    );
+    toast({ title: 'Note ajoutée à l\'article.' });
+  }, [toast]);
+
   const applyDiscount = useCallback(
     (
       itemId: OrderItem['id'],
@@ -1035,7 +1045,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!tableRef || !table) return;
       try {
         await updateDoc(tableRef, {
-          order: orderData,
+          order: orderData.map(cleanDataForFirebase),
           status: 'paying',
           lockedBy: user?.uid
         });
@@ -1132,7 +1142,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!tableRef) return;
       try {
         await updateDoc(tableRef, {
-            order: orderData,
+            order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
         });
       } catch (error) {
@@ -1149,7 +1159,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (tableRef) {
           routerRef.current.push('/restaurant');
           await updateDoc(tableRef, {
-            order: orderData,
+            order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             lockedBy: deleteField()
           });
@@ -1261,7 +1271,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const salesCollRef = getCollectionRef('sales');
       if (salesCollRef) {
         const newSaleRef = doc(salesCollRef);
-        batch.set(newSaleRef, finalSale);
+        batch.set(newSaleRef, cleanDataForFirebase(finalSale));
         await batch.commit();
       }
     },
@@ -1626,6 +1636,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       removeFromOrder,
       updateQuantity,
       updateQuantityFromKeypad,
+      updateItemNote,
       applyDiscount,
       clearOrder,
       orderTotal,
@@ -1762,6 +1773,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       removeFromOrder,
       updateQuantity,
       updateQuantityFromKeypad,
+      updateItemNote,
       applyDiscount,
       clearOrder,
       orderTotal,
@@ -1901,3 +1913,4 @@ export function usePos() {
   }
   return context;
 }
+

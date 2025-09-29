@@ -55,6 +55,7 @@ export interface OrderItem extends Item {
   discountPercent?: number;
   serialNumbers?: string[];
   selectedVariants?: SelectedVariant[];
+  note?: string;
 }
 
 export interface Table {
