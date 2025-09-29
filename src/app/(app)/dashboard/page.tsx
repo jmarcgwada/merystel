@@ -98,7 +98,7 @@ export default function DashboardPage() {
     }, [sales]);
     
     const todaysSalesData = useMemo(() => {
-        if (!sales) return { count: 0, lastSaleDate: null };
+        if (!sales) return { count: 0, lastSaleDate: null, total: 0 };
         const today = new Date();
         const salesOfToday = sales
             .map(sale => ({
@@ -111,9 +111,12 @@ export default function DashboardPage() {
             })
             .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending by date
 
+        const todaysTotal = salesOfToday.reduce((acc, sale) => acc + sale.total, 0);
+
         return {
             count: salesOfToday.length,
-            lastSaleDate: salesOfToday.length > 0 ? salesOfToday[0].date : null
+            lastSaleDate: salesOfToday.length > 0 ? salesOfToday[0].date : null,
+            total: todaysTotal
         };
     }, [sales]);
 
@@ -226,7 +229,7 @@ export default function DashboardPage() {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">+{todaysSalesData.count}</div>
+                  <div className="text-2xl font-bold">+{todaysSalesData.count} / {todaysSalesData.total.toFixed(2)}€</div>
                   <div className="text-xs text-muted-foreground">
                       {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
                       {todaysSalesData.lastSaleDate && ` - Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}`}
