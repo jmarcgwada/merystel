@@ -93,6 +93,7 @@ interface PosContextType {
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
   currentSaleContext: Partial<Sale> & { isTableSale?: boolean } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean } | null>>;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   serialNumberItem: { item: Item; quantity: number } | null;
@@ -789,15 +790,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region Order Management
   const clearOrder = useCallback(async () => {
     setOrder([]);
-    if (readOnlyOrder) {
-      setReadOnlyOrder(null);
-    }
-    // Only clear the sale context if we are NOT on a table sale
-    if (!selectedTable) {
-        setCurrentSaleContext(null);
-    }
+    setReadOnlyOrder(null);
     setCurrentSaleId(null);
-  }, [selectedTable, readOnlyOrder]);
+    if (!selectedTable) {
+      setCurrentSaleContext(null);
+    }
+  }, [selectedTable]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1700,6 +1698,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentSaleId,
       setCurrentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       recentlyAddedItemId,
       setRecentlyAddedItemId,
       serialNumberItem, 
@@ -1840,6 +1839,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isKeypadOpen,
       currentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
