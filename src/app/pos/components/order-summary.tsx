@@ -104,7 +104,8 @@ export function OrderSummary() {
     restaurantModeBgOpacity,
     enableSerialNumber,
     setSerialNumberItem,
-    cameFromRestaurant
+    cameFromRestaurant,
+    setCameFromRestaurant
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -357,7 +358,7 @@ export function OrderSummary() {
     if (order.length === 0 && !selectedTable) {
         if (cameFromRestaurant) {
             return (
-                <Button asChild variant="outline" size="sm" className="btn-back">
+                <Button asChild variant="outline" size="sm" className="btn-back" onClick={() => setCameFromRestaurant(false)}>
                     <Link href="/restaurant">
                         <ArrowLeft />
                         Retour au restaurant
@@ -649,7 +650,7 @@ export function OrderSummary() {
                     <Button size="lg" className="w-full" onClick={handlePrint}>
                         Imprimer
                     </Button>
-                    <Button size="lg" className="w-full" onClick={selectedTable || cameFromRestaurant ? handleClearAndExitToRestaurant : clearOrder}>
+                    <Button size="lg" className="w-full" onClick={clearOrder}>
                         Nouveau
                     </Button>
                 </div>
@@ -718,6 +719,7 @@ export function OrderSummary() {
     
 
     
+
 
 
 
