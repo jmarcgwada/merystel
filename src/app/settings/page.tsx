@@ -26,7 +26,6 @@ import { PromptViewer } from './components/prompt-viewer';
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const isManager = user?.role === 'manager';
   const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading } = usePos();
   const [isSeedDialogOpen, setSeedDialogOpen] = useState(false);
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -99,6 +98,8 @@ export default function SettingsPage() {
     }
   ]
 
+  // We only show the restricted sections if the user is loaded AND is an admin.
+  const showAdminSections = !isUserLoading && user?.role === 'admin';
 
   return (
     <>
@@ -139,7 +140,7 @@ export default function SettingsPage() {
                 </Card>
             </Link>
         ))}
-        {!isUserLoading && !isManager && (
+        {showAdminSections && (
             <AlertDialog open={isSeedDialogOpen} onOpenChange={setSeedDialogOpen}>
                 <AlertDialogTrigger asChild>
                     <Card className="group h-full transition-all hover:shadow-md hover:border-accent cursor-pointer">
@@ -180,7 +181,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-       {!isUserLoading && !isManager && (
+       {showAdminSections && (
             <div className="mt-12">
                 <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
                 <Card className="border-destructive">
