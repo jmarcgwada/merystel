@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -153,7 +152,7 @@ export default function SaleDetailPage() {
       <PageHeader
         title={`Détail de la vente #${sale.ticketNumber}`}
         subtitle={
-          <div className="flex items-center gap-4 text-muted-foreground text-sm mt-1">
+          <span className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-sm mt-1">
             <span>
               Créé le : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy 'à' HH:mm" />
             </span>
@@ -162,7 +161,7 @@ export default function SaleDetailPage() {
                 <Edit className="h-3 w-3"/> Modifié le : <ClientFormattedDate date={sale.modifiedAt} formatString="d MMM yyyy 'à' HH:mm" />
               </span>
             )}
-          </div>
+          </span>
         }
       >
         <div className="flex items-center gap-2">
@@ -345,5 +344,3 @@ export default function SaleDetailPage() {
     </div>
   );
 }
-
-    
