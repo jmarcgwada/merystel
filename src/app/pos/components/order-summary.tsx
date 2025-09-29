@@ -248,10 +248,10 @@ export function OrderSummary() {
   }
   
   const getTitle = () => {
-    if (readOnlyOrder && readOnlyOrder.sourceSale) {
-        const sale = readOnlyOrder.sourceSale;
+    if (readOnlyOrder && readOnlyOrder.length > 0 && readOnlyOrder[0].sourceSale) {
+        const sale = readOnlyOrder[0].sourceSale;
         return (
-             <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
                 <div className='flex items-center gap-2'>
                     <History/>
                     <span>Consultation Ticket</span>
@@ -267,9 +267,15 @@ export function OrderSummary() {
     }
     if (currentSaleContext?.isTableSale) {
         return (
-            <div className='flex items-center gap-2'>
-                <Utensils/>
-                <span>Ticket: {currentSaleContext.tableName}</span>
+            <div className="flex flex-col gap-1">
+                <div className='flex items-center gap-2'>
+                    <Utensils/>
+                    <span>Ticket: {currentSaleContext.tableName}</span>
+                </div>
+                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {format(new Date(), 'd MMM yyyy', {locale: fr})}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/> {format(new Date(), 'HH:mm')}</span>
+                 </div>
             </div>
         )
     }
@@ -338,7 +344,10 @@ export function OrderSummary() {
 
   const handleEditTicket = () => {
     if (readOnlyOrder) {
-      setOrder(readOnlyOrder);
+      setOrder(readOnlyOrder.map(item => {
+        const { sourceSale, ...rest } = item;
+        return rest;
+      }));
       clearOrder(); // This will clear the readOnlyOrder state
     }
   };
