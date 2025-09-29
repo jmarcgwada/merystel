@@ -99,7 +99,7 @@ export function OrderSummary() {
   useEffect(() => {
     // When the selected table changes, reset the "closing" state
     setIsClosingTable(false);
-  }, [selectedTable]);
+  }, [selectedTable?.id]);
 
   useEffect(() => {
     if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
