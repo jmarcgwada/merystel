@@ -289,6 +289,7 @@ export function OrderSummary() {
                 </div>
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span>#{sale.ticketNumber}</span>
+                    {sale.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{sale.tableName}</span>}
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="d MMM yyyy" /></span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="HH:mm" /></span>
                     {sale.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{sale.userName}</span>}
@@ -631,10 +632,10 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                 <div className='w-full grid grid-cols-3 gap-2'>
-                    <Button size="lg" className="w-full" variant="outline" onClick={handleEditTicket}>
+                    <Button size="lg" className="w-full" onClick={handleEditTicket}>
                         Modifier
                     </Button>
-                    <Button size="lg" className="w-full" variant="outline" onClick={handlePrint}>
+                    <Button size="lg" className="w-full" onClick={handlePrint}>
                         Imprimer
                     </Button>
                     <Button size="lg" className="w-full" onClick={selectedTable ? handleClearAndExitToRestaurant : clearOrder}>
@@ -706,3 +707,4 @@ export function OrderSummary() {
     
 
     
+
