@@ -466,7 +466,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                   {selectedCustomer ? (
                     <div className="flex items-center justify-between">
-                        <div onClick={()={() => setView('customer')} className="cursor-pointer flex-1">
+                        <div onClick={() => setView('customer')} className="cursor-pointer flex-1">
                             <p className="font-medium">{selectedCustomer.name}</p>
                             <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                         </div>
@@ -519,7 +519,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                               onClick={() => handleAddPayment(method)}
                               disabled={isDisabled || isOverpaid}
                           >
-                              {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100}} />}
+                              {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100 }} />}
                               <IconComponent className="h-6 w-6 z-10" />
                               <span className="text-sm whitespace-normal text-center leading-tight z-10">{method.name}</span>
                           </Button>
@@ -745,5 +745,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    
