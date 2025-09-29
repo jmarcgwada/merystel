@@ -35,11 +35,17 @@ export default function PosPage() {
   
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
 
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const itemScrollAreaRef = useRef<HTMLDivElement>(null);
+  const categoryScrollAreaRef = useRef<HTMLDivElement>(null);
+  const itemContentRef = useRef<HTMLDivElement>(null);
+  
+  const [canScrollItemsUp, setCanScrollItemsUp] = useState(false);
+  const [canScrollItemsDown, setCanScrollItemsDown] = useState(false);
+  const [canScrollCategoriesUp, setCanScrollCategoriesUp] = useState(false);
+  const [canScrollCategoriesDown, setCanScrollCategoriesDown] = useState(false);
+
+  const itemScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const categoryScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -47,65 +53,79 @@ export default function PosPage() {
 
   const filteredItems = useMemo(() => (
     <ItemList 
-        ref={contentRef}
+        ref={itemContentRef}
         category={selectedCategory} 
         searchTerm={itemSearchTerm} 
         showFavoritesOnly={showFavoritesOnly}
     />
   ), [selectedCategory, itemSearchTerm, showFavoritesOnly]);
 
-  const checkScrollability = () => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea) {
-      setCanScrollUp(scrollArea.scrollTop > 0);
-      setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight);
-    }
+  const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
+    const [canScrollUp, setCanScrollUp] = useState(false);
+    const [canScrollDown, setCanScrollDown] = useState(false);
+
+    useEffect(() => {
+        const scrollArea = scrollRef.current;
+        if (!scrollArea) return;
+
+        const check = () => {
+            setCanScrollUp(scrollArea.scrollTop > 0);
+            setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight -1); // -1 for pixel rounding
+        };
+
+        check();
+        
+        let observer: ResizeObserver;
+        if (contentRef?.current) {
+            observer = new ResizeObserver(check);
+            observer.observe(contentRef.current);
+        }
+        
+        scrollArea.addEventListener('scroll', check);
+
+        return () => {
+            if (observer && contentRef?.current) {
+                observer.unobserve(contentRef.current);
+            }
+            scrollArea.removeEventListener('scroll', check);
+        };
+    }, [scrollRef, contentRef]);
+
+    return { canScrollUp, canScrollDown };
   };
 
-  useEffect(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (!scrollArea || !contentRef.current) return;
-    
-    // Check initially and on content change
-    checkScrollability();
+  const itemScrollability = useScrollability(itemScrollAreaRef, itemContentRef);
+  const categoryScrollability = useScrollability(categoryScrollAreaRef);
 
-    const resizeObserver = new ResizeObserver(checkScrollability);
-    resizeObserver.observe(contentRef.current);
-    scrollArea.addEventListener('scroll', checkScrollability);
+  useEffect(() => setCanScrollItemsUp(itemScrollability.canScrollUp), [itemScrollability.canScrollUp]);
+  useEffect(() => setCanScrollItemsDown(itemScrollability.canScrollDown), [itemScrollability.canScrollDown]);
+  useEffect(() => setCanScrollCategoriesUp(categoryScrollability.canScrollUp), [categoryScrollability.canScrollUp]);
+  useEffect(() => setCanScrollCategoriesDown(categoryScrollability.canScrollDown), [categoryScrollability.canScrollDown]);
 
-    return () => {
-      if (contentRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        resizeObserver.unobserve(contentRef.current);
-      }
-      scrollArea.removeEventListener('scroll', checkScrollability);
-    };
-  }, [filteredItems]); // Re-check when items change
+  const createScroller = (scrollRef: React.RefObject<HTMLDivElement>, intervalRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
+      const handleScroll = (direction: 'up' | 'down') => {
+        const scrollArea = scrollRef.current;
+        if (scrollArea) {
+          const scrollAmount = scrollArea.clientHeight * 0.8;
+          scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+        }
+      };
 
-  const handleScroll = (direction: 'up' | 'down') => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea) {
-      const scrollAmount = scrollArea.clientHeight * 0.8; // Scroll by 80% of the viewport height
-      scrollArea.scrollBy({
-        top: direction === 'up' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
+      const startScrolling = (direction: 'up' | 'down') => {
+        stopScrolling();
+        handleScroll(direction);
+        intervalRef.current = setInterval(() => handleScroll(direction), 300);
+      };
+
+      const stopScrolling = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+
+      return { startScrolling, stopScrolling };
   };
-
-  const startScrolling = (direction: 'up' | 'down') => {
-    stopScrolling();
-    handleScroll(direction); // Initial scroll
-    scrollIntervalRef.current = setInterval(() => {
-      handleScroll(direction);
-    }, 300); // Continuous scroll every 300ms
-  };
-
-  const stopScrolling = () => {
-    if (scrollIntervalRef.current) {
-      clearInterval(scrollIntervalRef.current);
-    }
-  };
+  
+  const itemScroller = createScroller(itemScrollAreaRef, itemScrollIntervalRef);
+  const categoryScroller = createScroller(categoryScrollAreaRef, categoryScrollIntervalRef);
 
   useEffect(() => {
     if (targetInput?.name === 'item-search') {
@@ -117,13 +137,11 @@ export default function PosPage() {
     if(tableId) {
       setSelectedTableById(tableId);
     } else {
-      // If we are not in restaurant mode (no tableId), ensure selectedTable is null.
       if (selectedTable) {
         setSelectedTableById(null);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId]);
+  }, [tableId, setSelectedTableById, selectedTable]);
 
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';
@@ -161,10 +179,16 @@ export default function PosPage() {
       <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4" style={{ backgroundColor: isClient ? directSaleBackgroundColor : 'transparent' }}>
           <div className="md:col-span-3 lg:col-span-2 border bg-card flex flex-col overflow-hidden rounded-lg">
             <CategoryList
+              scrollRef={categoryScrollAreaRef}
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
               showFavoritesOnly={showFavoritesOnly}
               onToggleFavorites={handleToggleFavorites}
+              canScrollUp={canScrollCategoriesUp}
+              canScrollDown={canScrollCategoriesDown}
+              onScrollUp={() => categoryScroller.startScrolling('up')}
+              onScrollDown={() => categoryScroller.startScrolling('down')}
+              onStopScroll={categoryScroller.stopScrolling}
             />
           </div>
 
@@ -195,29 +219,29 @@ export default function PosPage() {
                         </Button>
                     </div>
                     <div className="flex items-center gap-1">
-                      {(canScrollUp || canScrollDown) && (
+                      {(canScrollItemsUp || canScrollItemsDown) && (
                         <>
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            onMouseDown={() => startScrolling('up')} 
-                            onMouseUp={stopScrolling} 
-                            onMouseLeave={stopScrolling}
-                            onTouchStart={() => startScrolling('up')}
-                            onTouchEnd={stopScrolling}
-                            disabled={!canScrollUp}
+                            onMouseDown={() => itemScroller.startScrolling('up')} 
+                            onMouseUp={itemScroller.stopScrolling} 
+                            onMouseLeave={itemScroller.stopScrolling}
+                            onTouchStart={() => itemScroller.startScrolling('up')}
+                            onTouchEnd={itemScroller.stopScrolling}
+                            disabled={!canScrollItemsUp}
                           >
                               <ArrowUp className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            onMouseDown={() => startScrolling('down')} 
-                            onMouseUp={stopScrolling} 
-                            onMouseLeave={stopScrolling}
-                            onTouchStart={() => startScrolling('down')}
-                            onTouchEnd={stopScrolling}
-                            disabled={!canScrollDown}
+                            onMouseDown={() => itemScroller.startScrolling('down')} 
+                            onMouseUp={itemScroller.stopScrolling} 
+                            onMouseLeave={itemScroller.stopScrolling}
+                            onTouchStart={() => itemScroller.startScrolling('down')}
+                            onTouchEnd={itemScroller.stopScrolling}
+                            disabled={!canScrollItemsDown}
                           >
                               <ArrowDown className="h-4 w-4" />
                           </Button>
@@ -239,7 +263,7 @@ export default function PosPage() {
                   </div>
                 </div>
             </div>
-            <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
+            <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
                 <div className="p-4">
                   {filteredItems}
                 </div>

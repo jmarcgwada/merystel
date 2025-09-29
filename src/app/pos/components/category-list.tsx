@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, Keyboard } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, Keyboard, ArrowDown, ArrowUp } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
@@ -17,6 +17,12 @@ interface CategoryListProps {
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
   selectedCategory: Category | SpecialCategory | null;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  canScrollUp: boolean;
+  canScrollDown: boolean;
+  onScrollUp: () => void;
+  onScrollDown: () => void;
+  onStopScroll: () => void;
 }
 
 export function CategoryList({
@@ -24,6 +30,12 @@ export function CategoryList({
   onSelectCategory,
   showFavoritesOnly,
   onToggleFavorites,
+  scrollRef,
+  canScrollUp,
+  canScrollDown,
+  onScrollUp,
+  onScrollDown,
+  onStopScroll,
 }: CategoryListProps) {
   const { categories, popularItemsCount, selectedTable } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,9 +112,43 @@ export function CategoryList({
   return (
     <div className="flex h-full flex-col">
       <div className="p-4 border-b">
-        <h2 className="text-xl font-bold tracking-tight font-headline mb-3">
-          Catégories
-        </h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-xl font-bold tracking-tight font-headline">
+            Catégories
+          </h2>
+           <div className="flex items-center gap-1">
+              {(canScrollUp || canScrollDown) && (
+                  <>
+                  <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onMouseDown={onScrollUp}
+                      onMouseUp={onStopScroll}
+                      onMouseLeave={onStopScroll}
+                      onTouchStart={onScrollUp}
+                      onTouchEnd={onStopScroll}
+                      disabled={!canScrollUp}
+                  >
+                      <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onMouseDown={onScrollDown}
+                      onMouseUp={onStopScroll}
+                      onMouseLeave={onStopScroll}
+                      onTouchStart={onScrollDown}
+                      onTouchEnd={onStopScroll}
+                      disabled={!canScrollDown}
+                  >
+                      <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  </>
+              )}
+            </div>
+        </div>
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
@@ -116,7 +162,7 @@ export function CategoryList({
           </Button>
         </div>
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" viewportRef={scrollRef}>
         <div className="flex flex-col gap-2 p-4">
            <Button
               variant={isSpecialCategorySelected('all') ? 'default' : 'ghost'}
