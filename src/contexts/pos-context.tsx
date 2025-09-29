@@ -52,7 +52,7 @@ import {
   runTransaction,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
 
@@ -836,7 +836,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!itemToAdd) return;
       
       const existingItem = order.find(
-        (item) => item.id === itemId
+        (item) => item.id === itemId && !item.selectedVariants
       );
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -849,7 +849,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (existingItem && !selectedVariants) { // Do not group items with variants
           const newOrder = [...currentOrder];
           const newQuantity = existingItem.quantity + 1;
-          const existingItemIndex = newOrder.findIndex(i => i.id === itemId);
+          const existingItemIndex = newOrder.findIndex(i => i.id === itemId && !i.selectedVariants);
           newOrder[existingItemIndex] = {
             ...existingItem,
             quantity: newQuantity,
@@ -864,6 +864,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             total: itemToAdd.price,
             discount: 0,
             selectedVariants,
+            id: selectedVariants ? uuidv4() : itemToAdd.id, // Give unique id if it has variants
           };
           return [...currentOrder, newItem];
         }
@@ -1065,19 +1066,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!firestore || !user) {
+        if (!tableId) await clearOrder();
         return;
     }
     
-    // Clear order and selection if tableId is null
-    if (!tableId) {
-        if(selectedTable) {
-             const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
-             await updateDoc(tableRef, { lockedBy: deleteField() });
-        }
-        await clearOrder();
-        return;
+    // Unlocking the previously selected table if there was one
+    if (selectedTable && selectedTable.id !== tableId) {
+        const previousTableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
+        await updateDoc(previousTableRef, { lockedBy: deleteField() });
     }
 
+    if (!tableId) {
+        setSelectedTable(null);
+        setOrder([]);
+        setCurrentSaleContext(null);
+        return;
+    }
+    
     if (tableId === 'takeaway') {
         setCameFromRestaurant(true);
         await clearOrder();
@@ -1133,7 +1138,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
     }
 
-  }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
+  }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables, selectedTable]);
 
 
   const updateTableOrder = useCallback(
@@ -1294,7 +1299,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region User Management & Session
   const addUser = useCallback(
     async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
-      if (!auth || !firestore) {
+      const authInstance = getAuth(); // Get current auth instance
+      if (!authInstance || !firestore) {
         toast({
           variant: 'destructive',
           title: 'Erreur',
@@ -1314,7 +1320,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, finalPassword);
+        const userCredential = await createUserWithEmailAndPassword(authInstance, userData.email, finalPassword);
         const authUser = userCredential.user;
 
         const userDocData: Omit<User, 'id'> = {
@@ -1345,7 +1351,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         throw error; // Re-throw to be caught by the caller if needed
       }
     },
-    [auth, firestore, toast]
+    [firestore, toast]
   );
 
   const updateUser = useCallback(
@@ -1917,3 +1923,4 @@ export function usePos() {
   }
   return context;
 }
+
