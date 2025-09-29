@@ -145,84 +145,85 @@ export default function SettingsPage() {
        {showHiddenButtons && showAdminSections && (
         <>
             <Separator className="my-8"/>
-            <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-             <Card>
-                 <CardHeader>
-                    <CardTitle>Initialiser l'application</CardTitle>
-                    <CardDescription>
-                        Créez un jeu de données de démonstration (catégories, TVA...). Cette option n'est disponible que si l'application est vide.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                             <Button disabled={!canSeedData}>
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                Initialiser avec les données de démo
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Initialiser les données de démonstration ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Cette action va créer un jeu de données de base. Elle ne s'exécutera pas si des données existent déjà.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleSeedData}>
-                                    Confirmer et initialiser
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    {!canSeedData && (
-                        <p className="text-sm text-destructive mt-2 flex items-center gap-2">
-                             <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données. L'initialisation est désactivée.
-                        </p>
-                    )}
-                </CardContent>
-            </Card>
-        </>
-       )}
-
-
-       {showAdminSections && (
-            <div className="mt-12">
-                <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
-                <Card className="border-destructive">
-                    <CardHeader>
-                        <CardTitle>Réinitialiser l'application</CardTitle>
-                        <CardDescription>
-                            Cette action est irréversible. Toutes les données, y compris les ventes, les articles, et les configurations seront supprimées définitivement.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Réinitialiser toutes les données
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Cette action est irréversible. Toutes vos données seront supprimées de la base de données.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
-                                        Oui, tout supprimer
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </CardContent>
-                </Card>
+            <div className="space-y-8">
+                <div>
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Initialiser l'application</CardTitle>
+                            <CardDescription>
+                                Créez un jeu de données de démonstration (catégories, TVA...). Cette option n'est disponible que si l'application est vide.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button disabled={!canSeedData}>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Initialiser avec les données de démo
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Initialiser les données de démonstration ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action va créer un jeu de données de base. Elle ne s'exécutera pas si des données existent déjà.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleSeedData}>
+                                            Confirmer et initialiser
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            {!canSeedData && (
+                                <p className="text-sm text-destructive mt-2 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données. L'initialisation est désactivée.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <div>
+                    <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
+                    <Card className="border-destructive">
+                        <CardHeader>
+                            <CardTitle>Réinitialiser l'application</CardTitle>
+                            <CardDescription>
+                                Cette action est irréversible. Toutes les données, y compris les ventes, les articles, et les configurations seront supprimées définitivement.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Réinitialiser toutes les données
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action est irréversible. Toutes vos données seront supprimées de la base de données.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
+                                            Oui, tout supprimer
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
+        </>
        )}
        <PromptViewer isOpen={isPromptViewerOpen} onClose={() => setPromptViewerOpen(false)} />
     </>
