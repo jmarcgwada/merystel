@@ -245,7 +245,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (Math.abs(newBalance) < 0.009) {
         setCurrentAmount('0.00');
-        handleFinalizeSale(newPayments);
+        setTimeout(() => handleFinalizeSale(newPayments), 2000);
         return;
     }
 
@@ -745,3 +745,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+
+    
