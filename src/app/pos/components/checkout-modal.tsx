@@ -466,7 +466,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                   {selectedCustomer ? (
                     <div className="flex items-center justify-between">
-                        <div onClick={() => setView('customer')} className="cursor-pointer flex-1">
+                        <div onClick={()={() => setView('customer')} className="cursor-pointer flex-1">
                             <p className="font-medium">{selectedCustomer.name}</p>
                             <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
                         </div>
@@ -496,7 +496,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             setShouldReplaceValue(true);
                             setShowCalculator(true);
                         }}
-                        disabled={isOverpaid}
+                        readOnly={isOverpaid}
                         className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
                     />
                     <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
@@ -745,3 +745,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
