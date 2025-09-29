@@ -166,9 +166,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
       });
       
-      const isTableSale = currentSaleId && currentSaleId.startsWith('table-');
+      const isTableSale = currentSaleContext?.isTableSale;
 
-      if (isTableSale || cameFromRestaurant || currentSaleContext?.isTableSale) {
+      if (isTableSale || cameFromRestaurant) {
+        if(cameFromRestaurant && !isTableSale) {
+            clearOrder(); // Clear order for takeaway sales from restaurant mode
+        }
         if(cameFromRestaurant) setCameFromRestaurant(false);
         router.push('/restaurant');
       } else {
@@ -656,4 +659,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
 
