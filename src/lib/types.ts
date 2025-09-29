@@ -18,6 +18,16 @@ export interface VatRate {
   code: number;
 }
 
+export interface VariantOption {
+  name: string;
+  values: string[];
+}
+
+export interface SelectedVariant {
+  name: string;
+  value: string;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -34,6 +44,8 @@ export interface Item {
   marginCoefficient?: number;
   requiresSerialNumber?: boolean;
   additionalCosts?: number;
+  hasVariants?: boolean;
+  variantOptions?: VariantOption[];
 }
 
 export interface OrderItem extends Item {
@@ -42,6 +54,7 @@ export interface OrderItem extends Item {
   discount: number;
   discountPercent?: number;
   serialNumbers?: string[];
+  selectedVariants?: SelectedVariant[];
 }
 
 export interface Table {
