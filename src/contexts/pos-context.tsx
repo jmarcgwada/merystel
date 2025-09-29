@@ -985,9 +985,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const cleanedItems = order.map(item => cleanDataForFirebase(item));
+
     const newHeldOrder: Omit<HeldOrder, 'id'> = {
       date: new Date(),
-      items: order,
+      items: cleanedItems,
       total: orderTotal + orderTax,
     };
     addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
@@ -1025,7 +1027,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       routerRef.current.push('/pos');
     }
   }, [user, deleteEntity, toast]);
-
+  
   const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
@@ -1121,7 +1123,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
     }
 
-  }, [firestore, user, clearOrder, toast, promoteTableToTicket]);
+  }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
 
 
   const updateTableOrder = useCallback(
