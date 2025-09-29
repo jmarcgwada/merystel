@@ -383,6 +383,12 @@ export function OrderSummary() {
     }
   };
 
+  const handleClearAndExitToRestaurant = () => {
+    clearOrder();
+    router.push('/restaurant');
+  };
+
+
   const handlePrint = () => {
     window.print();
   }
@@ -577,17 +583,21 @@ export function OrderSummary() {
                 <Separator />
                 <p className="text-sm">Consulter un ticket récent :</p>
                 <div className="flex flex-col gap-2">
-                    {!selectedTable && lastDirectSale ? (
-                        <Button variant="outline" onClick={() => loadTicketForViewing(lastDirectSale)}>
-                            Dernier ticket (Vente directe)
-                        </Button>
-                    ) : selectedTable && lastRestaurantSale ? (
-                         <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
-                            Dernier ticket (Restaurant)
-                        </Button>
+                    {selectedTable ? (
+                        lastRestaurantSale && (
+                            <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
+                                Dernier ticket (Restaurant)
+                            </Button>
+                        )
                     ) : (
-                         <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>
+                        lastDirectSale && (
+                            <Button variant="outline" onClick={() => loadTicketForViewing(lastDirectSale)}>
+                                Dernier ticket (Vente directe)
+                            </Button>
+                        )
                     )}
+                    {!selectedTable && !lastDirectSale && <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>}
+                    {selectedTable && !lastRestaurantSale && <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>}
                 </div>
               </div>
             </div>
@@ -627,7 +637,7 @@ export function OrderSummary() {
                     <Button size="lg" className="w-full" variant="outline" onClick={handlePrint}>
                         Imprimer
                     </Button>
-                    <Button size="lg" className="w-full" onClick={clearOrder}>
+                    <Button size="lg" className="w-full" onClick={selectedTable ? handleClearAndExitToRestaurant : clearOrder}>
                         Nouveau
                     </Button>
                 </div>
