@@ -104,6 +104,7 @@ export interface Sale {
   id: string;
   ticketNumber: string;
   date: Date;
+  modifiedAt?: Date;
   items: OrderItem[];
   subtotal: number;
   tax: number;

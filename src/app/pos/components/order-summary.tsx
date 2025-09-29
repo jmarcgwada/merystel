@@ -96,6 +96,7 @@ export function OrderSummary() {
     descriptionDisplay,
     isKeypadOpen,
     currentSaleContext,
+    setCurrentSaleId,
     recentlyAddedItemId,
     setRecentlyAddedItemId,
     directSaleBackgroundColor,
@@ -387,20 +388,15 @@ export function OrderSummary() {
   }
 
   const handleEditTicket = () => {
-    if (readOnlyOrder) {
-      setOrder(readOnlyOrder.map(item => {
-        const { sourceSale, ...rest } = item;
-        return rest;
-      }));
-      clearOrder(); // This will clear the readOnlyOrder state
+    if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
+        setOrder(readOnlyOrder.map(item => {
+            const { sourceSale, ...rest } = item;
+            return rest;
+        }));
+        setCurrentSaleId(readOnlyOrder[0].sourceSale.id); // Set the ID of the sale to be updated
+        clearOrder(); // This will clear the readOnlyOrder state but not the sale ID
     }
   };
-
-  const handleClearAndExitToRestaurant = () => {
-    clearOrder();
-    router.push('/restaurant');
-  };
-
 
   const handlePrint = () => {
     window.print();
@@ -719,6 +715,7 @@ export function OrderSummary() {
     
 
     
+
 
 
 

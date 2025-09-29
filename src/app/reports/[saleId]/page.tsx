@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -152,7 +152,18 @@ export default function SaleDetailPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title={`Détail de la vente #${sale.ticketNumber}`}
-        subtitle={<ClientFormattedDate date={sale.date} formatString="d MMMM yyyy 'à' HH:mm" />}
+        subtitle={
+          <div className="flex items-center gap-4 text-muted-foreground text-sm mt-1">
+            <span>
+              Créé le : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy 'à' HH:mm" />
+            </span>
+            {sale.modifiedAt && (
+              <span className="flex items-center gap-1">
+                <Edit className="h-3 w-3"/> Modifié le : <ClientFormattedDate date={sale.modifiedAt} formatString="d MMM yyyy 'à' HH:mm" />
+              </span>
+            )}
+          </div>
+        }
       >
         <div className="flex items-center gap-2">
             <Button asChild variant="outline" className="btn-back">

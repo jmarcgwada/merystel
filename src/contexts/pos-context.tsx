@@ -25,7 +25,7 @@ import type {
   User,
   SelectedVariant,
 } from '@/lib/types';
-import { useToast as useShadcnToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
@@ -288,7 +288,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useShadcnToast();
+  const { toast: shadcnToast } = useToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -336,7 +336,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -787,17 +787,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    // Retain the selected table context if there is one.
     if (selectedTable?.id) {
         setOrder([]);
         setReadOnlyOrder(null);
         setCurrentSaleId(null);
-        // Do not clear currentSaleContext if a table is selected
         if (!currentSaleContext?.isTableSale) {
             setCurrentSaleContext(null);
         }
     } else {
-        // Full clear if not in table context
         setOrder([]);
         setReadOnlyOrder(null);
         setCurrentSaleId(null);
@@ -830,7 +827,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (existingItemIndex > -1) {
             const newOrder = [...currentOrder];
             const existingItem = newOrder[existingItemIndex];
-            // When updating, we replace the item entirely, including quantity and serials.
             newOrder[existingItemIndex] = newOrderItem;
             return newOrder;
         }
@@ -1244,8 +1240,56 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const recordSale = useCallback(
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>) => {
       if (!companyId || !firestore || !user) return;
-      
+
       const batch = writeBatch(firestore);
+
+      if (currentSaleId && !currentSaleId.startsWith('table-')) {
+          // This is an update of an existing sale or a recalled held order
+          const saleRef = getDocRef('sales', currentSaleId);
+          if (saleRef) {
+              const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+              const updatedSaleData = {
+                  ...saleData,
+                  items: cleanedItems,
+                  modifiedAt: new Date(),
+              };
+              batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
+          }
+          // If it was a recalled order, delete it from heldOrders
+          const heldOrderRef = getDocRef('heldOrders', currentSaleId);
+          if ((await getDoc(heldOrderRef)).exists()) {
+              batch.delete(heldOrderRef);
+          }
+      } else {
+          // This is a new sale
+          const today = new Date();
+          const dayMonth = format(today, 'ddMM');
+          const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
+          const todaysSalesSnapshot = await getDocs(salesQuery);
+          const todaysSalesCount = todaysSalesSnapshot.size;
+
+          const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+          const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+          
+          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+          const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+
+          const finalSale: Omit<Sale, 'id'> = {
+              ...saleData,
+              items: cleanedItems,
+              date: today,
+              ticketNumber,
+              status: 'paid',
+              userId: user.uid,
+              userName: sellerName,
+              ...(currentSaleContext?.tableId && {
+                  tableId: currentSaleContext.tableId,
+                  tableName: currentSaleContext.tableName,
+              }),
+          };
+          const newSaleRef = doc(getCollectionRef('sales')!);
+          batch.set(newSaleRef, cleanDataForFirebase(finalSale));
+      }
       
       // If sale comes from a table, free the table.
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
@@ -1255,49 +1299,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // If sale comes from a recalled held order, delete the held order
-      if (currentSaleId && !currentSaleContext?.isTableSale) {
-        const docRef = getDocRef('heldOrders', currentSaleId);
-        if (docRef) batch.delete(docRef);
-      }
-
-      const today = new Date();
-      const dayMonth = format(today, 'ddMM');
-      const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
-      const todaysSalesSnapshot = await getDocs(salesQuery);
-      const todaysSalesCount = todaysSalesSnapshot.size;
-
-      const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-      const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
-
-      const totalPaid = saleData.payments.reduce((acc, p) => acc + p.amount, 0);
-      const change = totalPaid - saleData.total;
-
-      // Clean up items before saving
-      const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
-      
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email || '';
-
-      const finalSale: Omit<Sale, 'id'> = {
-        ...saleData,
-        items: cleanedItems,
-        date: today,
-        ticketNumber,
-        status: 'paid',
-        userId: user.uid,
-        userName: sellerName,
-        ...(change > 0.009 && { change: change }),
-        ...(currentSaleContext?.tableId && {
-          tableId: currentSaleContext.tableId,
-          tableName: currentSaleContext.tableName,
-        }),
-      };
-      const salesCollRef = getCollectionRef('sales');
-      if (salesCollRef) {
-        const newSaleRef = doc(salesCollRef);
-        batch.set(newSaleRef, cleanDataForFirebase(finalSale));
-        await batch.commit();
-      }
+      await batch.commit();
     },
     [
       companyId,
