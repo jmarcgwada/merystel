@@ -515,18 +515,18 @@ export function OrderSummary() {
                 <Separator />
                 <p className="text-sm">Consulter un ticket récent :</p>
                 <div className="flex flex-col gap-2">
-                    {lastDirectSale && (
+                    {!selectedTable && lastDirectSale && (
                         <Button variant="outline" onClick={() => loadTicketForViewing(lastDirectSale)}>
                             Dernier ticket (Vente directe)
                         </Button>
                     )}
-                    {lastRestaurantSale && (
+                    {selectedTable && lastRestaurantSale && (
                         <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
                             Dernier ticket (Restaurant)
                         </Button>
                     )}
-                    {!lastDirectSale && !lastRestaurantSale && (
-                        <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>
+                    {((selectedTable && !lastRestaurantSale) || (!selectedTable && !lastDirectSale)) && (
+                         <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>
                     )}
                 </div>
               </div>
@@ -619,5 +619,6 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
