@@ -787,21 +787,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    if (selectedTable?.id) {
-        setOrder([]);
-        setReadOnlyOrder(null);
-        setCurrentSaleId(null);
-        if (!currentSaleContext?.isTableSale) {
-            setCurrentSaleContext(null);
-        }
+    if (readOnlyOrder) {
+      setReadOnlyOrder(null);
     } else {
-        setOrder([]);
-        setReadOnlyOrder(null);
-        setCurrentSaleId(null);
-        setCurrentSaleContext(null);
-        setSelectedTable(null);
+      setOrder([]);
     }
-  }, [selectedTable, currentSaleContext]);
+    // Only clear the sale context if we are NOT on a table sale
+    if (!selectedTable) {
+        setCurrentSaleContext(null);
+    }
+    setCurrentSaleId(null);
+  }, [selectedTable, readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1255,11 +1251,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               };
               batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
           }
-          // If it was a recalled order, delete it from heldOrders
-          const heldOrderRef = getDocRef('heldOrders', currentSaleId);
-          if ((await getDoc(heldOrderRef)).exists()) {
-              batch.delete(heldOrderRef);
-          }
       } else {
           // This is a new sale
           const today = new Date();
@@ -1271,7 +1262,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const shortUuid = uuidv4().substring(0, 4).toUpperCase();
           const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
           
-          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : '';
+
           const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
 
           const finalSale: Omit<Sale, 'id'> = {

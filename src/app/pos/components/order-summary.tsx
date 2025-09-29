@@ -389,12 +389,13 @@ export function OrderSummary() {
 
   const handleEditTicket = () => {
     if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
-        setOrder(readOnlyOrder.map(item => {
+        const sale = readOnlyOrder[0].sourceSale;
+        const itemsToEdit = readOnlyOrder.map(item => {
             const { sourceSale, ...rest } = item;
             return rest;
-        }));
-        setCurrentSaleId(readOnlyOrder[0].sourceSale.id); // Set the ID of the sale to be updated
-        clearOrder(); // This will clear the readOnlyOrder state but not the sale ID
+        });
+        setOrder(itemsToEdit);
+        setCurrentSaleId(sale.id); // Set the ID of the sale to be updated
     }
   };
 
@@ -715,6 +716,7 @@ export function OrderSummary() {
     
 
     
+
 
 
 
