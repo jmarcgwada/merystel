@@ -134,17 +134,16 @@ export default function PosPage() {
   }, [inputValue, targetInput]);
 
   useEffect(() => {
-    // This effect should ONLY run when the tableId from the URL *actually changes*.
-    // It synchronizes the POS state with the URL.
     setSelectedTableById(tableId);
-
-    // If we enter this page without a tableId, but came from the restaurant page (e.g. for takeaway)
-    // we need to make sure the context is aware.
     if (!tableId && searchParams.get('from') === 'restaurant') {
         setCameFromRestaurant(true);
+    } else if (!tableId && selectedTable) {
+        // This case handles navigating away from a table sale without using the back buttons
+        // which might leave a `selectedTable` in state. This ensures it's cleared.
+        setSelectedTableById(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId, setSelectedTableById]);
+  }, [tableId]);
 
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';
