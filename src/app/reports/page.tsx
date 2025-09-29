@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -73,6 +72,7 @@ export default function ReportsPage() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterSerialNumber, setFilterSerialNumber] = useState('');
+    const [generalFilter, setGeneralFilter] = useState('');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
 
@@ -107,7 +107,16 @@ export default function ReportsPage() {
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
-            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch && sellerMatch;
+            const generalMatch = !generalFilter || sale.items.some(item => {
+                const lowerGeneralFilter = generalFilter.toLowerCase();
+                const nameMatch = item.name.toLowerCase().includes(lowerGeneralFilter);
+                const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
+                const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
+                const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
+                return nameMatch || noteMatch || serialMatch || variantMatch;
+            });
+
+            return customerMatch && originMatch && statusMatch && dateMatch && serialNumberMatch && sellerMatch && generalMatch;
         });
 
         // Apply sorting
@@ -154,7 +163,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber, filterSellerName]);
+    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterSerialNumber, filterSellerName, generalFilter]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -192,6 +201,7 @@ export default function ReportsPage() {
         setDateRange(undefined);
         setFilterSerialNumber('');
         setFilterSellerName('');
+        setGeneralFilter('');
     }
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => (
@@ -287,6 +297,12 @@ export default function ReportsPage() {
             <CardHeader>
                 <CardTitle>Ventes Récentes</CardTitle>
                  <div className="pt-4 flex items-center gap-2 flex-wrap">
+                    <Input
+                        placeholder="Rechercher désignation..."
+                        value={generalFilter}
+                        onChange={(e) => setGeneralFilter(e.target.value)}
+                        className="max-w-sm"
+                    />
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
