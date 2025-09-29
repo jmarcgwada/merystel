@@ -8,15 +8,17 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import type { OrderItem } from '@/lib/types';
+import type { OrderItem, Sale } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
     <Button variant="outline" className={cn("text-xl h-12", className)} onClick={onClick}>
@@ -246,11 +248,20 @@ export function OrderSummary() {
   }
   
   const getTitle = () => {
-    if (readOnlyOrder) {
+    if (readOnlyOrder && readOnlyOrder.sourceSale) {
+        const sale = readOnlyOrder.sourceSale;
         return (
-            <div className='flex items-center gap-2'>
-                <History/>
-                <span>Consultation Ticket</span>
+             <div className="flex flex-col gap-1">
+                <div className='flex items-center gap-2'>
+                    <History/>
+                    <span>Consultation Ticket</span>
+                </div>
+                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>#{sale.ticketNumber}</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {format(new Date(sale.date), 'd MMM yyyy', {locale: fr})}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/> {format(new Date(sale.date), 'HH:mm')}</span>
+                    {sale.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{sale.userName}</span>}
+                </div>
             </div>
         )
     }
@@ -414,7 +425,7 @@ export function OrderSummary() {
   return (
     <>
       <div className="flex h-full flex-col relative bg-card print-area" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
-        <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card no-print">
+        <div className="flex items-center justify-between p-2 border-b h-[64px] bg-card no-print">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
           </h2>
@@ -570,17 +581,14 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                 <div className='w-full grid grid-cols-3 gap-2'>
-                    <Button size="lg" className="w-full col-span-1" variant="outline" onClick={handleEditTicket}>
-                        <Edit className="mr-2 h-4 w-4" />
+                    <Button size="lg" className="w-full" variant="outline" onClick={handleEditTicket}>
                         Modifier
                     </Button>
-                    <Button size="lg" className="w-full col-span-1" variant="outline" onClick={handlePrint}>
-                        <Printer className="mr-2 h-4 w-4" />
+                    <Button size="lg" className="w-full" variant="outline" onClick={handlePrint}>
                         Imprimer
                     </Button>
-                    <Button size="lg" className="w-full col-span-1" onClick={clearOrder}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nouvelle Commande
+                    <Button size="lg" className="w-full" onClick={clearOrder}>
+                        Nouveau
                     </Button>
                 </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
@@ -638,6 +646,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 

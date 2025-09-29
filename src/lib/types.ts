@@ -56,6 +56,7 @@ export interface OrderItem extends Item {
   serialNumbers?: string[];
   selectedVariants?: SelectedVariant[];
   note?: string;
+  sourceSale?: Sale;
 }
 
 export interface Table {

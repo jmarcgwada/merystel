@@ -1655,7 +1655,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [sales]);
 
   const loadTicketForViewing = useCallback((sale: Sale) => {
-    setReadOnlyOrder(sale.items);
+    const itemsWithSource = sale.items.map(item => ({ ...item, sourceSale: sale }));
+    setReadOnlyOrder(itemsWithSource);
   }, []);
   // #endregion
   
@@ -1951,6 +1952,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setRecentlyAddedItemId,
       setCurrentSaleId,
       setCameFromRestaurant,
+      setShowNotifications,
+      setNotificationDuration,
     ]
   );
 
