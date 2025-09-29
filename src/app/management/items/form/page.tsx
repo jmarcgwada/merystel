@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller, useFieldArray, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -507,7 +507,7 @@ function ItemForm() {
                                                             </FormItem>
                                                         )}
                                                     />
-                                                    <VariantValues name={`variantOptions.${index}.values`} />
+                                                    <VariantValues control={control} optionIndex={index} />
                                                 </div>
                                             </Card>
                                         ))}
@@ -717,45 +717,46 @@ function ItemForm() {
   );
 }
 
-const VariantValues = ({ name }: { name: `variantOptions.${number}.values` }) => {
-    const { fields, append, remove } = useFieldArray({
-      control: useForm().control,
-      name
-    });
-  
-    return (
-      <div className="space-y-2 pl-4 border-l-2">
-        <FormLabel>Valeurs de l'option</FormLabel>
-        {fields.map((field, index) => (
-          <div key={field.id} className="flex items-center gap-2">
-            <FormField
-              control={useForm().control}
-              name={`${name}.${index}.value`}
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input placeholder={`ex: S, M, Rouge, Bleu...`} {...field} />
-                  </FormControl>
-                   <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        ))}
-        <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => append({ value: '' })}
-        >
-            Ajouter une valeur
-        </Button>
-      </div>
-    );
-  };
+const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValues>; optionIndex: number }) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `variantOptions.${optionIndex}.values` as const,
+  });
+
+  return (
+    <div className="space-y-2 pl-4 border-l-2">
+      <FormLabel>Valeurs de l'option</FormLabel>
+      {fields.map((field, valueIndex) => (
+        <div key={field.id} className="flex items-center gap-2">
+          <FormField
+            control={control}
+            name={`variantOptions.${optionIndex}.values.${valueIndex}.value`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder={`ex: S, M, Rouge, Bleu...`} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="button" variant="ghost" size="icon" onClick={() => remove(valueIndex)}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => append({ value: '' })}
+      >
+        Ajouter une valeur
+      </Button>
+    </div>
+  );
+};
+
 
 // Wrap the component in Suspense to handle the useSearchParams() hook.
 export default function ItemFormPage() {
@@ -765,5 +766,3 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
-
-    
