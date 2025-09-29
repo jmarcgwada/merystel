@@ -165,6 +165,11 @@ export default function SaleDetailPage() {
                             </TableCell>
                             <TableCell className="font-medium">
                                 <div>{item.name}</div>
+                                {item.selectedVariants && item.selectedVariants.length > 0 && (
+                                    <div className="text-xs text-muted-foreground mt-1 capitalize">
+                                        {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                    </div>
+                                )}
                                 {item.serialNumbers && item.serialNumbers.length > 0 && (
                                     <div className="text-xs text-muted-foreground mt-1">
                                         <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
@@ -283,6 +288,7 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+
 
 
 
