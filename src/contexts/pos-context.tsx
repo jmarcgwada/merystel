@@ -172,6 +172,8 @@ interface PosContextType {
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
   itemCardOpacity: number;
   setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
+  paymentMethodImageOpacity: number;
+  setPaymentMethodImageOpacity: React.Dispatch<React.SetStateAction<number>>;
   enableRestaurantCategoryFilter: boolean;
   setEnableRestaurantCategoryFilter: React.Dispatch<
     React.SetStateAction<boolean>
@@ -288,6 +290,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
   const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
   const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
@@ -1644,6 +1647,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setPopularItemsCount,
       itemCardOpacity,
       setItemCardOpacity,
+      paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       enableRestaurantCategoryFilter,
       setEnableRestaurantCategoryFilter,
       showNotifications,
@@ -1769,6 +1774,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       popularItemsCount,
       setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
+      paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       setEnableRestaurantCategoryFilter,
       enableRestaurantCategoryFilter,
       showNotifications,

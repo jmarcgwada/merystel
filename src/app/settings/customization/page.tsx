@@ -14,7 +14,18 @@ import { ArrowLeft } from 'lucide-react';
 
 
 export default function CustomizationPage() {
-  const { showTicketImages, setShowTicketImages, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity, enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter } = usePos();
+  const { 
+    showTicketImages, 
+    setShowTicketImages, 
+    popularItemsCount, 
+    setPopularItemsCount, 
+    itemCardOpacity, 
+    setItemCardOpacity, 
+    enableRestaurantCategoryFilter, 
+    setEnableRestaurantCategoryFilter,
+    paymentMethodImageOpacity,
+    setPaymentMethodImageOpacity,
+   } = usePos();
 
   return (
     <>
@@ -76,6 +87,23 @@ export default function CustomizationPage() {
                     id="item-card-opacity"
                     value={[itemCardOpacity]} 
                     onValueChange={(value) => setItemCardOpacity(value[0])}
+                    min={0}
+                    max={100} 
+                    step={5} 
+                />
+             </div>
+              <div className="grid gap-2 pt-4">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="payment-method-image-opacity">Opacité de l'image des moyens de paiement</Label>
+                    <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Réglez l'opacité de l'image de fond sur les boutons de paiement.
+                </p>
+                <Slider 
+                    id="payment-method-image-opacity"
+                    value={[paymentMethodImageOpacity]} 
+                    onValueChange={(value) => setPaymentMethodImageOpacity(value[0])}
                     min={0}
                     max={100} 
                     step={5} 

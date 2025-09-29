@@ -57,7 +57,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 )
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -114,9 +114,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (!isPaid) {
             const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
-            if (newBalance > 0) {
-              setShowCalculator(true);
-            }
         }
     } else {
         setTimeout(() => {
@@ -179,12 +176,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       
       const isTableSale = currentSaleContext?.isTableSale;
 
-      if (isTableSale || cameFromRestaurant) {
-        if(cameFromRestaurant && !isTableSale) {
-            clearOrder(); // Clear order for takeaway sales from restaurant mode
-        }
-        if(cameFromRestaurant) setCameFromRestaurant(false);
-        router.push('/restaurant');
+      if (isTableSale || (cameFromRestaurant && tableId !== 'takeaway')) {
+          if(cameFromRestaurant) setCameFromRestaurant(false);
+          router.push('/restaurant');
       } else {
         clearOrder();
       }
@@ -501,7 +495,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                               onClick={() => handleAddPayment(method)}
                               disabled={isDisabled || isOverpaid}
                           >
-                              {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md opacity-20" />}
+                              {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100}} />}
                               <IconComponent className="h-6 w-6 z-10" />
                               <span className="text-sm whitespace-normal text-center leading-tight z-10">{method.name}</span>
                           </Button>
@@ -663,7 +657,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             onClick={() => handleAdvancedPaymentSelect(method)}
                             disabled={isDisabled || isOverpaid}
                         >
-                            {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md opacity-20" />}
+                            {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100 }} />}
                             <IconComponent className="h-6 w-6 z-10"/>
                             <span className="text-sm whitespace-normal text-center z-10">{method.name}</span>
                         </Button>
@@ -727,6 +721,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-
-
