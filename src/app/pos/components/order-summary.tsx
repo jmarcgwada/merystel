@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -106,7 +107,8 @@ export function OrderSummary() {
     enableSerialNumber,
     setSerialNumberItem,
     cameFromRestaurant,
-    setCameFromRestaurant
+    setCameFromRestaurant,
+    setCurrentSaleContext,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -396,7 +398,8 @@ export function OrderSummary() {
       });
       setOrder(itemsToEdit);
       setCurrentSaleId(sale.id);
-      setReadOnlyOrder(null); // Important: exit read-only mode
+      setCurrentSaleContext({ payments: sale.payments });
+      setReadOnlyOrder(null);
     }
   };
 
@@ -643,9 +646,11 @@ export function OrderSummary() {
               {readOnlyOrder ? (
                 <div className='w-full grid grid-cols-3 gap-2'>
                     <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                        <Edit className="mr-2" />
                         Modifier
                     </Button>
                     <Button size="lg" className="w-full" onClick={handlePrint}>
+                        <Printer className="mr-2" />
                         Imprimer
                     </Button>
                     <Button size="lg" className="w-full" onClick={clearOrder}>

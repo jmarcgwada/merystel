@@ -788,10 +788,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
+    setOrder([]);
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
-    } else {
-      setOrder([]);
     }
     // Only clear the sale context if we are NOT on a table sale
     if (!selectedTable) {

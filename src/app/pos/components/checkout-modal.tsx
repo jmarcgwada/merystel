@@ -172,9 +172,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (defaultCustomer) {
             setSelectedCustomer(defaultCustomer);
         }
+        
+        if (currentSaleContext?.payments) {
+            setPayments(currentSaleContext.payments);
+        }
 
         if (!isPaid) {
-            const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
+            const initialAmountPaid = currentSaleContext?.payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+            const newBalance = totalAmount - initialAmountPaid;
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
         }
     } else {
@@ -189,7 +194,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setShowCalculator(false);
         }, 300);
     }
-  }, [isOpen, isPaid, totalAmount, customers, payments]);
+  }, [isOpen, isPaid, totalAmount, customers, currentSaleContext]);
 
 
   const handleReset = () => {
@@ -745,6 +750,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-
-    
