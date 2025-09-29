@@ -1260,6 +1260,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       // Clean up items before saving
       const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+      
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
@@ -1268,7 +1270,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         ticketNumber,
         status: 'paid',
         userId: user.uid,
-        userName: `${user.firstName} ${user.lastName}`,
+        userName: sellerName || '',
         ...(change > 0.009 && { change: change }),
         ...(currentSaleContext?.tableId && {
           tableId: currentSaleContext.tableId,

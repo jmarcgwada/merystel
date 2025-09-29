@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Payment, Sale } from '@/lib/types';
+import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
@@ -57,7 +57,7 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, isLoading } = usePos();
+    const { sales: allSales, customers, users, isLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -83,9 +83,16 @@ export default function ReportsPage() {
     }, []);
 
     const getCustomerName = (customerId?: string) => {
-        if (!customerId || !customers) return 'N/A';
+        if (!customerId || !customers) return '';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
     }
+    
+    const getUserName = (userId?: string) => {
+        if (!userId || !users) return 'N/A';
+        const saleUser = users.find(u => u.id === userId);
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : 'Utilisateur inconnu';
+    };
+
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
@@ -97,7 +104,9 @@ export default function ReportsPage() {
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
             const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
-            const sellerMatch = !filterSellerName || (sale.userName && sale.userName.toLowerCase().includes(filterSellerName.toLowerCase()));
+            
+            const saleSellerName = sale.userName || getUserName(sale.userId);
+            const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
             let dateMatch = true;
             if (dateRange?.from) {
@@ -146,8 +155,8 @@ export default function ReportsPage() {
                         bValue = b.items.reduce((acc, item) => acc + item.quantity, 0);
                         break;
                     case 'userName':
-                        aValue = a.userName || '';
-                        bValue = b.userName || '';
+                        aValue = a.userName || getUserName(a.userId);
+                        bValue = b.userName || getUserName(b.userId);
                         break;
                     default:
                         aValue = a[sortConfig.key] || 0;
@@ -165,7 +174,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter]);
+    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -449,39 +458,42 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && filteredAndSortedSales && filteredAndSortedSales.map(sale => (
-                            <TableRow key={sale.id}>
-                                 <TableCell className="font-mono text-muted-foreground text-xs">
-                                    {sale.ticketNumber}
-                                </TableCell>
-                                <TableCell className="font-medium whitespace-nowrap">
-                                    <ClientFormattedDate date={sale.date} />
-                                </TableCell>
-                                <TableCell>
-                                    {sale.userName}
-                                </TableCell>
-                                <TableCell>
-                                    {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
-                                </TableCell>
-                                <TableCell>
-                                    {getCustomerName(sale.customerId)}
-                                </TableCell>
-                                <TableCell>
-                                    {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
-                                </TableCell>
-                                <TableCell>
-                                     <PaymentBadges sale={sale} />
-                                </TableCell>
-                                <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
-                                <TableCell className="text-right">
-                                    <Button asChild variant="ghost" size="icon">
-                                        <Link href={`/reports/${sale.id}`}>
-                                            <Eye className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {!isLoading && filteredAndSortedSales && filteredAndSortedSales.map(sale => {
+                            const sellerName = (sale.userName && sale.userName !== 'undefined undefined') ? sale.userName : getUserName(sale.userId);
+                            return (
+                                <TableRow key={sale.id}>
+                                     <TableCell className="font-mono text-muted-foreground text-xs">
+                                        {sale.ticketNumber}
+                                    </TableCell>
+                                    <TableCell className="font-medium whitespace-nowrap">
+                                        <ClientFormattedDate date={sale.date} />
+                                    </TableCell>
+                                    <TableCell>
+                                        {sellerName}
+                                    </TableCell>
+                                    <TableCell>
+                                        {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {getCustomerName(sale.customerId)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
+                                    </TableCell>
+                                    <TableCell>
+                                         <PaymentBadges sale={sale} />
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button asChild variant="ghost" size="icon">
+                                            <Link href={`/reports/${sale.id}`}>
+                                                <Eye className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
                     </TableBody>
                 </Table>
             </CardContent>
@@ -490,5 +502,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
