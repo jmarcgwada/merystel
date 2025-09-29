@@ -1,0 +1,80 @@
+
+{
+  "categories": [
+    {
+      "name": "Viennoiseries & Pains",
+      "items": [
+        { "name": "Croissant au beurre AOP", "price": 1.50, "description": "Classique, pur beurre, feuilleté et doré." },
+        { "name": "Pain au chocolat", "price": 1.70, "description": "Généreux avec ses deux barres de chocolat noir." },
+        { "name": "Pain aux raisins", "price": 2.00, "description": "Spirale de pâte levée avec crème pâtissière et raisins secs." },
+        { "name": "Chausson aux pommes", "price": 2.20, "description": "Compotée de pommes maison dans une pâte feuilletée." },
+        { "name": "Baguette tradition", "price": 1.30, "description": "Croûte croustillante et mie alvéolée." }
+      ]
+    },
+    {
+      "name": "Pâtisseries Individuelles",
+      "items": [
+        { "name": "Éclair au chocolat", "price": 3.50, "description": "Crème pâtissière au chocolat grand cru." },
+        { "name": "Éclair au café", "price": 3.50, "description": "Crème pâtissière à l'extrait de café pur arabica." },
+        { "name": "Tartelette au citron meringuée", "price": 4.20, "description": "Sablé breton, crémeux citron et meringue italienne." },
+        { "name": "Mille-feuille", "price": 4.50, "description": "Pâte feuilletée caramélisée et crème diplomate à la vanille de Madagascar." },
+        { "name": "Paris-Brest", "price": 4.80, "description": "Pâte à choux, crème mousseline praliné et amandes effilées." },
+        { "name": "Opéra", "price": 5.00, "description": "Biscuit joconde, ganache chocolat, crème au beurre café." },
+        { "name": "Macaron (à l'unité)", "price": 1.80, "description": "Parfums variés selon la saison." }
+      ]
+    },
+    {
+      "name": "Entrées du Jour",
+      "items": [
+        { "name": "Velouté de saison", "price": 7.50, "description": "Selon les légumes du marché, servi avec croûtons à l'ail." },
+        { "name": "Œuf parfait, crème de lard", "price": 9.00, "description": "Œuf cuit à 64°C, émulsion de lard fumé et champignons poêlés." },
+        { "name": "Terrine de campagne maison", "price": 8.50, "description": "Servie avec ses cornichons et pain de campagne grillé." }
+      ]
+    },
+    {
+      "name": "Plats du Jour",
+      "items": [
+        { "name": "Quiche Lorraine", "price": 12.50, "description": "Servie avec une salade verte vinaigrette balsamique." },
+        { "name": "Croque-Monsieur truffé", "price": 14.00, "description": "Pain de mie artisanal, jambon blanc à l'os, béchamel à la truffe et comté." },
+        { "name": "Salade Zénith", "price": 15.00, "description": "Volaille fermière, avocat, tomates confites, copeaux de parmesan, œuf poché." },
+        { "name": "Plat du Marché", "price": 18.00, "description": "Variable chaque jour, demandez au personnel." }
+      ]
+    },
+    {
+      "name": "Boissons Chaudes",
+      "items": [
+        { "name": "Espresso", "price": 2.50, "description": "Café court et intense." },
+        { "name": "Café allongé", "price": 2.80, "description": "Espresso dilué à l'eau chaude." },
+        { "name": "Cappuccino", "price": 4.00, "description": "Espresso, lait chaud et mousse de lait." },
+        { "name": "Chocolat chaud maison", "price": 4.50, "description": "Chocolat noir fondu et lait entier." },
+        { "name": "Thé (sélection du moment)", "price": 3.80, "description": "Noir, vert ou infusion." }
+      ]
+    },
+    {
+      "name": "Boissons Fraîches",
+      "items": [
+        { "name": "Jus d'orange pressé", "price": 4.50, "description": "Oranges fraîches pressées à la minute." },
+        { "name": "Citronnade maison", "price": 4.00, "description": "Citron, eau, sucre et menthe fraîche." },
+        { "name": "Coca-Cola / Coca-Cola Zéro", "price": 3.50, "description": "33cl." },
+        { "name": "Eau minérale (Evian / Badoit)", "price": 3.00, "description": "50cl." }
+      ]
+    },
+    {
+      "name": "Apéritifs & Vins",
+      "items": [
+        { "name": "Kir (cassis, mûre, pêche)", "price": 5.00, "description": "12cl." },
+        { "name": "Coupe de Champagne", "price": 9.00, "description": "Brut, 12cl." },
+        { "name": "Verre de vin (Rouge/Blanc/Rosé)", "price": 6.00, "description": "Sélection du sommelier, 12cl." },
+        { "name": "Bière pression", "price": 4.50, "description": "25cl." }
+      ]
+    },
+    {
+      "name": "Digestifs",
+      "items": [
+        { "name": "Cognac VSOP", "price": 10.00, "description": "4cl." },
+        { "name": "Armagnac XO", "price": 12.00, "description": "4cl." },
+        { "name": "Get 27 / Get 31", "price": 8.00, "description": "4cl." }
+      ]
+    }
+  ]
+}
