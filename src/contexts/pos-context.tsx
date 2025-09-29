@@ -100,6 +100,7 @@ interface PosContextType {
   variantItem: Item | null;
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   readOnlyOrder: OrderItem[] | null;
+  setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   loadTicketForViewing: (sale: Sale) => void;
 
 
@@ -1683,6 +1684,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       order,
       setOrder,
       readOnlyOrder,
+      setReadOnlyOrder,
       loadTicketForViewing,
       addToOrder,
       addSerializedItemToOrder,
@@ -1823,6 +1825,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [
       order,
       readOnlyOrder,
+      setReadOnlyOrder,
       loadTicketForViewing,
       setOrder,
       addToOrder,
