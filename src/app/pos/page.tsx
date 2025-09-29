@@ -22,7 +22,7 @@ import { VariantSelectionModal } from './components/variant-selection-modal';
 
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor, setCameFromRestaurant } = usePos();
   const [isClient, setIsClient] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
@@ -134,14 +134,17 @@ export default function PosPage() {
   }, [inputValue, targetInput]);
 
   useEffect(() => {
-    if(tableId) {
-      setSelectedTableById(tableId);
-    } else {
-      if (selectedTable) {
-        setSelectedTableById(null);
-      }
+    // This effect should ONLY run when the tableId from the URL *actually changes*.
+    // It synchronizes the POS state with the URL.
+    setSelectedTableById(tableId);
+
+    // If we enter this page without a tableId, but came from the restaurant page (e.g. for takeaway)
+    // we need to make sure the context is aware.
+    if (!tableId && searchParams.get('from') === 'restaurant') {
+        setCameFromRestaurant(true);
     }
-  }, [tableId, setSelectedTableById, selectedTable]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableId, setSelectedTableById]);
 
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';

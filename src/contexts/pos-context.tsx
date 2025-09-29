@@ -1084,9 +1084,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     
     if (tableId === 'takeaway') {
-        setCameFromRestaurant(true);
-        await clearOrder();
-        routerRef.current.push('/pos');
+        routerRef.current.push('/pos?from=restaurant');
         return;
     }
 
@@ -1299,7 +1297,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region User Management & Session
   const addUser = useCallback(
     async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
-      const authInstance = getAuth(); // Get current auth instance
+      const authInstance = getAuth();
       if (!authInstance || !firestore) {
         toast({
           variant: 'destructive',
@@ -1636,6 +1634,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       .map((i) => i.item);
   }, [sales, items, popularItemsCount]);
   // #endregion
+  
+  useEffect(() => {
+    // Automatically seed data on first launch for admin
+    if (
+      !isLoading &&
+      user?.role === 'admin' &&
+      (!categories || categories.length === 0) &&
+      (!vatRates || vatRates.length === 0) &&
+      (!paymentMethods || paymentMethods.length === 0)
+    ) {
+      seedInitialData();
+    }
+  }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
 
   const value = useMemo(
     () => ({
@@ -1923,4 +1934,3 @@ export function usePos() {
   }
   return context;
 }
-
