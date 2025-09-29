@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
@@ -26,6 +26,7 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
@@ -82,16 +83,19 @@ export default function ReportsPage() {
         setIsClient(true);
     }, []);
 
-    const getCustomerName = (customerId?: string) => {
-        if (!customerId || !customers) return '';
+    const getCustomerName = useCallback((customerId?: string) => {
+        if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
-    }
+    }, [customers]);
     
-    const getUserName = (userId?: string) => {
+    const getUserName = useCallback((userId?: string, fallbackName?: string) => {
+        if (fallbackName && fallbackName !== 'undefined undefined') {
+            return fallbackName;
+        }
         if (!userId || !users) return 'N/A';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : 'Utilisateur inconnu';
-    };
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : (user?.email || 'Utilisateur inconnu');
+    }, [users, user]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -99,13 +103,13 @@ export default function ReportsPage() {
 
         // Apply filters
         let filteredSales = allSales.filter(sale => {
-            const customerName = sale.customerId ? getCustomerName(sale.customerId) : '';
+            const customerName = sale.customerId ? getCustomerName(sale.customerId) : 'Client au comptoir';
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
             const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
             
-            const saleSellerName = sale.userName || getUserName(sale.userId);
+            const saleSellerName = getUserName(sale.userId, sale.userName);
             const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
             let dateMatch = true;
@@ -155,8 +159,8 @@ export default function ReportsPage() {
                         bValue = b.items.reduce((acc, item) => acc + item.quantity, 0);
                         break;
                     case 'userName':
-                        aValue = a.userName || getUserName(a.userId);
-                        bValue = b.userName || getUserName(b.userId);
+                        aValue = getUserName(a.userId, a.userName);
+                        bValue = getUserName(b.userId, b.userName);
                         break;
                     default:
                         aValue = a[sortConfig.key] || 0;
@@ -174,7 +178,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter]);
+    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter, getCustomerName, getUserName]);
 
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
@@ -307,12 +311,28 @@ export default function ReportsPage() {
         <Card>
             <CardHeader>
                  <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start px-0 mb-2 -ml-2 text-lg font-semibold">
-                            <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
-                           Filtres
-                        </Button>
-                    </CollapsibleTrigger>
+                    <div className="relative">
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start px-0 mb-2 -ml-2 text-lg font-semibold">
+                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                               Filtres
+                            </Button>
+                        </CollapsibleTrigger>
+                        <div className="absolute top-0 right-0">
+                             <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={resetFilters}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Réinitialiser les filtres</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
                     <CollapsibleContent>
                         <div className="pt-2 pb-4 flex items-center gap-2 flex-wrap">
                             <Input
@@ -396,10 +416,6 @@ export default function ReportsPage() {
                                     <SelectItem value="pending">En attente</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button variant="ghost" onClick={resetFilters}>
-                                <X className="mr-2 h-4 w-4" />
-                                Réinitialiser
-                            </Button>
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
@@ -459,7 +475,7 @@ export default function ReportsPage() {
                             </TableRow>
                         ))}
                         {!isLoading && filteredAndSortedSales && filteredAndSortedSales.map(sale => {
-                            const sellerName = (sale.userName && sale.userName !== 'undefined undefined') ? sale.userName : getUserName(sale.userId);
+                            const sellerName = getUserName(sale.userId, sale.userName);
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell className="font-mono text-muted-foreground text-xs">
@@ -469,7 +485,7 @@ export default function ReportsPage() {
                                         <ClientFormattedDate date={sale.date} />
                                     </TableCell>
                                     <TableCell>
-                                        {sellerName}
+                                        {sellerName === 'undefined undefined' || !sellerName ? 'N/A' : sellerName}
                                     </TableCell>
                                     <TableCell>
                                         {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
@@ -502,3 +518,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
