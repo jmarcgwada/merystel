@@ -89,12 +89,12 @@ export default function ReportsPage() {
     }, [customers]);
     
     const getUserName = useCallback((userId?: string, fallbackName?: string) => {
-        if (fallbackName && fallbackName !== 'undefined undefined') {
-            return fallbackName;
-        }
-        if (!userId || !users) return 'N/A';
+        if (!users) return fallbackName || 'N/A';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${saleUser.firstName} ${saleUser.lastName}` : 'N/A';
+        if (saleUser?.firstName && saleUser?.lastName) {
+            return `${saleUser.firstName} ${saleUser.lastName}`;
+        }
+        return fallbackName || 'N/A';
     }, [users]);
 
 

@@ -1269,7 +1269,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       // Clean up items before saving
       const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
       
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : '';
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
