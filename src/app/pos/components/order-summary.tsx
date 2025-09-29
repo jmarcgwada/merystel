@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -325,6 +325,17 @@ export function OrderSummary() {
     }
   }
 
+  const handleEditTicket = () => {
+    if (readOnlyOrder) {
+      setOrder(readOnlyOrder);
+      clearOrder(); // This will clear the readOnlyOrder state
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  }
+
 
   const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
     <div 
@@ -402,8 +413,8 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col relative bg-card" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
-        <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card">
+      <div className="flex h-full flex-col relative bg-card print-area" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
+        <div className="flex items-center justify-between p-2 border-b h-[49px] bg-card no-print">
           <h2 className="text-lg font-bold tracking-tight font-headline">
              {getTitle()}
           </h2>
@@ -411,7 +422,7 @@ export function OrderSummary() {
         </div>
 
         {isKeypadOpen && selectedItem && (
-          <div className="z-10 bg-secondary/95 backdrop-blur-sm border-b shadow-lg">
+          <div className="z-10 bg-secondary/95 backdrop-blur-sm border-b shadow-lg no-print">
               <div className="bg-accent/50">
                 {renderOrderItem(selectedItem, true)}
               </div>
@@ -515,17 +526,15 @@ export function OrderSummary() {
                 <Separator />
                 <p className="text-sm">Consulter un ticket récent :</p>
                 <div className="flex flex-col gap-2">
-                    {!selectedTable && lastDirectSale && (
+                    {!selectedTable && lastDirectSale ? (
                         <Button variant="outline" onClick={() => loadTicketForViewing(lastDirectSale)}>
                             Dernier ticket (Vente directe)
                         </Button>
-                    )}
-                    {selectedTable && lastRestaurantSale && (
-                        <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
+                    ) : selectedTable && lastRestaurantSale ? (
+                         <Button variant="outline" onClick={() => loadTicketForViewing(lastRestaurantSale)}>
                             Dernier ticket (Restaurant)
                         </Button>
-                    )}
-                    {((selectedTable && !lastRestaurantSale) || (!selectedTable && !lastDirectSale)) && (
+                    ) : (
                          <p className="text-xs text-muted-foreground">(Aucun ticket récent trouvé)</p>
                     )}
                 </div>
@@ -558,12 +567,22 @@ export function OrderSummary() {
                 <span>{(orderTotal + orderTax).toFixed(2)}€</span>
                 </div>
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
-                <Button size="lg" className="w-full" onClick={clearOrder}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nouvelle Commande
-                </Button>
+                <div className='w-full grid grid-cols-3 gap-2'>
+                    <Button size="lg" className="w-full col-span-1" variant="outline" onClick={handleEditTicket}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Modifier
+                    </Button>
+                    <Button size="lg" className="w-full col-span-1" variant="outline" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Imprimer
+                    </Button>
+                    <Button size="lg" className="w-full col-span-1" onClick={clearOrder}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nouvelle Commande
+                    </Button>
+                </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
                   <Button
@@ -619,6 +638,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
