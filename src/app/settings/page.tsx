@@ -40,8 +40,9 @@ export default function SettingsPage() {
   const showHiddenButton = titleClickCount >= 5;
 
   const canSeedData = useMemo(() => {
+    if (isLoading) return false;
     return !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
-  }, [categories, vatRates, paymentMethods]);
+  }, [categories, vatRates, paymentMethods, isLoading]);
 
   const handleSeedData = () => {
     seedInitialData();
@@ -98,7 +99,6 @@ export default function SettingsPage() {
     }
   ]
 
-  // We only show the restricted sections if the user is loaded AND is an admin.
   const showAdminSections = !isUserLoading && user?.role === 'admin';
 
   return (
