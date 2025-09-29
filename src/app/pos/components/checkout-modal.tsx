@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight, Delete } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,12 @@ const iconMap: { [key: string]: Icon } = {
 
 const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire', 'Chèque'];
 
+const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: React.ReactNode, onClick: () => void, className?: string, flex?: number }) => (
+    <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick} style={{ flex }}>
+        {children}
+    </Button>
+)
+
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user } = usePos();
   const { toast } = useToast();
@@ -69,6 +75,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const customerListRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
+  
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
   const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
@@ -106,7 +115,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             const newBalance = totalAmount - payments.reduce((acc, p) => acc + p.amount, 0);
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
             if (newBalance > 0) {
-              selectAndFocusInput();
+              setShowCalculator(true);
             }
         }
     } else {
@@ -118,6 +127,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setView('payment');
             setCustomerSearch('');
             setHighlightedCustomerIndex(0);
+            setShowCalculator(false);
         }, 300);
     }
   }, [isOpen, isPaid, totalAmount, customers]);
@@ -131,6 +141,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setView('payment');
     setCustomerSearch('');
     setHighlightedCustomerIndex(0);
+    setShowCalculator(false);
   }
 
   const handleOpenChange = (open: boolean) => {
@@ -222,9 +233,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     if (newBalance > 0.009) { // More to pay
         setCurrentAmount(newBalance.toFixed(2));
-        selectAndFocusInput();
+        setShowCalculator(true);
     } else { // Fully paid or overpaid
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
+        setShowCalculator(false);
     }
   }
   
@@ -236,7 +248,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setCurrentAmount(newBalance.toFixed(2));
         return newPayments;
     });
-    selectAndFocusInput();
+    setShowCalculator(true);
   }
   
   const getIcon = (iconName?: string) => {
@@ -252,6 +264,20 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setCurrentAmount(value);
     }
   };
+  
+   const handleKeypadInput = (value: string) => {
+    setShouldReplaceValue(false);
+    if (value === 'del') {
+      setCurrentAmount(prev => String(prev).slice(0, -1));
+    } else {
+      if (shouldReplaceValue) {
+        setCurrentAmount(value);
+      } else {
+        setCurrentAmount(prev => String(prev) + value);
+      }
+    }
+  }
+
 
   const finalizeButtonDisabled = balanceDue > 0.009;
 
@@ -319,6 +345,82 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       handleAddPayment(method);
       setView('payment');
     };
+    
+    const renderCalculator = () => (
+        <div className="md:col-span-1 space-y-2 rounded-lg border bg-secondary/50 p-4 flex flex-col">
+            <h3 className="font-semibold text-secondary-foreground mb-2">Calculatrice</h3>
+            <div className="flex-1 grid grid-rows-5 gap-2">
+                <div className="flex gap-2">
+                    <KeypadButton onClick={() => handleKeypadInput('7')}>7</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('8')}>8</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('9')}>9</KeypadButton>
+                </div>
+                <div className="flex gap-2">
+                    <KeypadButton onClick={() => handleKeypadInput('4')}>4</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('5')}>5</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('6')}>6</KeypadButton>
+                </div>
+                 <div className="flex gap-2">
+                    <KeypadButton onClick={() => handleKeypadInput('1')}>1</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('2')}>2</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('3')}>3</KeypadButton>
+                </div>
+                <div className="flex gap-2">
+                    <KeypadButton onClick={() => handleKeypadInput('0')} flex={2}>0</KeypadButton>
+                    <KeypadButton onClick={() => handleKeypadInput('.')}>.</KeypadButton>
+                </div>
+                 <div className="flex gap-2">
+                    <Button variant="destructive" className="h-14 flex-1" onClick={() => setCurrentAmount('')}>
+                       <Delete />
+                    </Button>
+                    <Button className="h-14 flex-1" onClick={() => setShowCalculator(false)}>
+                        <Check />
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderPaymentHistory = () => (
+        <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
+          <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
+          <div className="flex-1">
+            {payments.length === 0 ? (
+              <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
+                <p className="text-muted-foreground">Aucun paiement ajouté.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                  {payments.map((p, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
+                        <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-auto">
+            <Separator className="my-4" />
+            <div className="flex justify-between font-bold text-lg">
+                  <span className="text-secondary-foreground">Total Payé</span>
+                  <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
+              </div>
+              <div className={cn(
+                  "flex justify-between font-bold text-lg mt-2",
+                  balanceDue > 0 ? "text-primary" : "text-green-600"
+              )}>
+                  <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
+                  <span>{Math.abs(balanceDue).toFixed(2)}€</span>
+              </div>
+          </div>
+        </div>
+    );
 
   const renderPaymentView = () => (
     <>
@@ -365,16 +467,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             
             <div className="space-y-2 flex-1">
                  <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
-                <div className="relative mt-1 w-full">
+                <div className="relative mt-1 w-full" onClick={() => setShowCalculator(true)}>
                     <Input
                         id="amount-to-pay"
                         ref={amountInputRef}
                         type="text"
                         value={currentAmount}
                         onChange={handleAmountChange}
+                        onFocus={() => {
+                            setShouldReplaceValue(true);
+                            setShowCalculator(true);
+                        }}
                         disabled={isOverpaid}
                         className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
-                        onFocus={(e) => e.target.select()}
                     />
                     <span className="absolute right-0 top-1/2 -translate-y-1/2 text-5xl font-bold text-muted-foreground">€</span>
                 </div>
@@ -432,44 +537,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 })()}
             </fieldset>
         </div>
-        <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
-          <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
-          <div className="flex-1">
-            {payments.length === 0 ? (
-              <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
-                <p className="text-muted-foreground">Aucun paiement ajouté.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                  {payments.map((p, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
-                        <span className="font-semibold">{p.amount.toFixed(2)}€</span>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-          <div className="mt-auto">
-            <Separator className="my-4" />
-            <div className="flex justify-between font-bold text-lg">
-                  <span className="text-secondary-foreground">Total Payé</span>
-                  <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
-              </div>
-              <div className={cn(
-                  "flex justify-between font-bold text-lg mt-2",
-                  balanceDue > 0 ? "text-primary" : "text-green-600"
-              )}>
-                  <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
-                  <span>{Math.abs(balanceDue).toFixed(2)}€</span>
-              </div>
-          </div>
-        </div>
+        {showCalculator ? renderCalculator() : renderPaymentHistory()}
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
@@ -659,5 +727,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
 
 
