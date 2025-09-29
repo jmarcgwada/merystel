@@ -74,6 +74,7 @@ export default function ReportsPage() {
     const [filterSerialNumber, setFilterSerialNumber] = useState('');
     const [generalFilter, setGeneralFilter] = useState('');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
+    const [isFiltersOpen, setFiltersOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
 
      useEffect(() => {
@@ -246,8 +247,8 @@ export default function ReportsPage() {
       <div className="mt-8 space-y-4">
         <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen}>
             <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-2 mb-2">
-                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", isSummaryOpen && "rotate-180")} />
+                <Button variant="ghost" className="w-full justify-start px-2 mb-2 -ml-2 text-lg font-semibold">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
                     Résumé de la sélection
                 </Button>
             </CollapsibleTrigger>
@@ -295,94 +296,104 @@ export default function ReportsPage() {
         </Collapsible>
         <Card>
             <CardHeader>
-                <CardTitle>Ventes Récentes</CardTitle>
-                 <div className="pt-4 flex items-center gap-2 flex-wrap">
-                    <Input
-                        placeholder="Rechercher désignation..."
-                        value={generalFilter}
-                        onChange={(e) => setGeneralFilter(e.target.value)}
-                        className="max-w-sm"
-                    />
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn(
-                                "w-[300px] justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateRange?.from ? (
-                                dateRange.to ? (
-                                    <>
-                                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                                    {format(dateRange.to, "LLL dd, y")}
-                                    </>
-                                ) : (
-                                    format(dateRange.from, "LLL dd, y")
-                                )
-                                ) : (
-                                <span>Choisir une période</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
+                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-start px-0 mb-2 -ml-2 text-lg font-semibold">
+                            <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                           Filtres
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <div className="pt-2 pb-4 flex items-center gap-2 flex-wrap">
+                            <Input
+                                placeholder="Rechercher désignation..."
+                                value={generalFilter}
+                                onChange={(e) => setGeneralFilter(e.target.value)}
+                                className="max-w-sm"
                             />
-                        </PopoverContent>
-                    </Popover>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-[300px] justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>
+                                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                                            {format(dateRange.to, "LLL dd, y")}
+                                            </>
+                                        ) : (
+                                            format(dateRange.from, "LLL dd, y")
+                                        )
+                                        ) : (
+                                        <span>Choisir une période</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}
+                                    />
+                                </PopoverContent>
+                            </Popover>
 
-                    <Input
-                        placeholder="Filtrer par client..."
-                        value={filterCustomerName}
-                        onChange={(e) => setFilterCustomerName(e.target.value)}
-                        className="max-w-xs"
-                    />
+                            <Input
+                                placeholder="Filtrer par client..."
+                                value={filterCustomerName}
+                                onChange={(e) => setFilterCustomerName(e.target.value)}
+                                className="max-w-xs"
+                            />
 
-                     <Input
-                        placeholder="Filtrer par vendeur..."
-                        value={filterSellerName}
-                        onChange={(e) => setFilterSellerName(e.target.value)}
-                        className="max-w-xs"
-                    />
+                            <Input
+                                placeholder="Filtrer par vendeur..."
+                                value={filterSellerName}
+                                onChange={(e) => setFilterSellerName(e.target.value)}
+                                className="max-w-xs"
+                            />
 
-                    <Input
-                        placeholder="Filtrer par origine..."
-                        value={filterOrigin}
-                        onChange={(e) => setFilterOrigin(e.target.value)}
-                        className="max-w-xs"
-                    />
+                            <Input
+                                placeholder="Filtrer par origine..."
+                                value={filterOrigin}
+                                onChange={(e) => setFilterOrigin(e.target.value)}
+                                className="max-w-xs"
+                            />
 
-                    <Input
-                        placeholder="Rechercher par N° de Série..."
-                        value={filterSerialNumber}
-                        onChange={(e) => setFilterSerialNumber(e.target.value)}
-                        className="max-w-xs"
-                    />
+                            <Input
+                                placeholder="Rechercher par N° de Série..."
+                                value={filterSerialNumber}
+                                onChange={(e) => setFilterSerialNumber(e.target.value)}
+                                className="max-w-xs"
+                            />
 
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Statut de paiement" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tous les statuts</SelectItem>
-                            <SelectItem value="paid">Payé</SelectItem>
-                            <SelectItem value="pending">En attente</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="ghost" onClick={resetFilters}>
-                        <X className="mr-2 h-4 w-4" />
-                        Réinitialiser
-                    </Button>
-                </div>
+                            <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Statut de paiement" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tous les statuts</SelectItem>
+                                    <SelectItem value="paid">Payé</SelectItem>
+                                    <SelectItem value="pending">En attente</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button variant="ghost" onClick={resetFilters}>
+                                <X className="mr-2 h-4 w-4" />
+                                Réinitialiser
+                            </Button>
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
+                <Separator />
             </CardHeader>
             <CardContent>
                 <Table>
