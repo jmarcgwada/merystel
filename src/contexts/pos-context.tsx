@@ -23,6 +23,7 @@ import type {
   VatRate,
   CompanyInfo,
   User,
+  SelectedVariant,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -72,7 +73,7 @@ const TAKEAWAY_TABLE: Table = {
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
-  addToOrder: (itemId: OrderItem['id']) => void;
+  addToOrder: (itemId: OrderItem['id'], selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
@@ -94,6 +95,8 @@ interface PosContextType {
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   serialNumberItem: { item: Item; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item; quantity: number } | null>>;
+  variantItem: Item | null;
+  setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
 
 
   users: User[];
@@ -322,6 +325,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item, quantity: number} | null>(null);
+  const [variantItem, setVariantItem] = useState<Item | null>(null);
   // #endregion
 
   // Custom toast function that respects the user setting
@@ -825,7 +829,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const addToOrder = useCallback(
-    (itemId: OrderItem['id']) => {
+    (itemId: OrderItem['id'], selectedVariants?: SelectedVariant[]) => {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
@@ -841,7 +845,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       setOrder((currentOrder) => {
-        if (existingItem) {
+        if (existingItem && !selectedVariants) { // Do not group items with variants
           const newOrder = [...currentOrder];
           const newQuantity = existingItem.quantity + 1;
           const existingItemIndex = newOrder.findIndex(i => i.id === itemId);
@@ -858,6 +862,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             quantity: 1,
             total: itemToAdd.price,
             discount: 0,
+            selectedVariants,
           };
           return [...currentOrder, newItem];
         }
@@ -960,31 +965,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Held Order & Table Management
-  const promoteTableToTicket = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      const table = tables.find(t => t.id === tableId);
-      if (!tableRef || !table) return;
-      try {
-        await updateDoc(tableRef, {
-          order: orderData,
-          status: 'paying',
-          lockedBy: user?.uid
-        });
-        setCurrentSaleId(`table-${tableId}`);
-        setCurrentSaleContext({
-          tableId: table.id,
-          tableName: table.name,
-          isTableSale: true,
-        });
-      } catch (error) {
-        console.error('Error promoting table to ticket:', error);
-        toast({ variant: 'destructive', title: 'Erreur de clôture' });
-      }
-    },
-    [getDocRef, toast, tables, user]
-  );
-  
   const holdOrder = useCallback(async () => {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
@@ -1045,6 +1025,31 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       routerRef.current.push('/pos');
     }
   }, [user, deleteEntity, toast]);
+
+  const promoteTableToTicket = useCallback(
+    async (tableId: string, orderData: OrderItem[]) => {
+      const tableRef = getDocRef('tables', tableId);
+      const table = tables.find(t => t.id === tableId);
+      if (!tableRef || !table) return;
+      try {
+        await updateDoc(tableRef, {
+          order: orderData,
+          status: 'paying',
+          lockedBy: user?.uid
+        });
+        setCurrentSaleId(`table-${tableId}`);
+        setCurrentSaleContext({
+          tableId: table.id,
+          tableName: table.name,
+          isTableSale: true,
+        });
+      } catch (error) {
+        console.error('Error promoting table to ticket:', error);
+        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+      }
+    },
+    [getDocRef, toast, tables, user]
+  );
 
   const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!firestore || !user) {
@@ -1116,7 +1121,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
     }
 
-  }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables]);
+  }, [firestore, user, clearOrder, toast, promoteTableToTicket]);
 
 
   const updateTableOrder = useCallback(
@@ -1632,6 +1637,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setRecentlyAddedItemId,
       serialNumberItem, 
       setSerialNumberItem,
+      variantItem,
+      setVariantItem,
       users,
       addUser,
       updateUser,
@@ -1761,7 +1768,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentSaleId,
       currentSaleContext,
       recentlyAddedItemId,
-      serialNumberItem, 
+      serialNumberItem,
+      variantItem,
+      setVariantItem,
       users,
       addUser,
       updateUser,
@@ -1816,47 +1825,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages,
-      descriptionDisplay,
-      setDescriptionDisplay,
       popularItemsCount,
-      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity,
       paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
-      setEnableRestaurantCategoryFilter,
       enableRestaurantCategoryFilter,
       showNotifications,
-      setShowNotifications,
       notificationDuration,
-      setNotificationDuration,
       enableSerialNumber,
-      setEnableSerialNumber,
       directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
-      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
       dashboardBgType,
-      setDashboardBgType,
       dashboardBackgroundColor,
-      setDashboardBackgroundColor,
       dashboardBackgroundImage,
-      setDashboardBackgroundImage,
       dashboardBgOpacity,
-      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
-      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1873,6 +1860,32 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       user,
       holdOrder,
       setSessionInvalidated,
+      setEnableRestaurantCategoryFilter,
+      setDashboardBgType,
+      setDashboardBackgroundColor,
+      setDashboardBackgroundImage,
+      setDashboardBgOpacity,
+      setDashboardButtonBackgroundColor,
+      setDashboardButtonOpacity,
+      setDashboardButtonShowBorder,
+      setDashboardButtonBorderColor,
+      setDirectSaleBackgroundColor,
+      setRestaurantModeBackgroundColor,
+      setDirectSaleBgOpacity,
+      setRestaurantModeBgOpacity,
+      setItemCardOpacity,
+      setPaymentMethodImageOpacity,
+      setPopularItemsCount,
+      setShowTicketImages,
+      setDescriptionDisplay,
+      setEnableSerialNumber,
+      setShowNotifications,
+      setNotificationDuration,
+      setSerialNumberItem,
+      setIsKeypadOpen,
+      setRecentlyAddedItemId,
+      setCurrentSaleId,
+      setCameFromRestaurant,
     ]
   );
 
