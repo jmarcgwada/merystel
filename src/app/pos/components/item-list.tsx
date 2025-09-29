@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import { PlusCircle } from 'lucide-react';
-import type { Category, SpecialCategory } from '@/lib/types';
+import type { Category, SpecialCategory, Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface ItemListProps {
@@ -23,15 +23,19 @@ interface ItemListProps {
 
 export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
   ({ category, searchTerm, showFavoritesOnly }, ref) => {
-    const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity, selectedTable } = usePos();
+    const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity, selectedTable, setVariantItem } = usePos();
     const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
-    const handleItemClick = (itemId: string) => {
-      addToOrder(itemId);
-      setClickedItemId(itemId);
-      setTimeout(() => {
-        setClickedItemId(null);
-      }, 200); // L'effet dure 200ms
+    const handleItemClick = (item: Item) => {
+      if (item.hasVariants && item.variantOptions && item.variantOptions.length > 0) {
+        setVariantItem(item);
+      } else {
+        addToOrder(item.id);
+        setClickedItemId(item.id);
+        setTimeout(() => {
+          setClickedItemId(null);
+        }, 200); // L'effet dure 200ms
+      }
     };
     
     const filteredItems = useMemo(() => {
@@ -91,7 +95,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
               )}
               style={cardStyle}
             >
-              <button onClick={() => handleItemClick(item.id)} className="flex flex-col h-full text-left">
+              <button onClick={() => handleItemClick(item)} className="flex flex-col h-full text-left">
                 {showImage && (
                   <CardHeader className="p-0">
                     <div className="relative aspect-video w-full">

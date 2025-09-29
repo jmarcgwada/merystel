@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
+import { VariantSelectionModal } from './components/variant-selection-modal';
+
 
 export default function PosPage() {
   const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor } = usePos();
@@ -250,6 +252,7 @@ export default function PosPage() {
       </div>
       <HeldOrdersDrawer isOpen={isHeldOpen} onClose={() => setHeldOpen(false)} />
       <SerialNumberModal />
+      <VariantSelectionModal />
     </>
   );
 }

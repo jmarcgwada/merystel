@@ -302,7 +302,14 @@ export function OrderSummary() {
         )}
         <div className="flex-1">
             <div className="flex justify-between items-start">
-              <p className="font-semibold pr-2">{item.name}</p>
+              <div>
+                <p className="font-semibold pr-2">{item.name}</p>
+                {item.selectedVariants && (
+                  <p className="text-xs text-muted-foreground">
+                    {item.selectedVariants.map(v => v.value).join(', ')}
+                  </p>
+                )}
+              </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
             {descriptionDisplay !== 'none' && item.description && (
@@ -511,6 +518,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
