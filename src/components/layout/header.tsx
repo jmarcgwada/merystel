@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { usePos } from '@/contexts/pos-context';
 import React, { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
@@ -34,7 +35,10 @@ export default function Header() {
     setIsClient(true);
   }, []);
   
-  const isInPosOrRestaurant = isClient && (pathname === '/pos' || pathname === '/restaurant');
+  const fromPos = searchParams.get('from') === 'pos';
+  const isPosDetailPage = pathname.startsWith('/reports/') && fromPos;
+
+  const isInPosOrRestaurant = isClient && (pathname === '/pos' || pathname === '/restaurant' || isPosDetailPage);
   const shouldBeDisabled = isInPosOrRestaurant;
 
 
@@ -53,7 +57,7 @@ export default function Header() {
   const canAccessCompanySettings = user?.role === 'admin';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn("flex items-center gap-4 flex-1", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
