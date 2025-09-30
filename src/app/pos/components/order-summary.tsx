@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy, ArrowRight, Eye } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -78,6 +78,7 @@ export function OrderSummary() {
     readOnlyOrder,
     setReadOnlyOrder,
     loadTicketForViewing,
+    sales,
     lastDirectSale,
     lastRestaurantSale,
     removeFromOrder, 
@@ -282,6 +283,32 @@ export function OrderSummary() {
     setSelectedItem(null);
     setKeypadValue('');
   }
+
+  const { previousSale, nextSale } = useMemo(() => {
+    if (!readOnlyOrder || !sales || sales.length === 0) {
+      return { previousSale: null, nextSale: null };
+    }
+    const currentSaleId = readOnlyOrder[0]?.sourceSale?.id;
+    if (!currentSaleId) return { previousSale: null, nextSale: null };
+
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
+        const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const currentIndex = sortedSales.findIndex(s => s.id === currentSaleId);
+    if (currentIndex === -1) {
+        return { previousSale: null, nextSale: null };
+    }
+    
+    // Previous sale in time is next in the DESC sorted array
+    const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
+    // Next sale in time is previous in the DESC sorted array
+    const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
+
+    return { previousSale, nextSale };
+  }, [sales, readOnlyOrder]);
   
   const getTitle = () => {
     const saleForTitle = readOnlyOrder?.[0]?.sourceSale || currentSaleContext;
@@ -336,7 +363,26 @@ export function OrderSummary() {
   }
 
   const HeaderAction = () => {
-    if (readOnlyOrder) return null;
+    const currentSaleId = readOnlyOrder?.[0]?.sourceSale?.id;
+
+    if (readOnlyOrder) {
+        return (
+            <div className="flex items-center gap-2">
+                 <Button asChild variant="ghost" size="icon">
+                    <Link href={`/reports/${currentSaleId}`}>
+                        <Eye />
+                    </Link>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => previousSale && loadTicketForViewing(previousSale)} disabled={!previousSale}>
+                    <ArrowLeft />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => nextSale && loadTicketForViewing(nextSale)} disabled={!nextSale}>
+                    <ArrowRight />
+                </Button>
+            </div>
+        )
+    }
+
     if (selectedTable) {
       if (order.length > 0) {
         return (
@@ -518,9 +564,9 @@ export function OrderSummary() {
     <>
       <div className="flex h-full flex-col relative bg-card print-area" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
         <div className="flex items-center justify-between p-2 border-b h-[64px] bg-card no-print">
-          <h2 className="text-lg font-bold tracking-tight font-headline">
+          <div className="text-lg font-bold tracking-tight font-headline flex-1">
              {getTitle()}
-          </h2>
+          </div>
           <HeaderAction />
         </div>
 
