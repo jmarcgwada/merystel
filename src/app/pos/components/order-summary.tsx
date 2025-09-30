@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -313,13 +312,12 @@ export function OrderSummary() {
   const getTitle = () => {
     const saleForTitle = readOnlyOrder?.[0]?.sourceSale || currentSaleContext;
 
-    if (saleForTitle?.ticketNumber) {
-        const isModification = !readOnlyOrder;
+    if (readOnlyOrder && saleForTitle?.ticketNumber) {
         return (
-            <div className="flex flex-col gap-1">
-                <div className='flex items-center gap-2'>
-                    {isModification ? <Edit /> : <History />}
-                    <span>{isModification ? "Modification" : "Consultation"} Ticket</span>
+             <div className="flex flex-col gap-1">
+                <div className='flex items-center gap-2 text-blue-600'>
+                    <History />
+                    <span>Consultation Ticket</span>
                 </div>
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span>#{saleForTitle.ticketNumber}</span>
@@ -327,6 +325,25 @@ export function OrderSummary() {
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="d MMM yyyy" /></span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="HH:mm" /></span>
                     {saleForTitle.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{saleForTitle.userName}</span>}
+                </div>
+            </div>
+        )
+    }
+
+    if (currentSaleContext?.ticketNumber) {
+        const isModification = !readOnlyOrder;
+        return (
+            <div className="flex flex-col gap-1">
+                <div className='flex items-center gap-2 text-orange-600'>
+                    <Edit />
+                    <span>Modification Ticket</span>
+                </div>
+                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>#{currentSaleContext.ticketNumber}</span>
+                    {currentSaleContext.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{currentSaleContext.tableName}</span>}
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy" /></span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={currentSaleContext.date} formatString="HH:mm" /></span>
+                    {currentSaleContext.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{currentSaleContext.userName}</span>}
                 </div>
             </div>
         )
@@ -804,3 +821,4 @@ export function OrderSummary() {
   );
 }
 
+    
