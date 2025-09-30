@@ -2,8 +2,8 @@
 
 'use client';
 
-import { useMemo, useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -76,11 +76,12 @@ const PaymentsList = ({ payments, title }: { payments: Payment[], title: string 
     </div>
 );
 
-
-export default function SaleDetailPage() {
+function SaleDetailContent() {
   const { saleId } = useParams();
+  const searchParams = useSearchParams();
+  const fromPos = searchParams.get('from') === 'pos';
   const firestore = useFirestore();
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing } = usePos();
   const router = useRouter();
 
   const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
@@ -145,6 +146,15 @@ export default function SaleDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sale]);
 
+  const handleBack = () => {
+    if (fromPos && sale) {
+        loadTicketForViewing(sale);
+        router.push('/pos');
+    } else {
+        router.push('/reports');
+    }
+  }
+
   if (isLoading) {
       return (
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -196,11 +206,9 @@ export default function SaleDetailPage() {
         }
       >
         <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="btn-back">
-                <Link href="/reports">
-                    <ArrowLeft />
-                    Retour
-                </Link>
+            <Button onClick={handleBack} variant="outline" className="btn-back">
+                <ArrowLeft />
+                Retour
             </Button>
             <div className="flex items-center">
                 <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
@@ -373,4 +381,12 @@ export default function SaleDetailPage() {
       </div>
     </div>
   );
+}
+
+export default function SaleDetailPage() {
+  return (
+    <Suspense fallback={<p>Chargement...</p>}>
+      <SaleDetailContent />
+    </Suspense>
+  )
 }

@@ -365,11 +365,11 @@ export function OrderSummary() {
   const HeaderAction = () => {
     const currentSaleId = readOnlyOrder?.[0]?.sourceSale?.id;
 
-    if (readOnlyOrder) {
+    if (readOnlyOrder && currentSaleId) {
         return (
             <div className="flex items-center gap-2">
                  <Button asChild variant="ghost" size="icon">
-                    <Link href={`/reports/${currentSaleId}`}>
+                    <Link href={`/reports/${currentSaleId}?from=pos`}>
                         <Eye />
                     </Link>
                 </Button>
