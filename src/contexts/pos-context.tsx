@@ -75,7 +75,7 @@ const TAKEAWAY_TABLE: Table = {
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
-  addToOrder: (itemId: OrderItem['id'], selectedVariants?: SelectedVariant[]) => void;
+  addToOrder: (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
@@ -233,7 +233,7 @@ interface PosContextType {
   
   seedInitialData: () => void;
   resetAllData: () => void;
-  exportConfiguration: () => void;
+  exportConfiguration: () => Promise<void>;
   importConfiguration: (file: File) => Promise<void>;
   importDemoData: () => Promise<void>;
 
@@ -810,7 +810,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const addSerializedItemToOrder = useCallback((item: Item, quantity: number, serialNumbers: string[]) => {
     const newOrderItem: OrderItem = {
-      ...item,
+      id: item.id,
+      itemId: item.id,
+      name: item.name,
+      price: item.price,
+      vatId: item.vatId,
+      image: item.image,
       quantity,
       total: item.price * quantity,
       discount: 0,
@@ -834,13 +839,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const addToOrder = useCallback(
-    (itemId: OrderItem['id'], selectedVariants?: SelectedVariant[]) => {
+    (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
       const existingItem = order.find(
-        (item) => item.id === itemId && !item.selectedVariants
+        (item) => item.itemId === itemId && !item.selectedVariants
       );
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -853,7 +858,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (existingItem && !selectedVariants) { // Do not group items with variants
           const newOrder = [...currentOrder];
           const newQuantity = existingItem.quantity + 1;
-          const existingItemIndex = newOrder.findIndex(i => i.id === itemId && !i.selectedVariants);
+          const existingItemIndex = newOrder.findIndex(i => i.itemId === itemId && !i.selectedVariants);
           newOrder[existingItemIndex] = {
             ...existingItem,
             quantity: newQuantity,
@@ -863,12 +868,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return newOrder;
         } else {
           const newItem: OrderItem = {
-            ...itemToAdd,
+            id: selectedVariants ? uuidv4() : itemToAdd.id, // Give unique id if it has variants
+            itemId: itemToAdd.id,
+            name: itemToAdd.name,
+            price: itemToAdd.price,
+            vatId: itemToAdd.vatId,
+            image: itemToAdd.image,
             quantity: 1,
             total: itemToAdd.price,
             discount: 0,
             selectedVariants,
-            id: selectedVariants ? uuidv4() : itemToAdd.id, // Give unique id if it has variants
           };
           return [...currentOrder, newItem];
         }
@@ -881,14 +890,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const updateQuantity = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
-      const itemToUpdate = order.find((item) => item.id === itemId);
-      if (!itemToUpdate) return;
-  
-      if (itemToUpdate.requiresSerialNumber && enableSerialNumber) {
+      if (!items) return;
+      const orderItemToUpdate = order.find((item) => item.id === itemId);
+      if (!orderItemToUpdate) return;
+      
+      const originalItem = items.find(i => i.id === orderItemToUpdate.itemId);
+      if(!originalItem) return;
+
+      if (originalItem.requiresSerialNumber && enableSerialNumber) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: itemToUpdate, quantity });
+          setSerialNumberItem({ item: originalItem, quantity });
         }
         return;
       }
@@ -910,7 +923,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       );
       triggerItemHighlight(itemId);
     },
-    [order, removeFromOrder, enableSerialNumber]
+    [order, removeFromOrder, enableSerialNumber, items]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -1027,11 +1040,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const recallOrder = useCallback(async (orderId: string) => {
-    if (!heldOrdersRef.current || !user) return;
+    if (!heldOrdersRef.current || !user || !items) return;
     const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
     if (orderToRecall) {
       setReadOnlyOrder(null);
-      setOrder(orderToRecall.items);
+      
+      // Re-hydrate the order items with full item details
+      const hydratedOrder = orderToRecall.items.map(orderItem => {
+        const fullItem = items.find(i => i.id === orderItem.itemId);
+        return {
+          ...(fullItem || {}), // Spread full item details if found
+          ...orderItem, // Spread order-specific details, overwriting if necessary
+        } as OrderItem;
+      });
+
+      setOrder(hydratedOrder);
       setCurrentSaleId(orderToRecall.id);
       setSelectedTable(null); // Ensure no table is selected
       setCurrentSaleContext({
@@ -1042,7 +1065,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ title: 'Commande rappelée' });
       routerRef.current.push('/pos');
     }
-  }, [user, deleteEntity, toast]);
+  }, [user, deleteEntity, toast, items]);
   
   const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
@@ -1628,12 +1651,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
     sales.forEach((sale) => {
       sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.id]) {
-          itemCounts[orderItem.id].count += orderItem.quantity;
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
         } else {
-          const itemDetails = items.find((i) => i.id === orderItem.id);
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
           if (itemDetails) {
-            itemCounts[orderItem.id] = {
+            itemCounts[orderItem.itemId] = {
               item: itemDetails,
               count: orderItem.quantity,
             };

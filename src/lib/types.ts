@@ -48,15 +48,22 @@ export interface Item {
   variantOptions?: VariantOption[];
 }
 
-export interface OrderItem extends Item {
+// OrderItem will no longer extend Item to reduce document size in Firestore
+export interface OrderItem {
+  id: string; // This can be the original item ID or a unique ID for variants
+  itemId: string; // Always refers to the original Item ID
+  name: string;
+  price: number; // Price at the time of sale
   quantity: number;
   total: number;
+  vatId: string;
+  image?: string; // Keep image for receipt/display purposes, but could be optimized further if needed
   discount: number;
   discountPercent?: number;
   serialNumbers?: string[];
   selectedVariants?: SelectedVariant[];
   note?: string;
-  sourceSale?: Sale;
+  sourceSale?: Sale; // Used for viewing old sales, not stored in DB
 }
 
 export interface Table {

@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import type { Sale, Payment } from '@/lib/types';
+import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 
@@ -80,7 +80,7 @@ const PaymentsList = ({ payments, title }: { payments: Payment[], title: string 
 export default function SaleDetailPage() {
   const { saleId } = useParams();
   const firestore = useFirestore();
-  const { customers, vatRates, sales: allSales, isLoading: isPosLoading } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading } = usePos();
   const router = useRouter();
 
   const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
@@ -117,6 +117,11 @@ export default function SaleDetailPage() {
   const getVatInfo = (vatId: string) => {
     return vatRates?.find(v => v.id === vatId);
   }
+  
+  const getItemInfo = useCallback((orderItem: OrderItem): Partial<Item> => {
+      if (!allItems) return {};
+      return allItems.find(i => i.id === orderItem.itemId) || {};
+  }, [allItems]);
 
   const vatBreakdown = useMemo(() => {
     if (!sale) return {};
@@ -232,10 +237,12 @@ export default function SaleDetailPage() {
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
                     const vatAmount = item.total * ((vatInfo?.rate || 0) / 100);
+                    const fullItem = getItemInfo(item);
+
                     return (
                         <TableRow key={item.id}>
                             <TableCell>
-                                <Image src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
+                                <Image src={fullItem.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
                             </TableCell>
                             <TableCell className="font-medium">
                                 <div>{item.name}</div>
