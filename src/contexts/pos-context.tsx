@@ -24,6 +24,7 @@ import type {
   CompanyInfo,
   User,
   SelectedVariant,
+  Payment,
 } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -1247,13 +1248,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               const originalSaleDoc = await getDoc(saleRef);
               const originalSaleData = originalSaleDoc.data() as Sale | undefined;
 
-              const updatedSaleData = {
+              const updatedSaleData: Partial<Sale> & { modifiedAt: Date, payments: Payment[] } = {
                   ...saleData,
                   items: cleanedItems,
                   modifiedAt: new Date(),
-                  // Set originalTotal only if it doesn't exist yet
-                  ...(!originalSaleData?.originalTotal && { originalTotal: originalSaleData?.total }),
+                  payments: saleData.payments
               };
+              
+              // If this is the first modification, store originalTotal and payments
+              if (!originalSaleData?.originalTotal && originalSaleData) {
+                  updatedSaleData.originalTotal = originalSaleData.total;
+                  updatedSaleData.originalPayments = originalSaleData.payments;
+              }
+              
+              // We must clear the existing payments and set the new ones
+              updatedSaleData.payments = saleData.payments;
+
               batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
           }
       } else {
@@ -1846,7 +1856,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isKeypadOpen,
       currentSaleId,
       currentSaleContext,
-      setCurrentSaleContext,
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
@@ -1968,6 +1977,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       setShowNotifications,
       setNotificationDuration,
+      setCurrentSaleContext
     ]
   );
 

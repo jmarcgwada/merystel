@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useDoc, useMemoFirebase } from '@/firebase';
-import type { Sale } from '@/lib/types';
+import type { Sale, Payment } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 
@@ -52,6 +52,29 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
 
     return <>{formattedDate}</>;
 }
+
+const PaymentsList = ({ payments, title }: { payments: Payment[], title: string }) => (
+    <div>
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2">{title}</h3>
+        {payments && payments.length > 0 ? (
+            <div className="space-y-2">
+                {payments.map((p, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                        <Badge variant="secondary">{p.method.name}</Badge>
+                        <span className="font-medium">{p.amount.toFixed(2)}€</span>
+                    </div>
+                ))}
+                {/* Display total for this payment group */}
+                <div className="flex justify-between items-center text-sm font-bold pt-2 border-t">
+                    <span>Total</span>
+                    <span>{payments.reduce((acc, p) => acc + p.amount, 0).toFixed(2)}€</span>
+                </div>
+            </div>
+        ) : (
+            <p className="text-sm text-muted-foreground">Aucun paiement.</p>
+        )}
+    </div>
+);
 
 
 export default function SaleDetailPage() {
@@ -284,28 +307,19 @@ export default function SaleDetailPage() {
                 <span>{sale.total.toFixed(2)}€</span>
               </div>
             </CardContent>
-            <CardFooter>
-                 <div className="w-full">
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Paiements</h3>
-                    {sale.payments && sale.payments.length > 0 ? (
-                      <div className="space-y-2">
-                          {sale.payments.map((p, index) => (
-                              <div key={index} className="flex justify-between items-center text-sm">
-                                  <Badge variant="secondary">{p.method.name}</Badge>
-                                  <span className="font-medium">{p.amount.toFixed(2)}€</span>
-                              </div>
-                          ))}
-                           {sale.change && sale.change > 0 && (
-                            <div className="flex justify-between items-center text-sm text-amber-600">
-                                <Badge variant="secondary" className="bg-amber-200 text-amber-800">Monnaie Rendue</Badge>
-                                <span className="font-medium">{sale.change.toFixed(2)}€</span>
-                            </div>
-                        )}
-                      </div>
-                    ) : (
-                       <Badge variant="destructive" className="font-normal">Paiement en attente</Badge>
-                    )}
-                </div>
+            <CardFooter className="flex flex-col items-start gap-4">
+                 {sale.originalPayments && sale.originalPayments.length > 0 && (
+                    <PaymentsList payments={sale.originalPayments} title="Paiements Originaux" />
+                 )}
+                 {sale.originalPayments && <Separator />}
+                 <PaymentsList payments={sale.payments} title={sale.originalPayments ? "Paiements de la Modification" : "Paiements"} />
+
+                 {sale.change && sale.change > 0 && (
+                  <div className="w-full flex justify-between items-center text-sm text-amber-600 pt-2 border-t">
+                      <Badge variant="secondary" className="bg-amber-200 text-amber-800">Monnaie Rendue</Badge>
+                      <span className="font-medium">{sale.change.toFixed(2)}€</span>
+                  </div>
+                )}
             </CardFooter>
           </Card>
 

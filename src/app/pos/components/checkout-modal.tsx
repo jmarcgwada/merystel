@@ -81,8 +81,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [showCalculator, setShowCalculator] = useState(false);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
+  const previousPayments = currentSaleContext?.originalPayments || [];
+  const previousAmountPaid = useMemo(() => previousPayments.reduce((acc, p) => acc + p.amount, 0), [previousPayments]);
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const balanceDue = useMemo(() => totalAmount - amountPaid, [totalAmount, amountPaid]);
+  const totalAmountPaid = previousAmountPaid + amountPaid;
+  const balanceDue = useMemo(() => totalAmount - totalAmountPaid, [totalAmount, totalAmountPaid]);
+
   const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
   
   const mainPaymentMethods = useMemo(() => 
@@ -109,17 +113,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
     
-    const totalPaid = finalPayments.reduce((acc, p) => acc + p.amount, 0);
-    const change = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
+    const totalPaidForSale = [...previousPayments, ...finalPayments].reduce((acc, p) => acc + p.amount, 0);
+    const change = totalPaidForSale > totalAmount ? totalPaidForSale - totalAmount : 0;
 
-    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userName' | 'userId'> = {
+    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: finalPayments,
+      payments: [...previousPayments, ...finalPayments],
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
+      ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
+      ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
     };
 
     recordSale(saleInfo);
@@ -143,7 +149,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
       handleOpenChange(false);
     }, 2000);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments]);
 
 
   useEffect(() => {
@@ -154,12 +160,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setSelectedCustomer(defaultCustomer);
         }
         
-        if (currentSaleContext?.payments) {
-            setPayments(currentSaleContext.payments);
-        }
-
         if (!isPaid) {
-            const initialAmountPaid = currentSaleContext?.payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+            const initialAmountPaid = currentSaleContext?.originalPayments?.reduce((acc, p) => acc + p.amount, 0) || 0;
             const newBalance = totalAmount - initialAmountPaid;
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
         }
@@ -226,8 +228,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
     
-    const newAmountPaid = amountPaid + amountToAdd;
-    const newBalance = totalAmount - newAmountPaid;
+    const newTotalAmountPaid = totalAmountPaid + amountToAdd;
+    const newBalance = totalAmount - newTotalAmountPaid;
     
     if (newBalance > 0.009) { // More to pay
         setCurrentAmount(newBalance.toFixed(2));
@@ -249,7 +251,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
-        const newBalance = totalAmount - newAmountPaid;
+        const newBalance = totalAmount - (previousAmountPaid + newAmountPaid);
         setCurrentAmount(newBalance.toFixed(2));
         return newPayments;
     });
@@ -390,23 +392,42 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
           <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
           <div className="flex-1">
-            {payments.length === 0 ? (
+            {previousPayments.length === 0 && payments.length === 0 ? (
               <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
                 <p className="text-muted-foreground">Aucun paiement ajouté.</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                  {payments.map((p, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
-                        <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+              <div className="space-y-4">
+                  {previousPayments.length > 0 && (
+                      <div>
+                          <p className="text-xs text-muted-foreground mb-2 font-semibold">Paiements précédents</p>
+                          <div className="space-y-2 opacity-70">
+                            {previousPayments.map((p, index) => (
+                                <div key={`prev-${index}`} className="flex items-center justify-between p-3 bg-card/50 rounded-md">
+                                <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="capitalize">{p.method.name}</Badge>
+                                    <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                                </div>
+                                </div>
+                            ))}
+                          </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                  )}
+                  {payments.length > 0 && (
+                      <div className="space-y-2">
+                          {payments.map((p, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="capitalize">{p.method.name}</Badge>
+                                <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                  )}
               </div>
             )}
           </div>
@@ -414,7 +435,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             <Separator className="my-4" />
             <div className="flex justify-between font-bold text-lg">
                   <span className="text-secondary-foreground">Total Payé</span>
-                  <span className="text-secondary-foreground">{amountPaid.toFixed(2)}€</span>
+                  <span className="text-secondary-foreground">{totalAmountPaid.toFixed(2)}€</span>
               </div>
               <div className={cn(
                   "flex justify-between font-bold text-lg mt-2",
@@ -732,5 +753,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    

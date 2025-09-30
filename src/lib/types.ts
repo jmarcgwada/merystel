@@ -111,6 +111,7 @@ export interface Sale {
   tax: number;
   total: number;
   payments: Payment[];
+  originalPayments?: Payment[];
   change?: number;
   customerId?: string;
   tableId?: string;
