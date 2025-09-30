@@ -217,12 +217,12 @@ function SaleDetailContent() {
                 </Button>
                 <div className="flex items-center">
                     <Button asChild variant="outline" size="icon" disabled={!nextSaleId || fromPos}>
-                        <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                        <Link href={`/reports/${nextSaleId}`} scroll={false}>
                             <ArrowLeft />
                         </Link>
                     </Button>
                     <Button asChild variant="outline" size="icon" disabled={!previousSaleId || fromPos}>
-                        <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                        <Link href={`/reports/${previousSaleId}`} scroll={false}>
                             <ArrowRight />
                         </Link>
                     </Button>
