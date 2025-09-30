@@ -1239,30 +1239,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(firestore);
   
       if (currentSaleId && !currentSaleId.startsWith('table-')) {
-          // This is an update of an existing sale or a recalled held order
           const saleRef = getDocRef('sales', currentSaleId);
           if (saleRef) {
               const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
-              
-              // Get the original sale to set originalTotal if it's the first edit
-              const originalSaleDoc = await getDoc(saleRef);
-              const originalSaleData = originalSaleDoc.data() as Sale | undefined;
-
-              const updatedSaleData: Partial<Sale> & { modifiedAt: Date, payments: Payment[] } = {
+              const updatedSaleData: Partial<Sale> = {
                   ...saleData,
                   items: cleanedItems,
                   modifiedAt: new Date(),
-                  payments: saleData.payments
               };
               
-              // If this is the first modification, store originalTotal and payments
-              if (!originalSaleData?.originalTotal && originalSaleData) {
-                  updatedSaleData.originalTotal = originalSaleData.total;
-                  updatedSaleData.originalPayments = originalSaleData.payments;
+              if (!currentSaleContext?.originalTotal) {
+                  const originalSaleDoc = await getDoc(saleRef);
+                  if (originalSaleDoc.exists()) {
+                      const originalSale = originalSaleDoc.data() as Sale;
+                      updatedSaleData.originalTotal = originalSale.total;
+                      updatedSaleData.originalPayments = originalSale.payments;
+                  }
               }
-              
-              // We must clear the existing payments and set the new ones
-              updatedSaleData.payments = saleData.payments;
 
               batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
           }
@@ -1295,7 +1288,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               }),
           };
           const newSaleRef = doc(getCollectionRef('sales')!);
-          batch.set(newSaleRef, cleanDataForFirebase(finalSale));
+          batch.set(newSaleRef, finalSale);
       }
       
       // If sale comes from a table, free the table.
@@ -1991,3 +1984,4 @@ export function usePos() {
   }
   return context;
 }
+

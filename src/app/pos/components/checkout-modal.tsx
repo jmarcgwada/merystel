@@ -113,25 +113,26 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
     
-    const totalPaidForSale = [...previousPayments, ...finalPayments].reduce((acc, p) => acc + p.amount, 0);
+    const allPayments = [...previousPayments, ...finalPayments];
+    const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
     const change = totalPaidForSale > totalAmount ? totalPaidForSale - totalAmount : 0;
-
+  
     const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: [...previousPayments, ...finalPayments],
+      payments: allPayments, // Combine original and new payments
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
       ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
     };
-
+  
     recordSale(saleInfo);
     
     setIsPaid(true);
-
+  
     setTimeout(() => {
       toast({
         title: 'Paiement réussi',
@@ -139,14 +140,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       });
       
       const isTableSale = currentSaleContext?.isTableSale;
-
+  
       if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
           if(cameFromRestaurant) setCameFromRestaurant(false);
           router.push('/restaurant');
       } else {
         clearOrder();
       }
-
+  
       handleOpenChange(false);
     }, 2000);
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments]);
@@ -154,7 +155,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   useEffect(() => {
     if (isOpen) {
-        setShowCalculator(false); // Always hide calculator on open
+        setShowCalculator(false);
         const defaultCustomer = customers?.find(c => c.isDefault);
         if (defaultCustomer) {
             setSelectedCustomer(defaultCustomer);
@@ -201,7 +202,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd: number;
-
+  
     if (method.type === 'indirect' && method.value) {
       amountToAdd = method.value;
     } else {
@@ -214,7 +215,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setShowOverpaymentAlert(true);
         return;
     }
-
+  
     if (payments.length >= 4) {
       toast({
         variant: 'destructive',
@@ -223,7 +224,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       });
       return;
     }
-
+  
     const newPayment: Payment = { method, amount: amountToAdd };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
@@ -753,3 +754,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
