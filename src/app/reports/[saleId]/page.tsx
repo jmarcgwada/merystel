@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
@@ -119,6 +120,8 @@ export default function SaleDetailPage() {
   
   const getItemInfo = useCallback((orderItem: OrderItem): Partial<Item> => {
       if (!allItems) return {};
+      // In the new data model, item details are not on the orderItem.
+      // We must find the original item from the main items list.
       return allItems.find(i => i.id === orderItem.itemId) || {};
   }, [allItems]);
 
@@ -371,3 +374,4 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+

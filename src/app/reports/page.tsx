@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,7 +33,7 @@ import { useFirestore } from '@/firebase/provider';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
-const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
+const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp, showIcon?: boolean }) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
@@ -55,7 +56,12 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
         }
     }, [date]);
 
-    return <>{formattedDate}</>;
+    return (
+        <span className="flex items-center gap-1.5">
+            {showIcon && <Edit className="h-3 w-3 text-muted-foreground" />}
+            {formattedDate}
+        </span>
+    );
 }
 
 
@@ -489,7 +495,7 @@ export default function ReportsPage() {
                                         {sale.ticketNumber}
                                     </TableCell>
                                     <TableCell className="font-medium whitespace-nowrap">
-                                        <ClientFormattedDate date={sale.date} />
+                                        <ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} />
                                     </TableCell>
                                     <TableCell>
                                         {sellerName}
@@ -525,3 +531,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

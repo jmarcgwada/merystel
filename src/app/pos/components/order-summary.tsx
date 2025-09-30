@@ -395,6 +395,16 @@ export function OrderSummary() {
   const handleEditTicket = () => {
     if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
         const sale = readOnlyOrder[0].sourceSale;
+
+        if (sale.modifiedAt) {
+            toast({
+                variant: 'destructive',
+                title: 'Modification impossible',
+                description: 'Ce ticket a déjà été modifié et ne peut plus l\'être.'
+            });
+            return;
+        }
+
         const itemsToEdit = readOnlyOrder.map(item => {
             const { sourceSale, ...rest } = item;
             return rest;
@@ -667,7 +677,7 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                 <div className='w-full grid grid-cols-3 gap-2'>
-                    <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                    <Button size="lg" className="w-full" onClick={handleEditTicket} disabled={!!readOnlyOrder[0]?.sourceSale?.modifiedAt}>
                         <Edit className="mr-2" />
                         Modifier
                     </Button>
@@ -747,3 +757,4 @@ export function OrderSummary() {
     </>
   );
 }
+
