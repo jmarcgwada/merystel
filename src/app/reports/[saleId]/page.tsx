@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -272,8 +273,14 @@ export default function SaleDetailPage() {
               </div>
 
               <Separator />
+              {sale.originalTotal && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Total Original (TTC)</span>
+                  <span>{sale.originalTotal.toFixed(2)}€</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg">
-                <span>Total (TTC)</span>
+                <span>Total {sale.originalTotal ? 'Final ' : ''}(TTC)</span>
                 <span>{sale.total.toFixed(2)}€</span>
               </div>
             </CardContent>

@@ -1234,18 +1234,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const recordSale = useCallback(
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>) => {
       if (!companyId || !firestore || !user) return;
-
+  
       const batch = writeBatch(firestore);
-
+  
       if (currentSaleId && !currentSaleId.startsWith('table-')) {
           // This is an update of an existing sale or a recalled held order
           const saleRef = getDocRef('sales', currentSaleId);
           if (saleRef) {
               const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+              
+              // Get the original sale to set originalTotal if it's the first edit
+              const originalSaleDoc = await getDoc(saleRef);
+              const originalSaleData = originalSaleDoc.data() as Sale | undefined;
+
               const updatedSaleData = {
                   ...saleData,
                   items: cleanedItems,
                   modifiedAt: new Date(),
+                  // Set originalTotal only if it doesn't exist yet
+                  ...(!originalSaleData?.originalTotal && { originalTotal: originalSaleData?.total }),
               };
               batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
           }
@@ -1256,14 +1263,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
           const todaysSalesSnapshot = await getDocs(salesQuery);
           const todaysSalesCount = todaysSalesSnapshot.size;
-
+  
           const shortUuid = uuidv4().substring(0, 4).toUpperCase();
           const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
           
           const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : '';
-
+  
           const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
-
+  
           const finalSale: Omit<Sale, 'id'> = {
               ...saleData,
               items: cleanedItems,
@@ -1288,7 +1295,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
         }
       }
-
+  
       await batch.commit();
     },
     [
