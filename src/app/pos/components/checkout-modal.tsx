@@ -207,11 +207,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd : number;
-    if (method.type === 'indirect' && method.value) {
-        amountToAdd = method.value > balanceDue ? balanceDue : method.value;
-    } else {
-        amountToAdd = parseFloat(String(currentAmount));
-    }
+    // Always use the entered amount from the input field
+    amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -354,6 +351,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, []);
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
+      // If the payment method has a fixed value (like a voucher), use that. Otherwise, use the entered amount.
+      if (method.type === 'indirect' && method.value) {
+        let amountToAdd = method.value > balanceDue ? balanceDue : method.value;
+        setCurrentAmount(amountToAdd.toFixed(2));
+      }
       handleAddPayment(method);
       setView('payment');
     };

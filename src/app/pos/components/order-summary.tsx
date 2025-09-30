@@ -404,6 +404,7 @@ export function OrderSummary() {
             isTableSale: !!sale.tableId,
             tableName: sale.tableName,
             tableId: sale.tableId,
+            change: sale.change || 0,
         });
         setReadOnlyOrder(null);
     }

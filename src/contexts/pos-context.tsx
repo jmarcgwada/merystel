@@ -1250,7 +1250,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                   originalPayments: currentSaleContext?.originalPayments,
               };
 
-              batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
+              batch.set(saleRef, cleanDataForFirebase(updatedSaleData), { merge: true });
           }
       } else {
           // This is a new sale
@@ -1826,7 +1826,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [
       order,
       readOnlyOrder,
-      setReadOnlyOrder,
       loadTicketForViewing,
       setOrder,
       addToOrder,
@@ -1845,7 +1844,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
-      setVariantItem,
       users,
       addUser,
       updateUser,
@@ -1922,7 +1920,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       dashboardButtonShowBorder,
       dashboardButtonBorderColor,
       companyInfo,
-      setCompanyInfo,
       isNavConfirmOpen,
       showNavConfirm,
       closeNavConfirm,
@@ -1954,9 +1951,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setPaymentMethodImageOpacity,
       setPopularItemsCount,
       setShowTicketImages,
+      setReadOnlyOrder,
       setDescriptionDisplay,
       setEnableSerialNumber,
       setSerialNumberItem,
+      setVariantItem,
       setIsKeypadOpen,
       setRecentlyAddedItemId,
       setCurrentSaleId,
@@ -1964,7 +1963,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setShowNotifications,
       setNotificationDuration,
       setCurrentSaleContext,
-      updateItem
+      setCompanyInfo,
     ]
   );
 
