@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight, Delete } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, UserPlus, XCircle, Calendar, Clock, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight, Delete, Calculator } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -396,7 +396,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     const renderPaymentHistory = () => (
         <div className="md:col-span-1 space-y-4 rounded-lg border bg-secondary/50 p-4 flex flex-col">
-          <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-secondary-foreground">Paiements effectués</h3>
+             <Button variant="outline" size="sm" onClick={() => {setShowCalculator(true); selectAndFocusInput()}}>
+                <Calculator className="h-4 w-4 mr-2" />
+                Afficher
+            </Button>
+          </div>
           <div className="flex-1">
             {previousPayments.length === 0 && payments.length === 0 ? (
               <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
@@ -499,7 +505,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             
             <div className="space-y-2 flex-1">
                  <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
-                <div className="relative mt-1 w-full" onClick={() => setShowCalculator(true)}>
+                <div className="relative mt-1 w-full">
                     <Input
                         id="amount-to-pay"
                         ref={amountInputRef}
@@ -508,7 +514,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         onChange={handleAmountChange}
                         onFocus={() => {
                             setShouldReplaceValue(true);
-                            setShowCalculator(true);
                         }}
                         readOnly={isOverpaid}
                         className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
@@ -759,4 +764,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
