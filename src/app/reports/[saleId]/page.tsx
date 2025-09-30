@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
