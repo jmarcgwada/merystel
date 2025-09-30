@@ -211,13 +211,13 @@ function SaleDetailContent() {
                 Retour
             </Button>
             <div className="flex items-center">
-                <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
-                    <Link href={`/reports/${nextSaleId}`} scroll={false}>
+                <Button asChild variant="outline" size="icon" disabled={!nextSaleId || fromPos}>
+                    <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
                         <ArrowLeft />
                     </Link>
                 </Button>
-                <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
-                    <Link href={`/reports/${previousSaleId}`} scroll={false}>
+                <Button asChild variant="outline" size="icon" disabled={!previousSaleId || fromPos}>
+                    <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
                         <ArrowRight />
                     </Link>
                 </Button>
