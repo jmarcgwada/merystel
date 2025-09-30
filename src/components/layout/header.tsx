@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { usePos } from '@/contexts/pos-context';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { Button } from '../ui/button';
 import { LogOut } from 'lucide-react';
 import {
@@ -32,8 +30,6 @@ export default function Header() {
 
   const fromPos = searchParams.get('from') === 'pos';
   const isPosDetailPage = pathname.startsWith('/reports/') && fromPos;
-
-  // This logic now only determines if the links should be disabled, not the header's class.
   const shouldBeDisabled = isPosDetailPage;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -51,7 +47,7 @@ export default function Header() {
   const canAccessCompanySettings = user?.role === 'admin';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
+    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn("flex items-center gap-4 flex-1", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>

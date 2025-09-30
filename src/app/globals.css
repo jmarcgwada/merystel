@@ -109,7 +109,7 @@ body {
   body {
     background: none;
   }
-  .no-print {
+  .no-print, header {
     display: none !important;
   }
   main {
