@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -27,6 +26,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
@@ -58,10 +60,15 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp }) => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading } = usePos();
+    const firestore = useFirestore();
+    const { customers, users, isLoading: isPosLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
+
+    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
+    const { data: allSales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
+    const isLoading = isPosLoading || isSalesLoading;
 
     const [isClient, setIsClient] = useState(false);
     
@@ -163,8 +170,8 @@ export default function ReportsPage() {
                         bValue = getUserName(b.userId, b.userName);
                         break;
                     default:
-                        aValue = a[sortConfig.key] || 0;
-                        bValue = b[sortConfig.key] || 0;
+                        aValue = a[sortConfig.key as keyof Sale] || 0;
+                        bValue = b[sortConfig.key as keyof Sale] || 0;
                         break;
                 }
 
