@@ -14,12 +14,12 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
-import { useDoc, useMemoFirebase } from '@/firebase';
+import { useDoc, useMemoFirebase, useUser } from '@/firebase';
 import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
@@ -83,6 +83,7 @@ function SaleDetailContent() {
   const firestore = useFirestore();
   const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing } = usePos();
   const router = useRouter();
+  const { user } = useUser();
 
   const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
   const { data: sale, isLoading: isSaleLoading } = useDoc<Sale>(saleDocRef);
@@ -208,18 +209,26 @@ function SaleDetailContent() {
                 <ArrowLeft />
                 Retour
             </Button>
-            <div className="flex items-center">
-                <Button asChild variant="outline" size="icon" disabled={!nextSaleId || fromPos}>
-                    <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
-                        <ArrowLeft />
-                    </Link>
+            {user?.role !== 'cashier' && (
+              <>
+                <Button variant="outline">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Avoir
                 </Button>
-                <Button asChild variant="outline" size="icon" disabled={!previousSaleId || fromPos}>
-                    <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
-                        <ArrowRight />
-                    </Link>
-                </Button>
-            </div>
+                <div className="flex items-center">
+                    <Button asChild variant="outline" size="icon" disabled={!nextSaleId || fromPos}>
+                        <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                            <ArrowLeft />
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" disabled={!previousSaleId || fromPos}>
+                        <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                            <ArrowRight />
+                        </Link>
+                    </Button>
+                </div>
+              </>
+            )}
         </div>
       </PageHeader>
       
