@@ -38,6 +38,8 @@ export default function Header() {
   const fromPos = searchParams.get('from') === 'pos';
   const isPosDetailPage = pathname.startsWith('/reports/') && fromPos;
 
+  // We need to ensure that the initial render on the client is the same as the server.
+  // The conditional logic that depends on `isClient` should only affect subsequent renders.
   const isInPosOrRestaurant = isClient && (pathname === '/pos' || pathname === '/restaurant' || isPosDetailPage);
   const shouldBeDisabled = isInPosOrRestaurant;
 
@@ -77,7 +79,7 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
-          {user && companyInfo?.name && (
+          {isClient && user && companyInfo?.name && (
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
@@ -92,7 +94,7 @@ export default function Header() {
         </div>
 
         <div className={cn("flex items-center justify-end gap-2", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
-          {user && (
+          {isClient && user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild disabled={shouldBeDisabled}>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
