@@ -98,6 +98,7 @@ export function OrderSummary() {
     isKeypadOpen,
     currentSaleContext,
     setCurrentSaleId,
+    setCurrentSaleContext,
     recentlyAddedItemId,
     setRecentlyAddedItemId,
     directSaleBackgroundColor,
@@ -108,7 +109,6 @@ export function OrderSummary() {
     setSerialNumberItem,
     cameFromRestaurant,
     setCameFromRestaurant,
-    setCurrentSaleContext,
   } = usePos();
   
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
@@ -398,7 +398,7 @@ export function OrderSummary() {
       });
       setOrder(itemsToEdit);
       setCurrentSaleId(sale.id);
-      setCurrentSaleContext({ payments: sale.payments });
+      setCurrentSaleContext({ originalPayments: sale.payments, originalTotal: sale.total });
       setReadOnlyOrder(null);
     }
   };
