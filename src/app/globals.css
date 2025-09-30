@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -108,14 +109,11 @@ body {
   body {
     background: none;
   }
-  header, .no-print {
+  .no-print {
     display: none !important;
   }
   main {
     overflow: visible !important;
-  }
-  .print-only {
-    display: block !important;
   }
   .print-area {
     display: block !important;

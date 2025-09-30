@@ -29,20 +29,12 @@ export default function Header() {
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
   const fromPos = searchParams.get('from') === 'pos';
   const isPosDetailPage = pathname.startsWith('/reports/') && fromPos;
 
-  // We need to ensure that the initial render on the client is the same as the server.
-  // The conditional logic that depends on `isClient` should only affect subsequent renders.
-  const isInPosOrRestaurant = isClient && (pathname === '/pos' || pathname === '/restaurant' || isPosDetailPage);
-  const shouldBeDisabled = isInPosOrRestaurant;
-
+  // This logic now only determines if the links should be disabled, not the header's class.
+  const shouldBeDisabled = isPosDetailPage;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -79,7 +71,7 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
-          {isClient && user && companyInfo?.name && (
+          {user && companyInfo?.name && (
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
@@ -94,7 +86,7 @@ export default function Header() {
         </div>
 
         <div className={cn("flex items-center justify-end gap-2", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
-          {isClient && user && (
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild disabled={shouldBeDisabled}>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
