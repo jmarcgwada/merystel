@@ -108,10 +108,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
     if (isPaid) return;
-    if (autoFinalizeTimer.current) {
-        clearTimeout(autoFinalizeTimer.current);
-        autoFinalizeTimer.current = null;
-    }
     
     const totalPaid = finalPayments.reduce((acc, p) => acc + p.amount, 0);
     const change = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
@@ -152,6 +148,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   useEffect(() => {
     if (isOpen) {
+        setShowCalculator(false); // Always hide calculator on open
         const defaultCustomer = customers?.find(c => c.isDefault);
         if (defaultCustomer) {
             setSelectedCustomer(defaultCustomer);
