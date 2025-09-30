@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +30,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
@@ -71,6 +72,12 @@ export default function ReportsPage() {
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
+
+    useEffect(() => {
+        if (isCashier) {
+            router.push('/dashboard');
+        }
+    }, [isCashier, router]);
 
     const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
     const { data: allSales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
@@ -252,6 +259,21 @@ export default function ReportsPage() {
             )}
         </div>
     );
+
+    if (isCashier) {
+        return (
+            <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                <PageHeader title="Accès non autorisé" />
+                <Alert variant="destructive" className="mt-4">
+                    <Lock className="h-4 w-4" />
+                    <AlertTitle>Accès refusé</AlertTitle>
+                    <AlertDescription>
+                        Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -531,5 +553,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    

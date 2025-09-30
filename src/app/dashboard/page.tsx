@@ -30,42 +30,48 @@ const hexToRgba = (hex: string, opacity: number) => {
     return `hsla(var(--card), ${opacity / 100})`;
 };
 
-const quickLinks = [
+const allQuickLinks = [
     {
         href: '/pos',
         title: "Point de Vente",
         description: 'Accéder à l\'interface de vente principale.',
-        icon: ShoppingCart
+        icon: ShoppingCart,
+        roles: ['admin', 'manager', 'cashier'],
     },
     {
         href: '/restaurant',
         title: "Mode Restaurant",
         description: "Gérer les tables et les commandes.",
-        icon: Utensils
+        icon: Utensils,
+        roles: ['admin', 'manager', 'cashier'],
     },
     {
         href: '/commercial',
         title: "Commercial",
         description: "Créer des commandes et des factures.",
-        icon: FileText
+        icon: FileText,
+        roles: ['admin', 'manager', 'cashier'],
     },
     {
         href: '/management/items',
         title: 'Gestion',
         description: "Gérer articles, catégories, clients, etc.",
-        icon: Package
+        icon: Package,
+        roles: ['admin', 'manager', 'cashier'],
     },
     {
         href: '/reports',
         title: 'Rapports de Vente',
         description: "Analyser les performances de vente.",
-        icon: BarChart3
+        icon: BarChart3,
+        roles: ['admin', 'manager'],
     },
      {
         href: '/help',
         title: "Assistance et Aide",
         description: "Obtenir de l'aide et des conseils.",
-        icon: LifeBuoy
+        icon: LifeBuoy,
+        roles: ['admin', 'manager', 'cashier'],
     },
 ]
 
@@ -87,6 +93,11 @@ export default function DashboardPage() {
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
+    
+    const quickLinks = useMemo(() => {
+        if (!authUser) return [];
+        return allQuickLinks.filter(link => link.roles.includes(authUser.role));
+    }, [authUser]);
 
     useEffect(() => {
         setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
