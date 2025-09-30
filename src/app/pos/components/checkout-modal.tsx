@@ -201,9 +201,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   
   const handleAddPayment = (method: PaymentMethod) => {
-    let amountToAdd: number;
-  
-    amountToAdd = parseFloat(String(currentAmount));
+    const amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
