@@ -845,8 +845,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
-      const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
       const isVariant = !!selectedVariants;
+      const uniqueId = isVariant ? uuidv4() : itemToAdd.id;
       
       const existingItem = order.find(
         (item) => item.itemId === itemId && !item.selectedVariants
@@ -869,6 +869,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             total:
               existingItem.price * newQuantity - (existingItem.discount || 0),
           };
+          triggerItemHighlight(existingItem.id);
           return newOrder;
         } else {
           const newItem: OrderItem = {
@@ -882,11 +883,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             total: itemToAdd.price,
             discount: 0,
             selectedVariants,
+            description: itemToAdd.description,
+            description2: itemToAdd.description2,
           };
+          triggerItemHighlight(uniqueId);
           return [...currentOrder, newItem];
         }
       });
-      triggerItemHighlight(uniqueId);
+      
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
@@ -1929,26 +1933,49 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      setShowTicketImages,
+      descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
       paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
       showNotifications,
+      setShowNotifications,
       notificationDuration,
+      setNotificationDuration,
       enableSerialNumber,
+      setEnableSerialNumber,
       directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
+      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       dashboardBgType,
+      setDashboardBgType,
       dashboardBackgroundColor,
+      setDashboardBackgroundColor,
       dashboardBackgroundImage,
+      setDashboardBackgroundImage,
       dashboardBgOpacity,
+      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
+      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
+      setCompanyInfo,
       isNavConfirmOpen,
       showNavConfirm,
       closeNavConfirm,
@@ -1959,11 +1986,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importConfiguration,
       importDemoData,
       cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
       holdOrder,
       setSessionInvalidated,
       setEnableRestaurantCategoryFilter,
+      setPopularItemsCount,
       setDashboardBgType,
       setDashboardBackgroundColor,
       setDashboardBackgroundImage,
@@ -1978,21 +2007,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setRestaurantModeBgOpacity,
       setItemCardOpacity,
       setPaymentMethodImageOpacity,
-      setPopularItemsCount,
-      setShowTicketImages,
       setReadOnlyOrder,
-      setDescriptionDisplay,
       setEnableSerialNumber,
       setSerialNumberItem,
       setVariantItem,
       setIsKeypadOpen,
       setRecentlyAddedItemId,
       setCurrentSaleId,
-      setCameFromRestaurant,
       setShowNotifications,
       setNotificationDuration,
       setCurrentSaleContext,
-      setCompanyInfo,
     ]
   );
 

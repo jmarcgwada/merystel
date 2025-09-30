@@ -421,20 +421,13 @@ export function OrderSummary() {
   }
 
     const handleDuplicateTicket = () => {
-        if (!readOnlyOrder) return;
-        // The user is on a read-only ticket view and wants to duplicate it.
-        // We'll populate the live order with the items from the read-only ticket.
-        const itemsToDuplicate = readOnlyOrder.map(item => {
-            const { sourceSale, ...rest } = item;
-            return rest;
-        });
-        setOrder(itemsToDuplicate);
-        // Clear context related to the old sale
-        setReadOnlyOrder(null);
-        setCurrentSaleId(null);
-        setCurrentSaleContext(null);
-        // Open checkout immediately for this new duplicated order.
-        setCheckoutOpen(true);
+        // We're already in modification mode for a ticket.
+        // We just need to clear the original sale context and open checkout.
+        if (currentSaleContext?.ticketNumber) {
+            setCurrentSaleId(null);
+            setCurrentSaleContext(null);
+            setCheckoutOpen(true);
+        }
     };
 
   const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
@@ -754,4 +747,3 @@ export function OrderSummary() {
     </>
   );
 }
-
