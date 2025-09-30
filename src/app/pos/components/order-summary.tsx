@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -420,6 +420,22 @@ export function OrderSummary() {
     window.print();
   }
 
+    const handleDuplicateTicket = () => {
+        if (!readOnlyOrder) return;
+        // The user is on a read-only ticket view and wants to duplicate it.
+        // We'll populate the live order with the items from the read-only ticket.
+        const itemsToDuplicate = readOnlyOrder.map(item => {
+            const { sourceSale, ...rest } = item;
+            return rest;
+        });
+        setOrder(itemsToDuplicate);
+        // Clear context related to the old sale
+        setReadOnlyOrder(null);
+        setCurrentSaleId(null);
+        setCurrentSaleContext(null);
+        // Open checkout immediately for this new duplicated order.
+        setCheckoutOpen(true);
+    };
 
   const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
     <div 
@@ -694,16 +710,29 @@ export function OrderSummary() {
                 </>
               ) : (
                 <>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={holdOrder}
-                  >
-                    <Hand className="mr-2 h-4 w-4" />
-                    Mettre en attente
-                  </Button>
+                  {currentSaleContext?.ticketNumber ? (
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full"
+                        disabled={order.length === 0 || isKeypadOpen}
+                        onClick={handleDuplicateTicket}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Dupliquer ticket
+                      </Button>
+                  ) : (
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full"
+                        disabled={order.length === 0 || isKeypadOpen}
+                        onClick={holdOrder}
+                      >
+                        <Hand className="mr-2 h-4 w-4" />
+                        Mettre en attente
+                      </Button>
+                  )}
                   <Button
                     size="lg"
                     className="w-full"
@@ -725,3 +754,4 @@ export function OrderSummary() {
     </>
   );
 }
+
