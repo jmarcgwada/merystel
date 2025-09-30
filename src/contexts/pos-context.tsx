@@ -248,10 +248,11 @@ const PosContext = createContext<PosContextType | undefined>(undefined);
 
 // Helper function to remove undefined properties from an object before sending to Firebase
 const cleanDataForFirebase = (data: any) => {
+    const { image, ...rest } = data; // Destructure to remove image
     const cleanedData: any = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
-        cleanedData[key] = data[key];
+    for (const key in rest) {
+      if (Object.prototype.hasOwnProperty.call(rest, key) && rest[key] !== undefined) {
+        cleanedData[key] = rest[key];
       }
     }
     return cleanedData;
@@ -844,6 +845,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
+      const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
+      const isVariant = !!selectedVariants;
+      
       const existingItem = order.find(
         (item) => item.itemId === itemId && !item.selectedVariants
       );
@@ -855,7 +859,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       setOrder((currentOrder) => {
-        if (existingItem && !selectedVariants) { // Do not group items with variants
+        if (existingItem && !isVariant) { // Do not group items with variants
           const newOrder = [...currentOrder];
           const newQuantity = existingItem.quantity + 1;
           const existingItemIndex = newOrder.findIndex(i => i.itemId === itemId && !i.selectedVariants);
@@ -868,7 +872,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return newOrder;
         } else {
           const newItem: OrderItem = {
-            id: selectedVariants ? uuidv4() : itemToAdd.id, // Give unique id if it has variants
+            id: uniqueId, // Give unique id if it has variants
             itemId: itemToAdd.id,
             name: itemToAdd.name,
             price: itemToAdd.price,
@@ -882,7 +886,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [...currentOrder, newItem];
         }
       });
-      triggerItemHighlight(itemToAdd.id);
+      triggerItemHighlight(uniqueId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
