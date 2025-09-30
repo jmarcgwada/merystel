@@ -203,13 +203,13 @@ export default function SaleDetailPage() {
                 </Link>
             </Button>
             <div className="flex items-center">
-                <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
-                    <Link href={`/reports/${previousSaleId}`} scroll={false}>
+                <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
+                    <Link href={`/reports/${nextSaleId}`} scroll={false}>
                         <ArrowLeft />
                     </Link>
                 </Button>
-                <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
-                    <Link href={`/reports/${nextSaleId}`} scroll={false}>
+                <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
+                    <Link href={`/reports/${previousSaleId}`} scroll={false}>
                         <ArrowRight />
                     </Link>
                 </Button>
@@ -375,3 +375,4 @@ export default function SaleDetailPage() {
   );
 }
 
+    
