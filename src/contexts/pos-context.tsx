@@ -1247,6 +1247,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                   items: cleanedItems,
                   modifiedAt: new Date(),
                   originalTotal: currentSaleContext?.originalTotal,
+                  payments: [...(currentSaleContext?.originalPayments || []), ...saleData.payments], // Combine payments
                   originalPayments: currentSaleContext?.originalPayments,
               };
 

@@ -284,24 +284,27 @@ export function OrderSummary() {
   }
   
   const getTitle = () => {
-    if (readOnlyOrder && readOnlyOrder.length > 0 && readOnlyOrder[0].sourceSale) {
-        const sale = readOnlyOrder[0].sourceSale;
+    const saleForTitle = readOnlyOrder?.[0]?.sourceSale || currentSaleContext;
+
+    if (saleForTitle?.ticketNumber) {
+        const isModification = !readOnlyOrder;
         return (
             <div className="flex flex-col gap-1">
                 <div className='flex items-center gap-2'>
-                    <History/>
-                    <span>Consultation Ticket</span>
+                    {isModification ? <Edit /> : <History />}
+                    <span>{isModification ? "Modification" : "Consultation"} Ticket</span>
                 </div>
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span>#{sale.ticketNumber}</span>
-                    {sale.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{sale.tableName}</span>}
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="d MMM yyyy" /></span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={sale.date} formatString="HH:mm" /></span>
-                    {sale.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{sale.userName}</span>}
+                    <span>#{saleForTitle.ticketNumber}</span>
+                    {saleForTitle.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{saleForTitle.tableName}</span>}
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="d MMM yyyy" /></span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="HH:mm" /></span>
+                    {saleForTitle.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{saleForTitle.userName}</span>}
                 </div>
             </div>
         )
     }
+
     if (currentSaleContext?.isTableSale) {
         return (
             <div className="flex flex-col gap-1">
@@ -399,6 +402,9 @@ export function OrderSummary() {
         setOrder(itemsToEdit);
         setCurrentSaleId(sale.id);
         setCurrentSaleContext({ 
+            ticketNumber: sale.ticketNumber,
+            date: sale.date,
+            userName: sale.userName,
             originalPayments: sale.payments, 
             originalTotal: sale.total,
             isTableSale: !!sale.tableId,
