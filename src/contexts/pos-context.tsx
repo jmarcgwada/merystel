@@ -882,7 +882,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [...currentOrder, newItem];
         }
       });
-      triggerItemHighlight(itemId);
+      triggerItemHighlight(itemToAdd.id);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
@@ -1272,6 +1272,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                   originalTotal: currentSaleContext?.originalTotal,
                   payments: [...(currentSaleContext?.originalPayments || []), ...saleData.payments], // Combine payments
                   originalPayments: currentSaleContext?.originalPayments,
+                  change: saleData.change
               };
 
               batch.set(saleRef, cleanDataForFirebase(updatedSaleData), { merge: true });
