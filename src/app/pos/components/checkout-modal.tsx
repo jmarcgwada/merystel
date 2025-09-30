@@ -81,10 +81,16 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [showCalculator, setShowCalculator] = useState(false);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
-  const previousPayments = currentSaleContext?.originalPayments || [];
-  const previousAmountPaid = useMemo(() => previousPayments.reduce((acc, p) => acc + p.amount, 0), [previousPayments]);
+  const previousPayments = useMemo(() => currentSaleContext?.originalPayments || [], [currentSaleContext]);
+  const previousChange = useMemo(() => currentSaleContext?.change || 0, [currentSaleContext]);
+  
+  const amountPaidFromPrevious = useMemo(() => {
+    const totalPaid = previousPayments.reduce((acc, p) => acc + p.amount, 0);
+    return totalPaid - previousChange;
+  }, [previousPayments, previousChange]);
+
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const totalAmountPaid = previousAmountPaid + amountPaid;
+  const totalAmountPaid = amountPaidFromPrevious + amountPaid;
   const balanceDue = useMemo(() => totalAmount - totalAmountPaid, [totalAmount, totalAmountPaid]);
 
   const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
@@ -162,8 +168,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         }
         
         if (!isPaid) {
-            const initialAmountPaid = currentSaleContext?.originalPayments?.reduce((acc, p) => acc + p.amount, 0) || 0;
-            const newBalance = totalAmount - initialAmountPaid;
+            const newBalance = totalAmount - amountPaidFromPrevious;
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
         }
     } else {
@@ -178,7 +183,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setShowCalculator(false);
         }, 300);
     }
-  }, [isOpen, isPaid, totalAmount, customers, currentSaleContext]);
+  }, [isOpen, isPaid, totalAmount, customers, currentSaleContext, amountPaidFromPrevious]);
 
 
   const handleReset = () => {
@@ -201,7 +206,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   
   const handleAddPayment = (method: PaymentMethod) => {
-    const amountToAdd = parseFloat(String(currentAmount));
+    let amountToAdd : number;
+    if (method.type === 'indirect' && method.value) {
+        amountToAdd = method.value > balanceDue ? balanceDue : method.value;
+    } else {
+        amountToAdd = parseFloat(String(currentAmount));
+    }
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -246,7 +256,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
-        const newBalance = totalAmount - (previousAmountPaid + newAmountPaid);
+        const newBalance = totalAmount - (amountPaidFromPrevious + newAmountPaid);
         setCurrentAmount(newBalance.toFixed(2));
         return newPayments;
     });
