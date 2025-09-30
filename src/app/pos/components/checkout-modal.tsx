@@ -161,7 +161,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   useEffect(() => {
     if (isOpen) {
-        setShowCalculator(false);
         const defaultCustomer = customers?.find(c => c.isDefault);
         if (defaultCustomer) {
             setSelectedCustomer(defaultCustomer);
@@ -760,3 +759,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
