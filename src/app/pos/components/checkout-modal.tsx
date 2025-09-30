@@ -122,7 +122,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: allPayments, // Combine original and new payments
+      payments: allPayments,
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
@@ -203,11 +203,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd: number;
   
-    if (method.type === 'indirect' && method.value) {
-      amountToAdd = method.value;
-    } else {
-      amountToAdd = parseFloat(String(currentAmount));
-    }
+    amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
@@ -238,8 +234,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     } else { // Fully paid or overpaid
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         setShowCalculator(false);
+        if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
         if (Math.abs(newBalance) < 0.009) { // Exactly paid
-            if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
             autoFinalizeTimer.current = setTimeout(() => {
                 handleFinalizeSale(newPayments);
             }, 1000);

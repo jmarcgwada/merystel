@@ -391,17 +391,23 @@ export function OrderSummary() {
 
   const handleEditTicket = () => {
     if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
-      const sale = readOnlyOrder[0].sourceSale;
-      const itemsToEdit = readOnlyOrder.map(item => {
-        const { sourceSale, ...rest } = item;
-        return rest;
-      });
-      setOrder(itemsToEdit);
-      setCurrentSaleId(sale.id);
-      setCurrentSaleContext({ originalPayments: sale.payments, originalTotal: sale.total });
-      setReadOnlyOrder(null);
+        const sale = readOnlyOrder[0].sourceSale;
+        const itemsToEdit = readOnlyOrder.map(item => {
+            const { sourceSale, ...rest } = item;
+            return rest;
+        });
+        setOrder(itemsToEdit);
+        setCurrentSaleId(sale.id);
+        setCurrentSaleContext({ 
+            originalPayments: sale.payments, 
+            originalTotal: sale.total,
+            isTableSale: !!sale.tableId,
+            tableName: sale.tableName,
+            tableId: sale.tableId,
+        });
+        setReadOnlyOrder(null);
     }
-  };
+};
 
   const handlePrint = () => {
     window.print();

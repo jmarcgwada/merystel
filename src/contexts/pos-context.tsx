@@ -1246,16 +1246,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                   ...saleData,
                   items: cleanedItems,
                   modifiedAt: new Date(),
+                  originalTotal: currentSaleContext?.originalTotal,
+                  originalPayments: currentSaleContext?.originalPayments,
               };
-              
-              if (!currentSaleContext?.originalTotal) {
-                  const originalSaleDoc = await getDoc(saleRef);
-                  if (originalSaleDoc.exists()) {
-                      const originalSale = originalSaleDoc.data() as Sale;
-                      updatedSaleData.originalTotal = originalSale.total;
-                      updatedSaleData.originalPayments = originalSale.payments;
-                  }
-              }
 
               batch.update(saleRef, cleanDataForFirebase(updatedSaleData));
           }
@@ -1970,7 +1963,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       setShowNotifications,
       setNotificationDuration,
-      setCurrentSaleContext
+      setCurrentSaleContext,
+      updateItem
     ]
   );
 
