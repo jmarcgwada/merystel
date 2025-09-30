@@ -143,7 +143,7 @@ export default function SaleDetailPage() {
 
     return breakdown;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sale, vatRates]);
+  }, [sale]);
 
   if (isLoading) {
       return (
