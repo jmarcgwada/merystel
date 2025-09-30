@@ -151,22 +151,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
 
   useEffect(() => {
-    if (isOverpaid && !autoFinalizeTimer.current && !isPaid) {
-      autoFinalizeTimer.current = setTimeout(() => {
-        handleFinalizeSale(payments);
-      }, 3000);
-    }
-
-    return () => {
-      if (autoFinalizeTimer.current) {
-        clearTimeout(autoFinalizeTimer.current);
-        autoFinalizeTimer.current = null;
-      }
-    };
-  }, [isOverpaid, payments, handleFinalizeSale, isPaid]);
-
-
-  useEffect(() => {
     if (isOpen) {
         const defaultCustomer = customers?.find(c => c.isDefault);
         if (defaultCustomer) {
@@ -250,8 +234,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (Math.abs(newBalance) < 0.009) {
         setCurrentAmount('0.00');
-        setTimeout(() => handleFinalizeSale(newPayments), 2000);
-        return;
     }
 
     if (newBalance > 0.009) { // More to pay
@@ -566,7 +548,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
           Annuler
         </Button>
-        {isOverpaid && (
+        {balanceDue < 0.009 && (
           <Button onClick={() => handleFinalizeSale(payments)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               Finaliser la vente
           </Button>
