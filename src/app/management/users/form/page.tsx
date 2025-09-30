@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, Suspense } from 'react';
@@ -14,10 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/firebase/auth/use-user';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
@@ -45,12 +45,13 @@ function UserForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user: currentUser } = useUser();
-  const isManager = currentUser?.role === 'manager';
   const { users, addUser, updateUser } = usePos();
 
   const userId = searchParams.get('id');
   const isEditMode = Boolean(userId);
   const userToEdit = isEditMode ? users.find(u => u.id === userId) : null;
+  
+  const isForbidden = currentUser?.role === 'cashier' || currentUser?.role === 'manager';
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
@@ -62,6 +63,12 @@ function UserForm() {
       password: '',
     },
   });
+
+  useEffect(() => {
+    if (isForbidden) {
+        router.push('/dashboard');
+    }
+  }, [isForbidden, router]);
 
   useEffect(() => {
     if (isEditMode && userToEdit) {
@@ -83,7 +90,7 @@ function UserForm() {
   }, [isEditMode, userToEdit, form]);
 
   async function onSubmit(data: UserFormValues) {
-    if (isManager) {
+    if (isForbidden) {
         toast({ variant: 'destructive', title: 'Accès refusé' });
         return;
     }
@@ -103,6 +110,21 @@ function UserForm() {
     }
   }
 
+  if (isForbidden) {
+    return (
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader title="Accès non autorisé" />
+        <Alert variant="destructive" className="mt-4">
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Accès refusé</AlertTitle>
+          <AlertDescription>
+            Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -119,8 +141,7 @@ function UserForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-2xl space-y-8">
-          <fieldset disabled={isManager}>
-            <Card className="group-disabled:opacity-70">
+            <Card>
               <CardHeader>
                 <CardTitle>Détails de l'utilisateur</CardTitle>
               </CardHeader>
@@ -208,15 +229,12 @@ function UserForm() {
                 )}
               </CardContent>
             </Card>
-          </fieldset>
           
-          {!isManager && (
             <div className="flex justify-end">
                 <Button type="submit" size="lg">
                     {isEditMode ? 'Sauvegarder les modifications' : "Créer l'utilisateur"}
                 </Button>
             </div>
-          )}
         </form>
       </Form>
     </>
@@ -230,3 +248,5 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
+
+    

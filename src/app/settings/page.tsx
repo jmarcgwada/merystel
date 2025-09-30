@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -106,14 +105,14 @@ export default function SettingsPage() {
         title: "Détails de l'entreprise",
         description: "Gérez le nom, l'adresse et les coordonnées de votre entreprise.",
         icon: Building,
-        adminOnly: false,
+        adminOnly: true, // Only admin can edit company details
     },
     {
         href: '/settings/modes',
         title: 'Modes Forcés',
         description: "Verrouillez l'application dans un mode spécifique.",
         icon: Lock,
-        adminOnly: false,
+        adminOnly: true,
     },
     {
         href: 'https://console.firebase.google.com/project/studio-2563067287-258f7/firestore/data/~2Fusers',
@@ -334,3 +333,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

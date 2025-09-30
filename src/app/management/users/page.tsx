@@ -38,7 +38,10 @@ export default function UsersPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (currentUser?.role === 'cashier' || currentUser?.role === 'manager') {
+      router.push('/dashboard');
+    }
+  }, [currentUser, router]);
 
   const handleDeleteUser = () => {
     if (userToDelete) {
@@ -59,6 +62,21 @@ export default function UsersPage() {
       forceSignOutUser(userToSignOut.id);
       setUserToSignOut(null);
     }
+  }
+
+  if (currentUser?.role === 'cashier' || currentUser?.role === 'manager') {
+    return (
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <PageHeader title="Accès non autorisé" />
+            <Alert variant="destructive" className="mt-4">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Accès refusé</AlertTitle>
+                <AlertDescription>
+                    Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
+                </AlertDescription>
+            </Alert>
+        </div>
+    );
   }
 
   return (
@@ -196,3 +214,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

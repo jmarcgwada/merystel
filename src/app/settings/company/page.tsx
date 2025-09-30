@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -40,7 +39,7 @@ const initialCompanyInfo: CompanyInfo = {
 export default function CompanyPage() {
   const { companyInfo, setCompanyInfo, isLoading } = usePos();
   const { user } = useUser();
-  const isManager = user?.role === 'manager';
+  const isForbidden = user?.role === 'cashier' || user?.role === 'manager';
   const { toast } = useToast();
   const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const router = useRouter();
@@ -51,13 +50,19 @@ export default function CompanyPage() {
     }
   }, [companyInfo]);
 
+  useEffect(() => {
+    if(isForbidden) {
+        router.push('/dashboard');
+    }
+  },[isForbidden, router]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setLocalInfo(prev => ({ ...prev, [id]: value }));
   };
 
   const handleSave = () => {
-    if (isManager) {
+    if (isForbidden) {
         toast({ variant: 'destructive', title: 'Accès refusé' });
         return;
     }
@@ -82,6 +87,21 @@ export default function CompanyPage() {
       )
   }
 
+  if (isForbidden) {
+    return (
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader title="Accès non autorisé" />
+        <Alert variant="destructive" className="mt-4">
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Accès refusé</AlertTitle>
+          <AlertDescription>
+            Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -95,16 +115,8 @@ export default function CompanyPage() {
           </Link>
         </Button>
       </PageHeader>
-        {isManager && (
-            <Alert className="mt-8">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Mode lecture seule</AlertTitle>
-                <AlertDescription>
-                    En tant que manager, vous ne pouvez que consulter ces informations.
-                </AlertDescription>
-            </Alert>
-        )}
-      <fieldset disabled={isManager} className="mt-4 space-y-8 group">
+        
+      <fieldset disabled={isForbidden} className="mt-4 space-y-8 group">
         <Card className="group-disabled:opacity-70">
           <CardHeader>
               <CardTitle>Informations générales et de contact</CardTitle>
@@ -206,7 +218,7 @@ export default function CompanyPage() {
         </Card>
 
       </fieldset>
-       {!isManager && (
+       {!isForbidden && (
             <div className="mt-8 flex justify-end">
                 <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
             </div>
