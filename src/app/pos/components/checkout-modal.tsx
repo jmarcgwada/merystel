@@ -229,20 +229,23 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newAmountPaid = amountPaid + amountToAdd;
     const newBalance = totalAmount - newAmountPaid;
     
-    if (Math.abs(newBalance) < 0.009) {
-        setCurrentAmount('0.00');
-    }
-
     if (newBalance > 0.009) { // More to pay
         setCurrentAmount(newBalance.toFixed(2));
         setShowCalculator(true);
     } else { // Fully paid or overpaid
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         setShowCalculator(false);
+        if (Math.abs(newBalance) < 0.009) { // Exactly paid
+            if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
+            autoFinalizeTimer.current = setTimeout(() => {
+                handleFinalizeSale(newPayments);
+            }, 1000);
+        }
     }
   }
   
   const handleRemovePayment = (index: number) => {
+    if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
