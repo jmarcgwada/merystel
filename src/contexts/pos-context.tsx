@@ -1324,6 +1324,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               };
 
               batch.set(saleRef, cleanDataForFirebase(updatedSaleData), { merge: true });
+              batch.update(saleRef, { lockedBy: deleteField() });
           }
       } else {
           // This is a new sale
