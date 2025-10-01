@@ -111,9 +111,9 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
               style={cardStyle}
             >
               <button onClick={() => handleItemClick(item)} className="flex flex-col h-full text-left">
-                {showImage && item.image && (
+                {showImage && item.image ? (
                   <CardHeader className="p-0">
-                    <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'h-full' : 'aspect-video')}>
+                    <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'aspect-video' : 'aspect-video')}>
                       <Image
                         src={item.image}
                         alt={item.name}
@@ -122,22 +122,22 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
                         data-ai-hint="product image"
                       />
                        <div 
-                          className="absolute inset-0" 
-                          style={{ background: `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`, opacity: itemCardOpacity / 100 }}
+                          className={cn("absolute inset-0", itemCardShowImageAsBackground && 'bg-black/20')}
+                          style={{ background: !itemCardShowImageAsBackground ? `linear-gradient(to top, var(--category-color) 0%, transparent 50%)` : undefined, opacity: itemCardOpacity / 100 }}
                        />
                     </div>
                   </CardHeader>
-                )}
-                 <div className={cn("z-10", itemCardShowImageAsBackground && "absolute inset-0 flex flex-col p-2")}>
+                ) : <div className="aspect-video w-full" />}
+                 <div className={cn("flex flex-col flex-1", itemCardShowImageAsBackground && "absolute inset-0 p-2")}>
                     <CardContent className={cn("flex-1 p-3", !showImage && "flex flex-col justify-center", itemCardShowImageAsBackground && 'mt-auto')}>
                         <h3 className={cn(
                             "font-semibold leading-tight", 
                             !showImage && "text-center",
-                             itemCardShowImageAsBackground && "text-white text-shadow"
+                             itemCardShowImageAsBackground && "text-white text-shadow-md shadow-black/50"
                         )}>{item.name}</h3>
                     </CardContent>
                     <CardFooter className={cn("flex items-center justify-between p-3 pt-0 mt-auto", !itemCardShowPrice && 'hidden')}>
-                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && "text-white text-shadow")}>
+                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && "text-white text-shadow-md shadow-black/50")}>
                         {item.price.toFixed(2)}€
                         </span>
                         <PlusCircle className={cn("w-6 h-6 text-muted-foreground", itemCardShowImageAsBackground && 'text-white/70')} />
