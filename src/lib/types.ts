@@ -126,6 +126,7 @@ export interface Sale {
   status?: 'paid' | 'pending';
   userId?: string;
   userName?: string;
+  lockedBy?: string;
 }
 
 export interface HeldOrder {
