@@ -38,8 +38,13 @@ export default function CustomizationPage() {
 
   useEffect(() => {
     setIsClient(true);
-    setCurrentPopularItemsCount(popularItemsCount);
-  }, [popularItemsCount]);
+  }, []);
+  
+  useEffect(() => {
+    if(isClient) {
+      setCurrentPopularItemsCount(popularItemsCount);
+    }
+  }, [popularItemsCount, isClient]);
 
   const handlePopularItemsChange = (value: number[]) => {
       setCurrentPopularItemsCount(value[0]);
