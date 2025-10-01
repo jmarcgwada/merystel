@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 export default function CustomizationPage() {
@@ -29,6 +30,10 @@ export default function CustomizationPage() {
     setPaymentMethodImageOpacity,
     itemCardShowImageAsBackground,
     setItemCardShowImageAsBackground,
+    itemCardImageOverlayOpacity,
+    setItemCardImageOverlayOpacity,
+    itemCardTextColor,
+    setItemCardTextColor,
     itemCardShowPrice,
     setItemCardShowPrice,
    } = usePos();
@@ -155,6 +160,60 @@ export default function CustomizationPage() {
                   />
                 ) : <Skeleton className="h-5 w-full" />}
              </div>
+             <div className="grid gap-2 pt-4">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="item-card-image-overlay-opacity">Opacité du fond sur image</Label>
+                     {isClient ? <span className="text-sm font-bold text-primary">{itemCardImageOverlayOpacity}%</span> : <Skeleton className="h-5 w-10" />}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Réglez l'opacité du fond noir sur l'image quand celle-ci est utilisée en arrière-plan.
+                </p>
+                {isClient ? (
+                  <Slider 
+                      id="item-card-image-overlay-opacity"
+                      value={[itemCardImageOverlayOpacity]} 
+                      onValueChange={(value) => setItemCardImageOverlayOpacity(value[0])}
+                      min={0}
+                      max={100} 
+                      step={5}
+                  />
+                ) : <Skeleton className="h-5 w-full" />}
+             </div>
+             <div className="space-y-4 rounded-lg border p-4">
+                <div className="space-y-0.5">
+                    <Label className="text-base">Couleur du texte sur image</Label>
+                    <p className="text-sm text-muted-foreground">
+                        Choisissez la couleur du texte lorsque l'image est utilisée en arrière-plan.
+                    </p>
+                </div>
+                 {isClient ? (
+                    <RadioGroup 
+                        value={itemCardTextColor} 
+                        onValueChange={(value) => setItemCardTextColor(value as 'light' | 'dark')}
+                        className="grid sm:grid-cols-2 gap-4 pt-2"
+                    >
+                        <div className="flex items-center">
+                            <RadioGroupItem value="light" id="text-light" />
+                            <Label htmlFor="text-light" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <p className="text-base font-semibold">Texte clair</p>
+                                <p className="text-xs text-muted-foreground mt-1">Idéal pour les images sombres.</p>
+                            </Label>
+                        </div>
+                            <div className="flex items-center">
+                            <RadioGroupItem value="dark" id="text-dark" />
+                            <Label htmlFor="text-dark" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <p className="text-base font-semibold">Texte foncé</p>
+                                <p className="text-xs text-muted-foreground mt-1">Idéal pour les images claires.</p>
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                    ) : (
+                    <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                )}
+            </div>
               <div className="grid gap-2 pt-4">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="payment-method-image-opacity">Opacité de l'image des moyens de paiement</Label>

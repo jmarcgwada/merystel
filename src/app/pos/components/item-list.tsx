@@ -32,6 +32,8 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
       selectedTable, 
       setVariantItem,
       itemCardShowImageAsBackground,
+      itemCardImageOverlayOpacity,
+      itemCardTextColor,
       itemCardShowPrice,
     } = usePos();
     const [clickedItemId, setClickedItemId] = useState<string | null>(null);
@@ -98,7 +100,9 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
             '--category-color': categoryColor,
             borderColor: 'var(--category-color)',
           } as React.CSSProperties;
-
+          
+          const textColorClass = itemCardTextColor === 'dark' ? 'text-gray-800' : 'text-white';
+          const textShadowClass = itemCardTextColor === 'dark' ? 'shadow-white/50' : 'shadow-black/50';
 
           return (
             <Card
@@ -123,7 +127,12 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
                       />
                        <div 
                           className={cn("absolute inset-0", itemCardShowImageAsBackground && 'bg-black/20')}
-                          style={{ background: !itemCardShowImageAsBackground ? `linear-gradient(to top, var(--category-color) 0%, transparent 50%)` : undefined, opacity: itemCardOpacity / 100 }}
+                          style={{
+                             background: !itemCardShowImageAsBackground
+                                ? `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`
+                                : `rgba(0,0,0,${itemCardImageOverlayOpacity/100})`,
+                             opacity: !itemCardShowImageAsBackground ? itemCardOpacity / 100 : 1,
+                          }}
                        />
                     </div>
                   </CardHeader>
@@ -133,11 +142,11 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
                         <h3 className={cn(
                             "font-semibold leading-tight", 
                             !showImage && "text-center",
-                             itemCardShowImageAsBackground && "text-white text-shadow-md shadow-black/50"
+                             itemCardShowImageAsBackground && `${textColorClass} text-shadow-md ${textShadowClass}`
                         )}>{item.name}</h3>
                     </CardContent>
                     <CardFooter className={cn("flex items-center justify-between p-3 pt-0 mt-auto", !itemCardShowPrice && 'hidden')}>
-                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && "text-white text-shadow-md shadow-black/50")}>
+                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && `${textColorClass} text-shadow-md ${textShadowClass}`)}>
                         {item.price.toFixed(2)}€
                         </span>
                         <PlusCircle className={cn("w-6 h-6 text-muted-foreground", itemCardShowImageAsBackground && 'text-white/70')} />
