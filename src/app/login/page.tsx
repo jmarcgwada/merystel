@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UserPlus } from 'lucide-react';
+import { Info, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -46,6 +46,7 @@ type AdminFormValues = z.infer<typeof adminSchema>;
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
@@ -72,6 +73,15 @@ export default function LoginPage() {
       }
     }
   }, [userLoading, posLoading, users]);
+  
+  useEffect(() => {
+    // Set email from localStorage on initial client-side render
+    const lastLoginEmail = localStorage.getItem('lastLoginEmail');
+    if (lastLoginEmail) {
+      setEmail(lastLoginEmail);
+    }
+  }, []);
+
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -115,6 +125,7 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, passwordToLogin);
         const newSessionToken = uuidv4();
         localStorage.setItem('sessionToken', newSessionToken);
+        localStorage.setItem('lastLoginEmail', emailToLogin); // Remember email on successful login
         const userRef = doc(firestore, 'users', userCredential.user.uid);
         await setDoc(userRef, { sessionToken: newSessionToken }, { merge: true });
         router.push('/dashboard');
@@ -325,14 +336,25 @@ export default function LoginPage() {
                         Mot de passe oublié ?
                     </Button>
                 </div>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                    onClick={() => setShowPassword(prev => !prev)}
+                >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter>
