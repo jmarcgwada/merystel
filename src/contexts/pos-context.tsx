@@ -239,6 +239,8 @@ interface PosContextType {
 
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
+  lockSale: (saleId: string) => Promise<boolean>;
+  unlockSale: (saleId: string) => Promise<void>;
 
   isLoading: boolean;
   user: CombinedUser | null;
@@ -999,6 +1001,44 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   }, [order, readOnlyOrder, vatRates]);
   // #endregion
+
+  // #region Ticket Locking
+    const lockSale = useCallback(async (saleId: string): Promise<boolean> => {
+        if (!firestore || !user) return false;
+        const saleRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'sales', saleId);
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const saleDoc = await transaction.get(saleRef);
+                if (!saleDoc.exists()) {
+                    throw new Error("Ticket non trouvé.");
+                }
+                const saleData = saleDoc.data() as Sale;
+                if (saleData.lockedBy && saleData.lockedBy !== user.uid) {
+                    throw new Error("Ticket déjà verrouillé.");
+                }
+                transaction.update(saleRef, { lockedBy: user.uid });
+            });
+            return true;
+        } catch (error: any) {
+            if (error.message !== "Ticket déjà verrouillé.") {
+                toast({ variant: 'destructive', title: 'Erreur', description: error.message });
+            }
+            return false;
+        }
+    }, [firestore, user, toast]);
+
+    const unlockSale = useCallback(async (saleId: string) => {
+        if (!firestore) return;
+        const saleRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'sales', saleId);
+        try {
+            await updateDoc(saleRef, { lockedBy: deleteField() });
+        } catch (error) {
+            console.error("Error unlocking sale:", error);
+            // We don't toast here to avoid bothering the user on silent-fail scenarios (e.g., closing browser)
+        }
+    }, [firestore]);
+  // #endregion
+
 
   // #region Held Order & Table Management
   const holdOrder = useCallback(async () => {
@@ -1854,6 +1894,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       isLoading,
       user,
+      lockSale,
+      unlockSale,
       holdOrder,
     }),
     [
@@ -1989,6 +2031,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       isLoading,
       user,
+      lockSale,
+      unlockSale,
       holdOrder,
       setSessionInvalidated,
       setEnableRestaurantCategoryFilter,
