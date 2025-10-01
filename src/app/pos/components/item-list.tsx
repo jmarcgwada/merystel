@@ -102,7 +102,8 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
           } as React.CSSProperties;
           
           const textColorClass = itemCardTextColor === 'dark' ? 'text-gray-800' : 'text-white';
-          const textShadowClass = itemCardTextColor === 'dark' ? 'shadow-white/50' : 'shadow-black/50';
+          const textShadowClass = itemCardTextColor === 'dark' ? 'text-shadow-none' : '[text-shadow:0_1px_2px_rgba(0,0,0,0.5)]';
+
 
           return (
             <Card
@@ -117,7 +118,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
               <button onClick={() => handleItemClick(item)} className="flex flex-col h-full text-left">
                 {showImage && item.image ? (
                   <CardHeader className="p-0">
-                    <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'aspect-video' : 'aspect-video')}>
+                    <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'aspect-[4/3]' : 'aspect-video')}>
                       <Image
                         src={item.image}
                         alt={item.name}
@@ -126,27 +127,27 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
                         data-ai-hint="product image"
                       />
                        <div 
-                          className={cn("absolute inset-0", itemCardShowImageAsBackground && 'bg-black/20')}
+                          className={cn("absolute inset-0")}
                           style={{
-                             background: !itemCardShowImageAsBackground
-                                ? `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`
-                                : `rgba(0,0,0,${itemCardImageOverlayOpacity/100})`,
+                             background: itemCardShowImageAsBackground
+                                ? `rgba(0,0,0,${itemCardImageOverlayOpacity/100})`
+                                : `linear-gradient(to top, var(--category-color) 0%, transparent 50%)`,
                              opacity: !itemCardShowImageAsBackground ? itemCardOpacity / 100 : 1,
                           }}
                        />
                     </div>
                   </CardHeader>
                 ) : <div className="aspect-video w-full" />}
-                 <div className={cn("flex flex-col flex-1", itemCardShowImageAsBackground && "absolute inset-0 p-2")}>
+                 <div className={cn("flex flex-col flex-1", itemCardShowImageAsBackground && "absolute inset-0 p-3")}>
                     <CardContent className={cn("flex-1 p-3", !showImage && "flex flex-col justify-center", itemCardShowImageAsBackground && 'mt-auto')}>
                         <h3 className={cn(
                             "font-semibold leading-tight", 
                             !showImage && "text-center",
-                             itemCardShowImageAsBackground && `${textColorClass} text-shadow-md ${textShadowClass}`
+                             itemCardShowImageAsBackground && `${textColorClass} ${textShadowClass}`
                         )}>{item.name}</h3>
                     </CardContent>
                     <CardFooter className={cn("flex items-center justify-between p-3 pt-0 mt-auto", !itemCardShowPrice && 'hidden')}>
-                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && `${textColorClass} text-shadow-md ${textShadowClass}`)}>
+                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && `${textColorClass} ${textShadowClass}`)}>
                         {item.price.toFixed(2)}€
                         </span>
                         <PlusCircle className={cn("w-6 h-6 text-muted-foreground", itemCardShowImageAsBackground && 'text-white/70')} />
