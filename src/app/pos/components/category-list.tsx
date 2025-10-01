@@ -41,6 +41,12 @@ export function CategoryList({
   const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
@@ -178,7 +184,7 @@ export function CategoryList({
               onClick={() => onSelectCategory('popular')}
             >
               <Trophy className="mr-3 h-5 w-5" />
-              <span className="text-base">Top {popularItemsCount} Populaires</span>
+              <span className="text-base">Top {isClient ? popularItemsCount : '...'} Populaires</span>
             </Button>
             <Button
               variant={showFavoritesOnly ? 'secondary' : 'ghost'}
