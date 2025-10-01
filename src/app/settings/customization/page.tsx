@@ -27,6 +27,10 @@ export default function CustomizationPage() {
     setEnableRestaurantCategoryFilter,
     paymentMethodImageOpacity,
     setPaymentMethodImageOpacity,
+    itemCardShowImageAsBackground,
+    setItemCardShowImageAsBackground,
+    itemCardShowPrice,
+    setItemCardShowPrice,
    } = usePos();
 
   const [isClient, setIsClient] = useState(false);
@@ -79,6 +83,36 @@ export default function CustomizationPage() {
                     id="ticket-images" 
                     checked={showTicketImages}
                     onCheckedChange={setShowTicketImages}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
+            </div>
+             <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="item-card-show-price" className="text-base">Afficher le prix sur les articles</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Affiche ou masque le prix sur les cartes des articles dans la grille.
+                  </p>
+                </div>
+                {isClient ? (
+                  <Switch 
+                    id="item-card-show-price" 
+                    checked={itemCardShowPrice}
+                    onCheckedChange={setItemCardShowPrice}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="item-card-bg-image" className="text-base">Image de l'article en fond</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Utilise l'image de l'article comme arrière-plan complet de la carte.
+                  </p>
+                </div>
+                {isClient ? (
+                  <Switch 
+                    id="item-card-bg-image" 
+                    checked={itemCardShowImageAsBackground}
+                    onCheckedChange={setItemCardShowImageAsBackground}
                   />
                 ) : <Skeleton className="h-6 w-11" />}
             </div>

@@ -187,6 +187,10 @@ interface PosContextType {
   setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
   paymentMethodImageOpacity: number;
   setPaymentMethodImageOpacity: React.Dispatch<React.SetStateAction<number>>;
+  itemCardShowImageAsBackground: boolean;
+  setItemCardShowImageAsBackground: React.Dispatch<React.SetStateAction<boolean>>;
+  itemCardShowPrice: boolean;
+  setItemCardShowPrice: React.Dispatch<React.SetStateAction<boolean>>;
   enableRestaurantCategoryFilter: boolean;
   setEnableRestaurantCategoryFilter: React.Dispatch<
     React.SetStateAction<boolean>
@@ -325,7 +329,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
-    
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
   );
@@ -1848,6 +1854,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItemCardOpacity,
       paymentMethodImageOpacity,
       setPaymentMethodImageOpacity,
+      itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
+      itemCardShowPrice,
+      setItemCardShowPrice,
       enableRestaurantCategoryFilter,
       setEnableRestaurantCategoryFilter,
       showNotifications,
@@ -1985,6 +1995,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItemCardOpacity,
       paymentMethodImageOpacity,
       setPaymentMethodImageOpacity,
+      itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
+      itemCardShowPrice,
+      setItemCardShowPrice,
       enableRestaurantCategoryFilter,
       setEnableRestaurantCategoryFilter,
       showNotifications,
@@ -2052,6 +2066,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setRestaurantModeBgOpacity,
       setItemCardOpacity,
       setPaymentMethodImageOpacity,
+      setItemCardShowImageAsBackground,
+      setItemCardShowPrice,
       setReadOnlyOrder,
       setEnableSerialNumber,
       setSerialNumberItem,

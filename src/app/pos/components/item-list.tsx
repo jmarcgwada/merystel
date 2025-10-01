@@ -23,7 +23,17 @@ interface ItemListProps {
 
 export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
   ({ category, searchTerm, showFavoritesOnly }, ref) => {
-    const { addToOrder, items: allItems, popularItems, categories, itemCardOpacity, selectedTable, setVariantItem } = usePos();
+    const { 
+      addToOrder, 
+      items: allItems, 
+      popularItems, 
+      categories, 
+      itemCardOpacity, 
+      selectedTable, 
+      setVariantItem,
+      itemCardShowImageAsBackground,
+      itemCardShowPrice,
+    } = usePos();
     const [clickedItemId, setClickedItemId] = useState<string | null>(null);
 
     const handleItemClick = (item: Item) => {
@@ -95,19 +105,20 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
               key={item.id}
               className={cn(
                 'flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-2',
-                clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-accent'
+                clickedItemId === item.id && 'scale-105 shadow-xl ring-2 ring-accent',
+                 itemCardShowImageAsBackground && 'relative'
               )}
               style={cardStyle}
             >
               <button onClick={() => handleItemClick(item)} className="flex flex-col h-full text-left">
-                {showImage && (
+                {showImage && item.image && (
                   <CardHeader className="p-0">
-                    <div className="relative aspect-video w-full">
+                    <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'h-full' : 'aspect-video')}>
                       <Image
-                        src={item.image || 'https://picsum.photos/seed/placeholder/200/150'}
+                        src={item.image}
                         alt={item.name}
                         fill
-                        className="object-cover"
+                        className={cn("object-cover", itemCardShowImageAsBackground && 'z-0')}
                         data-ai-hint="product image"
                       />
                        <div 
@@ -117,15 +128,21 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
                     </div>
                   </CardHeader>
                 )}
-                <CardContent className={cn("flex-1 p-3", !showImage && "flex flex-col justify-center")}>
-                  <h3 className={cn("font-semibold leading-tight", !showImage && "text-center")}>{item.name}</h3>
-                </CardContent>
-                <CardFooter className="flex items-center justify-between p-3 pt-0 mt-auto">
-                  <span className="text-lg font-bold text-primary">
-                    {item.price.toFixed(2)}€
-                  </span>
-                  <PlusCircle className="w-6 h-6 text-muted-foreground" />
-                </CardFooter>
+                 <div className={cn("z-10", itemCardShowImageAsBackground && "absolute inset-0 flex flex-col p-2")}>
+                    <CardContent className={cn("flex-1 p-3", !showImage && "flex flex-col justify-center", itemCardShowImageAsBackground && 'mt-auto')}>
+                        <h3 className={cn(
+                            "font-semibold leading-tight", 
+                            !showImage && "text-center",
+                             itemCardShowImageAsBackground && "text-white text-shadow"
+                        )}>{item.name}</h3>
+                    </CardContent>
+                    <CardFooter className={cn("flex items-center justify-between p-3 pt-0 mt-auto", !itemCardShowPrice && 'hidden')}>
+                        <span className={cn("text-lg font-bold text-primary", itemCardShowImageAsBackground && "text-white text-shadow")}>
+                        {item.price.toFixed(2)}€
+                        </span>
+                        <PlusCircle className={cn("w-6 h-6 text-muted-foreground", itemCardShowImageAsBackground && 'text-white/70')} />
+                    </CardFooter>
+                 </div>
               </button>
             </Card>
           )
