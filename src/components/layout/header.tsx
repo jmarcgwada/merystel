@@ -26,13 +26,6 @@ export default function Header() {
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const isPosOrRestaurantPage = pathname === '/pos' || pathname === '/restaurant';
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -49,7 +42,7 @@ export default function Header() {
   const canAccessCompanySettings = user?.role === 'admin';
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print", isClient && isPosOrRestaurantPage && 'pointer-events-none opacity-50')}>
+    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 flex-1">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
