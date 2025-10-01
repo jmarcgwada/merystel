@@ -93,15 +93,28 @@ export default function DashboardPage() {
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
+    const [isMounted, setIsMounted] = useState(false);
+    
+    useEffect(() => {
+        setIsMounted(true);
+        setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
+    }, []);
     
     const quickLinks = useMemo(() => {
         if (!authUser) return [];
-        return allQuickLinks.filter(link => link.roles.includes(authUser.role));
-    }, [authUser]);
+        const links = allQuickLinks.filter(link => link.roles.includes(authUser.role));
 
-    useEffect(() => {
-        setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
-    }, []);
+        if (authUser.role !== 'cashier') {
+            links.push({
+                href: '/settings',
+                title: 'Paramètres',
+                description: "Configurer l'application.",
+                icon: Settings,
+                roles: ['admin', 'manager'],
+            });
+        }
+        return links;
+    }, [authUser]);
 
     const totalSales = useMemo(() => {
         if (!sales) return 0;
@@ -155,6 +168,7 @@ export default function DashboardPage() {
     }, [sales, items]);
     
     const backgroundStyle = useMemo(() => {
+        if (!isMounted) return {};
         const style: React.CSSProperties = {
             position: 'absolute',
             top: 0,
@@ -172,9 +186,10 @@ export default function DashboardPage() {
             style.backgroundColor = dashboardBackgroundColor;
         }
         return style;
-    }, [dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity]);
+    }, [isMounted, dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity]);
 
     const buttonStyle = useMemo(() => {
+        if (!isMounted) return {};
         const style: React.CSSProperties = {
              backgroundColor: hexToRgba(dashboardButtonBackgroundColor, dashboardButtonOpacity),
         };
@@ -185,7 +200,7 @@ export default function DashboardPage() {
             style.borderColor = 'transparent';
         }
         return style;
-    }, [dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
+    }, [isMounted, dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
 
 
     if (isLoading) {
@@ -216,7 +231,7 @@ export default function DashboardPage() {
 
   return (
     <div className="relative isolate min-h-full">
-      <div style={backgroundStyle} />
+      {isMounted && <div style={backgroundStyle} />}
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Tableau de bord"
@@ -298,22 +313,6 @@ export default function DashboardPage() {
                           </Card>
                       </Link>
                   ))}
-                  {authUser?.role !== 'cashier' && (
-                      <Link href="/settings" className="group">
-                          <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
-                              <CardContent className="pt-6">
-                                  <div className="flex items-start justify-between">
-                                      <div>
-                                          <Settings className="h-8 w-8 text-primary mb-2" />
-                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Paramètres</h3>
-                                          <p className="text-sm text-muted-foreground mt-1">Configurer l'application.</p>
-                                      </div>
-                                      <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                                  </div>
-                              </CardContent>
-                          </Card>
-                      </Link>
-                  )}
               </div>
           </div>
           <div className="lg:col-span-1">
@@ -345,3 +344,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
