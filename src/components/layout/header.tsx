@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { usePos } from '@/contexts/pos-context';
 import React from 'react';
@@ -23,14 +23,11 @@ import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
   const { user } = useUser();
   const router = useRouter();
 
-  const fromPos = searchParams.get('from') === 'pos';
-  const isPosDetailPage = pathname.startsWith('/reports/') && fromPos;
-  const shouldBeDisabled = isPosDetailPage;
+  const isPosOrRestaurantPage = pathname === '/pos' || pathname === '/restaurant';
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -47,9 +44,9 @@ export default function Header() {
   const canAccessCompanySettings = user?.role === 'admin';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+    <header className={cn("sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print", isPosOrRestaurantPage && 'pointer-events-none opacity-50')}>
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className={cn("flex items-center gap-4 flex-1", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
+        <div className="flex items-center gap-4 flex-1">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -81,10 +78,10 @@ export default function Header() {
           )}
         </div>
 
-        <div className={cn("flex items-center justify-end gap-2", shouldBeDisabled && 'opacity-50 pointer-events-none')}>
+        <div className="flex items-center justify-end gap-2">
           {user && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild disabled={shouldBeDisabled}>
+              <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
                     <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
