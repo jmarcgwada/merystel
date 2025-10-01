@@ -30,10 +30,20 @@ export default function CustomizationPage() {
    } = usePos();
 
   const [isClient, setIsClient] = useState(false);
+  const [currentPopularItemsCount, setCurrentPopularItemsCount] = useState(popularItemsCount);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    setCurrentPopularItemsCount(popularItemsCount);
+  }, [popularItemsCount]);
+
+  const handlePopularItemsChange = (value: number[]) => {
+      setCurrentPopularItemsCount(value[0]);
+  }
+
+  const handlePopularItemsCommit = (value: number[]) => {
+      setPopularItemsCount(value[0]);
+  }
 
   return (
     <>
@@ -138,7 +148,7 @@ export default function CustomizationPage() {
              <div className="grid gap-2">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="popular-items-count">Articles populaires</Label>
-                    {isClient ? <span className="text-sm font-bold text-primary">{popularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
+                    {isClient ? <span className="text-sm font-bold text-primary">{currentPopularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
@@ -146,8 +156,9 @@ export default function CustomizationPage() {
                 {isClient ? (
                   <Slider 
                       id="popular-items-count"
-                      value={[popularItemsCount]} 
-                      onValueChange={(value) => setPopularItemsCount(value[0])}
+                      value={[currentPopularItemsCount]}
+                      onValueChange={handlePopularItemsChange}
+                      onValueCommit={handlePopularItemsCommit}
                       min={1}
                       max={50} 
                       step={1} 
