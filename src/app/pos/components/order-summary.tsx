@@ -20,6 +20,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -112,6 +113,7 @@ export function OrderSummary() {
     setCameFromRestaurant,
   } = usePos();
   
+  const { toast } = useToast();
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const router = useRouter();
 
@@ -837,4 +839,3 @@ export function OrderSummary() {
     </>
   );
 }
-
