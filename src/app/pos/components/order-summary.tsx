@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -331,7 +332,6 @@ export function OrderSummary() {
     }
 
     if (currentSaleContext?.ticketNumber) {
-        const isModification = !readOnlyOrder;
         return (
             <div className="flex flex-col gap-1">
                 <div className='flex items-center gap-2 text-orange-600'>
@@ -494,9 +494,19 @@ export function OrderSummary() {
   }
 
     const handleDuplicateTicket = () => {
-        // We're already in modification mode for a ticket.
-        // We just need to clear the original sale context and open checkout.
-        if (currentSaleContext?.ticketNumber) {
+        if (readOnlyOrder) {
+            const itemsToDuplicate = readOnlyOrder.map(item => {
+                const { sourceSale, ...rest } = item;
+                return rest;
+            });
+            setOrder(itemsToDuplicate);
+            setReadOnlyOrder(null);
+            setCurrentSaleId(null);
+            setCurrentSaleContext(null);
+            toast({ title: 'Ticket dupliqué', description: 'La commande est prête pour un nouvel encaissement.' });
+        } else if (currentSaleContext?.ticketNumber) {
+            // Case where we are already in modification mode for a ticket.
+            // We just need to clear the original sale context and open checkout.
             setCurrentSaleId(null);
             setCurrentSaleContext(null);
             setCheckoutOpen(true);
@@ -740,10 +750,17 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                 <div className='w-full grid grid-cols-3 gap-2'>
-                    <Button size="lg" className="w-full" onClick={handleEditTicket} disabled={!!readOnlyOrder[0]?.sourceSale?.modifiedAt}>
-                        <Edit className="mr-2" />
-                        Modifier
-                    </Button>
+                    {readOnlyOrder[0]?.sourceSale?.modifiedAt ? (
+                        <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
+                            <Copy className="mr-2" />
+                            Dupliquer
+                        </Button>
+                    ) : (
+                        <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                            <Edit className="mr-2" />
+                            Modifier
+                        </Button>
+                    )}
                     <Button size="lg" className="w-full" onClick={handlePrint}>
                         <Printer className="mr-2" />
                         Imprimer
@@ -821,4 +838,3 @@ export function OrderSummary() {
   );
 }
 
-    
