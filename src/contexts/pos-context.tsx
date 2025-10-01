@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, {
@@ -805,13 +804,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
+    // If an order was associated with a table, unlock the table before clearing.
+    if (selectedTable && selectedTable.id && firestore) {
+      const tableRef = doc(firestore, 'companies', companyId, 'tables', selectedTable.id);
+      await updateDoc(tableRef, { lockedBy: deleteField() });
+    }
     setOrder([]);
     setReadOnlyOrder(null);
     setCurrentSaleId(null);
     if (!selectedTable) {
       setCurrentSaleContext(null);
     }
-  }, [selectedTable]);
+    setSelectedTable(null);
+  }, [selectedTable, firestore, companyId]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1247,20 +1252,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      if (tableRef) {
-          routerRef.current.push('/restaurant');
-          await updateDoc(tableRef, {
-            order: orderData.map(cleanDataForFirebase),
-            status: orderData.length > 0 ? 'occupied' : 'available',
-            lockedBy: deleteField()
-          });
-          toast({ title: 'Table sauvegardée' });
-          await clearOrder();
-      }
+        if (!firestore) return;
+        routerRef.current.push('/restaurant');
+        const tableRef = getDocRef('tables', tableId);
+        if (tableRef) {
+            await updateDoc(tableRef, {
+                order: orderData.map(cleanDataForFirebase),
+                status: orderData.length > 0 ? 'occupied' : 'available',
+                lockedBy: deleteField()
+            });
+        }
+        toast({ title: 'Table sauvegardée' });
+        await clearOrder();
     },
-    [getDocRef, clearOrder, toast]
-  );
+    [getDocRef, clearOrder, toast, firestore]
+);
+
 
   const forceFreeTable = useCallback(
     async (tableId: string) => {
@@ -1482,15 +1489,32 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [users]);
     
     const handleSignOut = useCallback(async () => {
-        if (!auth || !user) return;
+        if (!auth || !user || !firestore) return;
         
-        await updateDoc(doc(firestore, 'users', user.uid), {
-            sessionToken: deleteField()
+        // Also unlock any table this user might have locked
+        const tablesQuery = query(collection(firestore, 'companies', companyId, 'tables'), where('lockedBy', '==', user.uid));
+        const lockedTablesSnapshot = await getDocs(tablesQuery);
+        const batch = writeBatch(firestore);
+        lockedTablesSnapshot.forEach(tableDoc => {
+            batch.update(tableDoc.ref, { lockedBy: deleteField() });
         });
-        
+
+        // Also unlock any sale this user might have locked
+        const salesQuery = query(collection(firestore, 'companies', companyId, 'sales'), where('lockedBy', '==', user.uid));
+        const lockedSalesSnapshot = await getDocs(salesQuery);
+        lockedSalesSnapshot.forEach(saleDoc => {
+            batch.update(saleDoc.ref, { lockedBy: deleteField() });
+        });
+
+        // Clear session token
+        const userRef = doc(firestore, 'users', user.uid);
+        batch.update(userRef, { sessionToken: deleteField() });
+
+        await batch.commit();
+
         await signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth, user, firestore]);
+    }, [auth, user, firestore, companyId]);
 
 
     const validateSession = useCallback((userId: string, token: string) => {
@@ -1693,14 +1717,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setNavConfirmOpen(true);
   };
 
-  const closeNavConfirm = useCallback(() => {
+  const closeNavConfirm = useCallback(async () => {
+    // Also unlock table if navigating away from a table sale
+    if (selectedTable && selectedTable.id && firestore) {
+      const tableRef = doc(firestore, 'companies', companyId, 'tables', selectedTable.id);
+      await updateDoc(tableRef, { lockedBy: deleteField() });
+    }
     setNextUrl(null);
     setNavConfirmOpen(false);
-  }, []);
+  }, [selectedTable, firestore, companyId]);
 
   const confirmNavigation = useCallback(async () => {
     if (nextUrl) {
-      await clearOrder();
+      await clearOrder(); // This will also unlock the table
       routerRef.current.push(nextUrl);
     }
     closeNavConfirm();
@@ -2107,3 +2136,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
