@@ -20,9 +20,23 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
 import { VariantSelectionModal } from './components/variant-selection-modal';
 
+// Function to convert hex to rgba
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--background), ${opacity / 100})`;
+};
+
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor, setCameFromRestaurant } = usePos();
+  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor, directSaleBgOpacity, setCameFromRestaurant } = usePos();
   const [isClient, setIsClient] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
@@ -175,10 +189,11 @@ export default function PosPage() {
     showKeyboard();
   };
   
+  const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4" style={{ backgroundColor: isClient ? directSaleBackgroundColor : 'transparent' }}>
+      <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4" style={{ backgroundColor }}>
           <div className="md:col-span-3 lg:col-span-2 border bg-card flex flex-col overflow-hidden rounded-lg">
             <CategoryList
               scrollRef={categoryScrollAreaRef}
