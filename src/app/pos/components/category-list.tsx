@@ -37,7 +37,7 @@ export function CategoryList({
   onScrollDown,
   onStopScroll,
 }: CategoryListProps) {
-  const { categories, popularItemsCount, selectedTable } = usePos();
+  const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
