@@ -133,6 +133,7 @@ interface PosContextType {
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
+  getCategoryColor: (categoryId: string) => string | undefined;
 
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
@@ -183,6 +184,8 @@ interface PosContextType {
   setDescriptionDisplay: React.Dispatch<React.SetStateAction<'none' | 'first' | 'both'>>;
   popularItemsCount: number;
   setPopularItemsCount: React.Dispatch<React.SetStateAction<number>>;
+  itemDisplayMode: 'grid' | 'list';
+  setItemDisplayMode: React.Dispatch<React.SetStateAction<'grid' | 'list'>>;
   itemCardOpacity: number;
   setItemCardOpacity: React.Dispatch<React.SetStateAction<number>>;
   paymentMethodImageOpacity: number;
@@ -328,6 +331,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
   const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
   const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
   const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
@@ -1595,6 +1599,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [categories, updateEntity]
   );
+  const getCategoryColor = useCallback((categoryId: string) => {
+    if (!categories) return undefined;
+    return categories.find(c => c.id === categoryId)?.color;
+  }, [categories]);
 
   const addItem = useCallback(
     (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé'),
@@ -1867,6 +1875,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
+      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -1905,6 +1914,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDescriptionDisplay,
       popularItemsCount,
       setPopularItemsCount,
+      itemDisplayMode,
+      setItemDisplayMode,
       itemCardOpacity,
       setItemCardOpacity,
       paymentMethodImageOpacity,
@@ -2024,6 +2035,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
+      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -2062,6 +2074,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDescriptionDisplay,
       popularItemsCount,
       setPopularItemsCount,
+      itemDisplayMode,
+      setItemDisplayMode,
       itemCardOpacity,
       setItemCardOpacity,
       paymentMethodImageOpacity,

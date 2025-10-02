@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -10,7 +11,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
+import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon, LayoutGrid, List } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
 import { VariantSelectionModal } from './components/variant-selection-modal';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -35,7 +37,18 @@ const hexToRgba = (hex: string, opacity: number) => {
 
 
 export default function PosPage() {
-  const { setSelectedTableById, heldOrders, isKeypadOpen, popularItemsCount, selectedTable, directSaleBackgroundColor, directSaleBgOpacity, setCameFromRestaurant } = usePos();
+  const { 
+    setSelectedTableById, 
+    heldOrders, 
+    isKeypadOpen, 
+    popularItemsCount, 
+    selectedTable, 
+    directSaleBackgroundColor, 
+    directSaleBgOpacity, 
+    setCameFromRestaurant,
+    itemDisplayMode,
+    setItemDisplayMode,
+   } = usePos();
   const [isClient, setIsClient] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
@@ -231,6 +244,21 @@ export default function PosPage() {
                             onFocus={handleSearchFocus}
                         />
                     </div>
+                    <ToggleGroup
+                      type="single"
+                      variant="outline"
+                      value={itemDisplayMode}
+                      onValueChange={(value) => {
+                        if (value) setItemDisplayMode(value as 'grid' | 'list');
+                      }}
+                    >
+                      <ToggleGroupItem value="grid" aria-label="Affichage en grille">
+                        <LayoutGrid className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="list" aria-label="Affichage en liste">
+                        <List className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </ToggleGroup>
                     <div className="flex items-center gap-1">
                       {(canScrollItemsUp || canScrollItemsDown) && (
                         <>
