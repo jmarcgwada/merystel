@@ -296,7 +296,7 @@ export default function DashboardPage() {
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
               <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
