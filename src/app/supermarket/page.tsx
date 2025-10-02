@@ -19,6 +19,8 @@ import {
   Card,
 } from '@/components/ui/card';
 
+const MAX_INITIAL_ITEMS = 100;
+
 export default function SupermarketPage() {
   const {
     items,
@@ -50,12 +52,23 @@ export default function SupermarketPage() {
   useEffect(() => {
     if (searchTerm.length >= 3) {
       setListContent(filteredItems);
+      setHighlightedIndex(-1); // Reset highlight on new search
     } else {
-      if (!listPersistenceTimer.current) {
+      if (!listPersistenceTimer.current && searchTerm === '') {
         setListContent([]);
       }
     }
   }, [searchTerm, filteredItems]);
+  
+  useEffect(() => {
+    // Scroll to the highlighted item
+    if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [highlightedIndex]);
 
   useEffect(() => {
     return () => {
@@ -66,26 +79,18 @@ export default function SupermarketPage() {
   }, []);
 
   const clearSearchWithDelay = useCallback(() => {
-    setSearchTerm('');
-    searchInputRef.current?.focus();
     if (listPersistenceTimer.current) {
       clearTimeout(listPersistenceTimer.current);
     }
+    setSearchTerm('');
+    searchInputRef.current?.focus();
+    
     listPersistenceTimer.current = setTimeout(() => {
       setListContent([]);
       listPersistenceTimer.current = null;
     }, 3000);
   }, []);
   
-  useEffect(() => {
-    if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
-      itemRefs.current[highlightedIndex]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-    }
-  }, [highlightedIndex]);
-
   useEffect(() => {
     searchInputRef.current?.focus();
   }, []);
@@ -125,7 +130,8 @@ export default function SupermarketPage() {
   const handleShowAll = () => {
     if (items) {
         setSearchTerm(''); 
-        setListContent(items);
+        setListContent(items.slice(0, MAX_INITIAL_ITEMS));
+        setHighlightedIndex(-1);
         if (listPersistenceTimer.current) {
             clearTimeout(listPersistenceTimer.current);
             listPersistenceTimer.current = null;
