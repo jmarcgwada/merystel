@@ -30,6 +30,7 @@ export default function SupermarketPage() {
   const [isHeldOpen, setHeldOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const filteredItems = useMemo(() => {
     if (searchTerm.length < 3 || !items) {
@@ -46,7 +47,17 @@ export default function SupermarketPage() {
   useEffect(() => {
     // Reset highlight when search term changes
     setHighlightedIndex(-1);
+    itemRefs.current = []; // Reset refs array
   }, [searchTerm]);
+  
+  useEffect(() => {
+    if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [highlightedIndex]);
 
   useEffect(() => {
     // Auto-focus the input on page load
@@ -138,12 +149,13 @@ export default function SupermarketPage() {
                         {filteredItems.length > 0 ? (
                             filteredItems.map((item, index) => (
                                 <Card
-                                key={item.id}
-                                className={cn(
-                                    "flex items-center p-3 cursor-pointer hover:bg-secondary",
-                                    index === highlightedIndex && "bg-secondary border-primary"
-                                )}
-                                onClick={() => handleItemClick(item)}
+                                    key={item.id}
+                                    ref={(el) => (itemRefs.current[index] = el)}
+                                    className={cn(
+                                        "flex items-center p-3 cursor-pointer hover:bg-secondary",
+                                        index === highlightedIndex && "bg-secondary border-primary"
+                                    )}
+                                    onClick={() => handleItemClick(item)}
                                 >
                                 <Image
                                     src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
