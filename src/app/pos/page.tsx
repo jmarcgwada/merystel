@@ -81,13 +81,18 @@ export default function PosPage() {
   }, []);
 
   const handleItemClick = (item: any) => {
-    addToOrder(item.id); // Assuming `addToOrder` handles adding the item.
+    addToOrder(item.id);
     if (isKeyboardOpen) {
-      clearInput(); // This will clear the inputValue in the context
-      setItemSearchTerm(''); // And also clear the local state for the input field
-      // Don't hide the keyboard, just reset the search
+      clearInput();
     }
   };
+  
+  useEffect(() => {
+    // When keyboard closes, clear the search term if it was the target
+    if (!isKeyboardOpen && targetInput?.name === 'item-search') {
+      setItemSearchTerm('');
+    }
+  }, [isKeyboardOpen, targetInput]);
 
   const filteredItems = useMemo(() => (
     <ItemList 
@@ -97,7 +102,7 @@ export default function PosPage() {
         showFavoritesOnly={showFavoritesOnly}
         onItemClick={handleItemClick}
     />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, handleItemClick]);
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, addToOrder, isKeyboardOpen, clearInput]);
 
   const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
     const [canScrollUp, setCanScrollUp] = useState(false);
