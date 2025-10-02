@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,6 +54,9 @@ export function ExternalLinkModal() {
         className="p-0 border-0 overflow-hidden"
         style={{ width: modalWidth, height: modalHeight, maxWidth: 'none' }}
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{externalLinkTitle || 'Contenu externe'}</DialogTitle>
+        </DialogHeader>
         <div className="relative w-full h-full">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background">
