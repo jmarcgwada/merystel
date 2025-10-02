@@ -79,6 +79,9 @@ export default function SupermarketPage() {
   const clearSearchWithDelay = useCallback(() => {
     setSearchTerm('');
     searchInputRef.current?.focus();
+    if (listPersistenceTimer.current) {
+        clearTimeout(listPersistenceTimer.current);
+    }
     listPersistenceTimer.current = setTimeout(() => {
         setListContent([]);
     }, 3000);
@@ -89,8 +92,6 @@ export default function SupermarketPage() {
           if (listPersistenceTimer.current) {
               clearTimeout(listPersistenceTimer.current);
               listPersistenceTimer.current = null;
-              // We can clear the list content here if we want it to disappear immediately on interaction
-              // setListContent([]);
           }
       };
 
