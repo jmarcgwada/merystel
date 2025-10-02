@@ -102,80 +102,79 @@ export default function SupermarketPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-        <div className="md:col-span-8 flex flex-col overflow-hidden">
-            <div className="p-4 space-y-4">
-                <div className="flex flex-col sm:flex-row items-start gap-4">
-                    <div className="relative flex-1 w-full">
-                         <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-                        <Input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder="Scanner ou rechercher un article..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            className="h-16 text-2xl pl-14"
-                        />
-                    </div>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setHeldOpen(true)}
-                        disabled={order.length > 0}
-                        className={cn(
-                            "flex-shrink-0 text-lg py-6 px-8 w-full sm:w-auto h-16",
-                            (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
-                        )}
-                    >
-                        <Hand className="mr-3 h-5 w-5"/>
-                        Tickets
-                        <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
-                    </Button>
+        <div className="md:col-span-8 flex flex-col overflow-hidden p-4 gap-4">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
+                <div className="relative flex-1 w-full">
+                        <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                    <Input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Scanner ou rechercher un article..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        className="h-16 text-2xl pl-14"
+                    />
                 </div>
-                 <div className="flex-1 flex flex-col overflow-hidden">
-                    {searchTerm.length >= 3 ? (
-                      <ScrollArea className="flex-1">
-                          <div className="p-1 space-y-2">
-                            {filteredItems.length > 0 ? (
-                               filteredItems.map((item, index) => (
-                                 <Card
-                                    key={item.id}
-                                    className={cn(
-                                      "flex items-center p-3 cursor-pointer hover:bg-secondary",
-                                      index === highlightedIndex && "bg-secondary border-primary"
-                                    )}
-                                    onClick={() => handleItemClick(item)}
-                                  >
-                                    <Image
-                                        src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
-                                        alt={item.name}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-md object-cover mr-4"
-                                    />
-                                    <div className="flex-1">
-                                        <p className="font-semibold">{item.name}</p>
-                                        <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
-                                    </div>
-                                    <p className="text-lg font-bold">{item.price.toFixed(2)}€</p>
-                                  </Card>
-                               ))
-                            ) : (
-                              <div className="text-center text-muted-foreground pt-10">
-                                <p>Aucun article trouvé pour "{searchTerm}"</p>
-                              </div>
-                            )}
-                          </div>
-                      </ScrollArea>
-                    ) : (
-                       <div className="flex-1 flex items-center justify-center">
-                          <div className="text-center text-muted-foreground">
-                              <ScanLine className="mx-auto h-24 w-24 opacity-10" />
-                              <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
-                              <p className="text-sm">Commencez à saisir au moins 3 caractères pour rechercher un article.</p>
-                          </div>
-                      </div>
+                <Button 
+                    variant="outline" 
+                    onClick={() => setHeldOpen(true)}
+                    disabled={order.length > 0}
+                    className={cn(
+                        "flex-shrink-0 text-lg py-6 px-8 w-full sm:w-auto h-16",
+                        (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
                     )}
-                </div>
+                >
+                    <Hand className="mr-3 h-5 w-5"/>
+                    Tickets
+                    <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
+                </Button>
+            </div>
+            
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {searchTerm.length >= 3 ? (
+                    <ScrollArea className="flex-1">
+                        <div className="p-1 space-y-2">
+                        {filteredItems.length > 0 ? (
+                            filteredItems.map((item, index) => (
+                                <Card
+                                key={item.id}
+                                className={cn(
+                                    "flex items-center p-3 cursor-pointer hover:bg-secondary",
+                                    index === highlightedIndex && "bg-secondary border-primary"
+                                )}
+                                onClick={() => handleItemClick(item)}
+                                >
+                                <Image
+                                    src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
+                                    alt={item.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-md object-cover mr-4"
+                                />
+                                <div className="flex-1">
+                                    <p className="font-semibold">{item.name}</p>
+                                    <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
+                                </div>
+                                <p className="text-lg font-bold">{item.price.toFixed(2)}€</p>
+                                </Card>
+                            ))
+                        ) : (
+                            <div className="text-center text-muted-foreground pt-10">
+                            <p>Aucun article trouvé pour "{searchTerm}"</p>
+                            </div>
+                        )}
+                        </div>
+                    </ScrollArea>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center text-muted-foreground">
+                            <ScanLine className="mx-auto h-24 w-24 opacity-10" />
+                            <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
+                            <p className="text-sm">Commencez à saisir au moins 3 caractères pour rechercher un article.</p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
         <div className="md:col-span-4 border-l flex flex-col overflow-hidden">
