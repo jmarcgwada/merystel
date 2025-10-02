@@ -48,12 +48,25 @@ export default function SupermarketPage() {
   }, [searchTerm, items]);
 
   useEffect(() => {
+    if (searchTerm.length >= 3) {
+      setListContent(filteredItems);
+    } else {
+        if (!listPersistenceTimer.current) {
+            setListContent([]);
+        }
+    }
+  }, [searchTerm, filteredItems]);
+
+  useEffect(() => {
     if (listPersistenceTimer.current) {
         clearTimeout(listPersistenceTimer.current);
-        listPersistenceTimer.current = null;
     }
-    setListContent(filteredItems);
-  }, [filteredItems]);
+    if (searchTerm === "") {
+         listPersistenceTimer.current = setTimeout(() => {
+            setListContent([]);
+        }, 3000);
+    }
+  }, [searchTerm])
 
 
   useEffect(() => {
@@ -86,7 +99,7 @@ export default function SupermarketPage() {
         setListContent([]);
     }, 3000);
   }, []);
-
+  
   useEffect(() => {
       const clearTimer = () => {
           if (listPersistenceTimer.current) {
