@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +27,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 
-
+const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode';
 
 export default function ItemsPage() {
@@ -46,6 +45,7 @@ export default function ItemsPage() {
   const [filterName, setFilterName] = useState('');
   const [filterCategoryName, setFilterCategoryName] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
@@ -92,6 +92,14 @@ export default function ItemsPage() {
     return filtered;
   }, [items, filterName, filterCategoryName, sortConfig, categories]);
 
+  const totalPages = Math.ceil(sortedAndFilteredItems.length / ITEMS_PER_PAGE);
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedAndFilteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [sortedAndFilteredItems, currentPage]);
+
+
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -117,7 +125,10 @@ export default function ItemsPage() {
 
   return (
     <>
-      <PageHeader title="Gérer les articles" subtitle={isClient && items ? `Vous avez ${items.length} articles au total.` : "Ajoutez, modifiez ou supprimez des produits."}>
+      <PageHeader 
+        title="Gérer les articles" 
+        subtitle={isClient && items ? `Page ${currentPage} sur ${totalPages} (${sortedAndFilteredItems.length} articles sur ${items.length} au total)` : "Ajoutez, modifiez ou supprimez des produits."}
+      >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -132,19 +143,38 @@ export default function ItemsPage() {
       <div className="mt-8">
         <Card>
           <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-4">
-                <Input
-                  placeholder="Filtrer par nom..."
-                  value={filterName}
-                  onChange={(e) => setFilterName(e.target.value)}
-                  className="max-w-sm"
-                />
-                <Input
-                  placeholder="Filtrer par catégorie..."
-                  value={filterCategoryName}
-                  onChange={(e) => setFilterCategoryName(e.target.value)}
-                  className="max-w-sm"
-                />
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <Input
+                    placeholder="Filtrer par nom..."
+                    value={filterName}
+                    onChange={(e) => {
+                      setFilterName(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="max-w-sm"
+                  />
+                  <Input
+                    placeholder="Filtrer par catégorie..."
+                    value={filterCategoryName}
+                    onChange={(e) => {
+                      setFilterCategoryName(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="max-w-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} / {totalPages}
+                    </span>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                </div>
               </div>
               <Table>
                 <TableHeader>
@@ -181,7 +211,7 @@ export default function ItemsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(isLoading || !isClient) && Array.from({length: 5}).map((_, i) => (
+                  {(isLoading || !isClient) && Array.from({length: 10}).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
@@ -192,7 +222,7 @@ export default function ItemsPage() {
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
-                  {isClient && !isLoading && sortedAndFilteredItems && sortedAndFilteredItems.map(item => (
+                  {isClient && !isLoading && paginatedItems && paginatedItems.map(item => (
                     <TableRow key={item.id}>
                       <TableCell>
                         <Image 

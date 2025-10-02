@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -27,6 +27,8 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
+
+const ITEMS_PER_PAGE = 15;
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
@@ -53,6 +55,7 @@ export default function CustomersPage() {
   const [isClient, setIsClient] = useState(false);
   const [filter, setFilter] = useState('');
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   const router = useRouter();
 
@@ -72,7 +75,16 @@ export default function CustomersPage() {
     setEditCustomerOpen(true);
   }
 
-  const filteredCustomers = customers?.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.email?.toLowerCase().includes(filter.toLowerCase()));
+  const filteredCustomers = useMemo(() => 
+    customers?.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.email?.toLowerCase().includes(filter.toLowerCase())) || [],
+  [customers, filter]);
+
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCustomers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredCustomers, currentPage]);
+  
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
 
   const toggleCollapsible = (id: string) => {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));
@@ -80,7 +92,10 @@ export default function CustomersPage() {
 
   return (
     <>
-      <PageHeader title="Gérer les clients" subtitle={isClient && customers ? `Vous avez ${customers.length} clients au total.` : "Affichez et gérez votre liste de clients."}>
+      <PageHeader 
+        title="Gérer les clients" 
+        subtitle={isClient && customers ? `Page ${currentPage} sur ${totalPages} (${filteredCustomers.length} clients sur ${customers.length} au total)` : "Affichez et gérez votre liste de clients."}
+      >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -94,13 +109,27 @@ export default function CustomersPage() {
        <div className="mt-8">
         <Card>
           <CardContent className="pt-6">
-              <div className="mb-4">
+              <div className="flex justify-between items-center mb-4">
                   <Input 
                     placeholder="Rechercher par nom ou email..."
                     value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
+                    onChange={(e) => {
+                      setFilter(e.target.value);
+                      setCurrentPage(1); // Reset to first page on new search
+                    }}
                     className="max-w-sm"
                   />
+                  <div className="flex items-center gap-2">
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} / {totalPages}
+                    </span>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
               </div>
               <Table>
                   <TableHeader>
@@ -122,7 +151,7 @@ export default function CustomersPage() {
                         ))}
                     </TableBody>
                   )}
-                  {isClient && !isLoading && filteredCustomers && filteredCustomers.map(customer => (
+                  {isClient && !isLoading && paginatedCustomers && paginatedCustomers.map(customer => (
                       <TableBody key={customer.id} className="border-b">
                           <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(customer.id)}>
                               <TableCell className="w-[50px]">
@@ -194,5 +223,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-    

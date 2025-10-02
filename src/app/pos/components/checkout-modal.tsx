@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -291,6 +290,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
+    if (!customerSearch) return customers.slice(0, 50); // Show first 50 if no search term
     return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase()));
   }, [customers, customerSearch]);
 

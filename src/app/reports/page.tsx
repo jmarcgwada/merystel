@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -12,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,6 +33,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
+const ITEMS_PER_PAGE = 20;
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp, showIcon?: boolean }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -99,6 +99,7 @@ export default function ReportsPage() {
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
 
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -217,6 +218,14 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter, getCustomerName, getUserName]);
 
+    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredAndSortedSales, currentPage]);
+
+
      const summaryStats = useMemo(() => {
         const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
         const totalSales = filteredAndSortedSales.length;
@@ -254,6 +263,7 @@ export default function ReportsPage() {
         setFilterArticleRef('');
         setFilterSellerName('');
         setGeneralFilter('');
+        setCurrentPage(1);
     }
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => (
@@ -296,7 +306,7 @@ export default function ReportsPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports"
-        subtitle={isClient && filteredAndSortedSales ? `Affichage de ${filteredAndSortedSales.length} ventes sur ${allSales?.length || 0} au total.` : "Analysez vos performances de vente."}
+        subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} ventes sur ${allSales?.length || 0} au total)` : "Analysez vos performances de vente."}
       >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="h-4 w-4" />
@@ -484,6 +494,17 @@ export default function ReportsPage() {
                 <Separator />
             </CardHeader>
             <CardContent>
+                 <div className="flex items-center justify-end gap-2 mb-4">
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} / {totalPages}
+                    </span>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -536,7 +557,7 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && filteredAndSortedSales && filteredAndSortedSales.map(sale => {
+                        {!isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
                             return (
                                 <TableRow key={sale.id}>
