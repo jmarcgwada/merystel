@@ -40,7 +40,7 @@ export interface Item {
   description?: string;
   description2?: string;
   showImage?: boolean;
-  barcode?: string;
+  barcode: string;
   marginCoefficient?: number;
   requiresSerialNumber?: boolean;
   additionalCosts?: number;
