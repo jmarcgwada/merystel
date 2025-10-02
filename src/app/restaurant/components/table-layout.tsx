@@ -6,12 +6,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import type { Table } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Utensils, CircleDollarSign, CheckCircle, Lock } from 'lucide-react';
+import { Utensils, CircleDollarSign, CheckCircle, Lock, User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { useCallback, useEffect, useState } from 'react';
+import type { Timestamp } from 'firebase/firestore';
+
+
+const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        if (!date) {
+            setFormattedDate('');
+            return;
+        }
+        
+        let jsDate: Date;
+        if (date instanceof Date) {
+            jsDate = date;
+        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            jsDate = (date as Timestamp).toDate();
+        } else {
+            jsDate = new Date(date as any);
+        }
+
+        if (!isNaN(jsDate.getTime())) {
+            setFormattedDate(format(jsDate, "HH:mm", { locale: fr }));
+        } else {
+            setFormattedDate('Date invalide');
+        }
+    }, [date]);
+
+    return <>{formattedDate}</>;
+}
 
 
 const statusConfig = {
@@ -37,22 +70,29 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, isLoading, user } = usePos();
+  const { tables, vatRates, isLoading, users, user } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.verrou) {
+    if (table.verrou || (table.lockedBy && table.lockedBy !== user?.uid)) {
         return; // Do nothing if table is locked
     }
     // Navigate to the POS page with the table ID as a query parameter
     router.push(`/pos?tableId=${table.id}`);
   };
 
+  const getUserName = useCallback((userId?: string) => {
+    if (!userId || !users) return 'N/A';
+    const user = users.find(u => u.id === userId);
+    return user ? `${user.firstName} ${user.lastName.charAt(0)}.` : 'Utilisateur inconnu';
+  }, [users]);
+
+
   if (isLoading) {
       return (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {Array.from({ length: 10 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32" />
+                  <Skeleton key={i} className="h-40" />
               ))}
           </div>
       )
@@ -73,14 +113,15 @@ export function TableLayout() {
         const total = subtotal + tax;
 
         const isPermanentlyLocked = table.verrou === true;
-        const isLocked = isPermanentlyLocked;
+        const isTemporarilyLocked = table.lockedBy && table.lockedBy !== user?.uid;
+        const isLocked = isPermanentlyLocked || isTemporarilyLocked;
 
 
         return (
           <Card
             key={table.id}
             className={cn(
-              'transition-all duration-200 relative',
+              'transition-all duration-200 relative flex flex-col',
               config.cardClassName,
               !isLocked && 'cursor-pointer hover:shadow-xl hover:-translate-y-1',
               isLocked && 'opacity-60 cursor-not-allowed'
@@ -97,7 +138,7 @@ export function TableLayout() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col justify-center">
               {(table.status === 'occupied' || table.status === 'paying') && table.id !== 'takeaway' ? (
                 <div className="relative">
                   <p className={cn("text-2xl font-bold text-foreground")}>
@@ -124,10 +165,26 @@ export function TableLayout() {
                             </div>
                         </PopoverContent>
                     </Popover>
+                    {table.occupiedAt && (
+                      <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                        <User className="h-3 w-3"/>
+                        <span>{getUserName(table.occupiedByUserId)}</span>
+                        <Clock className="h-3 w-3 ml-1"/>
+                        <span><ClientFormattedDate date={table.occupiedAt} /></span>
+                      </div>
+                    )}
                 </div>
               ) : (
-                 <div className="h-[52px] flex items-center">
+                 <div className="h-[52px] flex flex-col justify-center">
                     <p className="text-sm text-muted-foreground">{table.id === 'takeaway' ? 'Vente directe au comptoir' : 'Prête pour de nouveaux clients'}</p>
+                    {table.closedAt && (
+                      <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                        <User className="h-3 w-3"/>
+                        <span>{getUserName(table.closedByUserId)}</span>
+                        <Clock className="h-3 w-3 ml-1"/>
+                        <span><ClientFormattedDate date={table.closedAt} /></span>
+                      </div>
+                    )}
                 </div>
               )}
             </CardContent>
