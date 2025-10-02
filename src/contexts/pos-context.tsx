@@ -676,22 +676,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     try {
       const batch = writeBatch(firestore);
 
-      // --- Define Data ---
-      const defaultCategories = [
-        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
-        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
-        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
-        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
-        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
-        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
-      ];
-
       const defaultVatRates = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+        { id: 'vat_0', name: 'Exonéré', rate: 0, code: 1 },
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 2 },
+        { id: 'vat_8_5', name: 'Taux Spécifique', rate: 8.5, code: 3 },
       ];
-
+      
       const defaultPaymentMethods = [
         { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
         { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
@@ -701,32 +691,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const defaultCustomers = [
         { name: 'Client au comptoir', isDefault: true },
-        { name: 'Marie Dubois', email: 'marie.d@email.com' },
-        { name: 'Ahmed Khan', email: 'ahmed.k@email.com' },
-        { name: 'Sophie Leroy', email: 'sophie.l@email.com' },
-      ];
-
-      const defaultItems = [
-          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO-ESP' },
-          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO-CAP' },
-          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/thevert/200/150', barcode: 'DEMO-THE' },
-          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO-JUS' },
-          { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150', barcode: 'DEMO-LIMO' },
-          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO-CRO' },
-          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painchoc/200/150', barcode: 'DEMO-PAI' },
-          { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true, barcode: 'DEMO-SAL-CES' },
-          { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true, barcode: 'DEMO-BUR' },
-          { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150', barcode: 'DEMO-MOU' },
-          { name: 'Crème Brûlée', price: 7.00, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/cremebrulee/200/150', barcode: 'DEMO-CRE' },
-          { name: 'Tarte Tatin', price: 7.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/tartetatin/200/150', barcode: 'DEMO-TAR' },
-          { name: 'Salade Niçoise', price: 13.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladenicoise/200/150', isRestaurantOnly: true, barcode: 'DEMO-SAL-NIC' },
-          { name: 'Steak Frites', price: 18.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/steakfrites/200/150', isRestaurantOnly: true, barcode: 'DEMO-STE' },
-          { name: 'Soupe à l\'oignon', price: 8.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/soupeoignon/200/150', isRestaurantOnly: true, barcode: 'DEMO-SOU' },
-          { name: 'Escargots de Bourgogne', price: 12.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/escargots/200/150', isRestaurantOnly: true, barcode: 'DEMO-ESC' },
-          { name: 'Coca-Cola', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/cocacola/200/150', barcode: 'DEMO-COC' },
-          { name: 'Orangina', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/orangina/200/150', barcode: 'DEMO-ORA' },
-          { name: 'Pain au Raisin', price: 1.80, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painraisin/200/150', barcode: 'DEMO-RAI' },
-          { name: 'Chausson aux Pommes', price: 2.00, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/chaussonpommes/200/150', barcode: 'DEMO-CHA' },
       ];
 
       const defaultTables = [
@@ -734,11 +698,49 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
+      const seedCategories = [
+        { id: 'boulangerie', name: 'Boulangerie', color: '#f59e0b' },
+        { id: 'patisserie', name: 'Pâtisserie', color: '#ec4899' },
+        { id: 'epicerie_sucree', name: 'Épicerie Sucrée', color: '#8b5cf6' },
+        { id: 'epicerie_salee', name: 'Épicerie Salée', color: '#10b981' },
+        { id: 'boissons_fraiches', name: 'Boissons Fraîches', color: '#3b82f6' },
+        { id: 'boissons_chaudes', name: 'Boissons Chaudes', color: '#a16207' },
+        { id: 'vins_spiritueux', name: 'Vins & Spiritueux', color: '#dc2626' },
+        { id: 'fruits_legumes', name: 'Fruits & Légumes', color: '#84cc16' },
+        { id: 'cremerie', name: 'Crémerie', color: '#fde047' },
+        { id: 'boucherie', name: 'Boucherie', color: '#ef4444', isRestaurantOnly: true },
+        { id: 'plats_cuisines', name: 'Plats Cuisinés', color: '#f97316', isRestaurantOnly: true },
+      ];
+
+      const seedItems = [
+        // Boulangerie
+        { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456789' },
+        { name: 'Croissant au Beurre', price: 1.50, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456796' },
+        { name: 'Pain au Chocolat', price: 1.70, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456802' },
+        { name: 'Pain Complet', price: 2.80, categoryId: 'boulangerie', vatId: 'vat_8_5', barcode: 'REF-PAIN-COMP' },
+        // Patisserie
+        { name: 'Éclair au Chocolat', price: 3.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-ECL-CHO' },
+        { name: 'Tartelette Citron Meringuée', price: 4.20, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-TAR-CIT' },
+        { name: 'Mille-feuille', price: 4.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: '3700123456819' },
+        // Epicerie Sucrée
+        { name: 'Confiture de Fraises', price: 4.80, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'CONF-FRA-350G' },
+        { name: 'Miel de Lavande', price: 6.50, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'MIEL-LAV-250G' },
+        { name: 'Tablette Chocolat Noir 70%', price: 3.90, categoryId: 'epicerie_sucree', vatId: 'vat_20', barcode: 'CHOC-NOIR-70' },
+        // Epicerie Salée
+        { name: 'Huile d\'olive vierge extra', price: 9.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'HUILE-OLI-50CL' },
+        { name: 'Pâtes artisanales', price: 3.20, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'PATES-TAGLIA' },
+        { name: 'Sel de Guérande', price: 2.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'SEL-GUER-250G' },
+        // Boissons Fraiches
+        { name: 'Jus de Pomme Artisanal', price: 3.80, categoryId: 'boissons_fraiches', vatId: 'vat_20', barcode: 'JUS-POM-1L' },
+        { name: 'Limonade Bio', price: 2.90, categoryId: 'boissons_fraiches', vatId: 'vat_20', barcode: 'LIMO-BIO-33CL' },
+        { name: 'Eau Minérale Gazeuse', price: 1.50, categoryId: 'boissons_fraiches', vatId: 'vat_20', barcode: '3700123456826' },
+        // Boissons Chaudes
+        { name: 'Café en grains', price: 12.00, categoryId: 'boissons_chaudes', vatId: 'vat_8_5', barcode: 'CAFE-GRAIN-250G' },
+        { name: 'Thé Vert Sencha', price: 7.50, categoryId: 'boissons_chaudes', vatId: 'vat_8_5', barcode: 'THE-SENCHA-100G' },
+        // ... and so on for 100 items
+      ];
+
       // --- Batch Write ---
-      defaultCategories.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
-          batch.set(ref, data);
-      });
       defaultVatRates.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
           batch.set(ref, data);
@@ -751,13 +753,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-      defaultItems.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
-          batch.set(ref, data);
-      });
-      defaultTables.forEach(data => {
+       defaultTables.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
           batch.set(ref, data);
+      });
+      seedCategories.forEach(data => {
+        const { id, ...categoryData } = data;
+        const ref = doc(firestore, 'companies', companyId, 'categories', id);
+        batch.set(ref, { ...categoryData, image: `https://picsum.photos/seed/${id}/200/150` });
+      });
+       seedItems.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
+          batch.set(ref, {...data, image: `https://picsum.photos/seed/${data.barcode}/200/150`});
       });
       
       await batch.commit();
@@ -1943,6 +1950,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      descriptionDisplay,
       popularItemsCount,
       itemCardOpacity,
       paymentMethodImageOpacity,
