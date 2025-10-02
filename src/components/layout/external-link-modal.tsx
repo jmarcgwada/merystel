@@ -54,8 +54,8 @@ export function ExternalLinkModal() {
         className="p-0 border-0 overflow-hidden"
         style={{ width: modalWidth, height: modalHeight, maxWidth: 'none' }}
       >
-        <DialogHeader className="p-2 border-b">
-          <DialogTitle>{externalLinkTitle || 'Lien Externe'}</DialogTitle>
+        <DialogHeader className="p-2 border-b flex-row items-center justify-between">
+          <DialogTitle className="text-base truncate">{externalLinkTitle || 'Lien Externe'}</DialogTitle>
         </DialogHeader>
         <div className="relative w-full h-full">
           {isLoading && (
