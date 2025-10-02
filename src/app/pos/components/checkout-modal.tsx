@@ -155,7 +155,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
   
       handleOpenChange(false);
-    }, 1000);
+    }, 500);
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments]);
 
 
