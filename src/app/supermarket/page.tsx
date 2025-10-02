@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { OrderSummary } from '@/app/pos/components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import { Input } from '@/components/ui/input';
-import { Hand, ScanLine } from 'lucide-react';
+import { Hand, ScanLine, List } from 'lucide-react';
 import { HeldOrdersDrawer } from '@/app/pos/components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,13 +27,16 @@ export default function SupermarketPage() {
     order
   } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
+  const [listContent, setListContent] = useState<Item[]>([]);
   const [isHeldOpen, setHeldOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const listPersistenceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const filteredItems = useMemo(() => {
-    if (searchTerm.length < 3 || !items) {
+    if (!items) return [];
+    if (searchTerm.length < 3) {
       return [];
     }
     const lowercasedTerm = searchTerm.toLowerCase();
@@ -43,6 +46,15 @@ export default function SupermarketPage() {
         (item.barcode && item.barcode.toLowerCase().includes(lowercasedTerm))
     );
   }, [searchTerm, items]);
+
+  useEffect(() => {
+    if (listPersistenceTimer.current) {
+        clearTimeout(listPersistenceTimer.current);
+        listPersistenceTimer.current = null;
+    }
+    setListContent(filteredItems);
+  }, [filteredItems]);
+
 
   useEffect(() => {
     // Reset highlight when search term changes
@@ -64,51 +76,74 @@ export default function SupermarketPage() {
     searchInputRef.current?.focus();
   }, []);
 
-  const handleSearchAndAdd = (term: string) => {
-    if (!term || !items) return;
-
-    const lowercasedTerm = term.toLowerCase();
-    
-    // Prioritize barcode match
-    const foundItem = items.find(
-      (item) => item.barcode && item.barcode.toLowerCase() === lowercasedTerm
-    );
-
-    if (foundItem) {
-        addToOrder(foundItem.id);
-        setSearchTerm(''); // Clear after adding
-    } else {
-        // Fallback to name search if no exact barcode match and only one result
-        const itemsByName = items.filter(item => item.name.toLowerCase().includes(lowercasedTerm));
-        if (itemsByName.length === 1) {
-            addToOrder(itemsByName[0].id);
-            setSearchTerm('');
-        }
-    }
-  };
-  
-  const handleItemClick = (item: Item) => {
-    addToOrder(item.id);
+  const clearSearchWithDelay = useCallback(() => {
     setSearchTerm('');
     searchInputRef.current?.focus();
+    listPersistenceTimer.current = setTimeout(() => {
+        setListContent([]);
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+      const clearTimer = () => {
+          if (listPersistenceTimer.current) {
+              clearTimeout(listPersistenceTimer.current);
+              listPersistenceTimer.current = null;
+              // We can clear the list content here if we want it to disappear immediately on interaction
+              // setListContent([]);
+          }
+      };
+
+      window.addEventListener('keydown', clearTimer);
+      window.addEventListener('mousedown', clearTimer);
+
+      return () => {
+          window.removeEventListener('keydown', clearTimer);
+          window.removeEventListener('mousedown', clearTimer);
+          if (listPersistenceTimer.current) {
+              clearTimeout(listPersistenceTimer.current);
+          }
+      };
+  }, []);
+
+  const handleItemClick = (item: Item) => {
+    addToOrder(item.id);
+    clearSearchWithDelay();
+  };
+
+  const handleShowAll = () => {
+    if (items) {
+        setSearchTerm(''); // Clear search term to avoid confusion
+        setListContent(items);
+        if (listPersistenceTimer.current) {
+            clearTimeout(listPersistenceTimer.current);
+            listPersistenceTimer.current = null;
+        }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
+      setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlightedIndex >= 0 && filteredItems[highlightedIndex]) {
-        handleItemClick(filteredItems[highlightedIndex]);
+      if (highlightedIndex >= 0 && listContent[highlightedIndex]) {
+        handleItemClick(listContent[highlightedIndex]);
       } else {
-        handleSearchAndAdd(searchTerm);
+        const foundItem = items?.find(
+          (item) => item.barcode && item.barcode.toLowerCase() === searchTerm.toLowerCase()
+        );
+        if (foundItem) {
+          handleItemClick(foundItem);
+        }
       }
     }
   };
+
 
   return (
     <>
@@ -116,16 +151,19 @@ export default function SupermarketPage() {
         <div className="md:col-span-8 flex flex-col overflow-hidden">
           <div className="p-4 flex flex-col sm:flex-row items-start gap-4">
               <div className="relative flex-1 w-full">
-                      <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-                  <Input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Scanner ou rechercher un article..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      className="h-16 text-2xl pl-14"
-                  />
+                <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Scanner ou rechercher un article..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="h-16 text-2xl pl-14 pr-14"
+                />
+                <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12" onClick={handleShowAll}>
+                  <List className="h-6 w-6" />
+                </Button>
               </div>
               <Button 
                   variant="outline" 
@@ -143,40 +181,35 @@ export default function SupermarketPage() {
           </div>
             
             <div className="flex-1 flex flex-col overflow-hidden px-4 pb-4">
-                {searchTerm.length >= 3 ? (
+                {listContent.length > 0 ? (
                     <ScrollArea className="flex-1">
                         <div className="p-1 space-y-2">
-                        {filteredItems.length > 0 ? (
-                            filteredItems.map((item, index) => (
-                                <Card
-                                    key={item.id}
-                                    ref={(el) => (itemRefs.current[index] = el)}
-                                    className={cn(
-                                        "flex items-center p-3 cursor-pointer hover:bg-secondary",
-                                        index === highlightedIndex && "bg-secondary border-primary"
-                                    )}
-                                    onDoubleClick={() => handleItemClick(item)}
-                                >
-                                <Image
-                                    src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
-                                    alt={item.name}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-md object-cover mr-4"
-                                    data-ai-hint="product image"
-                                />
-                                <div className="flex-1">
-                                    <p className="font-semibold">{item.name}</p>
-                                    <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
-                                </div>
-                                <p className="text-lg font-bold">{item.price.toFixed(2)}€</p>
-                                </Card>
-                            ))
-                        ) : (
-                            <div className="text-center text-muted-foreground pt-10">
-                            <p>Aucun article trouvé pour "{searchTerm}"</p>
+                        {listContent.map((item, index) => (
+                            <Card
+                                key={item.id}
+                                ref={(el) => (itemRefs.current[index] = el)}
+                                className={cn(
+                                    "flex items-center p-3 cursor-pointer hover:bg-secondary",
+                                    index === highlightedIndex && "bg-secondary border-primary"
+                                )}
+                                onDoubleClick={() => handleItemClick(item)}
+                            >
+                            <Image
+                                src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
+                                alt={item.name}
+                                width={40}
+                                height={40}
+                                className="rounded-md object-cover mr-4"
+                                data-ai-hint="product image"
+                            />
+                            <div className="flex-1">
+                                <p className="font-semibold">{item.name}</p>
+                                <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
                             </div>
-                        )}
+                            <p className="text-lg font-bold">{item.price.toFixed(2)}€</p>
+                            </Card>
+                        ))
+                        }
                         </div>
                     </ScrollArea>
                 ) : (
@@ -184,7 +217,8 @@ export default function SupermarketPage() {
                         <div className="text-center text-muted-foreground">
                             <ScanLine className="mx-auto h-24 w-24 opacity-10" />
                             <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
-                            <p className="text-sm">Commencez à saisir au moins 3 caractères pour rechercher un article.</p>
+                            {searchTerm.length < 3 && <p className="text-sm">Commencez à saisir pour rechercher un article.</p>}
+                            {searchTerm.length >= 3 && <p className="text-sm">Aucun article trouvé pour "{searchTerm}".</p>}
                         </div>
                     </div>
                 )}
