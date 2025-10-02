@@ -11,7 +11,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, Keyboard, ArrowDown, ArrowUp } from 'lucide-react';
+import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -229,11 +229,9 @@ export default function PosPage() {
                             placeholder="Rechercher un article..."
                             value={itemSearchTerm}
                             onChange={(e) => setItemSearchTerm(e.target.value)}
-                            className="pl-9 pr-10"
+                            className="pl-9"
+                            onFocus={handleSearchClick}
                         />
-                        <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
-                            <Keyboard className="h-5 w-5" />
-                        </Button>
                     </div>
                     <div className="flex items-center gap-1">
                       {(canScrollItemsUp || canScrollItemsDown) && (

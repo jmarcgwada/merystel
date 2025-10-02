@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, Keyboard, ArrowDown, ArrowUp } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
@@ -169,12 +168,9 @@ export function CategoryList({
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-10"
+            className="pl-9"
             onFocus={handleSearchClick}
           />
-           <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
-              <Keyboard className="h-5 w-5" />
-          </Button>
         </div>
       </div>
       <div className="flex-1 relative">
@@ -222,19 +218,6 @@ export function CategoryList({
             })}
           </div>
         </ScrollArea>
-        <div className="absolute bottom-4 right-4">
-              <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-12 w-12 rounded-full shadow-lg"
-                  onClick={() => {
-                      setTargetInput({ value: searchTerm, name: 'category-search' });
-                      showKeyboard();
-                  }}
-              >
-                  <Keyboard className="h-6 w-6" />
-              </Button>
-          </div>
       </div>
     </div>
   );

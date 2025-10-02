@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -11,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { User as UserIcon } from 'lucide-react';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 export default function Header() {
   const pathname = usePathname();
@@ -34,11 +34,22 @@ export default function Header() {
   const { user } = useUser();
   const router = useRouter();
 
+  const { showKeyboard, targetInput } = useKeyboard();
   const [isClient, setIsClient] = useState(false);
+  const [showKeyboardBtn, setShowKeyboardBtn] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (targetInput && (targetInput.name === 'category-search' || targetInput.name === 'item-search')) {
+      setShowKeyboardBtn(true);
+    } else {
+      setShowKeyboardBtn(false);
+    }
+  }, [targetInput]);
+
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -94,6 +105,15 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
+           {isClient && showKeyboardBtn && (
+              <Button 
+                variant="outline"
+                size="icon"
+                onClick={showKeyboard}
+              >
+                  <KeyboardIcon className="h-4 w-4" />
+              </Button>
+          )}
           {isClient && externalLinkModalEnabled && (
               <Button 
                 variant="outline"
