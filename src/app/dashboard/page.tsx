@@ -5,16 +5,17 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Item } from '@/lib/types';
+import type { Item, Sale } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -91,6 +92,7 @@ export default function DashboardPage() {
         dashboardButtonBorderColor,
         dashboardButtonTextColor,
         showDashboardStats,
+        users,
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
@@ -123,7 +125,7 @@ export default function DashboardPage() {
     }, [sales]);
     
     const todaysSalesData = useMemo(() => {
-        if (!sales) return { count: 0, lastSaleDate: null, total: 0 };
+        if (!sales || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
         const today = new Date();
         const salesOfToday = sales
             .map(sale => ({
@@ -137,13 +139,21 @@ export default function DashboardPage() {
             .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending by date
 
         const todaysTotal = salesOfToday.reduce((acc, sale) => acc + sale.total, 0);
+        const lastSale = salesOfToday.length > 0 ? salesOfToday[0] : null;
+
+        const lastSaleWithUser = lastSale ? {
+            ...lastSale,
+            userName: users.find(u => u.id === lastSale.userId)?.firstName || 'Inconnu',
+            paymentMethod: lastSale.payments?.[0]?.method.name || 'N/A',
+        } : null;
 
         return {
             count: salesOfToday.length,
-            lastSaleDate: salesOfToday.length > 0 ? salesOfToday[0].date : null,
-            total: todaysTotal
+            total: todaysTotal,
+            lastSale: lastSaleWithUser,
+            averageBasket: salesOfToday.length > 0 ? todaysTotal / salesOfToday.length : 0,
         };
-    }, [sales]);
+    }, [sales, users]);
 
     const popularItems = useMemo(() => {
         if (!sales || !items) return [];
@@ -239,32 +249,77 @@ export default function DashboardPage() {
         />
         
         {isMounted && showDashboardStats && (
-            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-            <Card style={buttonStyle}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
-                    <span className="text-muted-foreground">€</span>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{totalSales.toFixed(2)}€</div>
-                    <p className="text-xs text-muted-foreground">Basé sur toutes les ventes enregistrées</p>
-                </CardContent>
-            </Card>
-            <Card style={buttonStyle}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
-                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">+{todaysSalesData.count} / {todaysSalesData.total.toFixed(2)}€</div>
-                    <div className="text-xs text-muted-foreground">
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card style={buttonStyle}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires du jour</CardTitle>
+                      <span className="text-muted-foreground">€</span>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold">{todaysSalesData.total.toFixed(2)}€</div>
+                       <p className="text-xs text-muted-foreground">
                         {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
-                        {todaysSalesData.lastSaleDate && ` - Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}`}
-                    </div>
-                </CardContent>
-            </Card>
+                      </p>
+                  </CardContent>
+              </Card>
+              <Card style={buttonStyle}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
+                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold">+{todaysSalesData.count}</div>
+                       <p className="text-xs text-muted-foreground">
+                        Nombre total de transactions
+                      </p>
+                  </CardContent>
+              </Card>
+              <Card style={buttonStyle}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Panier moyen du jour</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold">{todaysSalesData.averageBasket.toFixed(2)}€</div>
+                       <p className="text-xs text-muted-foreground">
+                        Montant moyen par transaction
+                      </p>
+                  </CardContent>
+              </Card>
             </div>
         )}
+
+        {isMounted && todaysSalesData.lastSale && (
+          <div className="mt-6">
+            <Card style={buttonStyle} className="bg-accent/10 border-accent/20">
+              <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline">Dernière vente</Badge>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4" />
+                          <span>{format(todaysSalesData.lastSale.date, 'HH:mm')}</span>
+                        </div>
+                         <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4" />
+                          <span>{todaysSalesData.lastSale.userName}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                         <div className="flex items-center gap-2 text-sm">
+                          <CreditCard className="h-4 w-4" />
+                          <Badge variant="secondary">{todaysSalesData.lastSale.paymentMethod}</Badge>
+                        </div>
+                        <div className="text-xl font-bold text-primary">
+                          {todaysSalesData.lastSale.total.toFixed(2)}€
+                        </div>
+                      </div>
+                  </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
 
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -289,7 +344,7 @@ export default function DashboardPage() {
               </div>
           </div>
           <div className="lg:col-span-1">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Top Articles</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Top Articles du Jour</h2>
               <Card style={buttonStyle}>
                   <CardContent className="pt-6">
                       <div className="space-y-4">
