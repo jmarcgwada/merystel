@@ -12,7 +12,7 @@ interface TargetInput {
 interface KeyboardContextType {
     isOpen: boolean;
     showKeyboard: () => void;
-    hideKeyboard: (clearInput?: boolean) => void;
+    hideKeyboard: () => void;
     toggleKeyboard: () => void;
     
     isCaps: boolean;
@@ -38,19 +38,21 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     const [inputValue, setInputValue] = useState("");
     const [activeInput, setActiveInput] = useState<TargetInput | null>(null);
 
+    const clearInput = useCallback(() => {
+        setInputValue('');
+    }, []);
+
     const showKeyboard = useCallback(() => {
         if (activeInput?.name) {
             setIsOpen(true);
         }
     }, [activeInput]);
 
-    const hideKeyboard = useCallback((clearTarget: boolean = true) => {
+    const hideKeyboard = useCallback(() => {
         setIsOpen(false);
-        if (clearTarget) {
-            setInputValue("");
-            setActiveInput(null);
-        }
-    }, []);
+        clearInput();
+        setActiveInput(null);
+    }, [clearInput]);
     
     const toggleKeyboard = useCallback(() => {
         if (isOpen) {
@@ -82,10 +84,6 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
 
     const pressBackspace = useCallback(() => {
         setInputValue(prev => prev.slice(0, -1));
-    }, []);
-
-    const clearInput = useCallback(() => {
-        setInputValue('');
     }, []);
 
     const isKeyboardVisibleInHeader = useMemo(() => {

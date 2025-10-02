@@ -3,7 +3,7 @@
 
 import { useKeyboard } from "@/contexts/keyboard-context";
 import { Button } from "./ui/button";
-import { ArrowLeft, CornerDownLeft, Languages, Delete, X } from "lucide-react";
+import { ArrowLeft, Languages, Delete, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 import { useEffect } from "react";
