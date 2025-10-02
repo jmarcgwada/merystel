@@ -20,6 +20,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
 import { VariantSelectionModal } from './components/variant-selection-modal';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -244,21 +245,25 @@ export default function PosPage() {
                             onFocus={handleSearchFocus}
                         />
                     </div>
-                    <ToggleGroup
-                      type="single"
-                      variant="outline"
-                      value={itemDisplayMode}
-                      onValueChange={(value) => {
-                        if (value) setItemDisplayMode(value as 'grid' | 'list');
-                      }}
-                    >
-                      <ToggleGroupItem value="grid" aria-label="Affichage en grille">
-                        <LayoutGrid className="h-4 w-4" />
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="list" aria-label="Affichage en liste">
-                        <List className="h-4 w-4" />
-                      </ToggleGroupItem>
-                    </ToggleGroup>
+                    {isClient ? (
+                        <ToggleGroup
+                          type="single"
+                          variant="outline"
+                          value={itemDisplayMode}
+                          onValueChange={(value) => {
+                            if (value) setItemDisplayMode(value as 'grid' | 'list');
+                          }}
+                        >
+                          <ToggleGroupItem value="grid" aria-label="Affichage en grille">
+                            <LayoutGrid className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="list" aria-label="Affichage en liste">
+                            <List className="h-4 w-4" />
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                    ) : (
+                        <Skeleton className="h-10 w-[74px]" />
+                    )}
                     <div className="flex items-center gap-1">
                       {(canScrollItemsUp || canScrollItemsDown) && (
                         <>
@@ -290,8 +295,8 @@ export default function PosPage() {
                       )}
                     </div>
                   </div>
-                  {heldOrders && heldOrders.length > 0 && (
-                    <div className="ml-auto">
+                  <div className="ml-auto">
+                    {heldOrders && heldOrders.length > 0 && (
                         <Button 
                             variant="outline" 
                             onClick={() => setHeldOpen(true)} 
@@ -304,8 +309,8 @@ export default function PosPage() {
                             Tickets
                             <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>
                         </Button>
-                    </div>
-                  )}
+                    )}
+                   </div>
                 </div>
             </div>
             <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
