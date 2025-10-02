@@ -85,7 +85,7 @@ export default function PosPage() {
         searchTerm={itemSearchTerm} 
         showFavoritesOnly={showFavoritesOnly}
     />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly]);
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode]);
 
   const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
     const [canScrollUp, setCanScrollUp] = useState(false);
@@ -288,19 +288,21 @@ export default function PosPage() {
                           </Button>
                         </>
                       )}
-                      <Button 
-                          variant="outline" 
-                          onClick={() => setHeldOpen(true)} 
-                          className={cn(
-                              "flex-shrink-0",
-                              heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
-                          )}
-                      >
-                          <Hand className="mr-2 h-4 w-4"/>
-                          Tickets
-                          {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
-                      </Button>
                     </div>
+                  </div>
+                  <div className="ml-auto">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setHeldOpen(true)} 
+                        className={cn(
+                            "flex-shrink-0",
+                            heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
+                        )}
+                    >
+                        <Hand className="mr-2 h-4 w-4"/>
+                        Tickets
+                        {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
+                    </Button>
                   </div>
                 </div>
             </div>
