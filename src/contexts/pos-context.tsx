@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -1877,6 +1878,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
+      setVariantItem,
       lastDirectSale,
       lastRestaurantSale,
       loadTicketForViewing,
@@ -1986,7 +1988,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCurrentSaleContext,
       setRecentlyAddedItemId,
       setSerialNumberItem,
-      setVariantItem,
       setSessionInvalidated,
       setSelectedTable,
       setShowTicketImages,
