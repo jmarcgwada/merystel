@@ -113,36 +113,36 @@ export default function SupermarketPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-        <div className="md:col-span-8 flex flex-col overflow-hidden p-4 gap-4">
-            <div className="flex flex-col sm:flex-row items-start gap-4">
-                <div className="relative flex-1 w-full">
-                        <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-                    <Input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Scanner ou rechercher un article..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="h-16 text-2xl pl-14"
-                    />
-                </div>
-                <Button 
-                    variant="outline" 
-                    onClick={() => setHeldOpen(true)}
-                    disabled={order.length > 0}
-                    className={cn(
-                        "flex-shrink-0 text-lg py-6 px-8 w-full sm:w-auto h-16",
-                        (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
-                    )}
-                >
-                    <Hand className="mr-3 h-5 w-5"/>
-                    Tickets
-                    <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
-                </Button>
-            </div>
+        <div className="md:col-span-8 flex flex-col overflow-hidden">
+          <div className="p-4 flex flex-col sm:flex-row items-start gap-4">
+              <div className="relative flex-1 w-full">
+                      <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                  <Input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Scanner ou rechercher un article..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="h-16 text-2xl pl-14"
+                  />
+              </div>
+              <Button 
+                  variant="outline" 
+                  onClick={() => setHeldOpen(true)}
+                  disabled={order.length > 0}
+                  className={cn(
+                      "flex-shrink-0 text-lg py-6 px-8 w-full sm:w-auto h-16",
+                      (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
+                  )}
+              >
+                  <Hand className="mr-3 h-5 w-5"/>
+                  Tickets
+                  <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
+              </Button>
+          </div>
             
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden px-4 pb-4">
                 {searchTerm.length >= 3 ? (
                     <ScrollArea className="flex-1">
                         <div className="p-1 space-y-2">
@@ -155,7 +155,7 @@ export default function SupermarketPage() {
                                         "flex items-center p-3 cursor-pointer hover:bg-secondary",
                                         index === highlightedIndex && "bg-secondary border-primary"
                                     )}
-                                    onClick={() => handleItemClick(item)}
+                                    onDoubleClick={() => handleItemClick(item)}
                                 >
                                 <Image
                                     src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
