@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
@@ -31,6 +31,7 @@ import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 
@@ -99,9 +100,24 @@ export default function ReportsPage() {
     const [isFiltersOpen, setFiltersOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
 
+    const { setTargetInput, inputValue, targetInput } = useKeyboard();
+    const generalFilterRef = useRef<HTMLInputElement>(null);
+    const customerNameFilterRef = useRef<HTMLInputElement>(null);
+    const sellerNameFilterRef = useRef<HTMLInputElement>(null);
+    const originFilterRef = useRef<HTMLInputElement>(null);
+    const articleRefFilterRef = useRef<HTMLInputElement>(null);
+
      useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    useEffect(() => {
+        if (targetInput?.name === 'reports-general-filter') setGeneralFilter(inputValue);
+        if (targetInput?.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
+        if (targetInput?.name === 'reports-seller-filter') setFilterSellerName(inputValue);
+        if (targetInput?.name === 'reports-origin-filter') setFilterOrigin(inputValue);
+        if (targetInput?.name === 'reports-article-filter') setFilterArticleRef(inputValue);
+    }, [inputValue, targetInput]);
 
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
@@ -371,10 +387,12 @@ export default function ReportsPage() {
                     <CollapsibleContent>
                         <div className="pt-2 pb-4 flex items-center gap-2 flex-wrap">
                             <Input
+                                ref={generalFilterRef}
                                 placeholder="Rechercher désignation..."
                                 value={generalFilter}
                                 onChange={(e) => setGeneralFilter(e.target.value)}
                                 className="max-w-sm"
+                                onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}
                             />
                             <Popover>
                                 <PopoverTrigger asChild>
@@ -414,31 +432,39 @@ export default function ReportsPage() {
                             </Popover>
 
                             <Input
+                                ref={customerNameFilterRef}
                                 placeholder="Filtrer par client..."
                                 value={filterCustomerName}
                                 onChange={(e) => setFilterCustomerName(e.target.value)}
                                 className="max-w-xs"
+                                onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}
                             />
 
                             <Input
+                                ref={sellerNameFilterRef}
                                 placeholder="Filtrer par vendeur..."
                                 value={filterSellerName}
                                 onChange={(e) => setFilterSellerName(e.target.value)}
                                 className="max-w-xs"
+                                onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}
                             />
 
                             <Input
+                                ref={originFilterRef}
                                 placeholder="Filtrer par origine..."
                                 value={filterOrigin}
                                 onChange={(e) => setFilterOrigin(e.target.value)}
                                 className="max-w-xs"
+                                onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}
                             />
 
                             <Input
+                                ref={articleRefFilterRef}
                                 placeholder="Rechercher par article/référence..."
                                 value={filterArticleRef}
                                 onChange={(e) => setFilterArticleRef(e.target.value)}
                                 className="max-w-xs"
+                                onFocus={() => setTargetInput({ value: filterArticleRef, name: 'reports-article-filter', ref: articleRefFilterRef })}
                             />
 
                             <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -553,3 +579,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
