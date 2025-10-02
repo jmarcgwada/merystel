@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -74,7 +75,7 @@ export function TableLayout() {
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.verrou || (table.lockedBy && table.lockedBy !== user?.uid)) {
+    if (table.verrou) {
         return; // Do nothing if table is locked
     }
     // Navigate to the POS page with the table ID as a query parameter
@@ -113,8 +114,7 @@ export function TableLayout() {
         const total = subtotal + tax;
 
         const isPermanentlyLocked = table.verrou === true;
-        const isTemporarilyLocked = table.lockedBy && table.lockedBy !== user?.uid;
-        const isLocked = isPermanentlyLocked || isTemporarilyLocked;
+        const isLocked = isPermanentlyLocked;
 
 
         return (

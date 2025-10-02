@@ -113,7 +113,6 @@ export default function TablesPage() {
                           <TableHead>Description</TableHead>
                           <TableHead>Statut</TableHead>
                           <TableHead>Dernière activité</TableHead>
-                          <TableHead>Verrou</TableHead>
                           <TableHead className="w-[160px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
@@ -126,7 +125,6 @@ export default function TablesPage() {
                               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-12" /></TableCell>
                               <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                           </TableRow>
                       ))}
@@ -161,9 +159,6 @@ export default function TablesPage() {
                                     <span className="flex items-center gap-1.5"><Clock className="h-3 w-3"/><ClientFormattedDate date={table.closedAt} /></span>
                                   </div>
                                 )}
-                              </TableCell>
-                              <TableCell>
-                                  {table.verrou && <Lock className="h-4 w-4 text-destructive" />}
                               </TableCell>
                               <TableCell className="text-right">
                                   <div className="flex justify-end items-center">

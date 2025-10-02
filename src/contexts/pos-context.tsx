@@ -1167,7 +1167,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         batch.update(tableRef, { 
           status: 'available', 
           order: [], 
-          lockedBy: deleteField(), 
           verrou: deleteField(),
           occupiedByUserId: deleteField(),
           occupiedAt: deleteField(),
@@ -1992,7 +1991,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setReadOnlyOrder,
       setIsKeypadOpen,
       setCurrentSaleId,
-      setCurrentSaleContext,
       setRecentlyAddedItemId,
       setSerialNumberItem,
       setSessionInvalidated,

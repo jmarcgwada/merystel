@@ -74,7 +74,6 @@ export interface Table {
   status: 'available' | 'occupied' | 'paying';
   order: OrderItem[];
   covers?: number;
-  lockedBy?: string;
   verrou?: boolean;
   occupiedByUserId?: string;
   occupiedAt?: Date;
@@ -130,7 +129,6 @@ export interface Sale {
   status?: 'paid' | 'pending';
   userId?: string;
   userName?: string;
-  lockedBy?: string;
 }
 
 export interface HeldOrder {
