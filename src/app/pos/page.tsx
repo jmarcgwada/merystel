@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -48,6 +47,7 @@ export default function PosPage() {
   const tableId = searchParams.get('tableId');
   
   const { setTargetInput, inputValue } = useKeyboard();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
   const categoryScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -153,12 +153,9 @@ export default function PosPage() {
     if (!tableId && searchParams.get('from') === 'restaurant') {
         setCameFromRestaurant(true);
     } else if (!tableId && selectedTable) {
-        // This case handles navigating away from a table sale without using the back buttons
-        // which might leave a `selectedTable` in state. This ensures it's cleared.
         setSelectedTableById(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId]);
+  }, [tableId, searchParams, setSelectedTableById, setCameFromRestaurant, selectedTable]);
 
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';
@@ -186,6 +183,7 @@ export default function PosPage() {
     setTargetInput({
       value: itemSearchTerm,
       name: 'item-search',
+      ref: searchInputRef,
     });
   };
   
@@ -226,6 +224,7 @@ export default function PosPage() {
                     <div className="relative w-full max-w-sm flex items-center">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
+                            ref={searchInputRef}
                             placeholder="Rechercher un article..."
                             value={itemSearchTerm}
                             onChange={(e) => setItemSearchTerm(e.target.value)}

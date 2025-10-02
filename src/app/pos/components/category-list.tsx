@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -41,11 +41,11 @@ export function CategoryList({
   const { setTargetInput, inputValue } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
 
   useEffect(() => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -58,31 +58,27 @@ export function CategoryList({
     setTargetInput({
       value: searchTerm,
       name: 'category-search',
+      ref: searchInputRef,
     });
   };
 
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
     
-    // Start with search term filter
     let baseCategories = categories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If a table is selected (restaurant mode), filter based on restaurant-only flag if enabled
     if (selectedTable && enableRestaurantCategoryFilter) {
-      // Show categories that are specifically for restaurants, or not specifically for direct sale
       const restaurantCategories = baseCategories.filter(category => category.isRestaurantOnly === true);
       const generalCategories = baseCategories.filter(category => category.isRestaurantOnly !== true);
       return [...restaurantCategories, ...generalCategories];
     }
     
-    // In direct sale mode, show all categories matching the search, excluding those ONLY for restaurant
     if (!selectedTable) {
         return baseCategories.filter(category => category.isRestaurantOnly !== true);
     }
     
-    // Fallback for restaurant mode if filter is disabled
     return baseCategories;
 
   }, [categories, searchTerm, selectedTable, enableRestaurantCategoryFilter]);
@@ -103,12 +99,12 @@ export function CategoryList({
       return {
         backgroundColor: category.color,
         color: 'white',
-        '--hover-bg-color': `${category.color}E6` // 90% opacity for hover
+        '--hover-bg-color': `${category.color}E6`
       };
     }
     if (isHovered && category.color) {
         return {
-            backgroundColor: `${category.color}33`, // Add alpha for hover effect
+            backgroundColor: `${category.color}33`,
         }
     }
     return {
@@ -165,6 +161,7 @@ export function CategoryList({
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
+            ref={searchInputRef}
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

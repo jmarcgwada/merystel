@@ -34,7 +34,7 @@ export default function Header() {
   const { user } = useUser();
   const router = useRouter();
 
-  const { showKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
+  const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function Header() {
               <Button 
                 variant="outline"
                 size="icon"
-                onClick={showKeyboard}
+                onClick={toggleKeyboard}
               >
                   <KeyboardIcon className="h-4 w-4" />
               </Button>

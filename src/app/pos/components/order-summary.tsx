@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -129,7 +128,7 @@ export function OrderSummary() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldReplaceValue, setShouldReplaceValue] = useState(true);
 
-  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   const [isClient, setIsClient] = useState(false);
@@ -243,12 +242,12 @@ export function OrderSummary() {
   }
 
   const handleOpenVirtualKeyboardForNote = () => {
-    if(!selectedItem) return;
+    if(!selectedItem || !noteInputRef.current) return;
     setTargetInput({
         value: selectedItem.note || '',
-        name: `item-note-${selectedItem.id}`
+        name: `item-note-${selectedItem.id}`,
+        ref: noteInputRef,
     });
-    showKeyboard();
   }
 
 
@@ -308,9 +307,7 @@ export function OrderSummary() {
         return { previousSale: null, nextSale: null };
     }
     
-    // Previous sale in time is next in the DESC sorted array
     const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
-    // Next sale in time is previous in the DESC sorted array
     const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
 
     return { previousSale, nextSale };
@@ -882,4 +879,3 @@ export function OrderSummary() {
     </>
   );
 }
-

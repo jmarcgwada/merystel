@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { ArrowLeft, CornerDownLeft, Languages, Delete } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
+import { useEffect } from "react";
 
 const Key = ({
   children,
@@ -39,7 +40,15 @@ export function VirtualKeyboard() {
     pressKey,
     pressSpace,
     pressBackspace,
+    targetInput,
   } = useKeyboard();
+
+  useEffect(() => {
+    if (isOpen && targetInput?.ref.current) {
+        // Give focus back to the input that triggered the keyboard
+        targetInput.ref.current.focus();
+    }
+  }, [isOpen, targetInput]);
 
   const keys = [
     ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
