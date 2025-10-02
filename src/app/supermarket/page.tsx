@@ -50,34 +50,32 @@ export default function SupermarketPage() {
   useEffect(() => {
     if (searchTerm.length >= 3) {
       setListContent(filteredItems);
-    } else if (!listPersistenceTimer.current) {
+    } else {
+      if (!listPersistenceTimer.current) {
         setListContent([]);
+      }
     }
   }, [searchTerm, filteredItems]);
 
   useEffect(() => {
-    if (listPersistenceTimer.current) {
-        clearTimeout(listPersistenceTimer.current);
-    }
-    if (searchTerm === "") {
-         listPersistenceTimer.current = setTimeout(() => {
-            setListContent([]);
-        }, 3000);
-    }
-
     return () => {
       if (listPersistenceTimer.current) {
         clearTimeout(listPersistenceTimer.current);
       }
     };
-  }, [searchTerm])
+  }, []);
 
-
-  useEffect(() => {
-    // Reset highlight when search term changes
-    setHighlightedIndex(-1);
-    itemRefs.current = []; // Reset refs array
-  }, [searchTerm]);
+  const clearSearchWithDelay = useCallback(() => {
+    setSearchTerm('');
+    searchInputRef.current?.focus();
+    if (listPersistenceTimer.current) {
+      clearTimeout(listPersistenceTimer.current);
+    }
+    listPersistenceTimer.current = setTimeout(() => {
+      setListContent([]);
+      listPersistenceTimer.current = null;
+    }, 3000);
+  }, []);
   
   useEffect(() => {
     if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
@@ -89,58 +87,20 @@ export default function SupermarketPage() {
   }, [highlightedIndex]);
 
   useEffect(() => {
-    // Auto-focus the input on page load
     searchInputRef.current?.focus();
-  }, []);
-
-  const clearSearchWithDelay = useCallback(() => {
-    setSearchTerm('');
-    searchInputRef.current?.focus();
-    if (listPersistenceTimer.current) {
-        clearTimeout(listPersistenceTimer.current);
-    }
-    listPersistenceTimer.current = setTimeout(() => {
-        setListContent([]);
-    }, 3000);
-  }, []);
-  
-  useEffect(() => {
-      const clearTimer = () => {
-          if (listPersistenceTimer.current) {
-              clearTimeout(listPersistenceTimer.current);
-              listPersistenceTimer.current = null;
-          }
-      };
-
-      window.addEventListener('keydown', clearTimer);
-      window.addEventListener('mousedown', clearTimer);
-
-      return () => {
-          window.removeEventListener('keydown', clearTimer);
-          window.removeEventListener('mousedown', clearTimer);
-          if (listPersistenceTimer.current) {
-              clearTimeout(listPersistenceTimer.current);
-          }
-      };
   }, []);
 
   const handleItemClick = (item: Item) => {
     addToOrder(item.id);
     clearSearchWithDelay();
   };
-
-  const handleShowAll = () => {
-    if (items) {
-        setSearchTerm(''); 
-        setListContent(items);
-        if (listPersistenceTimer.current) {
-            clearTimeout(listPersistenceTimer.current);
-            listPersistenceTimer.current = null;
-        }
-    }
-  };
-
+  
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (listPersistenceTimer.current) {
+      clearTimeout(listPersistenceTimer.current);
+      listPersistenceTimer.current = null;
+    }
+    
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
@@ -162,6 +122,16 @@ export default function SupermarketPage() {
     }
   };
 
+  const handleShowAll = () => {
+    if (items) {
+        setSearchTerm(''); 
+        setListContent(items);
+        if (listPersistenceTimer.current) {
+            clearTimeout(listPersistenceTimer.current);
+            listPersistenceTimer.current = null;
+        }
+    }
+  };
 
   return (
     <>
