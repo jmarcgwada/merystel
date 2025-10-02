@@ -40,6 +40,7 @@ export default function PosPage() {
   const { 
     setSelectedTableById, 
     heldOrders, 
+    order,
     isKeypadOpen, 
     popularItemsCount, 
     selectedTable, 
@@ -161,15 +162,12 @@ export default function PosPage() {
   }, [inputValue, targetInput]);
 
   useEffect(() => {
-    // This effect ensures the context is updated when the URL changes.
-    // It's the key to making table selection reliable.
     if (tableId) {
         setSelectedTableById(tableId);
     } else if (searchParams.get('from') === 'restaurant') {
         setCameFromRestaurant(true);
         setSelectedTableById(null);
     } else if (!tableId && selectedTable) {
-        // If we are on /pos without a tableId, but a table is still selected in context, clear it.
         setSelectedTableById(null);
     }
   }, [tableId, searchParams, setSelectedTableById, setCameFromRestaurant, selectedTable]);
@@ -301,20 +299,19 @@ export default function PosPage() {
                     </div>
                   </div>
                   <div className="ml-auto">
-                    {heldOrders && heldOrders.length > 0 && (
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setHeldOpen(true)} 
-                            className={cn(
-                                "flex-shrink-0",
-                                'animate-pulse-button'
-                            )}
-                        >
-                            <Hand className="mr-2 h-4 w-4"/>
-                            Tickets
-                            <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>
-                        </Button>
-                    )}
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setHeldOpen(true)}
+                        disabled={order.length > 0}
+                        className={cn(
+                            "flex-shrink-0",
+                            (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
+                        )}
+                    >
+                        <Hand className="mr-2 h-4 w-4"/>
+                        Tickets
+                        <Badge variant="secondary" className="ml-2">{heldOrders?.length || 0}</Badge>
+                    </Button>
                    </div>
                 </div>
             </div>
