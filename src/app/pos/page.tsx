@@ -290,20 +290,22 @@ export default function PosPage() {
                       )}
                     </div>
                   </div>
-                  <div className="ml-auto">
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setHeldOpen(true)} 
-                        className={cn(
-                            "flex-shrink-0",
-                            heldOrders && heldOrders.length > 0 && 'animate-pulse-button'
-                        )}
-                    >
-                        <Hand className="mr-2 h-4 w-4"/>
-                        Tickets
-                        {heldOrders && heldOrders.length > 0 && <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>}
-                    </Button>
-                  </div>
+                  {heldOrders && heldOrders.length > 0 && (
+                    <div className="ml-auto">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setHeldOpen(true)} 
+                            className={cn(
+                                "flex-shrink-0",
+                                'animate-pulse-button'
+                            )}
+                        >
+                            <Hand className="mr-2 h-4 w-4"/>
+                            Tickets
+                            <Badge variant="secondary" className="ml-2">{heldOrders.length}</Badge>
+                        </Button>
+                    </div>
+                  )}
                 </div>
             </div>
             <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
