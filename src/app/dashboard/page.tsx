@@ -238,8 +238,8 @@ export default function DashboardPage() {
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         />
         
-        {showDashboardStats && (
-            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {isMounted && showDashboardStats && (
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-2">
             <Card style={buttonStyle}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
@@ -261,16 +261,6 @@ export default function DashboardPage() {
                         {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
                         {todaysSalesData.lastSaleDate && ` - Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}`}
                     </div>
-                </CardContent>
-            </Card>
-            <Card style={buttonStyle}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Panier Moyen</CardTitle>
-                    <span className="text-muted-foreground">€</span>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{sales && sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
-                    <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
                 </CardContent>
             </Card>
             </div>
