@@ -646,7 +646,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     description: item.description,
                     categoryId: newCategoryRef.id,
                     vatId: defaultVatId,
-                    image: `https://picsum.photos/seed/${newItemRef.id}/200/150`
+                    image: `https://picsum.photos/seed/${newItemRef.id}/200/150`,
+                    barcode: `${newCategoryRef.id.slice(0,3)}${newItemRef.id.slice(0,8)}`
                 });
             }
         }
@@ -706,26 +707,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       ];
 
       const defaultItems = [
-          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/espresso/200/150' },
-          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true },
-          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/thevert/200/150' },
-          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true },
-          { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150' },
-          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true },
-          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painchoc/200/150' },
-          { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true },
-          { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true },
-          { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150' },
-          { name: 'Crème Brûlée', price: 7.00, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/cremebrulee/200/150' },
-          { name: 'Tarte Tatin', price: 7.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/tartetatin/200/150' },
-          { name: 'Salade Niçoise', price: 13.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladenicoise/200/150', isRestaurantOnly: true },
-          { name: 'Steak Frites', price: 18.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/steakfrites/200/150', isRestaurantOnly: true },
-          { name: 'Soupe à l\'oignon', price: 8.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/soupeoignon/200/150', isRestaurantOnly: true },
-          { name: 'Escargots de Bourgogne', price: 12.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/escargots/200/150', isRestaurantOnly: true },
-          { name: 'Coca-Cola', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/cocacola/200/150' },
-          { name: 'Orangina', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/orangina/200/150' },
-          { name: 'Pain au Raisin', price: 1.80, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painraisin/200/150' },
-          { name: 'Chausson aux Pommes', price: 2.00, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/chaussonpommes/200/150' },
+          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO-ESP' },
+          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO-CAP' },
+          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/thevert/200/150', barcode: 'DEMO-THE' },
+          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO-JUS' },
+          { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150', barcode: 'DEMO-LIMO' },
+          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO-CRO' },
+          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painchoc/200/150', barcode: 'DEMO-PAI' },
+          { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true, barcode: 'DEMO-SAL-CES' },
+          { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true, barcode: 'DEMO-BUR' },
+          { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150', barcode: 'DEMO-MOU' },
+          { name: 'Crème Brûlée', price: 7.00, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/cremebrulee/200/150', barcode: 'DEMO-CRE' },
+          { name: 'Tarte Tatin', price: 7.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/tartetatin/200/150', barcode: 'DEMO-TAR' },
+          { name: 'Salade Niçoise', price: 13.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladenicoise/200/150', isRestaurantOnly: true, barcode: 'DEMO-SAL-NIC' },
+          { name: 'Steak Frites', price: 18.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/steakfrites/200/150', isRestaurantOnly: true, barcode: 'DEMO-STE' },
+          { name: 'Soupe à l\'oignon', price: 8.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/soupeoignon/200/150', isRestaurantOnly: true, barcode: 'DEMO-SOU' },
+          { name: 'Escargots de Bourgogne', price: 12.00, categoryId: 'cat_entrees', vatId: 'vat_10', image: 'https://picsum.photos/seed/escargots/200/150', isRestaurantOnly: true, barcode: 'DEMO-ESC' },
+          { name: 'Coca-Cola', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/cocacola/200/150', barcode: 'DEMO-COC' },
+          { name: 'Orangina', price: 3.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/orangina/200/150', barcode: 'DEMO-ORA' },
+          { name: 'Pain au Raisin', price: 1.80, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painraisin/200/150', barcode: 'DEMO-RAI' },
+          { name: 'Chausson aux Pommes', price: 2.00, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/chaussonpommes/200/150', barcode: 'DEMO-CHA' },
       ];
 
       const defaultTables = [
@@ -2028,6 +2029,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonShowBorder,
       setDashboardButtonBorderColor,
       setCameFromRestaurant,
+      setCurrentSaleContext,
     ]
   );
 

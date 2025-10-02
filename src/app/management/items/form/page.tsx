@@ -42,7 +42,7 @@ const formSchema = z.object({
   isFavorite: z.boolean().default(false),
   image: z.string().optional(),
   showImage: z.boolean().default(true),
-  barcode: z.string().optional(),
+  barcode: z.string().min(1, { message: 'Le code-barres est obligatoire.' }),
   marginCoefficient: z.coerce.number().optional(),
   requiresSerialNumber: z.boolean().default(false),
   additionalCosts: z.coerce.number().optional(),
@@ -173,9 +173,17 @@ function ItemForm() {
   }, [isEditMode, form, itemId, setValue]);
 
 
-  function onSubmit(data: ItemFormValues) {
+  async function onSubmit(data: ItemFormValues) {
     if (isCashier) {
         toast({ variant: 'destructive', title: 'Accès non autorisé' });
+        return;
+    }
+
+    // Check for barcode uniqueness
+    const barcodeExists = items.some(item => item.barcode === data.barcode && item.id !== itemId);
+    if (barcodeExists) {
+        form.setError('barcode', { type: 'manual', message: 'Ce code-barres est déjà utilisé.' });
+        toast({ variant: 'destructive', title: 'Code-barres dupliqué', description: 'Veuillez utiliser un code-barres unique.' });
         return;
     }
 
