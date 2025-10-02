@@ -71,10 +71,10 @@ export function CategoryList({
     );
 
     // If a table is selected (restaurant mode), show only categories marked for restaurant
-    if (selectedTable) {
-        return baseCategories.filter(category => category.isRestaurantOnly === true);
+    if (selectedTable && enableRestaurantCategoryFilter) {
+        return baseCategories.filter(category => category.isRestaurantOnly === true || !category.isRestaurantOnly);
     }
-
+    
     // In direct sale mode, show all categories matching the search
     return baseCategories;
 
@@ -116,7 +116,7 @@ export function CategoryList({
 
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col relative">
       <div className="p-4 border-b">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-bold tracking-tight font-headline">
@@ -161,11 +161,9 @@ export function CategoryList({
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-10"
+            className="pl-9"
+            onFocus={handleSearchClick}
           />
-          <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
-            <Keyboard className="h-5 w-5" />
-          </Button>
         </div>
       </div>
       <ScrollArea className="flex-1" viewportRef={scrollRef}>
@@ -212,6 +210,19 @@ export function CategoryList({
           })}
         </div>
       </ScrollArea>
+       <div className="absolute bottom-4 right-4">
+            <Button
+                variant="secondary"
+                size="icon"
+                className="h-12 w-12 rounded-full shadow-lg"
+                onClick={() => {
+                    setTargetInput({ value: searchTerm, name: 'category-search' });
+                    showKeyboard();
+                }}
+            >
+                <Keyboard className="h-6 w-6" />
+            </Button>
+        </div>
     </div>
   );
 }
