@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut, ArrowLeft } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -25,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import Link from 'next/link';
 
 
 export default function UsersPage() {
@@ -88,27 +90,19 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader title="Gérer les utilisateurs" subtitle={isClient && users ? `Vous avez ${users.length} utilisateurs au total.` : "Ajoutez, modifiez ou supprimez des utilisateurs."}>
-        {!isManager && (
-            <>
-                <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-                <RefreshCw className="h-4 w-4" />
-                </Button>
-                <Button onClick={() => router.push('/settings/users/form')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un utilisateur
-                </Button>
-            </>
-        )}
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline" className="btn-back">
+                <Link href="/settings">
+                    <ArrowLeft />
+                    Retour aux paramètres
+                </Link>
+            </Button>
+            <Button onClick={() => router.push('/settings/users/form')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un utilisateur
+            </Button>
+        </div>
       </PageHeader>
-        {isManager && (
-            <Alert className="mt-8">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Mode lecture seule</AlertTitle>
-                <AlertDescription>
-                    En tant que manager, vous ne pouvez que consulter la liste des utilisateurs.
-                </AlertDescription>
-            </Alert>
-        )}
        <div className="mt-8">
         <Card>
           <CardContent className="pt-6">
