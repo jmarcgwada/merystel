@@ -72,7 +72,7 @@ interface PosContextType {
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
-  addToOrder: (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => void;
+  addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
@@ -126,6 +126,7 @@ interface PosContextType {
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
+  getCategoryColor: (categoryId: string) => string | undefined;
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
@@ -218,11 +219,11 @@ interface PosContextType {
   dashboardBackgroundImage: string;
   setDashboardBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   dashboardBgOpacity: number;
-  setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setDashboardBgOpacity: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -244,6 +245,7 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
 }
+
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 // Helper function to remove undefined properties from an object before sending to Firebase
@@ -285,6 +287,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
 }
 
+
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
@@ -305,6 +308,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
   const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
   const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
+  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
+  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
@@ -321,17 +335,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
-  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
-  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
-  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
-  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
-  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
-  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
     
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -798,20 +801,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    if (readOnlyOrder) {
-      setReadOnlyOrder(null);
-    }
+    setReadOnlyOrder(null);
     if(selectedTable && selectedTable.lockedBy) {
         const tableRef = getDocRef('tables', selectedTable.id);
         if (tableRef) {
-          await updateDoc(tableRef, { lockedBy: deleteField() });
+          await updateDoc(tableRef, { lockedBy: null });
         }
     }
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, getDocRef, readOnlyOrder]);
+  }, [selectedTable, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1009,7 +1010,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-            await updateDoc(tableRef, { status: 'occupied', lockedBy: deleteField() });
+            await updateDoc(tableRef, { status: 'occupied', lockedBy: null });
         }
         await clearOrder();
         routerRef.current.push('/restaurant');
@@ -1040,7 +1041,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await updateDoc(tableRef, { status: 'available', lockedBy: deleteField() });
+        await updateDoc(tableRef, { status: 'available', lockedBy: null });
       }
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
@@ -1094,11 +1095,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (!tableId) await clearOrder();
         return;
     }
-    
-    // Unlocking the previously selected table if there was one
+
     if (selectedTable && selectedTable.id !== tableId) {
         const previousTableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
-        await updateDoc(previousTableRef, { lockedBy: deleteField() });
+        await updateDoc(previousTableRef, { lockedBy: null });
     }
 
     if (!tableId) {
@@ -1109,7 +1109,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     
     if (tableId === 'takeaway') {
-        routerRef.current.push('/pos?from=restaurant');
+        setCameFromRestaurant(true);
+        await clearOrder();
+        routerRef.current.push('/pos');
         return;
     }
 
@@ -1186,7 +1188,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
-            lockedBy: deleteField()
+            lockedBy: null
           });
           toast({ title: 'Table sauvegardée' });
           await clearOrder();
@@ -1201,7 +1203,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField(), verrou: deleteField() });
+        batch.update(tableRef, { status: 'available', order: [], lockedBy: null, verrou: deleteField() });
       }
       
       // Also delete any associated held order for that table
@@ -1222,7 +1224,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addTable = useCallback(
     (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-      const newTable: Omit<Table, 'id'> = {
+      const newTable: Omit<Table, 'id' | 'lockedBy'> = {
         ...tableData,
         number: Date.now() % 10000,
         status: 'available' as const,
@@ -1257,7 +1259,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-          batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
+          batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
         }
       }
       // If sale comes from a recalled held order, delete the held order
@@ -1484,6 +1486,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [categories, updateEntity]
   );
 
+  const getCategoryColor = useCallback((categoryId: string) => {
+    if (!categories) return undefined;
+    return categories.find(c => c.id === categoryId)?.color;
+  }, [categories]);
+
   const addItem = useCallback(
     (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé'),
     [addEntity]
@@ -1669,8 +1676,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return { lastDirectSale: null, lastRestaurantSale: null };
     }
     const sortedSales = [...sales].sort((a, b) => {
-        const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
-        const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date);
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -1680,8 +1687,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return { lastDirectSale, lastRestaurantSale };
   }, [sales]);
 
-  const loadTicketForViewing = useCallback((sale: Sale) => {
-    setReadOnlyOrder(sale.items.map(item => ({...item, sourceSale: sale })));
+  const loadTicketForViewing = useCallback((ticket: Sale) => {
+    setOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
+    setIsViewOnlyOrder(true);
+    setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
+    setCurrentSaleContext({
+      ticketNumber: ticket.ticketNumber,
+      date: ticket.date,
+      userName: ticket.userName,
+      isTableSale: !!ticket.tableId,
+      tableName: ticket.tableName,
+      tableId: ticket.tableId,
+      payments: ticket.payments,
+      originalTotal: ticket.originalTotal,
+      originalPayments: ticket.originalPayments
+    });
   }, []);
   // #endregion
   
@@ -1703,7 +1723,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     () => ({
       order,
       setOrder,
-      readOnlyOrder, 
+      readOnlyOrder,
       setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
@@ -1754,6 +1774,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
+      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -1867,9 +1888,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       order,
-      setOrder,
       readOnlyOrder,
-      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -1883,11 +1902,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isKeypadOpen,
       currentSaleId,
       currentSaleContext,
-      setCurrentSaleContext,
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
-      setVariantItem,
       lastDirectSale,
       lastRestaurantSale,
       loadTicketForViewing,
@@ -1914,6 +1931,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
+      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -1945,6 +1963,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      descriptionDisplay,
       popularItemsCount,
       itemCardOpacity,
       paymentMethodImageOpacity,
@@ -1990,33 +2009,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       holdOrder,
-      setSessionInvalidated,
-      setEnableRestaurantCategoryFilter,
-      setDashboardBgType,
-      setDashboardBackgroundColor,
-      setDashboardBackgroundImage,
-      setDashboardBgOpacity,
-      setDashboardButtonBackgroundColor,
-      setDashboardButtonOpacity,
-      setDashboardButtonShowBorder,
-      setDashboardButtonBorderColor,
-      setDirectSaleBackgroundColor,
-      setRestaurantModeBackgroundColor,
-      setDirectSaleBgOpacity,
-      setRestaurantModeBgOpacity,
-      setItemCardOpacity,
-      setPaymentMethodImageOpacity,
-      setPopularItemsCount,
-      setShowTicketImages,
-      setDescriptionDisplay,
-      setEnableSerialNumber,
-      setShowNotifications,
-      setNotificationDuration,
-      setSerialNumberItem,
+      setOrder,
+      setReadOnlyOrder,
       setIsKeypadOpen,
-      setRecentlyAddedItemId,
       setCurrentSaleId,
-      setCameFromRestaurant,
+      setCurrentSaleContext,
+      setRecentlyAddedItemId,
+      setSerialNumberItem,
+      setVariantItem,
+      setSessionInvalidated,
       setItemDisplayMode,
       setItemCardShowImageAsBackground,
       setItemCardImageOverlayOpacity,
@@ -2028,8 +2029,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setExternalLinkModalWidth,
       setExternalLinkModalHeight,
       setShowDashboardStats,
+      setEnableRestaurantCategoryFilter,
+      setShowNotifications,
+      setNotificationDuration,
+      setEnableSerialNumber,
+      setDirectSaleBackgroundColor,
+      setRestaurantModeBackgroundColor,
+      setDirectSaleBgOpacity,
+      setRestaurantModeBgOpacity,
+      setDashboardBgType,
+      setDashboardBackgroundColor,
+      setDashboardBackgroundImage,
+      setDashboardBgOpacity,
+      setDashboardButtonBackgroundColor,
+      setDashboardButtonOpacity,
+      setDashboardButtonShowBorder,
+      setDashboardButtonBorderColor,
+      setCameFromRestaurant,
     ]
   );
+
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
 }
 
@@ -2040,3 +2059,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
