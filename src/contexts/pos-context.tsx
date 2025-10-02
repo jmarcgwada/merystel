@@ -1028,27 +1028,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedTableById = useCallback(
     (tableId: string | null) => {
-      if (!tableId) {
-        clearOrder();
-        return;
-      }
-
-      if (tableId === 'takeaway') {
-        setCameFromRestaurant(true);
-        clearOrder();
-        return;
-      }
-      
-      const tableToSelect = tables.find((t) => t.id === tableId);
-      if (tableToSelect) {
-        setSelectedTable(tableToSelect);
-        setOrder(tableToSelect.order || []);
-        setCurrentSaleId(null);
-        setCurrentSaleContext({
-            tableId: tableToSelect.id,
-            tableName: tableToSelect.name,
-            isTableSale: true,
-        });
+      if (tableId && tableId === 'takeaway') {
+          setCameFromRestaurant(true);
+          clearOrder();
+          routerRef.current.push('/pos?from=restaurant');
+      } else {
+          const tableToSelect = tableId ? tables.find((t) => t.id === tableId) : null;
+          setSelectedTable(tableToSelect || null);
+          setOrder(tableToSelect?.order || []);
+          setCurrentSaleId(null);
+          setCurrentSaleContext({
+              tableId: tableToSelect?.id,
+              tableName: tableToSelect?.name,
+              isTableSale: !!tableToSelect && tableToSelect.id !== 'takeaway'
+          });
       }
     },
     [tables, clearOrder, setCameFromRestaurant]
@@ -1397,18 +1390,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
     }, [toast, handleSignOut]);
 
-    const forceSignOutUser = useCallback(async (userId: string) => {
-        const userRef = doc(firestore, 'users', userId);
+    const forceSignOutUser = useCallback(
+      async (userId: string) => {
+        const userRef = getDocRef('users', userId, true);
+        if (!userRef) return;
         try {
-            await updateDoc(userRef, {
-                sessionToken: deleteField()
-            });
-            toast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
+          await updateDoc(userRef, { sessionToken: deleteField() });
+          // The onSnapshot listener for the users collection will automatically update the UI.
+          toast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
         } catch (error) {
-            console.error("Error forcing user sign out:", error);
-            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
+          console.error("Error forcing user sign out:", error);
+          toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
         }
-    }, [firestore, toast]);
+      },
+      [getDocRef, toast]
+    );
 
   // #endregion
 
