@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy, ArrowRight, Eye, Lock } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,7 +20,6 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -75,12 +75,11 @@ export function OrderSummary() {
   const { 
     order, 
     setOrder,
-    readOnlyOrder,
+    readOnlyOrder, 
     setReadOnlyOrder,
-    loadTicketForViewing,
-    sales,
     lastDirectSale,
     lastRestaurantSale,
+    loadTicketForViewing,
     removeFromOrder, 
     clearOrder, 
     orderTotal, 
@@ -110,10 +109,6 @@ export function OrderSummary() {
     setSerialNumberItem,
     cameFromRestaurant,
     setCameFromRestaurant,
-    lockSale, 
-    unlockSale,
-    users,
-    user
   } = usePos();
   
   const { toast } = useToast();
@@ -289,30 +284,6 @@ export function OrderSummary() {
     setKeypadValue('');
   }
 
-  const { previousSale, nextSale } = useMemo(() => {
-    if (!readOnlyOrder || !sales || sales.length === 0) {
-      return { previousSale: null, nextSale: null };
-    }
-    const currentSaleId = readOnlyOrder[0]?.sourceSale?.id;
-    if (!currentSaleId) return { previousSale: null, nextSale: null };
-
-    const sortedSales = [...sales].sort((a, b) => {
-        const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
-        const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
-    });
-
-    const currentIndex = sortedSales.findIndex(s => s.id === currentSaleId);
-    if (currentIndex === -1) {
-        return { previousSale: null, nextSale: null };
-    }
-    
-    const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
-    const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
-
-    return { previousSale, nextSale };
-  }, [sales, readOnlyOrder]);
-  
   const getTitle = () => {
     const saleForTitle = readOnlyOrder?.[0]?.sourceSale || currentSaleContext;
 
@@ -383,24 +354,9 @@ export function OrderSummary() {
   }
 
   const HeaderAction = () => {
-    const currentSaleId = readOnlyOrder?.[0]?.sourceSale?.id;
-
-    if (readOnlyOrder && currentSaleId) {
-        return (
-            <div className="flex items-center gap-2">
-                 <Button asChild variant="ghost" size="icon">
-                    <Link href={`/reports/${currentSaleId}?from=pos`}>
-                        <Eye />
-                    </Link>
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => previousSale && loadTicketForViewing(previousSale)} disabled={!previousSale}>
-                    <ArrowLeft />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => nextSale && loadTicketForViewing(nextSale)} disabled={!nextSale}>
-                    <ArrowRight />
-                </Button>
-            </div>
-        )
+    if (readOnlyOrder) {
+        // No actions available in view-only mode for now
+        return null;
     }
 
     if (selectedTable) {
@@ -458,31 +414,9 @@ export function OrderSummary() {
     }
   }
 
-  const handleEditTicket = async () => {
+  const handleEditTicket = () => {
     if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
         const sale = readOnlyOrder[0].sourceSale;
-
-        if (sale.modifiedAt) {
-            toast({
-                variant: 'destructive',
-                title: 'Modification impossible',
-                description: 'Ce ticket a déjà été modifié et ne peut plus l\'être.'
-            });
-            return;
-        }
-
-        const locked = await lockSale(sale.id);
-        if (!locked) {
-            const lockingUser = users.find(u => u.id === sale.lockedBy);
-            const lockingUserName = lockingUser ? `${lockingUser.firstName} ${lockingUser.lastName}` : 'un autre utilisateur';
-            toast({
-                variant: 'destructive',
-                title: 'Ticket verrouillé',
-                description: `Ce ticket est actuellement en cours de modification par ${lockingUserName}.`
-            });
-            return;
-        }
-
         const itemsToEdit = readOnlyOrder.map(item => {
             const { sourceSale, ...rest } = item;
             return rest;
@@ -493,16 +427,13 @@ export function OrderSummary() {
             ticketNumber: sale.ticketNumber,
             date: sale.date,
             userName: sale.userName,
-            originalPayments: sale.payments, 
-            originalTotal: sale.total,
             isTableSale: !!sale.tableId,
             tableName: sale.tableName,
             tableId: sale.tableId,
-            change: sale.change || 0,
         });
         setReadOnlyOrder(null);
     }
-};
+  };
 
   const handlePrint = () => {
     window.print();
@@ -519,20 +450,7 @@ export function OrderSummary() {
             setCurrentSaleId(null);
             setCurrentSaleContext(null);
             toast({ title: 'Ticket dupliqué', description: 'La commande est prête pour un nouvel encaissement.' });
-        } else if (currentSaleContext?.ticketNumber) {
-            // Case where we are already in modification mode for a ticket.
-            // We just need to clear the original sale context and open checkout.
-            setCurrentSaleId(null);
-            setCurrentSaleContext(null);
-            setCheckoutOpen(true);
         }
-    };
-  
-    const handleCancelModification = async () => {
-        if (currentSaleId) {
-            await unlockSale(currentSaleId);
-        }
-        await clearOrder();
     };
 
 
@@ -773,22 +691,14 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                  <div className='w-full grid grid-cols-1 gap-2'>
-                    {readOnlyOrder[0]?.sourceSale?.lockedBy && readOnlyOrder[0]?.sourceSale?.lockedBy !== user?.uid ? (
-                         <Button size="lg" className="w-full" disabled>
-                            <Lock className="mr-2" />
-                            Verrouillé par un autre utilisateur
-                        </Button>
-                    ) : readOnlyOrder[0]?.sourceSale?.modifiedAt ? (
-                        <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
-                            <Copy className="mr-2" />
-                            Dupliquer
-                        </Button>
-                    ) : (
-                        <Button size="lg" className="w-full" onClick={handleEditTicket}>
-                            <Edit className="mr-2" />
-                            Modifier
-                        </Button>
-                    )}
+                    <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                        <Edit className="mr-2" />
+                        Modifier
+                    </Button>
+                    <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
+                        <Copy className="mr-2" />
+                        Dupliquer
+                    </Button>
                     <div className="grid grid-cols-2 gap-2">
                         <Button size="lg" className="w-full" onClick={handlePrint}>
                             <Printer className="mr-2" />
@@ -823,49 +733,24 @@ export function OrderSummary() {
                 </>
               ) : (
                 <>
-                  {currentSaleContext?.ticketNumber ? (
-                      <div className="w-full grid grid-cols-2 gap-2">
-                         <Button
-                            size="lg"
-                            variant="destructive"
-                            className="w-full"
-                            disabled={isKeypadOpen}
-                            onClick={handleCancelModification}
-                         >
-                            <X className="mr-2 h-4 w-4" />
-                            Annuler la modification
-                        </Button>
-                        <Button
-                            size="lg"
-                            className="w-full"
-                            disabled={order.length === 0 || isKeypadOpen}
-                            onClick={() => setCheckoutOpen(true)}
-                        >
-                            Valider la modification
-                        </Button>
-                      </div>
-                  ) : (
-                    <>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="w-full"
-                        disabled={order.length === 0 || isKeypadOpen}
-                        onClick={holdOrder}
-                      >
-                        <Hand className="mr-2 h-4 w-4" />
-                        Mettre en attente
-                      </Button>
-                      <Button
-                        size="lg"
-                        className="w-full"
-                        disabled={order.length === 0 || isKeypadOpen}
-                        onClick={() => setCheckoutOpen(true)}
-                      >
-                        Payer maintenant
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={holdOrder}
+                  >
+                    <Hand className="mr-2 h-4 w-4" />
+                    Mettre en attente
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={order.length === 0 || isKeypadOpen}
+                    onClick={() => setCheckoutOpen(true)}
+                  >
+                    Payer maintenant
+                  </Button>
                 </>
               )}
             </div>

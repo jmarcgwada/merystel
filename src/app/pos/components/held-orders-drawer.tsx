@@ -42,7 +42,7 @@ const formatDate = (date: Date | Timestamp) => {
 }
 
 export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
-  const { heldOrders, recallOrder, deleteHeldOrder } = usePos();
+  const { heldOrders, recallOrder, deleteHeldOrder, lastDirectSale, lastRestaurantSale, loadTicketForViewing } = usePos();
 
   const handleRecall = (orderId: string) => {
     recallOrder(orderId);
@@ -53,20 +53,29 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="p-6 pb-4">
-          <SheetTitle>Tickets en attente</SheetTitle>
+          <SheetTitle>Tickets en attente & Récents</SheetTitle>
           <SheetDescription>
-            Rappelez une commande en attente pour la finaliser ou consultez son contenu.
+            Rappelez une commande en attente ou consultez les derniers tickets finalisés.
           </SheetDescription>
         </SheetHeader>
         
         <Separator />
-
-        {!heldOrders || heldOrders.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-muted-foreground">Aucun ticket en attente.</p>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Derniers tickets clôturés</h3>
+            <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => lastDirectSale && loadTicketForViewing(lastDirectSale)} disabled={!lastDirectSale}>Vente directe</Button>
+                <Button variant="outline" onClick={() => lastRestaurantSale && loadTicketForViewing(lastRestaurantSale)} disabled={!lastRestaurantSale}>Restaurant</Button>
+            </div>
           </div>
-        ) : (
-          <ScrollArea className="flex-1">
+          <Separator />
+
+          {!heldOrders || heldOrders.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <p className="text-muted-foreground">Aucun ticket en attente.</p>
+            </div>
+          ) : (
             <Accordion type="multiple" className="w-full">
               {heldOrders.map((order) => {
                  return (
@@ -121,8 +130,8 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
                  )
                 })}
             </Accordion>
-          </ScrollArea>
-        )}
+          )}
+        </ScrollArea>
         
         <SheetFooter className="p-6 pt-4 mt-auto border-t">
             <Button variant="outline" className="w-full" onClick={onClose}>Fermer</Button>
