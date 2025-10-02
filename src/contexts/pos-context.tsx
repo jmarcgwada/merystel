@@ -1026,50 +1026,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [deleteEntity, toast]);
 
-  const setSelectedTableById = useCallback(async (tableId: string | null) => {
-    if (!tableId) {
-        setSelectedTable(null);
-        setOrder([]);
-        setCurrentSaleContext(null);
+  const setSelectedTableById = useCallback(
+    (tableId: string | null) => {
+      if (!tableId) {
+        clearOrder();
         return;
-    }
-    
-    if (tableId === 'takeaway') {
+      }
+
+      if (tableId === 'takeaway') {
         setCameFromRestaurant(true);
-        await clearOrder();
-        routerRef.current.push('/pos');
+        clearOrder();
         return;
-    }
-    
-    const tableToSelect = tables.find(t => t.id === tableId);
-    if (tableToSelect) {
-        if(tableToSelect.status === 'occupied' || tableToSelect.status === 'paying') {
-            const newHeldOrder: Omit<HeldOrder, 'id'> = {
-                date: new Date(),
-                items: tableToSelect.order,
-                total: tableToSelect.order.reduce((sum, item) => sum + item.total, 0),
-                tableId: tableToSelect.id,
-                tableName: tableToSelect.name
-            };
-            const addedOrder = await addEntity('heldOrders', newHeldOrder, '');
-            if (addedOrder) {
-                const tableRef = getDocRef('tables', tableId);
-                if(tableRef) await updateDoc(tableRef, { order: [] });
-                await recallOrder(addedOrder.id);
-            }
-        } else {
-            setSelectedTable(tableToSelect);
-            setOrder(tableToSelect.order || []);
-            setCurrentSaleId(null);
-            setCurrentSaleContext({
-                tableId: tableToSelect.id,
-                tableName: tableToSelect.name,
-                isTableSale: true,
-            });
-            routerRef.current.push(`/pos?tableId=${tableId}`);
-        }
-    }
-  }, [tables, toast, clearOrder, recallOrder, addEntity, getDocRef]);
+      }
+      
+      const tableToSelect = tables.find((t) => t.id === tableId);
+      if (tableToSelect) {
+        setSelectedTable(tableToSelect);
+        setOrder(tableToSelect.order || []);
+        setCurrentSaleId(null);
+        setCurrentSaleContext({
+            tableId: tableToSelect.id,
+            tableName: tableToSelect.name,
+            isTableSale: true,
+        });
+      }
+    },
+    [tables, clearOrder, setCameFromRestaurant]
+  );
   
   const holdOrder = useCallback(async () => {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {

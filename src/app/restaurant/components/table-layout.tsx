@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -38,19 +37,15 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, setCameFromRestaurant, isLoading, setSelectedTableById, user } = usePos();
+  const { tables, vatRates, isLoading, user } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
-    if (table.verrou || (table.lockedBy && table.lockedBy !== user?.uid)) {
+    if (table.verrou) {
         return; // Do nothing if table is locked
     }
-    if (table.id === 'takeaway') {
-      setCameFromRestaurant(true);
-      router.push('/pos');
-    } else {
-      setSelectedTableById(table.id);
-    }
+    // Navigate to the POS page with the table ID as a query parameter
+    router.push(`/pos?tableId=${table.id}`);
   };
 
   if (isLoading) {
@@ -78,8 +73,7 @@ export function TableLayout() {
         const total = subtotal + tax;
 
         const isPermanentlyLocked = table.verrou === true;
-        const isTemporarilyLocked = table.lockedBy && table.lockedBy !== user?.uid;
-        const isLocked = isPermanentlyLocked || isTemporarilyLocked;
+        const isLocked = isPermanentlyLocked;
 
 
         return (
@@ -88,7 +82,7 @@ export function TableLayout() {
             className={cn(
               'transition-all duration-200 relative',
               config.cardClassName,
-              table.id !== 'takeaway' && !isLocked && 'cursor-pointer hover:shadow-xl hover:-translate-y-1',
+              !isLocked && 'cursor-pointer hover:shadow-xl hover:-translate-y-1',
               isLocked && 'opacity-60 cursor-not-allowed'
             )}
             onClick={() => handleTableSelect(table)}

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -162,13 +161,19 @@ export default function PosPage() {
   }, [inputValue, targetInput]);
 
   useEffect(() => {
-    setSelectedTableById(tableId);
-    if (!tableId && searchParams.get('from') === 'restaurant') {
+    // This effect ensures the context is updated when the URL changes.
+    // It's the key to making table selection reliable.
+    if (tableId) {
+        setSelectedTableById(tableId);
+    } else if (searchParams.get('from') === 'restaurant') {
         setCameFromRestaurant(true);
+        setSelectedTableById(null);
     } else if (!tableId && selectedTable) {
+        // If we are on /pos without a tableId, but a table is still selected in context, clear it.
         setSelectedTableById(null);
     }
   }, [tableId, searchParams, setSelectedTableById, setCameFromRestaurant, selectedTable]);
+
 
   const pageTitle = useMemo(() => {
     if (showFavoritesOnly) return 'Favoris';
