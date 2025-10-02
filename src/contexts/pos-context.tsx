@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -47,7 +46,6 @@ import {
   getDoc,
   updateDoc,
   deleteField,
-  runTransaction,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -219,11 +217,11 @@ interface PosContextType {
   dashboardBackgroundImage: string;
   setDashboardBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   dashboardBgOpacity: number;
-  setDashboardBgOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -801,18 +799,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    setReadOnlyOrder(null);
-    if(selectedTable && selectedTable.lockedBy) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-          await updateDoc(tableRef, { lockedBy: null });
-        }
+    if (readOnlyOrder) {
+      setReadOnlyOrder(null);
     }
     setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, getDocRef]);
+  }, [readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -826,20 +820,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const addSerializedItemToOrder = useCallback((item: Item, quantity: number, serialNumbers: string[]) => {
     const newOrderItem: OrderItem = {
-      ...item,
+      itemId: item.id,
+      id: uuidv4(),
+      name: item.name,
+      price: item.price,
+      vatId: item.vatId,
+      image: item.image,
       quantity,
       total: item.price * quantity,
       discount: 0,
+      description: item.description,
+      description2: item.description2,
       serialNumbers: serialNumbers,
     };
     
     setOrder(currentOrder => {
-        const existingItemIndex = currentOrder.findIndex(i => i.id === item.id);
-        if (existingItemIndex > -1) {
+        const existingItemIndex = currentOrder.findIndex(i => i.itemId === item.id);
+        if (existingItemIndex > -1 && currentOrder[existingItemIndex].serialNumbers?.length === serialNumbers.length) {
             const newOrder = [...currentOrder];
-            const existingItem = newOrder[existingItemIndex];
-            // When updating, we replace the item entirely, including quantity and serials.
-            newOrder[existingItemIndex] = newOrderItem;
+            newOrder[existingItemIndex] = { ...newOrder[existingItemIndex], serialNumbers };
+            return newOrder;
+        } else if (existingItemIndex > -1) {
+            const newOrder = [...currentOrder.filter(i => i.itemId !== item.id), newOrderItem];
             return newOrder;
         }
         return [...currentOrder, newOrderItem];
@@ -849,37 +851,37 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const addToOrder = useCallback(
-    (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => {
+    (itemId: string, selectedVariants?: SelectedVariant[]) => {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
-      const existingItem = order.find(
-        (item) => item.itemId === itemId && !item.selectedVariants
+      const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
+
+      const existingItemIndex = order.findIndex(
+        (item) => item.itemId === itemId && JSON.stringify(item.selectedVariants) === JSON.stringify(selectedVariants)
       );
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
-          const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
+          const newQuantity = (order[existingItemIndex]?.quantity || 0) + 1;
           setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
           return;
       }
 
       setOrder((currentOrder) => {
-        if (existingItem && !selectedVariants) { // Do not group items with variants
+        if (existingItemIndex > -1) { // Group identical items (with same variants)
           const newOrder = [...currentOrder];
-          const newQuantity = existingItem.quantity + 1;
-          const existingItemIndex = newOrder.findIndex(i => i.itemId === itemId && !i.selectedVariants);
+          const newQuantity = newOrder[existingItemIndex].quantity + 1;
           newOrder[existingItemIndex] = {
-            ...existingItem,
+            ...newOrder[existingItemIndex],
             quantity: newQuantity,
             total:
-              existingItem.price * newQuantity - (existingItem.discount || 0),
+              newOrder[existingItemIndex].price * newQuantity - (newOrder[existingItemIndex].discount || 0),
           };
            // Move to top
            const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
           return [itemToMove, ...newOrder];
         } else {
-          const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
           const newItem: OrderItem = {
             itemId: itemToAdd.id,
             id: uniqueId,
@@ -897,7 +899,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [newItem, ...currentOrder];
         }
       });
-      triggerItemHighlight(itemToAdd.id);
+      triggerItemHighlight(uniqueId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
@@ -1006,11 +1008,73 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Held Order & Table Management
+  const recallOrder = useCallback(async (orderId: string) => {
+    if (!heldOrdersRef.current) return;
+    const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
+    if (orderToRecall) {
+      setOrder(orderToRecall.items);
+      setCurrentSaleId(orderToRecall.id);
+      setSelectedTable(null); // Ensure no table is selected
+      setCurrentSaleContext({
+          tableId: orderToRecall.tableId,
+          tableName: orderToRecall.tableName,
+      });
+      await deleteEntity('heldOrders', orderId, '');
+      toast({ title: 'Commande rappelée' });
+      routerRef.current.push('/pos');
+    }
+  }, [deleteEntity, toast]);
+
+  const setSelectedTableById = useCallback(async (tableId: string | null) => {
+    if (!tableId) {
+        setSelectedTable(null);
+        setOrder([]);
+        setCurrentSaleContext(null);
+        return;
+    }
+    
+    if (tableId === 'takeaway') {
+        setCameFromRestaurant(true);
+        await clearOrder();
+        routerRef.current.push('/pos');
+        return;
+    }
+    
+    const tableToSelect = tables.find(t => t.id === tableId);
+    if (tableToSelect) {
+        if(tableToSelect.status === 'occupied' || tableToSelect.status === 'paying') {
+            const newHeldOrder: Omit<HeldOrder, 'id'> = {
+                date: new Date(),
+                items: tableToSelect.order,
+                total: tableToSelect.order.reduce((sum, item) => sum + item.total, 0),
+                tableId: tableToSelect.id,
+                tableName: tableToSelect.name
+            };
+            const addedOrder = await addEntity('heldOrders', newHeldOrder, '');
+            if (addedOrder) {
+                const tableRef = getDocRef('tables', tableId);
+                if(tableRef) await updateDoc(tableRef, { order: [] });
+                await recallOrder(addedOrder.id);
+            }
+        } else {
+            setSelectedTable(tableToSelect);
+            setOrder(tableToSelect.order || []);
+            setCurrentSaleId(null);
+            setCurrentSaleContext({
+                tableId: tableToSelect.id,
+                tableName: tableToSelect.name,
+                isTableSale: true,
+            });
+            routerRef.current.push(`/pos?tableId=${tableId}`);
+        }
+    }
+  }, [tables, toast, clearOrder, recallOrder, addEntity, getDocRef]);
+  
   const holdOrder = useCallback(async () => {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-            await updateDoc(tableRef, { status: 'occupied', lockedBy: null });
+            await updateDoc(tableRef, { status: 'occupied' });
         }
         await clearOrder();
         routerRef.current.push('/restaurant');
@@ -1041,29 +1105,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
       
       if (tableRef) {
-        await updateDoc(tableRef, { status: 'available', lockedBy: null });
+        await updateDoc(tableRef, { status: 'available' });
       }
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
     [heldOrders, getDocRef, deleteEntity, toast, updateDoc]
   );
-
-  const recallOrder = useCallback(async (orderId: string) => {
-    if (!heldOrdersRef.current || !user) return;
-    const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
-    if (orderToRecall) {
-      setOrder(orderToRecall.items);
-      setCurrentSaleId(orderToRecall.id);
-      setSelectedTable(null); // Ensure no table is selected
-      setCurrentSaleContext({
-          tableId: orderToRecall.tableId,
-          tableName: orderToRecall.tableName,
-      });
-      await deleteEntity('heldOrders', orderId, '');
-      toast({ title: 'Commande rappelée' });
-      routerRef.current.push('/pos');
-    }
-  }, [user, deleteEntity, toast]);
   
   const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
@@ -1074,7 +1121,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         await updateDoc(tableRef, {
           order: orderData.map(cleanDataForFirebase),
           status: 'paying',
-          lockedBy: user?.uid
         });
         setCurrentSaleId(`table-${tableId}`);
         setCurrentSaleContext({
@@ -1089,79 +1135,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast, tables, user]
   );
-
-  const setSelectedTableById = useCallback(async (tableId: string | null) => {
-    if (!firestore || !user) {
-        if (!tableId) await clearOrder();
-        return;
-    }
-
-    if (selectedTable && selectedTable.id !== tableId) {
-        const previousTableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
-        await updateDoc(previousTableRef, { lockedBy: null });
-    }
-
-    if (!tableId) {
-        setSelectedTable(null);
-        setOrder([]);
-        setCurrentSaleContext(null);
-        return;
-    }
-    
-    if (tableId === 'takeaway') {
-        setCameFromRestaurant(true);
-        await clearOrder();
-        routerRef.current.push('/pos');
-        return;
-    }
-
-    const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', tableId);
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const tableDoc = await transaction.get(tableRef);
-            if (!tableDoc.exists()) {
-                throw new Error("La table n'existe pas.");
-            }
-            const tableData = tableDoc.data() as Table;
-
-            if (tableData.verrou) {
-                 throw new Error("Cette table est verrouillée et ne peut pas être sélectionnée.");
-            }
-            if (tableData.lockedBy && tableData.lockedBy !== user.uid) {
-                const lockingUserDoc = await getDoc(doc(firestore, 'users', tableData.lockedBy));
-                const lockingUserName = lockingUserDoc.exists() ? `${lockingUserDoc.data().firstName} ${lockingUserDoc.data().lastName}` : "un autre utilisateur";
-                throw new Error(`Table actuellement utilisée par ${lockingUserName}.`);
-            }
-
-            if (tableData.status === 'available') {
-                transaction.update(tableRef, { lockedBy: user.uid });
-            }
-        });
-        
-        const updatedTableDoc = await getDoc(tableRef);
-        const tableData = { ...updatedTableDoc.data(), id: updatedTableDoc.id } as Table;
-        
-        if (tableData.status === 'paying') {
-            promoteTableToTicket(tableData.id, tableData.order);
-        } else {
-            setSelectedTable(tableData);
-            setOrder(tableData.order || []);
-        }
-        
-        setCurrentSaleId(null);
-        setCurrentSaleContext({
-            tableId: tableData.id,
-            tableName: tableData.name,
-        });
-        routerRef.current.push(`/pos?tableId=${tableId}`);
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Accès impossible',
-            description: error.message,
-        });
-    }
-  }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables, selectedTable]);
 
   const updateTableOrder = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
@@ -1188,7 +1161,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
-            lockedBy: null
           });
           toast({ title: 'Table sauvegardée' });
           await clearOrder();
@@ -1203,7 +1175,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], lockedBy: null, verrou: deleteField() });
+        batch.update(tableRef, { status: 'available', order: [], verrou: deleteField() });
       }
       
       // Also delete any associated held order for that table
@@ -1224,11 +1196,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const addTable = useCallback(
     (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-      const newTable: Omit<Table, 'id' | 'lockedBy'> = {
+      const newTable: Omit<Table, 'id'> = {
         ...tableData,
         number: Date.now() % 10000,
         status: 'available' as const,
         order: [],
+        verrou: false,
       };
       addEntity('tables', newTable, 'Table créée');
     },
@@ -1259,7 +1232,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-          batch.update(tableRef, { status: 'available', order: [], lockedBy: null });
+          batch.update(tableRef, { status: 'available', order: [] });
         }
       }
       // If sale comes from a recalled held order, delete the held order
@@ -1425,7 +1398,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         await signOut(auth);
         localStorage.removeItem('sessionToken');
     }, [auth, user, firestore]);
-
 
     const validateSession = useCallback((userId: string, token: string) => {
         const user = users.find(u => u.id === userId);
@@ -1652,12 +1624,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
     sales.forEach((sale) => {
       sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.id]) {
-          itemCounts[orderItem.id].count += orderItem.quantity;
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
         } else {
-          const itemDetails = items.find((i) => i.id === orderItem.id);
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
           if (itemDetails) {
-            itemCounts[orderItem.id] = {
+            itemCounts[orderItem.itemId] = {
               item: itemDetails,
               count: orderItem.quantity,
             };
@@ -1670,7 +1642,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       .slice(0, popularItemsCount)
       .map((i) => i.item);
   }, [sales, items, popularItemsCount]);
-
+  
   const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
     if (!sales || sales.length === 0) {
         return { lastDirectSale: null, lastRestaurantSale: null };
@@ -1688,8 +1660,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [sales]);
 
   const loadTicketForViewing = useCallback((ticket: Sale) => {
-    setOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
-    setIsViewOnlyOrder(true);
+    const itemsWithSource = ticket.items.map(item => ({ ...item, sourceSale: ticket }));
+    setReadOnlyOrder(itemsWithSource);
     setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
     setCurrentSaleContext({
       ticketNumber: ticket.ticketNumber,
@@ -1943,7 +1915,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteTable,
       forceFreeTable,
       selectedTable,
-      setSelectedTable,
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
@@ -1963,7 +1934,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      descriptionDisplay,
       popularItemsCount,
       itemCardOpacity,
       paymentMethodImageOpacity,
@@ -2018,6 +1988,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setSerialNumberItem,
       setVariantItem,
       setSessionInvalidated,
+      setSelectedTable,
+      setShowTicketImages,
+      setDescriptionDisplay,
+      setPopularItemsCount,
+      setItemCardOpacity,
+      setPaymentMethodImageOpacity,
       setItemDisplayMode,
       setItemCardShowImageAsBackground,
       setItemCardImageOverlayOpacity,
@@ -2059,5 +2035,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
