@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, {
@@ -230,6 +231,17 @@ interface PosContextType {
   dashboardButtonBorderColor: string;
   setDashboardButtonBorderColor: React.Dispatch<React.SetStateAction<string>>;
 
+  externalLinkModalEnabled: boolean;
+  setExternalLinkModalEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  externalLinkUrl: string;
+  setExternalLinkUrl: React.Dispatch<React.SetStateAction<string>>;
+  externalLinkTitle: string;
+  setExternalLinkTitle: React.Dispatch<React.SetStateAction<string>>;
+  externalLinkModalWidth: number;
+  setExternalLinkModalWidth: React.Dispatch<React.SetStateAction<number>>;
+  externalLinkModalHeight: number;
+  setExternalLinkModalHeight: React.Dispatch<React.SetStateAction<number>>;
+
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
 
@@ -336,6 +348,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 20);
   const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'light');
   const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', 'Lien Externe');
+  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
 
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -1929,6 +1946,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
       setDashboardButtonBorderColor,
+      externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
+      externalLinkUrl,
+      setExternalLinkUrl,
+      externalLinkTitle,
+      setExternalLinkTitle,
+      externalLinkModalWidth,
+      setExternalLinkModalWidth,
+      externalLinkModalHeight,
+      setExternalLinkModalHeight,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2074,6 +2101,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
       setDashboardButtonBorderColor,
+      externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
+      externalLinkUrl,
+      setExternalLinkUrl,
+      externalLinkTitle,
+      setExternalLinkTitle,
+      externalLinkModalWidth,
+      setExternalLinkModalWidth,
+      externalLinkModalHeight,
+      setExternalLinkModalHeight,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,

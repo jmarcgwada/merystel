@@ -10,10 +10,12 @@ import { Switch } from '@/components/ui/switch';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 
 
 export default function CustomizationPage() {
@@ -36,10 +38,23 @@ export default function CustomizationPage() {
     setItemCardTextColor,
     itemCardShowPrice,
     setItemCardShowPrice,
+    externalLinkModalEnabled,
+    setExternalLinkModalEnabled,
+    externalLinkUrl,
+    setExternalLinkUrl,
+    externalLinkTitle,
+    setExternalLinkTitle,
+    externalLinkModalWidth,
+    setExternalLinkModalWidth,
+    externalLinkModalHeight,
+    setExternalLinkModalHeight,
    } = usePos();
 
   const [isClient, setIsClient] = useState(false);
   const [currentPopularItemsCount, setCurrentPopularItemsCount] = useState(popularItemsCount);
+  const [currentWidth, setCurrentWidth] = useState(externalLinkModalWidth);
+  const [currentHeight, setCurrentHeight] = useState(externalLinkModalHeight);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -48,8 +63,10 @@ export default function CustomizationPage() {
   useEffect(() => {
     if(isClient) {
       setCurrentPopularItemsCount(popularItemsCount);
+      setCurrentWidth(externalLinkModalWidth);
+      setCurrentHeight(externalLinkModalHeight);
     }
-  }, [popularItemsCount, isClient]);
+  }, [popularItemsCount, externalLinkModalWidth, externalLinkModalHeight, isClient]);
 
   const handlePopularItemsChange = (value: number[]) => {
       setCurrentPopularItemsCount(value[0]);
@@ -73,6 +90,92 @@ export default function CustomizationPage() {
         </Button>
       </PageHeader>
       <div className="mt-8 space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Fenêtre Modale Externe</CardTitle>
+            <CardDescription>
+              Affichez un lien externe dans une fenêtre modale accessible depuis l'en-tête de l'application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-4">
+             <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="external-link-enabled" className="text-base">Activer la modale de lien externe</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Affiche un bouton dans l'en-tête pour ouvrir le lien dans une modale.
+                  </p>
+                </div>
+                {isClient ? (
+                  <Switch 
+                    id="external-link-enabled" 
+                    checked={externalLinkModalEnabled}
+                    onCheckedChange={setExternalLinkModalEnabled}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
+            </div>
+            <div className="space-y-6" style={{ opacity: externalLinkModalEnabled ? 1 : 0.5 }}>
+                 <div className="grid gap-2">
+                    <Label htmlFor="external-link-url">URL du lien</Label>
+                    <div className="flex items-center">
+                        <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                        <Input 
+                            id="external-link-url"
+                            value={externalLinkUrl}
+                            onChange={(e) => setExternalLinkUrl(e.target.value)}
+                            placeholder="https://example.com"
+                            className="pl-9"
+                            disabled={!externalLinkModalEnabled}
+                        />
+                    </div>
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="external-link-title">Titre de la fenêtre</Label>
+                    <Input 
+                        id="external-link-title"
+                        value={externalLinkTitle}
+                        onChange={(e) => setExternalLinkTitle(e.target.value)}
+                        placeholder="Titre de la modale"
+                        disabled={!externalLinkModalEnabled}
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                     <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="external-link-width">Largeur de la fenêtre (% de l'écran)</Label>
+                            {isClient && <span className="text-sm font-bold text-primary">{currentWidth}%</span>}
+                        </div>
+                        {isClient ? (
+                          <Slider 
+                              id="external-link-width"
+                              value={[currentWidth]} 
+                              onValueChange={(v) => setCurrentWidth(v[0])}
+                              onValueCommit={(v) => setExternalLinkModalWidth(v[0])}
+                              min={10} max={100} step={5}
+                              disabled={!externalLinkModalEnabled}
+                          />
+                        ) : <Skeleton className="h-5 w-full" />}
+                    </div>
+                     <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="external-link-height">Hauteur de la fenêtre (% de l'écran)</Label>
+                            {isClient && <span className="text-sm font-bold text-primary">{currentHeight}%</span>}
+                        </div>
+                        {isClient ? (
+                          <Slider 
+                              id="external-link-height"
+                              value={[currentHeight]} 
+                              onValueChange={(v) => setCurrentHeight(v[0])}
+                              onValueCommit={(v) => setExternalLinkModalHeight(v[0])}
+                              min={10} max={100} step={5} 
+                              disabled={!externalLinkModalEnabled}
+                          />
+                        ) : <Skeleton className="h-5 w-full" />}
+                    </div>
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Visibilité des éléments</CardTitle>

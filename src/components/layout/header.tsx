@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, ExternalLink } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +20,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { User as UserIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
-  const { showNavConfirm, order, companyInfo, handleSignOut: handlePosSignOut } = usePos();
+  const { 
+    showNavConfirm, 
+    order, 
+    companyInfo, 
+    handleSignOut: handlePosSignOut,
+    externalLinkModalEnabled,
+    setExternalLinkModalEnabled, // Assuming a function to toggle the modal
+  } = usePos();
   const { user } = useUser();
   const router = useRouter();
+
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -40,7 +53,6 @@ export default function Header() {
   };
   
   const canAccessCompanySettings = user?.role === 'admin';
-  const isPosOrRestaurantPage = pathname === '/pos' || pathname === '/restaurant';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
@@ -78,6 +90,15 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
+          {isClient && externalLinkModalEnabled && (
+              <Button 
+                variant="outline"
+                size="icon"
+                onClick={() => (window as any).dispatchEvent(new CustomEvent('toggleExternalLinkModal'))}
+              >
+                  <ExternalLink className="h-4 w-4" />
+              </Button>
+          )}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

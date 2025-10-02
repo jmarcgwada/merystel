@@ -1,4 +1,5 @@
 
+
 import * as React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
@@ -10,6 +11,7 @@ import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
@@ -64,6 +66,7 @@ export default function RootLayout({
                   <Toaster />
                   <NavigationConfirmationDialog />
                   <VirtualKeyboard />
+                  <ExternalLinkModal />
                 </React.Suspense>
               </KeyboardProvider>
           </PosProvider>
