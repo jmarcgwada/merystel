@@ -163,6 +163,7 @@ export default function SupermarketPage() {
                                     width={40}
                                     height={40}
                                     className="rounded-md object-cover mr-4"
+                                    data-ai-hint="product image"
                                 />
                                 <div className="flex-1">
                                     <p className="font-semibold">{item.name}</p>
