@@ -12,13 +12,14 @@ interface TargetInput {
 interface KeyboardContextType {
     isOpen: boolean;
     showKeyboard: () => void;
-    hideKeyboard: () => void;
+    hideKeyboard: (clearInput?: boolean) => void;
     toggleKeyboard: () => void;
     
     isCaps: boolean;
     toggleCaps: () => void;
 
     inputValue: string;
+    setInputValue: React.Dispatch<React.SetStateAction<string>>;
     targetInput: TargetInput | null;
     setTargetInput: (target: TargetInput) => void;
     isKeyboardVisibleInHeader: boolean;
@@ -26,6 +27,7 @@ interface KeyboardContextType {
     pressKey: (key: string) => void;
     pressSpace: () => void;
     pressBackspace: () => void;
+    clearInput: () => void;
 }
 
 const KeyboardContext = createContext<KeyboardContextType | undefined>(undefined);
@@ -42,9 +44,12 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         }
     }, [activeInput]);
 
-    const hideKeyboard = useCallback(() => {
+    const hideKeyboard = useCallback((clearInput: boolean = true) => {
         setIsOpen(false);
-        setActiveInput(null); // This will hide the header button
+        if (clearInput) {
+            setInputValue("");
+            setActiveInput(null);
+        }
     }, []);
     
     const toggleKeyboard = useCallback(() => {
@@ -79,6 +84,10 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         setInputValue(prev => prev.slice(0, -1));
     }, []);
 
+    const clearInput = useCallback(() => {
+        setInputValue('');
+    }, []);
+
     const isKeyboardVisibleInHeader = useMemo(() => {
         return !!activeInput?.name;
     }, [activeInput]);
@@ -91,16 +100,18 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         isCaps,
         toggleCaps,
         inputValue,
+        setInputValue,
         targetInput: activeInput,
         setTargetInput,
         isKeyboardVisibleInHeader,
         pressKey,
         pressSpace,
         pressBackspace,
+        clearInput,
     }), [
         isOpen, showKeyboard, hideKeyboard, toggleKeyboard, isCaps, toggleCaps, 
         inputValue, activeInput, setTargetInput, isKeyboardVisibleInHeader,
-        pressKey, pressSpace, pressBackspace
+        pressKey, pressSpace, pressBackspace, clearInput
     ]);
 
     return (

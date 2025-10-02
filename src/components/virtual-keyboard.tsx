@@ -63,8 +63,12 @@ export function VirtualKeyboard() {
     ["0", "."],
   ];
 
+  const handleClose = (clearInput: boolean = true) => {
+    hideKeyboard(clearInput);
+  }
+
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && hideKeyboard()} modal={false}>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && handleClose()} modal={false}>
       <DrawerContent className="p-2 pb-4 max-w-4xl mx-auto bg-secondary/80 backdrop-blur-sm" aria-describedby={undefined}>
         <DrawerHeader className="p-0 h-0">
             <DrawerTitle className="sr-only">Clavier Virtuel</DrawerTitle>
@@ -97,7 +101,7 @@ export function VirtualKeyboard() {
                         Espace
                     </Key>
                     <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-                    <Key onClick={hideKeyboard} flex={1.5} className="bg-primary/80 text-primary-foreground">
+                    <Key onClick={() => handleClose()} flex={1.5} className="bg-primary/80 text-primary-foreground">
                         <CornerDownLeft className="h-5 w-5"/>
                     </Key>
                 </div>

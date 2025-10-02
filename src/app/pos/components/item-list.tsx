@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, forwardRef } from 'react';
@@ -20,6 +19,7 @@ interface ItemListProps {
   category: Category | SpecialCategory | null;
   searchTerm: string;
   showFavoritesOnly: boolean;
+  onItemClick: (item: Item) => void;
 }
 
 const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void }) => {
@@ -134,24 +134,14 @@ const ItemListItem = ({ item, onClick }: { item: Item, onClick: (item: Item) => 
 }
 
 export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
-  ({ category, searchTerm, showFavoritesOnly }, ref) => {
+  ({ category, searchTerm, showFavoritesOnly, onItemClick }, ref) => {
     const { 
-      addToOrder, 
       items: allItems, 
       popularItems, 
       categories, 
       selectedTable, 
-      setVariantItem,
       itemDisplayMode,
     } = usePos();
-
-    const handleItemClick = (item: Item) => {
-      if (item.hasVariants && item.variantOptions && item.variantOptions.length > 0) {
-        setVariantItem(item);
-      } else {
-        addToOrder(item.id);
-      }
-    };
     
     const filteredItems = useMemo(() => {
       if (!allItems || !popularItems || !categories) return [];
@@ -198,7 +188,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
         return (
             <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredItems.map((item) => (
-                    <ItemListItem key={item.id} item={item} onClick={handleItemClick} />
+                    <ItemListItem key={item.id} item={item} onClick={onItemClick} />
                 ))}
             </div>
         )
@@ -207,7 +197,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
     return (
       <div ref={ref} className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {filteredItems.map((item) => (
-          <ItemCard key={item.id} item={item} onClick={handleItemClick} />
+          <ItemCard key={item.id} item={item} onClick={onItemClick} />
         ))}
       </div>
     );

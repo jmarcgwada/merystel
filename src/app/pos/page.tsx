@@ -49,6 +49,7 @@ export default function PosPage() {
     setCameFromRestaurant,
     itemDisplayMode,
     setItemDisplayMode,
+    addToOrder,
    } = usePos();
   const [isClient, setIsClient] = useState(false);
 
@@ -60,7 +61,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput, clearInput, hideKeyboard, isOpen: isKeyboardOpen } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -79,14 +80,24 @@ export default function PosPage() {
     setIsClient(true);
   }, []);
 
+  const handleItemClick = (item: any) => {
+    addToOrder(item.id); // Assuming `addToOrder` handles adding the item.
+    if (isKeyboardOpen) {
+      clearInput(); // This will clear the inputValue in the context
+      setItemSearchTerm(''); // And also clear the local state for the input field
+      // Don't hide the keyboard, just reset the search
+    }
+  };
+
   const filteredItems = useMemo(() => (
     <ItemList 
         ref={itemContentRef}
         category={selectedCategory} 
         searchTerm={itemSearchTerm} 
         showFavoritesOnly={showFavoritesOnly}
+        onItemClick={handleItemClick}
     />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode]);
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, handleItemClick]);
 
   const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
     const [canScrollUp, setCanScrollUp] = useState(false);
