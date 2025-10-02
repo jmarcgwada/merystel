@@ -90,6 +90,7 @@ export default function DashboardPage() {
         dashboardButtonShowBorder,
         dashboardButtonBorderColor,
         dashboardButtonTextColor,
+        showDashboardStats,
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
@@ -237,41 +238,43 @@ export default function DashboardPage() {
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         />
         
-        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card style={buttonStyle}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
-                  <span className="text-muted-foreground">€</span>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{totalSales.toFixed(2)}€</div>
-                  <p className="text-xs text-muted-foreground">Basé sur toutes les ventes enregistrées</p>
-              </CardContent>
-          </Card>
-          <Card style={buttonStyle}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">+{todaysSalesData.count} / {todaysSalesData.total.toFixed(2)}€</div>
-                  <div className="text-xs text-muted-foreground">
-                      {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
-                      {todaysSalesData.lastSaleDate && ` - Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}`}
-                  </div>
-              </CardContent>
-          </Card>
-          <Card style={buttonStyle}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Panier Moyen</CardTitle>
-                  <span className="text-muted-foreground">€</span>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{sales && sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
-                  <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
-              </CardContent>
-          </Card>
-        </div>
+        {showDashboardStats && (
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card style={buttonStyle}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
+                    <span className="text-muted-foreground">€</span>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{totalSales.toFixed(2)}€</div>
+                    <p className="text-xs text-muted-foreground">Basé sur toutes les ventes enregistrées</p>
+                </CardContent>
+            </Card>
+            <Card style={buttonStyle}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">+{todaysSalesData.count} / {todaysSalesData.total.toFixed(2)}€</div>
+                    <div className="text-xs text-muted-foreground">
+                        {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
+                        {todaysSalesData.lastSaleDate && ` - Dernière à ${format(todaysSalesData.lastSaleDate, 'HH:mm')}`}
+                    </div>
+                </CardContent>
+            </Card>
+            <Card style={buttonStyle}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Panier Moyen</CardTitle>
+                    <span className="text-muted-foreground">€</span>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{sales && sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
+                    <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
+                </CardContent>
+            </Card>
+            </div>
+        )}
 
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -324,5 +327,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

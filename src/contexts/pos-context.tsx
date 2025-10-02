@@ -241,6 +241,8 @@ interface PosContextType {
   setExternalLinkModalWidth: React.Dispatch<React.SetStateAction<number>>;
   externalLinkModalHeight: number;
   setExternalLinkModalHeight: React.Dispatch<React.SetStateAction<number>>;
+  showDashboardStats: boolean;
+  setShowDashboardStats: React.Dispatch<React.SetStateAction<boolean>>;
 
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
@@ -353,6 +355,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', 'Lien Externe');
   const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
   const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
 
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
@@ -1956,6 +1959,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setExternalLinkModalWidth,
       externalLinkModalHeight,
       setExternalLinkModalHeight,
+      showDashboardStats,
+      setShowDashboardStats,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2111,6 +2116,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setExternalLinkModalWidth,
       externalLinkModalHeight,
       setExternalLinkModalHeight,
+      showDashboardStats,
+      setShowDashboardStats,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2173,5 +2180,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
