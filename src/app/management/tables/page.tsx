@@ -2,11 +2,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Eraser, Users, RefreshCw, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser, Users, RefreshCw, Lock, User as UserIcon, Clock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -23,10 +23,42 @@ import type { Table as TableType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import type { Timestamp } from 'firebase/firestore';
+
+
+const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        if (!date) {
+            setFormattedDate('');
+            return;
+        }
+        
+        let jsDate: Date;
+        if (date instanceof Date) {
+            jsDate = date;
+        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            jsDate = (date as Timestamp).toDate();
+        } else {
+            jsDate = new Date(date as any);
+        }
+
+        if (!isNaN(jsDate.getTime())) {
+            setFormattedDate(format(jsDate, "d MMM, HH:mm", { locale: fr }));
+        } else {
+            setFormattedDate('Date invalide');
+        }
+    }, [date]);
+
+    return <>{formattedDate}</>;
+}
 
 
 export default function TablesPage() {
-  const { tables, deleteTable, forceFreeTable, isLoading } = usePos();
+  const { tables, deleteTable, forceFreeTable, isLoading, users } = usePos();
   const router = useRouter();
   const [tableToDelete, setTableToDelete] = useState<TableType | null>(null);
   const [tableToFree, setTableToFree] = useState<TableType | null>(null);
@@ -51,6 +83,12 @@ export default function TablesPage() {
   }
   
   const tablesWithoutTakeaway = tables.filter(t => t.id !== 'takeaway');
+  
+  const getUserName = useCallback((userId?: string) => {
+    if (!userId || !users) return 'N/A';
+    const user = users.find(u => u.id === userId);
+    return user ? `${user.firstName} ${user.lastName.charAt(0)}.` : 'Utilisateur inconnu';
+  }, [users]);
 
   return (
     <>
@@ -74,6 +112,7 @@ export default function TablesPage() {
                           <TableHead className="w-[120px]">Couverts</TableHead>
                           <TableHead>Description</TableHead>
                           <TableHead>Statut</TableHead>
+                          <TableHead>Dernière activité</TableHead>
                           <TableHead>Verrou</TableHead>
                           <TableHead className="w-[160px] text-right">Actions</TableHead>
                       </TableRow>
@@ -86,6 +125,7 @@ export default function TablesPage() {
                               <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-12" /></TableCell>
                               <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                           </TableRow>
@@ -107,6 +147,20 @@ export default function TablesPage() {
                                   <Badge variant={table.status === 'available' ? 'secondary' : table.status === 'occupied' ? 'default' : 'outline'} className="capitalize">
                                       {table.status === 'available' ? 'Disponible' : table.status === 'occupied' ? 'Occupée' : 'Paiement'}
                                   </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {table.status === 'occupied' && table.occupiedAt && (
+                                  <div className="flex flex-col">
+                                    <span className="flex items-center gap-1.5"><UserIcon className="h-3 w-3"/>{getUserName(table.occupiedByUserId)}</span>
+                                    <span className="flex items-center gap-1.5"><Clock className="h-3 w-3"/><ClientFormattedDate date={table.occupiedAt} /></span>
+                                  </div>
+                                )}
+                                {table.status === 'available' && table.closedAt && (
+                                   <div className="flex flex-col">
+                                    <span className="flex items-center gap-1.5"><UserIcon className="h-3 w-3"/>{getUserName(table.closedByUserId)}</span>
+                                    <span className="flex items-center gap-1.5"><Clock className="h-3 w-3"/><ClientFormattedDate date={table.closedAt} /></span>
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>
                                   {table.verrou && <Lock className="h-4 w-4 text-destructive" />}

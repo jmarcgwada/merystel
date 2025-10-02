@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -109,7 +108,11 @@
         "status": { "type": "string", "enum": ["available", "occupied", "paying"] },
         "order": { "type": "array", "items": { "type": "object" } },
         "covers": { "type": "number", "description": "Number of seats at the table." },
-        "lockedBy": { "type": "string", "description": "ID of the user who locked the table." }
+        "lockedBy": { "type": "string", "description": "ID of the user who locked the table." },
+        "occupiedByUserId": { "type": "string" },
+        "occupiedAt": { "type": "string", "format": "date-time" },
+        "closedByUserId": { "type": "string" },
+        "closedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "number", "status", "order"]
     },

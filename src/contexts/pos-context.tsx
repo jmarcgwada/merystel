@@ -1098,6 +1098,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         await updateDoc(tableRef, {
           order: orderData.map(cleanDataForFirebase),
           status: 'paying',
+          occupiedByUserId: user?.uid,
+          occupiedAt: table.status === 'available' ? new Date() : table.occupiedAt,
         });
         setCurrentSaleId(`table-${tableId}`);
         setCurrentSaleContext({
@@ -1116,34 +1118,44 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const updateTableOrder = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
-      if (!tableRef) return;
+      const table = tables.find(t => t.id === tableId);
+      if (!tableRef || !table) return;
       try {
         await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
+            occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || new Date()) : deleteField(),
+            closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
+            closedAt: orderData.length === 0 ? new Date() : deleteField(),
         });
       } catch (error) {
         console.error('Error updating table order:', error);
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
       }
     },
-    [getDocRef, toast]
+    [getDocRef, toast, tables, user]
   );
 
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
-      if (tableRef) {
+      const table = tables.find(t => t.id === tableId);
+      if (tableRef && table) {
           routerRef.current.push('/restaurant');
           await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
+            occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || new Date()) : deleteField(),
+            closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
+            closedAt: orderData.length === 0 ? new Date() : deleteField(),
           });
           toast({ title: 'Table sauvegardée' });
           await clearOrder();
       }
     },
-    [getDocRef, clearOrder, toast]
+    [getDocRef, clearOrder, toast, tables, user]
   );
 
   const forceFreeTable = useCallback(
@@ -1152,7 +1164,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(firestore);
       const tableRef = getDocRef('tables', tableId);
       if (tableRef) {
-        batch.update(tableRef, { status: 'available', order: [], verrou: deleteField() });
+        batch.update(tableRef, { 
+          status: 'available', 
+          order: [], 
+          lockedBy: deleteField(), 
+          verrou: deleteField(),
+          occupiedByUserId: deleteField(),
+          occupiedAt: deleteField(),
+          closedByUserId: user?.uid,
+          closedAt: new Date(),
+        });
       }
       
       // Also delete any associated held order for that table
@@ -1168,7 +1189,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       await batch.commit();
       toast({ title: 'Table libérée' });
     },
-    [firestore, getDocRef, heldOrders, toast]
+    [firestore, getDocRef, heldOrders, toast, user]
   );
 
   const addTable = useCallback(
@@ -1209,7 +1230,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
         const tableRef = getDocRef('tables', currentSaleContext.tableId);
         if (tableRef) {
-          batch.update(tableRef, { status: 'available', order: [] });
+          batch.update(tableRef, { 
+            status: 'available', 
+            order: [], 
+            occupiedByUserId: deleteField(),
+            occupiedAt: deleteField(),
+            closedByUserId: user?.uid,
+            closedAt: new Date(),
+          });
         }
       }
       // If sale comes from a recalled held order, delete the held order

@@ -76,6 +76,10 @@ export interface Table {
   covers?: number;
   lockedBy?: string;
   verrou?: boolean;
+  occupiedByUserId?: string;
+  occupiedAt?: Date;
+  closedByUserId?: string;
+  closedAt?: Date;
 }
 
 export interface Customer {
