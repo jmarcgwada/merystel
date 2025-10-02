@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -37,6 +37,13 @@ const allQuickLinks = [
         title: "Point de Vente",
         description: 'Accéder à l\'interface de vente principale.',
         icon: ShoppingCart,
+        roles: ['admin', 'manager', 'cashier'],
+    },
+    {
+        href: '/supermarket',
+        title: "Mode Supermarché",
+        description: 'Interface rapide pour scanner les articles.',
+        icon: ScanLine,
         roles: ['admin', 'manager', 'cashier'],
     },
     {
