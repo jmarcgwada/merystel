@@ -113,66 +113,64 @@ export default function CustomizationPage() {
                   />
                 ) : <Skeleton className="h-6 w-11" />}
             </div>
-            <div className="space-y-6" style={{ opacity: externalLinkModalEnabled ? 1 : 0.5 }}>
-                 <div className="grid gap-2">
-                    <Label htmlFor="external-link-url">URL du lien</Label>
-                    <div className="flex items-center">
-                        <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
-                        <Input 
-                            id="external-link-url"
-                            value={externalLinkUrl}
-                            onChange={(e) => setExternalLinkUrl(e.target.value)}
-                            placeholder="https://example.com"
-                            className="pl-9"
-                            disabled={!externalLinkModalEnabled}
-                        />
-                    </div>
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="external-link-title">Titre de la fenêtre</Label>
-                    <Input 
-                        id="external-link-title"
-                        value={externalLinkTitle}
-                        onChange={(e) => setExternalLinkTitle(e.target.value)}
-                        placeholder="Titre de la modale"
-                        disabled={!externalLinkModalEnabled}
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-8">
-                     <div className="grid gap-2">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="external-link-width">Largeur de la fenêtre (% de l'écran)</Label>
-                            {isClient && <span className="text-sm font-bold text-primary">{currentWidth}%</span>}
-                        </div>
-                        {isClient ? (
-                          <Slider 
-                              id="external-link-width"
-                              value={[currentWidth]} 
-                              onValueChange={(v) => setCurrentWidth(v[0])}
-                              onValueCommit={(v) => setExternalLinkModalWidth(v[0])}
-                              min={10} max={100} step={5}
+            {isClient && (
+              <div className="space-y-6 transition-opacity" style={{ opacity: externalLinkModalEnabled ? 1 : 0.5 }}>
+                  <div className="grid gap-2">
+                      <Label htmlFor="external-link-url">URL du lien</Label>
+                      <div className="flex items-center">
+                          <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                          <Input 
+                              id="external-link-url"
+                              value={externalLinkUrl}
+                              onChange={(e) => setExternalLinkUrl(e.target.value)}
+                              placeholder="https://example.com"
+                              className="pl-9"
                               disabled={!externalLinkModalEnabled}
                           />
-                        ) : <Skeleton className="h-5 w-full" />}
-                    </div>
-                     <div className="grid gap-2">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="external-link-height">Hauteur de la fenêtre (% de l'écran)</Label>
-                            {isClient && <span className="text-sm font-bold text-primary">{currentHeight}%</span>}
-                        </div>
-                        {isClient ? (
-                          <Slider 
-                              id="external-link-height"
-                              value={[currentHeight]} 
-                              onValueChange={(v) => setCurrentHeight(v[0])}
-                              onValueCommit={(v) => setExternalLinkModalHeight(v[0])}
-                              min={10} max={100} step={5} 
-                              disabled={!externalLinkModalEnabled}
-                          />
-                        ) : <Skeleton className="h-5 w-full" />}
-                    </div>
-                </div>
-            </div>
+                      </div>
+                  </div>
+                  <div className="grid gap-2">
+                      <Label htmlFor="external-link-title">Titre de la fenêtre</Label>
+                      <Input 
+                          id="external-link-title"
+                          value={externalLinkTitle}
+                          onChange={(e) => setExternalLinkTitle(e.target.value)}
+                          placeholder="Titre de la modale"
+                          disabled={!externalLinkModalEnabled}
+                      />
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                      <div className="grid gap-2">
+                          <div className="flex justify-between items-center">
+                              <Label htmlFor="external-link-width">Largeur de la fenêtre (% de l'écran)</Label>
+                              <span className="text-sm font-bold text-primary">{currentWidth}%</span>
+                          </div>
+                            <Slider 
+                                id="external-link-width"
+                                value={[currentWidth]} 
+                                onValueChange={(v) => setCurrentWidth(v[0])}
+                                onValueCommit={(v) => setExternalLinkModalWidth(v[0])}
+                                min={10} max={100} step={5}
+                                disabled={!externalLinkModalEnabled}
+                            />
+                      </div>
+                      <div className="grid gap-2">
+                          <div className="flex justify-between items-center">
+                              <Label htmlFor="external-link-height">Hauteur de la fenêtre (% de l'écran)</Label>
+                              <span className="text-sm font-bold text-primary">{currentHeight}%</span>
+                          </div>
+                            <Slider 
+                                id="external-link-height"
+                                value={[currentHeight]} 
+                                onValueChange={(v) => setCurrentHeight(v[0])}
+                                onValueCommit={(v) => setExternalLinkModalHeight(v[0])}
+                                min={10} max={100} step={5} 
+                                disabled={!externalLinkModalEnabled}
+                            />
+                      </div>
+                  </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
