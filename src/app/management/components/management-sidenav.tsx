@@ -28,7 +28,6 @@ export default function ManagementSideNav() {
     { href: '/management/customers', label: 'Clients', icon: Users, cashierVisible: !isCashier },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, cashierVisible: !isCashier },
     { href: '/management/vat', label: 'TVA', icon: Percent, cashierVisible: !isCashier },
-    { href: '/management/users', label: 'Utilisateurs', icon: UserCog, cashierVisible: !isCashier },
   ];
 
   if (!isClient) {

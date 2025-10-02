@@ -164,6 +164,7 @@ export interface User {
   role: 'admin' | 'manager' | 'cashier';
   companyId: string;
   sessionToken?: string;
+  isDisabled?: boolean;
 }
 
     

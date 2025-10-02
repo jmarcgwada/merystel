@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -105,7 +105,14 @@ export default function SettingsPage() {
         title: "Détails de l'entreprise",
         description: "Gérez le nom, l'adresse et les coordonnées de votre entreprise.",
         icon: Building,
-        adminOnly: true, // Only admin can edit company details
+        adminOnly: true,
+    },
+     {
+        href: '/settings/users',
+        title: "Gestion des utilisateurs",
+        description: "Gérez les comptes et les autorisations des utilisateurs.",
+        icon: UserCog,
+        adminOnly: true,
     },
     {
         href: '/settings/modes',

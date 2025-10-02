@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, Suspense } from 'react';
@@ -97,12 +98,12 @@ function UserForm() {
     if (isEditMode && userToEdit) {
       const { password, ...updateData } = data;
       updateUser({ ...userToEdit, ...updateData });
-       router.push('/management/users');
+       router.push('/settings/users');
     } else {
       if (data.password) {
         try {
             await addUser(data, data.password);
-            router.push('/management/users');
+            router.push('/settings/users');
         } catch(e) {
             // Error is handled in context, do nothing here to keep user on page
         }
@@ -132,7 +133,7 @@ function UserForm() {
         subtitle={isEditMode ? "Mettez à jour les détails de l'utilisateur." : "Remplissez le formulaire pour créer un utilisateur."}
       >
         <Button variant="outline" asChild className="btn-back">
-          <Link href="/management/users">
+          <Link href="/settings/users">
             <ArrowLeft />
             Retour à la liste
           </Link>

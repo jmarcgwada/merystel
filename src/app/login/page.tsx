@@ -122,6 +122,17 @@ export default function LoginPage() {
 
   const performLogin = async (emailToLogin: string, passwordToLogin: string) => {
     try {
+        const userToLogin = findUserByEmail(emailToLogin);
+        if (userToLogin?.isDisabled) {
+            toast({
+                variant: 'destructive',
+                title: 'Compte désactivé',
+                description: 'Ce compte est désactivé. Veuillez contacter un administrateur.'
+            });
+            setIsLoading(false);
+            return;
+        }
+
         const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, passwordToLogin);
         const newSessionToken = uuidv4();
         localStorage.setItem('sessionToken', newSessionToken);
@@ -146,6 +157,16 @@ export default function LoginPage() {
     setIsLoading(true);
     
     const userToLogin = findUserByEmail(email);
+
+    if (userToLogin?.isDisabled) {
+        toast({
+            variant: 'destructive',
+            title: 'Compte désactivé',
+            description: 'Ce compte est désactivé. Veuillez contacter un administrateur.'
+        });
+        setIsLoading(false);
+        return;
+    }
 
     if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0) {
         setLoginCredentials({email, password});

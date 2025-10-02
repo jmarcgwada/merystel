@@ -24,10 +24,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 
 
 export default function UsersPage() {
-  const { users, deleteUser, isLoading, sendPasswordResetEmailForUser, forceSignOutUser } = usePos();
+  const { users, deleteUser, isLoading, sendPasswordResetEmailForUser, forceSignOutUser, updateUser } = usePos();
   const { user: currentUser } = useUser();
   const isManager = currentUser?.role === 'manager';
   const router = useRouter();
@@ -64,6 +65,11 @@ export default function UsersPage() {
     }
   }
 
+  const toggleUserDisabled = (user: User) => {
+    if(currentUser?.uid === user.id) return; // Can't disable self
+    updateUser({ ...user, isDisabled: !user.isDisabled });
+  };
+
   if (currentUser?.role === 'cashier' || currentUser?.role === 'manager') {
     return (
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -87,7 +93,7 @@ export default function UsersPage() {
                 <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
                 </Button>
-                <Button onClick={() => router.push('/management/users/form')}>
+                <Button onClick={() => router.push('/settings/users/form')}>
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter un utilisateur
                 </Button>
@@ -112,7 +118,8 @@ export default function UsersPage() {
                           <TableHead>Nom</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Rôle</TableHead>
-                          <TableHead>Statut</TableHead>
+                          <TableHead>Statut session</TableHead>
+                          <TableHead>Statut compte</TableHead>
                           {!isManager && <TableHead className="w-[180px] text-right">Actions</TableHead>}
                       </TableRow>
                   </TableHeader>
@@ -122,6 +129,7 @@ export default function UsersPage() {
                               <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-52" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                              <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                               {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
                           </TableRow>
@@ -142,6 +150,19 @@ export default function UsersPage() {
                                   <Badge variant="outline">Déconnecté</Badge>
                               )}
                             </TableCell>
+                            <TableCell>
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id={`active-switch-${u.id}`}
+                                        checked={!u.isDisabled}
+                                        onCheckedChange={() => toggleUserDisabled(u)}
+                                        disabled={!currentUser || currentUser.uid === u.id || isManager}
+                                    />
+                                    <label htmlFor={`active-switch-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        {u.isDisabled ? "Inactif" : "Actif"}
+                                    </label>
+                                </div>
+                            </TableCell>
                             {!isManager && (
                               <TableCell className="text-right">
                                   {currentUser?.role === 'admin' && currentUser.uid !== u.id && isUserConnected && (
@@ -154,7 +175,7 @@ export default function UsersPage() {
                                           <KeyRound className="h-4 w-4"/>
                                       </Button>
                                   )}
-                                  <Button variant="ghost" size="icon" onClick={() => router.push(`/management/users/form?id=${u.id}`)} disabled={isManager}>
+                                  <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/users/form?id=${u.id}`)} disabled={isManager}>
                                       <Edit className="h-4 w-4"/>
                                   </Button>
                                   <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
