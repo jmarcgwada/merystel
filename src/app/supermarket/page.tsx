@@ -17,7 +17,6 @@ import Image from 'next/image';
 import type { Item } from '@/lib/types';
 import {
   Card,
-  CardContent,
 } from '@/components/ui/card';
 
 export default function SupermarketPage() {
@@ -30,6 +29,7 @@ export default function SupermarketPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isHeldOpen, setHeldOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const filteredItems = useMemo(() => {
     if (searchTerm.length < 3 || !items) {
@@ -42,6 +42,11 @@ export default function SupermarketPage() {
         (item.barcode && item.barcode.toLowerCase().includes(lowercasedTerm))
     );
   }, [searchTerm, items]);
+
+  useEffect(() => {
+    // Reset highlight when search term changes
+    setHighlightedIndex(-1);
+  }, [searchTerm]);
 
   useEffect(() => {
     // Auto-focus the input on page load
@@ -78,9 +83,19 @@ export default function SupermarketPage() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      handleSearchAndAdd(searchTerm);
+      setHighlightedIndex(prev => (prev < filteredItems.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && filteredItems[highlightedIndex]) {
+        handleItemClick(filteredItems[highlightedIndex]);
+      } else {
+        handleSearchAndAdd(searchTerm);
+      }
     }
   };
 
@@ -120,10 +135,13 @@ export default function SupermarketPage() {
                   <ScrollArea className="flex-1 -mr-6">
                       <div className="pr-6 space-y-2">
                         {filteredItems.length > 0 ? (
-                           filteredItems.map(item => (
+                           filteredItems.map((item, index) => (
                              <Card
                                 key={item.id}
-                                className="flex items-center p-3 cursor-pointer hover:bg-secondary"
+                                className={cn(
+                                  "flex items-center p-3 cursor-pointer hover:bg-secondary",
+                                  index === highlightedIndex && "bg-secondary border-primary"
+                                )}
                                 onClick={() => handleItemClick(item)}
                               >
                                 <Image
