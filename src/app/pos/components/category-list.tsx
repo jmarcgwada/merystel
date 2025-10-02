@@ -124,7 +124,7 @@ export function CategoryList({
 
 
   return (
-    <div className="flex h-full flex-col relative">
+    <div className="flex h-full flex-col">
       <div className="p-4 border-b">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-bold tracking-tight font-headline">
@@ -177,63 +177,65 @@ export function CategoryList({
           </Button>
         </div>
       </div>
-      <ScrollArea className="flex-1" viewportRef={scrollRef}>
-        <div className="flex flex-col gap-2 p-4">
-           <Button
-              variant={isSpecialCategorySelected('all') ? 'default' : 'ghost'}
-              className="h-12 w-full justify-start text-left"
-              onClick={() => onSelectCategory('all')}
-            >
-              <LayoutGrid className="mr-3 h-5 w-5" />
-              <span className="text-base">Tout</span>
-            </Button>
+      <div className="flex-1 relative">
+        <ScrollArea className="absolute inset-0" viewportRef={scrollRef}>
+          <div className="flex flex-col gap-2 p-4">
             <Button
-              variant={isSpecialCategorySelected('popular') ? 'default' : 'ghost'}
-              className="h-12 w-full justify-start text-left"
-              onClick={() => onSelectCategory('popular')}
-            >
-              <Trophy className="mr-3 h-5 w-5" />
-              <span className="text-base">Top {isClient ? popularItemsCount : '...'} Populaires</span>
-            </Button>
-            <Button
-              variant={showFavoritesOnly ? 'secondary' : 'ghost'}
-              className="h-12 w-full justify-start text-left"
-              onClick={onToggleFavorites}
-            >
-              <Star className={cn("mr-3 h-5 w-5", showFavoritesOnly && 'text-yellow-500 fill-yellow-400')} />
-              <span className="text-base">Favoris</span>
-            </Button>
-          {filteredCategories.map((category) => {
-            const isSelected = selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === category.id;
-            return (
-                <Button
-                key={category.id}
-                variant={isSelected ? 'default' : 'ghost'}
-                style={getStyleForCategory(category) as React.CSSProperties}
-                className={cn("h-12 w-full justify-start text-left", isSelected && "hover:bg-[var(--hover-bg-color)]")}
-                onClick={() => onSelectCategory(category)}
-                onMouseEnter={() => setHoveredCategoryId(category.id)}
-                onMouseLeave={() => setHoveredCategoryId(null)}
-                >
-                <span className="text-base ml-8">{category.name}</span>
-                </Button>
-            )
-          })}
-        </div>
-      </ScrollArea>
-       <div className="absolute bottom-4 right-4">
-            <Button
-                variant="secondary"
-                size="icon"
-                className="h-12 w-12 rounded-full shadow-lg"
-                onClick={() => {
-                    setTargetInput({ value: searchTerm, name: 'category-search' });
-                    showKeyboard();
-                }}
-            >
-                <Keyboard className="h-6 w-6" />
-            </Button>
-        </div>
+                variant={isSpecialCategorySelected('all') ? 'default' : 'ghost'}
+                className="h-12 w-full justify-start text-left"
+                onClick={() => onSelectCategory('all')}
+              >
+                <LayoutGrid className="mr-3 h-5 w-5" />
+                <span className="text-base">Tout</span>
+              </Button>
+              <Button
+                variant={isSpecialCategorySelected('popular') ? 'default' : 'ghost'}
+                className="h-12 w-full justify-start text-left"
+                onClick={() => onSelectCategory('popular')}
+              >
+                <Trophy className="mr-3 h-5 w-5" />
+                <span className="text-base">Top {isClient ? popularItemsCount : '...'} Populaires</span>
+              </Button>
+              <Button
+                variant={showFavoritesOnly ? 'secondary' : 'ghost'}
+                className="h-12 w-full justify-start text-left"
+                onClick={onToggleFavorites}
+              >
+                <Star className={cn("mr-3 h-5 w-5", showFavoritesOnly && 'text-yellow-500 fill-yellow-400')} />
+                <span className="text-base">Favoris</span>
+              </Button>
+            {filteredCategories.map((category) => {
+              const isSelected = selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === category.id;
+              return (
+                  <Button
+                  key={category.id}
+                  variant={isSelected ? 'default' : 'ghost'}
+                  style={getStyleForCategory(category) as React.CSSProperties}
+                  className={cn("h-12 w-full justify-start text-left", isSelected && "hover:bg-[var(--hover-bg-color)]")}
+                  onClick={() => onSelectCategory(category)}
+                  onMouseEnter={() => setHoveredCategoryId(category.id)}
+                  onMouseLeave={() => setHoveredCategoryId(null)}
+                  >
+                  <span className="text-base ml-8">{category.name}</span>
+                  </Button>
+              )
+            })}
+          </div>
+        </ScrollArea>
+        <div className="absolute bottom-4 right-4">
+              <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-12 w-12 rounded-full shadow-lg"
+                  onClick={() => {
+                      setTargetInput({ value: searchTerm, name: 'category-search' });
+                      showKeyboard();
+                  }}
+              >
+                  <Keyboard className="h-6 w-6" />
+              </Button>
+          </div>
+      </div>
     </div>
   );
 }
