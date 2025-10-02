@@ -63,41 +63,39 @@ export default function SupermarketPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4">
-        <div className="md:col-span-8 flex flex-col items-center justify-center border bg-card rounded-lg p-8">
-            <div className="w-full max-w-2xl text-center">
-                <ScanLine className="mx-auto h-16 w-16 text-primary" />
-                <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground">
-                    Mode Supermarché
-                </h1>
-                <p className="mt-2 text-lg text-muted-foreground">
-                    Scannez un code-barres ou entrez une référence pour ajouter un article.
-                </p>
-                <div className="mt-8 relative">
+        <div className="md:col-span-8 flex flex-col border bg-card rounded-lg p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
+                <div className="relative flex-1 w-full">
+                     <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
                     <Input
                         ref={searchInputRef}
                         type="text"
-                        placeholder="Scanner ou rechercher..."
+                        placeholder="Scanner ou rechercher un article..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="h-16 text-2xl text-center"
+                        className="h-16 text-2xl pl-14"
                     />
                 </div>
-                 <div className="mt-8">
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setHeldOpen(true)}
-                        disabled={order.length > 0}
-                        className={cn(
-                            "flex-shrink-0 text-lg py-6 px-8",
-                            (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
-                        )}
-                    >
-                        <Hand className="mr-3 h-5 w-5"/>
-                        Tickets en attente
-                        <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
-                    </Button>
-                   </div>
+                <Button 
+                    variant="outline" 
+                    onClick={() => setHeldOpen(true)}
+                    disabled={order.length > 0}
+                    className={cn(
+                        "flex-shrink-0 text-lg py-6 px-8 w-full sm:w-auto",
+                        (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
+                    )}
+                >
+                    <Hand className="mr-3 h-5 w-5"/>
+                    Tickets en attente
+                    <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
+                </Button>
+            </div>
+             <div className="flex-1 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                    <ScanLine className="mx-auto h-24 w-24 opacity-10" />
+                    <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
+                </div>
             </div>
         </div>
         <div className="md:col-span-4 border flex flex-col overflow-hidden rounded-lg">
