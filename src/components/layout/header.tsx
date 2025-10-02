@@ -34,7 +34,7 @@ export default function Header() {
   const { user } = useUser();
   const router = useRouter();
 
-  const { showKeyboard, isKeyboardTargeted } = useKeyboard();
+  const { showKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-           {isClient && isKeyboardTargeted && (
+           {isClient && isKeyboardVisibleInHeader && (
               <Button 
                 variant="outline"
                 size="icon"

@@ -47,7 +47,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue } = useKeyboard();
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
   const categoryScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -142,10 +142,11 @@ export default function PosPage() {
   const categoryScroller = createScroller(categoryScrollAreaRef, categoryScrollIntervalRef);
 
   useEffect(() => {
-    if (targetInput?.name === 'item-search') {
-      setItemSearchTerm(inputValue);
-    }
-  }, [inputValue, targetInput]);
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('fromKeyboard')) {
+          setItemSearchTerm(inputValue);
+      }
+  }, [inputValue]);
 
   useEffect(() => {
     setSelectedTableById(tableId);
@@ -187,13 +188,6 @@ export default function PosPage() {
       name: 'item-search',
     });
   };
-
-  const handleSearchBlur = () => {
-    // Clear target only if it's the current one
-    if (targetInput?.name === 'item-search') {
-        setTargetInput({ value: '', name: '' });
-    }
-  }
   
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
 
@@ -237,7 +231,6 @@ export default function PosPage() {
                             onChange={(e) => setItemSearchTerm(e.target.value)}
                             className="pl-9"
                             onFocus={handleSearchFocus}
-                            onBlur={handleSearchBlur}
                         />
                     </div>
                     <div className="flex items-center gap-1">

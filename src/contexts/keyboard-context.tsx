@@ -19,7 +19,7 @@ interface KeyboardContextType {
     inputValue: string;
     targetInput: TargetInput | null;
     setTargetInput: (target: TargetInput) => void;
-    isKeyboardTargeted: boolean;
+    isKeyboardVisibleInHeader: boolean;
 
     pressKey: (key: string) => void;
     pressSpace: () => void;
@@ -32,15 +32,22 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isCaps, setIsCaps] = useState(false);
     const [inputValue, setInputValue] = useState("");
-    const [targetInput, setTargetInputState] = useState<TargetInput | null>(null);
+    const [activeInput, setActiveInput] = useState<TargetInput | null>(null);
 
-    const showKeyboard = useCallback(() => setIsOpen(true), []);
+    const showKeyboard = useCallback(() => {
+        if (activeInput?.name) {
+            setIsOpen(true);
+        }
+    }, [activeInput]);
+
     const hideKeyboard = useCallback(() => setIsOpen(false), []);
     
     const setTargetInput = useCallback((target: TargetInput) => {
-        setTargetInputState(target);
         if(target.name) {
+            setActiveInput(target);
             setInputValue(target.value);
+        } else {
+            setActiveInput(null);
         }
     }, []);
     
@@ -63,9 +70,9 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         setInputValue(prev => prev.slice(0, -1));
     }, []);
 
-    const isKeyboardTargeted = useMemo(() => {
-        return !!targetInput?.name && (targetInput.name === 'category-search' || targetInput.name === 'item-search');
-    }, [targetInput]);
+    const isKeyboardVisibleInHeader = useMemo(() => {
+        return !!activeInput?.name && (activeInput.name === 'category-search' || activeInput.name === 'item-search');
+    }, [activeInput]);
 
     const value = useMemo(() => ({
         isOpen,
@@ -74,15 +81,15 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         isCaps,
         toggleCaps,
         inputValue,
-        targetInput,
+        targetInput: activeInput, // Keep targetInput for consumers
         setTargetInput,
-        isKeyboardTargeted,
+        isKeyboardVisibleInHeader,
         pressKey,
         pressSpace,
         pressBackspace,
     }), [
         isOpen, showKeyboard, hideKeyboard, isCaps, toggleCaps, 
-        inputValue, targetInput, setTargetInput, isKeyboardTargeted,
+        inputValue, activeInput, setTargetInput, isKeyboardVisibleInHeader,
         pressKey, pressSpace, pressBackspace
     ]);
 

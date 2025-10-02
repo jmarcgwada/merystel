@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
+  selectedCategory: Category | SpecialCategory | null;
   onSelectCategory: (category: Category | SpecialCategory | null) => void;
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
@@ -37,7 +38,7 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
-  const { setTargetInput, inputValue, targetInput, isKeyboardTargeted } = useKeyboard();
+  const { setTargetInput, inputValue } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -47,10 +48,11 @@ export function CategoryList({
 
 
   useEffect(() => {
-    if (targetInput?.name === 'category-search') {
-      setSearchTerm(inputValue);
-    }
-  }, [inputValue, targetInput]);
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('fromKeyboard')) {
+          setSearchTerm(inputValue);
+      }
+  }, [inputValue]);
   
   const handleSearchFocus = () => {
     setTargetInput({
@@ -58,13 +60,6 @@ export function CategoryList({
       name: 'category-search',
     });
   };
-
-  const handleSearchBlur = () => {
-      // Clear target only if it's the current one
-      if (targetInput?.name === 'category-search') {
-        setTargetInput({ value: '', name: '' });
-      }
-  }
 
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
@@ -175,7 +170,6 @@ export function CategoryList({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
             onFocus={handleSearchFocus}
-            onBlur={handleSearchBlur}
           />
         </div>
       </div>
