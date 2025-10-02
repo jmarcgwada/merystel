@@ -132,8 +132,8 @@ export default function SupermarketPage() {
             </div>
              <div className="flex-1 flex flex-col overflow-hidden">
                 {searchTerm.length >= 3 ? (
-                  <ScrollArea className="flex-1 -mr-6">
-                      <div className="pr-6 space-y-2">
+                  <ScrollArea className="flex-1">
+                      <div className="pr-4 space-y-2">
                         {filteredItems.length > 0 ? (
                            filteredItems.map((item, index) => (
                              <Card
