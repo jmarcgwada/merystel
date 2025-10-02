@@ -210,8 +210,7 @@ export default function DashboardPage() {
                     title="Tableau de bord"
                     subtitle={`Chargement des données...`}
                 />
-                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-32" />
+                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <Skeleton className="h-32" />
                     <Skeleton className="h-32" />
                     <Skeleton className="h-32" />
@@ -238,7 +237,7 @@ export default function DashboardPage() {
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         />
         
-        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card style={buttonStyle}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires total</CardTitle>
@@ -270,25 +269,6 @@ export default function DashboardPage() {
               <CardContent>
                   <div className="text-2xl font-bold">{sales && sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}€</div>
                   <p className="text-xs text-muted-foreground">Sur {sales?.length || 0} transactions</p>
-              </CardContent>
-          </Card>
-          <Card style={buttonStyle}>
-              <CardHeader>
-                  <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Articles Populaires</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="space-y-4">
-                      {popularItems.slice(0, 3).map(({ item, count }) => (
-                          <div key={item.id} className="flex items-center justify-between">
-                              <div>
-                                  <p className="font-semibold text-sm">{item.name}</p>
-                              </div>
-                              <div className="text-right">
-                                  <p className="font-bold text-primary text-sm">{count} ventes</p>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
               </CardContent>
           </Card>
         </div>
