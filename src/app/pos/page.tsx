@@ -315,7 +315,7 @@ export default function PosPage() {
             </div>
             <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
                 <div className="p-4">
-                  {filteredItems}
+                  {isClient ? filteredItems : <Skeleton className="h-full w-full" />}
                 </div>
             </ScrollArea>
           </div>
