@@ -10,7 +10,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
+import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, inputValue } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -142,11 +142,10 @@ export default function PosPage() {
   const categoryScroller = createScroller(categoryScrollAreaRef, categoryScrollIntervalRef);
 
   useEffect(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('fromKeyboard')) {
-          setItemSearchTerm(inputValue);
-      }
-  }, [inputValue]);
+    if (targetInput?.name === 'item-search') {
+      setItemSearchTerm(inputValue);
+    }
+  }, [inputValue, targetInput]);
 
   useEffect(() => {
     setSelectedTableById(tableId);

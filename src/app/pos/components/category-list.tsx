@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
@@ -38,7 +38,7 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
-  const { setTargetInput, inputValue } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -48,11 +48,10 @@ export function CategoryList({
   }, []);
 
   useEffect(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('fromKeyboard')) {
-          setSearchTerm(inputValue);
-      }
-  }, [inputValue]);
+    if (targetInput?.name === 'category-search') {
+      setSearchTerm(inputValue);
+    }
+  }, [inputValue, targetInput]);
   
   const handleSearchFocus = () => {
     setTargetInput({
