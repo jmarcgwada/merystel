@@ -15,6 +15,8 @@ import type { Category, SpecialCategory, Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+const ITEMS_PER_PAGE = 50;
+
 interface ItemListProps {
   category: Category | SpecialCategory | null;
   searchTerm: string;
@@ -178,6 +180,15 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
       return searchedItems;
 
     }, [allItems, popularItems, categories, category, searchTerm, showFavoritesOnly, selectedTable]);
+    
+    const paginatedItems = useMemo(() => {
+      // If there is a search term, show all results. Otherwise, paginate.
+      if (searchTerm) {
+        return filteredItems;
+      }
+      return filteredItems.slice(0, ITEMS_PER_PAGE);
+    }, [filteredItems, searchTerm]);
+
 
     const getCategoryColor = (categoryId: string) => {
       if (!categories) return 'transparent';
@@ -187,7 +198,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
     if (itemDisplayMode === 'list') {
         return (
             <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {filteredItems.map((item) => (
+                {paginatedItems.map((item) => (
                     <ItemListItem key={item.id} item={item} onClick={onItemClick} />
                 ))}
             </div>
@@ -196,7 +207,7 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
 
     return (
       <div ref={ref} className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {filteredItems.map((item) => (
+        {paginatedItems.map((item) => (
           <ItemCard key={item.id} item={item} onClick={onItemClick} />
         ))}
       </div>

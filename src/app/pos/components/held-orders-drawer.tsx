@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -48,6 +48,13 @@ export function HeldOrdersDrawer({ isOpen, onClose }: HeldOrdersDrawerProps) {
     recallOrder(orderId);
     onClose();
   }
+  
+  useEffect(() => {
+    if (isOpen && heldOrders && heldOrders.length === 0) {
+      onClose();
+    }
+  }, [heldOrders, isOpen, onClose]);
+
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
