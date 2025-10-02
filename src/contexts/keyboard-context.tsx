@@ -19,6 +19,7 @@ interface KeyboardContextType {
     inputValue: string;
     targetInput: TargetInput | null;
     setTargetInput: (target: TargetInput) => void;
+    isKeyboardTargeted: boolean;
 
     pressKey: (key: string) => void;
     pressSpace: () => void;
@@ -38,7 +39,9 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     
     const setTargetInput = useCallback((target: TargetInput) => {
         setTargetInputState(target);
-        setInputValue(target.value);
+        if(target.name) {
+            setInputValue(target.value);
+        }
     }, []);
     
     const toggleCaps = useCallback(() => setIsCaps(prev => !prev), []);
@@ -60,6 +63,10 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         setInputValue(prev => prev.slice(0, -1));
     }, []);
 
+    const isKeyboardTargeted = useMemo(() => {
+        return !!targetInput?.name && (targetInput.name === 'category-search' || targetInput.name === 'item-search');
+    }, [targetInput]);
+
     const value = useMemo(() => ({
         isOpen,
         showKeyboard,
@@ -69,12 +76,13 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         inputValue,
         targetInput,
         setTargetInput,
+        isKeyboardTargeted,
         pressKey,
         pressSpace,
         pressBackspace,
     }), [
         isOpen, showKeyboard, hideKeyboard, isCaps, toggleCaps, 
-        inputValue, targetInput, setTargetInput, 
+        inputValue, targetInput, setTargetInput, isKeyboardTargeted,
         pressKey, pressSpace, pressBackspace
     ]);
 

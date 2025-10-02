@@ -8,14 +8,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
   onSelectCategory: (category: Category | SpecialCategory | null) => void;
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
-  selectedCategory: Category | SpecialCategory | null;
   scrollRef: React.RefObject<HTMLDivElement>;
   canScrollUp: boolean;
   canScrollDown: boolean;
@@ -38,7 +37,7 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
-  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput, isKeyboardTargeted } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -53,13 +52,19 @@ export function CategoryList({
     }
   }, [inputValue, targetInput]);
   
-  const handleSearchClick = () => {
+  const handleSearchFocus = () => {
     setTargetInput({
       value: searchTerm,
       name: 'category-search',
     });
-    showKeyboard();
   };
+
+  const handleSearchBlur = () => {
+      // Clear target only if it's the current one
+      if (targetInput?.name === 'category-search') {
+        setTargetInput({ value: '', name: '' });
+      }
+  }
 
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
@@ -123,7 +128,7 @@ export function CategoryList({
 
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col relative">
       <div className="p-4 border-b">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-bold tracking-tight font-headline">
@@ -169,7 +174,8 @@ export function CategoryList({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
-            onFocus={handleSearchClick}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
           />
         </div>
       </div>

@@ -34,22 +34,12 @@ export default function Header() {
   const { user } = useUser();
   const router = useRouter();
 
-  const { showKeyboard, targetInput } = useKeyboard();
+  const { showKeyboard, isKeyboardTargeted } = useKeyboard();
   const [isClient, setIsClient] = useState(false);
-  const [showKeyboardBtn, setShowKeyboardBtn] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    if (targetInput && (targetInput.name === 'category-search' || targetInput.name === 'item-search')) {
-      setShowKeyboardBtn(true);
-    } else {
-      setShowKeyboardBtn(false);
-    }
-  }, [targetInput]);
-
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -105,7 +95,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-           {isClient && showKeyboardBtn && (
+           {isClient && isKeyboardTargeted && (
               <Button 
                 variant="outline"
                 size="icon"

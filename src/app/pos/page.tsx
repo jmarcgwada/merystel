@@ -47,7 +47,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { showKeyboard, setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
   const categoryScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -181,13 +181,19 @@ export default function PosPage() {
     }
   }
 
-  const handleSearchClick = () => {
+  const handleSearchFocus = () => {
     setTargetInput({
       value: itemSearchTerm,
       name: 'item-search',
     });
-    showKeyboard();
   };
+
+  const handleSearchBlur = () => {
+    // Clear target only if it's the current one
+    if (targetInput?.name === 'item-search') {
+        setTargetInput({ value: '', name: '' });
+    }
+  }
   
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
 
@@ -230,7 +236,8 @@ export default function PosPage() {
                             value={itemSearchTerm}
                             onChange={(e) => setItemSearchTerm(e.target.value)}
                             className="pl-9"
-                            onFocus={handleSearchClick}
+                            onFocus={handleSearchFocus}
+                            onBlur={handleSearchBlur}
                         />
                     </div>
                     <div className="flex items-center gap-1">
