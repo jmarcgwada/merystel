@@ -63,8 +63,8 @@ export function VirtualKeyboard() {
     ["0", "."],
   ];
 
-  const handleClose = (clearInput: boolean = true) => {
-    hideKeyboard(clearInput);
+  const handleClose = () => {
+    hideKeyboard();
   }
 
   return (
@@ -101,7 +101,7 @@ export function VirtualKeyboard() {
                         Espace
                     </Key>
                     <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-                    <Key onClick={() => handleClose()} flex={1.5} className="bg-destructive/80 text-destructive-foreground">
+                    <Key onClick={handleClose} flex={1.5} className="bg-destructive/80 text-destructive-foreground">
                         Fermer
                     </Key>
                 </div>

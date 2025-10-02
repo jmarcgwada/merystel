@@ -44,9 +44,9 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         }
     }, [activeInput]);
 
-    const hideKeyboard = useCallback((clearInput: boolean = true) => {
+    const hideKeyboard = useCallback((clearTarget: boolean = true) => {
         setIsOpen(false);
-        if (clearInput) {
+        if (clearTarget) {
             setInputValue("");
             setActiveInput(null);
         }

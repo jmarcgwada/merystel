@@ -61,7 +61,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, inputValue, targetInput, clearInput, hideKeyboard, isOpen: isKeyboardOpen } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput, clearInput, isOpen: isKeyboardOpen } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
