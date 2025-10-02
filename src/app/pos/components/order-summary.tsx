@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
+import { useToast } from '@/hooks/use-toast';
 import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
@@ -430,6 +431,9 @@ export function OrderSummary() {
             isTableSale: !!sale.tableId,
             tableName: sale.tableName,
             tableId: sale.tableId,
+            payments: sale.payments,
+            originalPayments: sale.originalPayments,
+            originalTotal: sale.originalTotal
         });
         setReadOnlyOrder(null);
     }
@@ -764,3 +768,4 @@ export function OrderSummary() {
     </>
   );
 }
+
