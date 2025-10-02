@@ -50,10 +50,8 @@ export default function SupermarketPage() {
   useEffect(() => {
     if (searchTerm.length >= 3) {
       setListContent(filteredItems);
-    } else {
-        if (!listPersistenceTimer.current) {
-            setListContent([]);
-        }
+    } else if (!listPersistenceTimer.current) {
+        setListContent([]);
     }
   }, [searchTerm, filteredItems]);
 
@@ -66,6 +64,12 @@ export default function SupermarketPage() {
             setListContent([]);
         }, 3000);
     }
+
+    return () => {
+      if (listPersistenceTimer.current) {
+        clearTimeout(listPersistenceTimer.current);
+      }
+    };
   }, [searchTerm])
 
 
@@ -127,7 +131,7 @@ export default function SupermarketPage() {
 
   const handleShowAll = () => {
     if (items) {
-        setSearchTerm(''); // Clear search term to avoid confusion
+        setSearchTerm(''); 
         setListContent(items);
         if (listPersistenceTimer.current) {
             clearTimeout(listPersistenceTimer.current);
