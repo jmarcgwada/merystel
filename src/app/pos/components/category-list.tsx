@@ -70,15 +70,23 @@ export function CategoryList({
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If a table is selected (restaurant mode), show only categories marked for restaurant
+    // If a table is selected (restaurant mode), filter based on restaurant-only flag if enabled
     if (selectedTable && enableRestaurantCategoryFilter) {
-        return baseCategories.filter(category => category.isRestaurantOnly === true || !category.isRestaurantOnly);
+      // Show categories that are specifically for restaurants, or not specifically for direct sale
+      const restaurantCategories = baseCategories.filter(category => category.isRestaurantOnly === true);
+      const generalCategories = baseCategories.filter(category => category.isRestaurantOnly !== true);
+      return [...restaurantCategories, ...generalCategories];
     }
     
-    // In direct sale mode, show all categories matching the search
+    // In direct sale mode, show all categories matching the search, excluding those ONLY for restaurant
+    if (!selectedTable) {
+        return baseCategories.filter(category => category.isRestaurantOnly !== true);
+    }
+    
+    // Fallback for restaurant mode if filter is disabled
     return baseCategories;
 
-  }, [categories, searchTerm, selectedTable]);
+  }, [categories, searchTerm, selectedTable, enableRestaurantCategoryFilter]);
 
   const getVariant = (id: string | null) => {
     const isSelected = (selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === id) || 
@@ -161,9 +169,12 @@ export function CategoryList({
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-10"
             onFocus={handleSearchClick}
           />
+           <Button variant="ghost" size="icon" onClick={handleSearchClick} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+              <Keyboard className="h-5 w-5" />
+          </Button>
         </div>
       </div>
       <ScrollArea className="flex-1" viewportRef={scrollRef}>
