@@ -102,8 +102,8 @@ export default function SupermarketPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-12 h-full gap-4 p-4">
-        <div className="md:col-span-8 flex flex-col border bg-card rounded-lg p-4 sm:p-6 lg:p-8">
-            <div className="flex flex-col sm:flex-row items-start gap-4 mb-4">
+        <div className="md:col-span-8 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="relative flex-1 w-full">
                      <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
                     <Input
@@ -130,10 +130,10 @@ export default function SupermarketPage() {
                     <Badge variant="secondary" className="ml-3">{heldOrders?.length || 0}</Badge>
                 </Button>
             </div>
-             <div className="flex-1 flex flex-col overflow-hidden">
+             <div className="flex-1 flex flex-col overflow-hidden border bg-card rounded-lg">
                 {searchTerm.length >= 3 ? (
                   <ScrollArea className="flex-1">
-                      <div className="pr-4 space-y-2">
+                      <div className="p-4 space-y-2">
                         {filteredItems.length > 0 ? (
                            filteredItems.map((item, index) => (
                              <Card
