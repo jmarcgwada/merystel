@@ -1,7 +1,5 @@
 
-
 'use client';
-
 import React, {
   createContext,
   useContext,
@@ -24,9 +22,8 @@ import type {
   CompanyInfo,
   User,
   SelectedVariant,
-  Payment,
 } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
@@ -51,12 +48,12 @@ import {
   updateDoc,
   deleteField,
   runTransaction,
-  Timestamp,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
+import type { Timestamp } from 'firebase/firestore';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -71,10 +68,11 @@ const TAKEAWAY_TABLE: Table = {
   covers: 0,
 };
 
-
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
+  readOnlyOrder: OrderItem[] | null;
+  setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
@@ -101,10 +99,10 @@ interface PosContextType {
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item; quantity: number } | null>>;
   variantItem: Item | null;
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
-  readOnlyOrder: OrderItem[] | null;
-  setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
-  loadTicketForViewing: (sale: Sale) => void;
-
+  lastDirectSale: Sale | null;
+  lastRestaurantSale: Sale | null;
+  loadTicketForViewing: (ticket: Sale) => void;
+  isViewOnlyOrder: boolean;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
@@ -118,8 +116,6 @@ interface PosContextType {
   forceSignOutUser: (userId: string) => void;
   sessionInvalidated: boolean;
   setSessionInvalidated: React.Dispatch<React.SetStateAction<boolean>>;
-
-
   items: Item[];
   addItem: (item: Omit<Item, 'id'>) => void;
   updateItem: (item: Item) => void;
@@ -127,20 +123,16 @@ interface PosContextType {
   toggleItemFavorite: (itemId: string) => void;
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
   popularItems: Item[];
-
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
-  getCategoryColor: (categoryId: string) => string | undefined;
-
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
-
   tables: Table[];
   addTable: (
     tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
@@ -154,29 +146,24 @@ interface PosContextType {
   updateTableOrder: (tableId: string, order: OrderItem[]) => void;
   saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
   promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
-
   sales: Sale[];
-  lastDirectSale: Sale | null;
-  lastRestaurantSale: Sale | null;
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>
   ) => void;
-
+  lockSale: (saleId: string) => Promise<boolean>;
+  unlockSale: (saleId: string) => Promise<void>;
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
   updatePaymentMethod: (method: PaymentMethod) => void;
   deletePaymentMethod: (methodId: string) => void;
-
   vatRates: VatRate[];
   addVatRate: (vatRate: Omit<VatRate, 'id' | 'code'>) => void;
   updateVatRate: (vatRate: VatRate) => void;
   deleteVatRate: (vatRateId: string) => void;
-
   heldOrders: HeldOrder[] | null;
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
-
   authRequired: boolean;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
@@ -216,7 +203,6 @@ interface PosContextType {
   setDirectSaleBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   restaurantModeBgOpacity: number;
   setRestaurantModeBgOpacity: React.Dispatch<React.SetStateAction<number>>;
-
   dashboardBgType: 'color' | 'image';
   setDashboardBgType: React.Dispatch<React.SetStateAction<'color' | 'image'>>;
   dashboardBackgroundColor: string;
@@ -233,7 +219,8 @@ interface PosContextType {
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
   setDashboardButtonBorderColor: React.Dispatch<React.SetStateAction<string>>;
-
+  showDashboardStats: boolean;
+  setShowDashboardStats: React.Dispatch<React.SetStateAction<boolean>>;
   externalLinkModalEnabled: boolean;
   setExternalLinkModalEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   externalLinkUrl: string;
@@ -244,12 +231,8 @@ interface PosContextType {
   setExternalLinkModalWidth: React.Dispatch<React.SetStateAction<number>>;
   externalLinkModalHeight: number;
   setExternalLinkModalHeight: React.Dispatch<React.SetStateAction<number>>;
-  showDashboardStats: boolean;
-  setShowDashboardStats: React.Dispatch<React.SetStateAction<boolean>>;
-
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
-
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -257,33 +240,25 @@ interface PosContextType {
   
   seedInitialData: () => void;
   resetAllData: () => void;
-  exportConfiguration: () => Promise<void>;
+  exportConfiguration: () => void;
   importConfiguration: (file: File) => Promise<void>;
   importDemoData: () => Promise<void>;
-
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
-  lockSale: (saleId: string) => Promise<boolean>;
-  unlockSale: (saleId: string) => Promise<void>;
-
   isLoading: boolean;
   user: CombinedUser | null;
 }
-
 const PosContext = createContext<PosContextType | undefined>(undefined);
-
 // Helper function to remove undefined properties from an object before sending to Firebase
 const cleanDataForFirebase = (data: any) => {
-    const { image, ...rest } = data; // Destructure to remove image
     const cleanedData: any = {};
-    for (const key in rest) {
-      if (Object.prototype.hasOwnProperty.call(rest, key) && rest[key] !== undefined) {
-        cleanedData[key] = rest[key];
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
+        cleanedData[key] = data[key];
       }
     }
     return cleanedData;
 };
-
 // Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
@@ -298,7 +273,6 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
         }
         return defaultValue;
     });
-
     useEffect(() => {
         if (typeof window !== 'undefined') {
             try {
@@ -308,25 +282,21 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
             }
         }
     }, [key, state]);
-
     return [state, setState];
 }
-
-
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useToast();
-
+  const { toast: shadcnToast } = useShadcnToast();
   const companyId = SHARED_COMPANY_ID;
-
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [isViewOnlyOrder, setIsViewOnlyOrder] = useState(false);
   
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
@@ -334,9 +304,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
   const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
   const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 20);
+  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'light');
+  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 2000);
+  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
@@ -350,17 +324,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 20);
-  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'light');
-  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
+  
   const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
   const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
   const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', 'Lien Externe');
   const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
   const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
-
+    
   const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
     null
   );
@@ -375,9 +346,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   // #endregion
-
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -385,20 +355,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
-
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
-
   const itemsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId]);
   const { data: itemsData = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
-
   const categoriesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId]);
   const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
-
   const customersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId]);
   const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
-
   const tablesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
@@ -410,20 +375,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const salesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
-
   const paymentMethodsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId]);
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
-
   const vatRatesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId]);
   const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
-
   const heldOrdersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
-
   const companyDocRef = useMemoFirebase(() => companyId ? doc(firestore, 'companies', companyId) : null, [firestore, companyId]);
   const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(companyDocRef);
-
-
   const isLoading =
     userLoading ||
     usersLoading ||
@@ -442,12 +401,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     routerRef.current = router;
   }, [router]);
-
   const heldOrdersRef = useRef(heldOrders);
   useEffect(() => {
     heldOrdersRef.current = heldOrders;
   }, [heldOrders]);
-
   const authRequired = true;
   
   // #region Base Callbacks
@@ -465,7 +422,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [companyId, firestore]
   );
-
   const getDocRef = useCallback(
     (collectionName: string, docId: string, global: boolean = false) => {
       if (!firestore) return null;
@@ -480,7 +436,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [companyId, firestore]
   );
-
   const addEntity = useCallback(
     async (collectionName: string, data: any, toastTitle: string, global: boolean = false) => {
       const ref = getCollectionRef(collectionName, global);
@@ -499,7 +454,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getCollectionRef, toast]
   );
-
   const updateEntity = useCallback(
     async (
       collectionName: string,
@@ -522,7 +476,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast]
   );
-
   const deleteEntity = useCallback(
     async (collectionName: string, id: string, toastTitle: string, global: boolean = false) => {
       const ref = getDocRef(collectionName, id, global);
@@ -540,20 +493,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [getDocRef, toast]
   );
   // #endregion
-
   // #region Config Import/Export
     const exportConfiguration = useCallback(async () => {
         if (!companyId || !firestore) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
-
         toast({ title: 'Exportation en cours...' });
-
         try {
             const collectionsToExport = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
             const config: { [key: string]: any[] } = {};
-
             for (const collectionName of collectionsToExport) {
                 const collectionRef = collection(firestore, 'companies', companyId, collectionName);
                 const snapshot = await getDocs(collectionRef);
@@ -564,7 +513,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if(companyDoc.exists()) {
                 config.companyInfo = [{...companyDoc.data(), __id: companyDoc.id}];
             }
-
             const jsonString = JSON.stringify(config, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -575,30 +523,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-
             toast({ title: 'Exportation réussie', description: 'Le fichier de configuration a été téléchargé.' });
-
         } catch (error) {
             console.error("Error exporting configuration:", error);
             toast({ variant: 'destructive', title: 'Erreur d\'exportation' });
         }
-
     }, [companyId, firestore, toast]);
-
     const importConfiguration = useCallback(async (file: File) => {
         if (!companyId || !firestore) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
-
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const jsonString = event.target?.result as string;
                 const config = JSON.parse(jsonString);
-
                 toast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
-
                 // 1. Delete existing data
                 const collectionsToDelete = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
                 const deleteBatch = writeBatch(firestore);
@@ -608,7 +549,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
                 }
                 await deleteBatch.commit();
-
                 // 2. Import new data
                 const importBatch = writeBatch(firestore);
                 for (const collectionName in config) {
@@ -634,7 +574,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 
                 // Force reload to reflect all changes
                 setTimeout(() => window.location.reload(), 2000);
-
             } catch (error) {
                 console.error("Error importing configuration:", error);
                 toast({ variant: 'destructive', title: 'Erreur d\'importation', description: 'Le fichier est peut-être invalide ou corrompu.' });
@@ -643,31 +582,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         reader.readAsText(file);
     }, [companyId, firestore, toast]);
   // #endregion
-
   // #region Data Seeding
   const importDemoData = useCallback(async () => {
     if (!firestore || !companyId || !vatRates) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Les services ne sont pas prêts.' });
         return;
     }
-
     toast({ title: 'Importation des données de démo...' });
     
     try {
         const batch = writeBatch(firestore);
         const categoryIdMap: { [key: string]: string } = {};
         const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
-
         if (!defaultVatId) {
             toast({ variant: 'destructive', title: 'Erreur de configuration', description: 'Aucun taux de TVA n\'est configuré. Veuillez en ajouter un avant d\'importer.' });
             return;
         }
-
         for (const category of demoData.categories) {
             const newCategoryRef = doc(collection(firestore, 'companies', companyId, 'categories'));
             categoryIdMap[category.name] = newCategoryRef.id;
             batch.set(newCategoryRef, { name: category.name, image: `https://picsum.photos/seed/${newCategoryRef.id}/200/150` });
-
             for (const item of category.items) {
                 const newItemRef = doc(collection(firestore, 'companies', companyId, 'items'));
                 batch.set(newItemRef, {
@@ -680,32 +614,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 });
             }
         }
-
         await batch.commit();
         toast({ title: 'Importation réussie', description: 'Les articles et catégories de démonstration ont été ajoutés.' });
-
     } catch (error) {
         console.error('Error importing demo data:', error);
         toast({ variant: 'destructive', title: 'Erreur d\'importation' });
     }
   }, [firestore, companyId, vatRates, toast]);
-
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
       return;
     }
-
     const canSeed = !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
-
     if (!canSeed) {
       toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données de configuration existent déjà." });
       return;
     }
-
     try {
       const batch = writeBatch(firestore);
-
       // --- Define Data ---
       const defaultCategories = [
         { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
@@ -758,8 +685,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
         { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
-
-
       // --- Batch Write ---
       defaultCategories.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
@@ -788,24 +713,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       await batch.commit();
       toast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
-
     } catch (error) {
       console.error('Error seeding data:', error);
       toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
   }, [firestore, companyId, categories, vatRates, paymentMethods, toast]);
-
     const resetAllData = useCallback(async () => {
         if (!firestore || !companyId) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
-
         const collectionsToDelete = ['items', 'categories', 'customers', 'tables', 'sales', 'paymentMethods', 'vatRates', 'heldOrders'];
         
         try {
             const batch = writeBatch(firestore);
-
             for (const collectionName of collectionsToDelete) {
                 const collRef = getCollectionRef(collectionName);
                 if (collRef) {
@@ -815,47 +736,44 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
             }
-
             await batch.commit();
             toast({ title: 'Réinitialisation réussie', description: 'Toutes les données de l\'application ont été supprimées.' });
         } catch (error) {
             console.error('Error resetting data:', error);
             toast({ variant: 'destructive', title: 'Erreur de réinitialisation', description: 'Une erreur s\'est produite lors de la suppression des données.' });
         }
-
     }, [firestore, companyId, getCollectionRef, toast]);
   // #endregion
-
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    // If an order was associated with a table, unlock the table before clearing.
-    if (selectedTable && selectedTable.id && firestore) {
-      const tableRef = doc(firestore, 'companies', companyId, 'tables', selectedTable.id);
-      await updateDoc(tableRef, { lockedBy: deleteField() });
+    if (isViewOnlyOrder) {
+      setIsViewOnlyOrder(false);
+    }
+    if(selectedTable && selectedTable.lockedBy) {
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+          await updateDoc(tableRef, { lockedBy: deleteField() });
+        }
     }
     setOrder([]);
-    setReadOnlyOrder(null);
     setCurrentSaleId(null);
-    if (!selectedTable) {
-      setCurrentSaleContext(null);
-    }
+    setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, firestore, companyId]);
+  }, [selectedTable, getDocRef, isViewOnlyOrder, setIsViewOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
     );
   }, []);
-
   const triggerItemHighlight = (itemId: string) => {
     setRecentlyAddedItemId(itemId);
   };
   
   const addSerializedItemToOrder = useCallback((item: Item, quantity: number, serialNumbers: string[]) => {
     const newOrderItem: OrderItem = {
-      id: item.id,
       itemId: item.id,
+      id: uuidv4(),
       name: item.name,
       price: item.price,
       vatId: item.vatId,
@@ -867,42 +785,35 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     
     setOrder(currentOrder => {
-        const existingItemIndex = currentOrder.findIndex(i => i.id === item.id);
+        const existingItemIndex = currentOrder.findIndex(i => i.itemId === item.id && !i.serialNumbers && !i.selectedVariants);
         if (existingItemIndex > -1) {
             const newOrder = [...currentOrder];
             const existingItem = newOrder[existingItemIndex];
+            // When updating, we replace the item entirely, including quantity and serials.
             newOrder[existingItemIndex] = newOrderItem;
             return newOrder;
         }
-        return [...currentOrder, newOrderItem];
+        return [newOrderItem, ...currentOrder];
     });
-
-    triggerItemHighlight(item.id);
+    triggerItemHighlight(newOrderItem.id);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
-
   }, [toast]);
-
   const addToOrder = useCallback(
     (itemId: Item['id'], selectedVariants?: SelectedVariant[]) => {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
-      const isVariant = !!selectedVariants;
-      const uniqueId = isVariant ? uuidv4() : itemToAdd.id;
-      
       const existingItem = order.find(
         (item) => item.itemId === itemId && !item.selectedVariants
       );
-
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
           setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
           return;
       }
-
       setOrder((currentOrder) => {
-        if (existingItem && !isVariant) { // Do not group items with variants
+        if (existingItem && !selectedVariants) { // Do not group items with variants
           const newOrder = [...currentOrder];
           const newQuantity = existingItem.quantity + 1;
           const existingItemIndex = newOrder.findIndex(i => i.itemId === itemId && !i.selectedVariants);
@@ -912,12 +823,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             total:
               existingItem.price * newQuantity - (existingItem.discount || 0),
           };
-          triggerItemHighlight(existingItem.id);
-          return newOrder;
+           // Move to top
+           const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
+          return [itemToMove, ...newOrder];
         } else {
+          const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
           const newItem: OrderItem = {
-            id: uniqueId, // Give unique id if it has variants
             itemId: itemToAdd.id,
+            id: uniqueId,
             name: itemToAdd.name,
             price: itemToAdd.price,
             vatId: itemToAdd.vatId,
@@ -925,29 +838,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             quantity: 1,
             total: itemToAdd.price,
             discount: 0,
-            selectedVariants,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
+            selectedVariants,
           };
-          triggerItemHighlight(uniqueId);
-          return [...currentOrder, newItem];
+          return [newItem, ...currentOrder];
         }
       });
-      
+      triggerItemHighlight(itemId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
   );
-
   const updateQuantity = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
-      if (!items) return;
-      const orderItemToUpdate = order.find((item) => item.id === itemId);
-      if (!orderItemToUpdate) return;
+      const itemToUpdate = order.find((item) => item.id === itemId);
+      if (!itemToUpdate) return;
       
-      const originalItem = items.find(i => i.id === orderItemToUpdate.itemId);
+      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
       if(!originalItem) return;
-
       if (originalItem.requiresSerialNumber && enableSerialNumber) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
@@ -983,7 +892,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [updateQuantity]
   );
-
    const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
     setOrder(currentOrder =>
       currentOrder.map(item =>
@@ -992,7 +900,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
     toast({ title: 'Note ajoutée à l\'article.' });
   }, [toast]);
-
   const applyDiscount = useCallback(
     (
       itemId: OrderItem['id'],
@@ -1027,12 +934,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
-
   const orderTotal = useMemo(
     () => (readOnlyOrder || order).reduce((sum, item) => sum + item.total, 0),
     [order, readOnlyOrder]
   );
-
   const orderTax = useMemo(() => {
     if (!vatRates) return 0;
     return (readOnlyOrder || order).reduce((sum, item) => {
@@ -1042,45 +947,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   }, [order, readOnlyOrder, vatRates]);
   // #endregion
-
-  // #region Ticket Locking
-    const lockSale = useCallback(async (saleId: string): Promise<boolean> => {
-        if (!firestore || !user) return false;
-        const saleRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'sales', saleId);
-        try {
-            await runTransaction(firestore, async (transaction) => {
-                const saleDoc = await transaction.get(saleRef);
-                if (!saleDoc.exists()) {
-                    throw new Error("Ticket non trouvé.");
-                }
-                const saleData = saleDoc.data() as Sale;
-                if (saleData.lockedBy && saleData.lockedBy !== user.uid) {
-                    throw new Error("Ticket déjà verrouillé.");
-                }
-                transaction.update(saleRef, { lockedBy: user.uid });
-            });
-            return true;
-        } catch (error: any) {
-            if (error.message !== "Ticket déjà verrouillé.") {
-                toast({ variant: 'destructive', title: 'Erreur', description: error.message });
-            }
-            return false;
-        }
-    }, [firestore, user, toast]);
-
-    const unlockSale = useCallback(async (saleId: string) => {
-        if (!firestore) return;
-        const saleRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'sales', saleId);
-        try {
-            await updateDoc(saleRef, { lockedBy: deleteField() });
-        } catch (error) {
-            console.error("Error unlocking sale:", error);
-            // We don't toast here to avoid bothering the user on silent-fail scenarios (e.g., closing browser)
-        }
-    }, [firestore]);
-  // #endregion
-
-
   // #region Held Order & Table Management
   const holdOrder = useCallback(async () => {
     if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
@@ -1092,7 +958,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         routerRef.current.push('/restaurant');
         return;
     }
-
     if (order.length === 0) {
       toast({
         variant: 'destructive',
@@ -1101,9 +966,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       return;
     }
-
     const cleanedItems = order.map(item => cleanDataForFirebase(item));
-
     const newHeldOrder: Omit<HeldOrder, 'id'> = {
       date: new Date(),
       items: cleanedItems,
@@ -1122,17 +985,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (tableRef) {
         await updateDoc(tableRef, { status: 'available', lockedBy: deleteField() });
       }
-
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
     [heldOrders, getDocRef, deleteEntity, toast, updateDoc]
   );
-
   const recallOrder = useCallback(async (orderId: string) => {
     if (!heldOrdersRef.current || !user || !items) return;
     const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
     if (orderToRecall) {
-      setReadOnlyOrder(null);
+      setIsViewOnlyOrder(false);
       
       // Re-hydrate the order items with full item details
       const hydratedOrder = orderToRecall.items.map(orderItem => {
@@ -1142,7 +1003,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...orderItem, // Spread order-specific details, overwriting if necessary
         } as OrderItem;
       });
-
       setOrder(hydratedOrder);
       setCurrentSaleId(orderToRecall.id);
       setSelectedTable(null); // Ensure no table is selected
@@ -1154,7 +1014,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ title: 'Commande rappelée' });
       routerRef.current.push('/pos');
     }
-  }, [user, deleteEntity, toast, items]);
+  }, [user, deleteEntity, toast, items, setIsViewOnlyOrder]);
   
   const promoteTableToTicket = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
@@ -1180,33 +1040,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast, tables, user]
   );
-
   const setSelectedTableById = useCallback(async (tableId: string | null) => {
     if (!firestore || !user) {
-        if (!tableId) await clearOrder();
         return;
     }
     
-    // Unlocking the previously selected table if there was one
-    if (selectedTable && selectedTable.id !== tableId) {
-        const previousTableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
-        await updateDoc(previousTableRef, { lockedBy: deleteField() });
-    }
-
+    // Clear order and selection if tableId is null
     if (!tableId) {
-        setSelectedTable(null);
-        setOrder([]);
-        setCurrentSaleContext(null);
+        if(selectedTable) {
+             const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', selectedTable.id);
+             await updateDoc(tableRef, { lockedBy: deleteField() });
+        }
+        await clearOrder();
         return;
     }
-    
     if (tableId === 'takeaway') {
         routerRef.current.push('/pos?from=restaurant');
         return;
     }
-
     const tableRef = doc(firestore, 'companies', SHARED_COMPANY_ID, 'tables', tableId);
-
     try {
         await runTransaction(firestore, async (transaction) => {
             const tableDoc = await transaction.get(tableRef);
@@ -1214,7 +1066,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 throw new Error("La table n'existe pas.");
             }
             const tableData = tableDoc.data() as Table;
-
             if (tableData.verrou) {
                  throw new Error("Cette table est verrouillée et ne peut pas être sélectionnée.");
             }
@@ -1238,14 +1089,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setOrder(tableData.order || []);
         }
         
-        setReadOnlyOrder(null);
         setCurrentSaleId(null);
         setCurrentSaleContext({
             tableId: tableData.id,
             tableName: tableData.name,
         });
         routerRef.current.push(`/pos?tableId=${tableId}`);
-
     } catch (error: any) {
         toast({
             variant: 'destructive',
@@ -1253,10 +1102,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: error.message,
         });
     }
-
   }, [firestore, user, clearOrder, toast, promoteTableToTicket, tables, selectedTable]);
-
-
   const updateTableOrder = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
       const tableRef = getDocRef('tables', tableId);
@@ -1273,26 +1119,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [getDocRef, toast]
   );
-
   const saveTableOrderAndExit = useCallback(
     async (tableId: string, orderData: OrderItem[]) => {
-        if (!firestore) return;
-        routerRef.current.push('/restaurant');
-        const tableRef = getDocRef('tables', tableId);
-        if (tableRef) {
-            await updateDoc(tableRef, {
-                order: orderData.map(cleanDataForFirebase),
-                status: orderData.length > 0 ? 'occupied' : 'available',
-                lockedBy: deleteField()
-            });
-        }
-        toast({ title: 'Table sauvegardée' });
-        await clearOrder();
+      const tableRef = getDocRef('tables', tableId);
+      if (tableRef) {
+          routerRef.current.push('/restaurant');
+          await updateDoc(tableRef, {
+            order: orderData.map(cleanDataForFirebase),
+            status: orderData.length > 0 ? 'occupied' : 'available',
+            lockedBy: deleteField()
+          });
+          toast({ title: 'Table sauvegardée' });
+          await clearOrder();
+      }
     },
-    [getDocRef, clearOrder, toast, firestore]
-);
-
-
+    [getDocRef, clearOrder, toast]
+  );
   const forceFreeTable = useCallback(
     async (tableId: string) => {
       if (!firestore) return;
@@ -1317,7 +1159,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [firestore, getDocRef, heldOrders, toast]
   );
-
   const addTable = useCallback(
     (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
       const newTable: Omit<Table, 'id'> = {
@@ -1330,76 +1171,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [addEntity]
   );
-
   const updateTable = useCallback(
     (table: Table) => {
       updateEntity('tables', table.id, table, 'Table modifiée');
     },
     [updateEntity]
   );
-
   const deleteTable = useCallback(
     (tableId: string) => deleteEntity('tables', tableId, 'Table supprimée'),
     [deleteEntity]
   );
-
   // #endregion
-
   // #region Sales
   const recordSale = useCallback(
     async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>) => {
       if (!companyId || !firestore || !user) return;
-  
+      
       const batch = writeBatch(firestore);
-  
-      if (currentSaleId && !currentSaleId.startsWith('table-')) {
-          const saleRef = getDocRef('sales', currentSaleId);
-          if (saleRef) {
-              const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
-              const updatedSaleData: Partial<Sale> = {
-                  ...saleData,
-                  items: cleanedItems,
-                  modifiedAt: new Date(),
-                  originalTotal: currentSaleContext?.originalTotal,
-                  payments: [...(currentSaleContext?.originalPayments || []), ...saleData.payments], // Combine payments
-                  originalPayments: currentSaleContext?.originalPayments,
-                  change: saleData.change
-              };
-
-              batch.set(saleRef, cleanDataForFirebase(updatedSaleData), { merge: true });
-              batch.update(saleRef, { lockedBy: deleteField() });
-          }
-      } else {
-          // This is a new sale
-          const today = new Date();
-          const dayMonth = format(today, 'ddMM');
-          const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
-          const todaysSalesSnapshot = await getDocs(salesQuery);
-          const todaysSalesCount = todaysSalesSnapshot.size;
-  
-          const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-          const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
-          
-          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : '';
-  
-          const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
-  
-          const finalSale: Omit<Sale, 'id'> = {
-              ...saleData,
-              items: cleanedItems,
-              date: today,
-              ticketNumber,
-              status: 'paid',
-              userId: user.uid,
-              userName: sellerName,
-              ...(currentSaleContext?.tableId && {
-                  tableId: currentSaleContext.tableId,
-                  tableName: currentSaleContext.tableName,
-              }),
-          };
-          const newSaleRef = doc(getCollectionRef('sales')!);
-          batch.set(newSaleRef, finalSale);
-      }
       
       // If sale comes from a table, free the table.
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
@@ -1408,8 +1196,54 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           batch.update(tableRef, { status: 'available', order: [], lockedBy: deleteField() });
         }
       }
-  
-      await batch.commit();
+      // If sale comes from a recalled held order, delete the held order
+      if (currentSaleId && !currentSaleContext?.isTableSale) {
+        const docRef = getDocRef('heldOrders', currentSaleId);
+        if (docRef) batch.delete(docRef);
+      }
+      const today = new Date();
+      const dayMonth = format(today, 'ddMM');
+      const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
+      const todaysSalesSnapshot = await getDocs(salesQuery);
+      const todaysSalesCount = todaysSalesSnapshot.size;
+      const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+      const ticketNumber = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+      const totalPaid = saleData.payments.reduce((acc, p) => acc + p.amount, 0);
+      const change = totalPaid - saleData.total;
+      // Clean up items before saving
+      const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
+      
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+      const finalSale: Omit<Sale, 'id'> = {
+        ...saleData,
+        items: cleanedItems,
+        date: today,
+        ticketNumber,
+        status: 'paid',
+        userId: user.uid,
+        userName: sellerName || '',
+        ...(change > 0.009 && { change: change }),
+        ...(currentSaleContext?.tableId && {
+          tableId: currentSaleContext.tableId,
+          tableName: currentSaleContext.tableName,
+        }),
+      };
+      const salesCollRef = getCollectionRef('sales');
+      if (salesCollRef) {
+        if(currentSaleId && !currentSaleId.startsWith('table-')) {
+          const saleRef = getDocRef('sales', currentSaleId);
+          if (saleRef) {
+            batch.set(saleRef, {
+              ...finalSale,
+              modifiedAt: new Date(),
+            });
+          }
+        } else {
+            const newSaleRef = doc(salesCollRef);
+            batch.set(newSaleRef, cleanDataForFirebase(finalSale));
+        }
+        await batch.commit();
+      }
     },
     [
       companyId,
@@ -1422,7 +1256,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     ]
   );
   // #endregion
-
   // #region User Management & Session
   const addUser = useCallback(
     async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
@@ -1435,7 +1268,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
-
       const finalPassword = password;
       if (!finalPassword) {
         toast({
@@ -1445,11 +1277,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
-
       try {
         const userCredential = await createUserWithEmailAndPassword(authInstance, userData.email, finalPassword);
         const authUser = userCredential.user;
-
         const userDocData: Omit<User, 'id'> = {
           firstName: userData.firstName,
           lastName: userData.lastName,
@@ -1457,13 +1287,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           role: userData.role,
           companyId: SHARED_COMPANY_ID,
         };
-
         await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
-
         toast({
             title: 'Utilisateur créé avec succès',
         });
-
       } catch (error: any) {
         console.error('Error creating user:', error);
         let description = "Une erreur inconnue s'est produite.";
@@ -1480,7 +1307,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [firestore, toast]
   );
-
   const updateUser = useCallback(
     (userData: User) => {
       const {id, ...data} = userData;
@@ -1488,12 +1314,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [updateEntity]
   );
-
   const deleteUser = useCallback(
     (id: string) => deleteEntity('users', id, 'Utilisateur supprimé', true),
     [deleteEntity]
   );
-
   const sendPasswordResetEmailForUser = useCallback(async (email: string) => {
     if (!auth) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Service d\'authentification non disponible.' });
@@ -1507,45 +1331,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
     }
   }, [auth, toast]);
-
     const findUserByEmail = useCallback((email: string) => {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
     const handleSignOut = useCallback(async () => {
-        if (!auth || !user || !firestore) return;
+        if (!auth || !user) return;
         
-        // Also unlock any table this user might have locked
-        const tablesQuery = query(collection(firestore, 'companies', companyId, 'tables'), where('lockedBy', '==', user.uid));
-        const lockedTablesSnapshot = await getDocs(tablesQuery);
-        const batch = writeBatch(firestore);
-        lockedTablesSnapshot.forEach(tableDoc => {
-            batch.update(tableDoc.ref, { lockedBy: deleteField() });
+        await updateDoc(doc(firestore, 'users', user.uid), {
+            sessionToken: deleteField()
         });
-
-        // Also unlock any sale this user might have locked
-        const salesQuery = query(collection(firestore, 'companies', companyId, 'sales'), where('lockedBy', '==', user.uid));
-        const lockedSalesSnapshot = await getDocs(salesQuery);
-        lockedSalesSnapshot.forEach(saleDoc => {
-            batch.update(saleDoc.ref, { lockedBy: deleteField() });
-        });
-
-        // Clear session token
-        const userRef = doc(firestore, 'users', user.uid);
-        batch.update(userRef, { sessionToken: deleteField() });
-
-        await batch.commit();
-
+        
         await signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth, user, firestore, companyId]);
-
-
+    }, [auth, user, firestore]);
     const validateSession = useCallback((userId: string, token: string) => {
         const user = users.find(u => u.id === userId);
         return user?.sessionToken === token;
     }, [users]);
-
     const forceSignOut = useCallback(async (message: string) => {
         await handleSignOut();
         toast({
@@ -1554,7 +1357,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: message,
         });
     }, [toast, handleSignOut]);
-
     const forceSignOutUser = useCallback(async (userId: string) => {
         const userRef = doc(firestore, 'users', userId);
         try {
@@ -1567,9 +1369,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
         }
     }, [firestore, toast]);
-
   // #endregion
-
   // #region Generic Entity Management
   const addCategory = useCallback(
     (category: Omit<Category, 'id'>) =>
@@ -1599,11 +1399,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [categories, updateEntity]
   );
-  const getCategoryColor = useCallback((categoryId: string) => {
-    if (!categories) return undefined;
-    return categories.find(c => c.id === categoryId)?.color;
-  }, [categories]);
-
   const addItem = useCallback(
     (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé'),
     [addEntity]
@@ -1645,7 +1440,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [firestore, getDocRef, toast]
   );
-
   const addCustomer = useCallback(
     async (customer: Omit<Customer, 'id' | 'isDefault'>): Promise<Customer | null> => {
         const newCustomerData = {
@@ -1685,7 +1479,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [customers, firestore, getDocRef, toast]
   );
-
   const addPaymentMethod = useCallback(
     (method: Omit<PaymentMethod, 'id'>) =>
       addEntity('paymentMethods', method, 'Moyen de paiement ajouté'),
@@ -1706,7 +1499,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteEntity('paymentMethods', id, 'Moyen de paiement supprimé'),
     [deleteEntity]
   );
-
   const addVatRate = useCallback(
     (vatRate: Omit<VatRate, 'id' | 'code'>) => {
       if (!vatRates) return;
@@ -1725,7 +1517,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     (id: string) => deleteEntity('vatRates', id, 'Taux de TVA supprimé'),
     [deleteEntity]
   );
-
   const setCompanyInfo = useCallback(
     (info: CompanyInfo) => {
       if (companyId && firestore) {
@@ -1738,33 +1529,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   
   // #endregion
-
   // #region Navigation Confirmation
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
     setNavConfirmOpen(true);
   };
-
-  const closeNavConfirm = useCallback(async () => {
-    // Also unlock table if navigating away from a table sale
-    if (selectedTable && selectedTable.id && firestore) {
-      const tableRef = doc(firestore, 'companies', companyId, 'tables', selectedTable.id);
-      await updateDoc(tableRef, { lockedBy: deleteField() });
-    }
+  const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
     setNavConfirmOpen(false);
-  }, [selectedTable, firestore, companyId]);
-
+  }, []);
   const confirmNavigation = useCallback(async () => {
     if (nextUrl) {
-      await clearOrder(); // This will also unlock the table
+      await clearOrder();
       routerRef.current.push(nextUrl);
     }
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm]);
   // #endregion
-
-  // #region Derived State & Last Tickets
+  // #region Derived State
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
@@ -1788,8 +1570,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       .slice(0, popularItemsCount)
       .map((i) => i.item);
   }, [sales, items, popularItemsCount]);
-  
-  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
     if (!sales || sales.length === 0) {
         return { lastDirectSale: null, lastRestaurantSale: null };
     }
@@ -1802,10 +1583,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
     return { lastDirectSale, lastRestaurantSale };
 }, [sales]);
-
   const loadTicketForViewing = useCallback((sale: Sale) => {
-    const itemsWithSource = sale.items.map(item => ({ ...item, sourceSale: sale }));
+    const itemsWithSource = sale.items.map(item => ({...item, sourceSale: sale}));
     setReadOnlyOrder(itemsWithSource);
+    setIsViewOnlyOrder(true);
+    setOrder([]); // Clear any active order
   }, []);
   // #endregion
   
@@ -1821,14 +1603,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       seedInitialData();
     }
   }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
-
   const value = useMemo(
     () => ({
       order,
       setOrder,
       readOnlyOrder,
       setReadOnlyOrder,
-      loadTicketForViewing,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -1851,6 +1631,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setSerialNumberItem,
       variantItem,
       setVariantItem,
+      lastDirectSale,
+      lastRestaurantSale,
+      loadTicketForViewing,
+      isViewOnlyOrder,
       users,
       addUser,
       updateUser,
@@ -1875,7 +1659,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
-      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -1893,9 +1676,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saveTableOrderAndExit,
       promoteTableToTicket,
       sales,
-      lastDirectSale,
-      lastRestaurantSale,
       recordSale,
+      lockSale,
+      unlockSale,
       paymentMethods,
       addPaymentMethod,
       updatePaymentMethod,
@@ -1960,6 +1743,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
       setDashboardButtonBorderColor,
+      showDashboardStats,
+      setShowDashboardStats,
       externalLinkModalEnabled,
       setExternalLinkModalEnabled,
       externalLinkUrl,
@@ -1970,8 +1755,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setExternalLinkModalWidth,
       externalLinkModalHeight,
       setExternalLinkModalHeight,
-      showDashboardStats,
-      setShowDashboardStats,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -1987,15 +1770,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       isLoading,
       user,
-      lockSale,
-      unlockSale,
       holdOrder,
     }),
     [
       order,
-      readOnlyOrder,
-      loadTicketForViewing,
       setOrder,
+      readOnlyOrder,
+      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2009,9 +1790,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isKeypadOpen,
       currentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       recentlyAddedItemId,
       serialNumberItem,
       variantItem,
+      setVariantItem,
+      lastDirectSale,
+      lastRestaurantSale,
+      loadTicketForViewing,
+      isViewOnlyOrder,
       users,
       addUser,
       updateUser,
@@ -2035,7 +1822,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCategory,
       deleteCategory,
       toggleCategoryFavorite,
-      getCategoryColor,
       customers,
       addCustomer,
       updateCustomer,
@@ -2053,9 +1839,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saveTableOrderAndExit,
       promoteTableToTicket,
       sales,
-      lastDirectSale,
-      lastRestaurantSale,
       recordSale,
+      lockSale,
+      unlockSale,
       paymentMethods,
       addPaymentMethod,
       updatePaymentMethod,
@@ -2069,17 +1855,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages,
-      descriptionDisplay,
-      setDescriptionDisplay,
       popularItemsCount,
-      setPopularItemsCount,
       itemDisplayMode,
       setItemDisplayMode,
       itemCardOpacity,
-      setItemCardOpacity,
       paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
       itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
@@ -2089,37 +1869,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       itemCardShowPrice,
       setItemCardShowPrice,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
       showNotifications,
-      setShowNotifications,
       notificationDuration,
-      setNotificationDuration,
       enableSerialNumber,
-      setEnableSerialNumber,
       directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
-      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
       dashboardBgType,
-      setDashboardBgType,
       dashboardBackgroundColor,
-      setDashboardBackgroundColor,
       dashboardBackgroundImage,
-      setDashboardBackgroundImage,
       dashboardBgOpacity,
-      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
-      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
+      showDashboardStats,
+      setShowDashboardStats,
       externalLinkModalEnabled,
       setExternalLinkModalEnabled,
       externalLinkUrl,
@@ -2130,8 +1896,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setExternalLinkModalWidth,
       externalLinkModalHeight,
       setExternalLinkModalHeight,
-      showDashboardStats,
-      setShowDashboardStats,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2144,15 +1908,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importConfiguration,
       importDemoData,
       cameFromRestaurant,
-      setCameFromRestaurant,
       isLoading,
       user,
-      lockSale,
-      unlockSale,
       holdOrder,
       setSessionInvalidated,
       setEnableRestaurantCategoryFilter,
-      setPopularItemsCount,
       setDashboardBgType,
       setDashboardBackgroundColor,
       setDashboardBackgroundImage,
@@ -2167,26 +1927,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setRestaurantModeBgOpacity,
       setItemCardOpacity,
       setPaymentMethodImageOpacity,
-      setItemCardShowImageAsBackground,
-      setItemCardImageOverlayOpacity,
-      setItemCardTextColor,
-      setItemCardShowPrice,
-      setReadOnlyOrder,
+      setPopularItemsCount,
+      setShowTicketImages,
+      setDescriptionDisplay,
       setEnableSerialNumber,
+      setShowNotifications,
+      setNotificationDuration,
       setSerialNumberItem,
-      setVariantItem,
       setIsKeypadOpen,
       setRecentlyAddedItemId,
       setCurrentSaleId,
-      setShowNotifications,
-      setNotificationDuration,
-      setCurrentSaleContext,
+      setCameFromRestaurant,
     ]
   );
-
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
 }
-
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
@@ -2194,3 +1949,4 @@ export function usePos() {
   }
   return context;
 }
+```

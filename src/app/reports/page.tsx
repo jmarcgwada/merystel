@@ -125,12 +125,13 @@ export default function ReportsPage() {
     }, [customers]);
     
     const getUserName = useCallback((userId?: string, fallbackName?: string) => {
-        if (!users) return fallbackName || 'N/A';
+        if (!userId) return fallbackName || 'N/A';
+        if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
         if (saleUser?.firstName && saleUser?.lastName) {
             return `${saleUser.firstName} ${saleUser.lastName}`;
         }
-        return fallbackName || 'N/A';
+        return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
 
 
@@ -369,7 +370,7 @@ export default function ReportsPage() {
                                Filtres
                             </Button>
                         </CollapsibleTrigger>
-                        <div className="absolute top-0 right-0">
+                         <div className="absolute top-0 right-0">
                              <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -579,5 +580,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
