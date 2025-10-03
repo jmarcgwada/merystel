@@ -49,7 +49,7 @@ export function ExternalLinkModal() {
   const modalHeight = `${externalLinkModalHeight || 90}vh`;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <DialogContent 
         className="p-0 border-0 overflow-hidden"
         style={{ width: modalWidth, height: modalHeight, maxWidth: 'none' }}
