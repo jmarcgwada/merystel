@@ -313,8 +313,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
   const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
   const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', 'https://www.google.com');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', 'Lien Externe');
   const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
   const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
   const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
@@ -967,6 +967,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
           return;
       }
+      
+      if (itemToAdd.hasVariants && itemToAdd.variantOptions && !selectedVariants) {
+        setVariantItem(itemToAdd);
+        return;
+      }
 
       setOrder((currentOrder) => {
         if (existingItemIndex > -1) { // Group identical items (with same variants)
@@ -995,6 +1000,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: itemToAdd.description,
             description2: itemToAdd.description2,
             selectedVariants,
+            serialNumbers: [],
           };
           return [newItem, ...currentOrder];
         }
