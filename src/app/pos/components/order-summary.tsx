@@ -432,8 +432,9 @@ export function OrderSummary() {
             tableName: sale.tableName,
             tableId: sale.tableId,
             payments: sale.payments,
-            originalPayments: sale.originalPayments,
-            originalTotal: sale.originalTotal
+            originalTotal: sale.total,
+            originalPayments: sale.payments,
+            change: sale.change,
         });
         setReadOnlyOrder(null);
     }
@@ -768,4 +769,3 @@ export function OrderSummary() {
     </>
   );
 }
-
