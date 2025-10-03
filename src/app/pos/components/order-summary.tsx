@@ -491,6 +491,11 @@ export function OrderSummary() {
             setCurrentSaleId(null);
             setCurrentSaleContext(null);
             toast({ title: 'Ticket dupliqué', description: 'La commande est prête pour un nouvel encaissement.' });
+        } else if (currentSaleId) { // Duplicating an order being edited
+             setReadOnlyOrder(null);
+             setCurrentSaleId(null);
+             setCurrentSaleContext(null);
+             toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
         }
     };
 
@@ -774,10 +779,19 @@ export function OrderSummary() {
                     variant="outline"
                     className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={holdOrder}
+                    onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
                   >
-                    <Hand className="mr-2 h-4 w-4" />
-                    Mettre en attente
+                    {currentSaleId ? (
+                        <>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Dupliquer
+                        </>
+                    ) : (
+                        <>
+                         <Hand className="mr-2 h-4 w-4" />
+                         Mettre en attente
+                        </>
+                    )}
                   </Button>
                   <Button
                     size="lg"
