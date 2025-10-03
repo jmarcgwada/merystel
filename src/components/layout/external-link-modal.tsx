@@ -69,6 +69,7 @@ export function ExternalLinkModal() {
             onLoad={handleIframeLoad}
             style={{ display: isLoading ? 'none' : 'block' }}
             title={externalLinkTitle || 'Contenu externe'}
+            allow="microphone"
           />
         </div>
       </DialogContent>
