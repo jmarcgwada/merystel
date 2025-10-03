@@ -22,7 +22,7 @@ const MAX_INITIAL_ITEMS = 100;
 
 export default function SupermarketPage() {
   const { items, addToOrder, heldOrders, order } = usePos();
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -41,6 +41,13 @@ export default function SupermarketPage() {
       setSearchTerm(inputValue);
     }
   }, [inputValue, targetInput]);
+  
+  useEffect(() => {
+    // When keyboard closes, clear the search term if it was the target
+    if (!isKeyboardOpen && targetInput?.name === 'supermarket-search') {
+      setSearchTerm('');
+    }
+  }, [isKeyboardOpen, targetInput]);
 
   const filteredItems = useMemo(() => {
     if (!items) return [];

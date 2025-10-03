@@ -95,7 +95,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-           {isClient && isKeyboardVisibleInHeader && (
+           {isClient && isKeyboardVisibleInHeader && !pathname.startsWith('/supermarket') && (
               <Button 
                 variant="outline"
                 size="icon"

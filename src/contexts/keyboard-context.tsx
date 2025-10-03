@@ -12,7 +12,7 @@ interface TargetInput {
 interface KeyboardContextType {
     isOpen: boolean;
     showKeyboard: () => void;
-    hideKeyboard: () => void;
+    hideKeyboard: (clearTarget?: boolean) => void;
     toggleKeyboard: () => void;
     
     isCaps: boolean;
@@ -48,10 +48,12 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         }
     }, [activeInput]);
 
-    const hideKeyboard = useCallback(() => {
+    const hideKeyboard = useCallback((clearTarget = true) => {
         setIsOpen(false);
-        clearInput();
-        setActiveInput(null);
+        if (clearTarget) {
+            clearInput();
+            setActiveInput(null);
+        }
     }, [clearInput]);
     
     const toggleKeyboard = useCallback(() => {
