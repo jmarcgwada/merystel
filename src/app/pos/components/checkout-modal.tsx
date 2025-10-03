@@ -85,6 +85,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const amountPaidFromPrevious = useMemo(() => {
     const totalPaid = previousPayments.reduce((acc, p) => acc + p.amount, 0);
+    // This is the amount the business effectively kept for the original sale.
     return totalPaid - previousChange;
   }, [previousPayments, previousChange]);
 

@@ -1769,16 +1769,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const itemsWithSource = ticket.items.map(item => ({ ...item, sourceSale: ticket }));
     setReadOnlyOrder(itemsWithSource);
     setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
-    setCurrentSaleContext({
-      ticketNumber: ticket.ticketNumber,
-      date: ticket.date,
-      userName: ticket.userName,
-      isTableSale: !!ticket.tableId,
-      tableName: ticket.tableName,
-      tableId: ticket.tableId,
-      payments: ticket.payments,
-      originalTotal: ticket.originalTotal,
-      originalPayments: ticket.originalPayments
+    setCurrentSaleContext({ 
+        ticketNumber: ticket.ticketNumber,
+        date: ticket.date,
+        userName: ticket.userName,
+        isTableSale: !!ticket.tableId,
+        tableName: ticket.tableName,
+        tableId: ticket.tableId,
+        payments: ticket.payments,
+        originalTotal: ticket.originalTotal,
+        originalPayments: ticket.originalPayments,
+        change: ticket.change
     });
   }, []);
   // #endregion
