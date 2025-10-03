@@ -198,7 +198,7 @@ function SaleDetailContent() {
             </span>
             {sale.modifiedAt && (
               <span className="flex items-center gap-1">
-                <Edit className="h-3 w-3"/> Modifié le : <ClientFormattedDate date={sale.modifiedAt} formatString="d MMM yyyy 'à' HH:mm" />
+                <Edit className="h-3 w-3"/> Modifié le : <ClientFormattedDate date={sale.modifiedAt} formatString="d MMMM yyyy 'à' HH:mm" />
               </span>
             )}
           </span>
