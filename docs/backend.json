@@ -92,7 +92,10 @@
         "barcode": { "type": "string" },
         "marginCoefficient": { "type": "number" },
         "requiresSerialNumber": { "type": "boolean" },
-        "additionalCosts": { "type": "number" }
+        "additionalCosts": { "type": "number" },
+        "manageStock": { "type": "boolean" },
+        "stock": { "type": "number" },
+        "lowStockThreshold": { "type": "number" }
       },
       "required": ["name", "price", "categoryId", "vatId", "barcode"]
     },

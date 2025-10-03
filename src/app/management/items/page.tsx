@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -26,9 +26,10 @@ import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ITEMS_PER_PAGE = 15;
-type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode';
+type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
@@ -123,6 +124,41 @@ export default function ItemsPage() {
     return sortConfig.direction === 'asc' ? '▲' : '▼';
   }
 
+  const StockBadge = ({ item }: { item: Item }) => {
+    if (!item.manageStock) {
+        return <Badge variant="outline" className="font-normal text-muted-foreground">Non suivi</Badge>;
+    }
+    
+    if (item.stock === undefined) {
+        return <Badge variant="secondary">N/A</Badge>
+    }
+
+    let badgeClass = "bg-green-100 text-green-800";
+    let tooltipContent = `Stock: ${item.stock}`;
+
+    if (item.stock <= 0) {
+        badgeClass = "bg-red-100 text-red-800";
+        tooltipContent = "Rupture de stock";
+    } else if (item.lowStockThreshold && item.stock <= item.lowStockThreshold) {
+        badgeClass = "bg-yellow-100 text-yellow-800";
+        tooltipContent = `Stock faible: ${item.stock} (seuil: ${item.lowStockThreshold})`;
+    }
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <Badge className={badgeClass}>{item.stock}</Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{tooltipContent}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+  };
+
+
   return (
     <>
       <PageHeader 
@@ -186,14 +222,14 @@ export default function ItemsPage() {
                       </Button>
                     </TableHead>
                     <TableHead>
-                      <Button variant="ghost" onClick={() => requestSort('barcode')}>
-                          Code-barres {getSortIcon('barcode')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
                       <Button variant="ghost" onClick={() => requestSort('categoryId')}>
                           Catégorie {getSortIcon('categoryId')}
                       </Button>
+                    </TableHead>
+                     <TableHead className="text-center">
+                        <Button variant="ghost" onClick={() => requestSort('stock')}>
+                            Stock {getSortIcon('stock')}
+                        </Button>
                     </TableHead>
                     {!isCashier && (
                       <TableHead className="text-right">
@@ -215,8 +251,8 @@ export default function ItemsPage() {
                     <TableRow key={i}>
                       <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                       {!isCashier && <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>}
                       <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -235,9 +271,11 @@ export default function ItemsPage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
                       <TableCell>
                           <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                          <StockBadge item={item} />
                       </TableCell>
                       {!isCashier && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
