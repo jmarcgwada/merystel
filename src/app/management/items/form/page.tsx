@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -46,6 +45,9 @@ const formSchema = z.object({
   marginCoefficient: z.coerce.number().optional(),
   requiresSerialNumber: z.boolean().default(false),
   additionalCosts: z.coerce.number().optional(),
+  manageStock: z.boolean().default(false),
+  stock: z.coerce.number().optional(),
+  lowStockThreshold: z.coerce.number().optional(),
   hasVariants: z.boolean().default(false),
   variantOptions: z.array(z.object({
     name: z.string().min(1, { message: "Le nom est requis." }),
@@ -89,6 +91,9 @@ function ItemForm() {
       marginCoefficient: 0,
       requiresSerialNumber: false,
       additionalCosts: 0,
+      manageStock: false,
+      stock: 0,
+      lowStockThreshold: 0,
       hasVariants: false,
       variantOptions: [],
     },
@@ -105,6 +110,7 @@ function ItemForm() {
   const watchedImage = watch('image');
   const watchedName = watch('name');
   const watchedPrice = watch('price');
+  const watchedManageStock = watch('manageStock');
 
   useEffect(() => {
     if(isCashier && !isEditMode) {
@@ -137,6 +143,9 @@ function ItemForm() {
         marginCoefficient: itemToEdit.marginCoefficient || 0,
         requiresSerialNumber: itemToEdit.requiresSerialNumber || false,
         additionalCosts: itemToEdit.additionalCosts || 0,
+        manageStock: itemToEdit.manageStock || false,
+        stock: itemToEdit.stock || 0,
+        lowStockThreshold: itemToEdit.lowStockThreshold || 0,
         hasVariants: itemToEdit.hasVariants || false,
         variantOptions: itemToEdit.variantOptions?.map(opt => ({
             name: opt.name,
@@ -159,6 +168,9 @@ function ItemForm() {
           marginCoefficient: 0,
           requiresSerialNumber: false,
           additionalCosts: 0,
+          manageStock: false,
+          stock: 0,
+          lowStockThreshold: 0,
           hasVariants: false,
           variantOptions: [],
         });
@@ -282,6 +294,7 @@ function ItemForm() {
                     <TabsList>
                         <TabsTrigger value="details">Détails</TabsTrigger>
                         <TabsTrigger value="pricing">Prix</TabsTrigger>
+                        <TabsTrigger value="stock">Stock</TabsTrigger>
                         <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details">
@@ -305,6 +318,23 @@ function ItemForm() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <p><span className="font-semibold">Prix de vente:</span> {itemToEdit?.price.toFixed(2)}€</p>
+                            <p><span className="font-semibold">Prix d'achat:</span> {itemToEdit?.purchasePrice?.toFixed(2) || 'N/A'}€</p>
+                        </CardContent>
+                        </Card>
+                    </TabsContent>
+                     <TabsContent value="stock">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle>Stock</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <p><span className="font-semibold">Gestion du stock:</span> {itemToEdit?.manageStock ? 'Oui' : 'Non'}</p>
+                            {itemToEdit?.manageStock && (
+                                <>
+                                    <p><span className="font-semibold">Quantité en stock:</span> {itemToEdit?.stock}</p>
+                                    <p><span className="font-semibold">Seuil de stock bas:</span> {itemToEdit?.lowStockThreshold}</p>
+                                </>
+                            )}
                         </CardContent>
                         </Card>
                     </TabsContent>
@@ -348,8 +378,9 @@ function ItemForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="details">Détails de l'article</TabsTrigger>
+                    <TabsTrigger value="details">Détails</TabsTrigger>
                     <TabsTrigger value="pricing">Prix</TabsTrigger>
+                    <TabsTrigger value="stock">Stock</TabsTrigger>
                     <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                     <TabsTrigger value="variants">Déclinaisons</TabsTrigger>
                 </TabsList>
@@ -520,6 +551,68 @@ function ItemForm() {
                                             <FormControl>
                                                 <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
                                             </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="stock">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Gestion du stock</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                             <FormField
+                                control={form.control}
+                                name="manageStock"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-base">Gérer le stock</FormLabel>
+                                            <FormDescription>
+                                                Activer le suivi des quantités pour cet article.
+                                            </FormDescription>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            {watchedManageStock && (
+                                <div className="space-y-6 pt-4 border-t">
+                                     <FormField
+                                        control={form.control}
+                                        name="stock"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Quantité en stock</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="ex: 100" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={form.control}
+                                        name="lowStockThreshold"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Seuil de stock bas</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="ex: 10" {...field} />
+                                            </FormControl>
+                                             <FormDescription>
+                                                Une alerte visuelle sera affichée lorsque le stock atteint ce seuil.
+                                            </FormDescription>
                                             <FormMessage />
                                             </FormItem>
                                         )}
