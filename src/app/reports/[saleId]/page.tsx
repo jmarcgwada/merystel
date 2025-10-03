@@ -19,10 +19,8 @@ import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
-import { useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
 import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
-import { doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -80,14 +78,20 @@ function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
   const fromPos = searchParams.get('from') === 'pos';
-  const firestore = useFirestore();
   const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing } = usePos();
   const router = useRouter();
   const { user } = useUser();
 
-  const saleDocRef = useMemoFirebase(() => saleId ? doc(firestore, 'companies', 'main', 'sales', saleId as string) : null, [firestore, saleId]);
-  const { data: sale, isLoading: isSaleLoading } = useDoc<Sale>(saleDocRef);
-  const isLoading = isPosLoading || isSaleLoading;
+  const [sale, setSale] = useState<Sale | null>(null);
+
+  useEffect(() => {
+    if (allSales && saleId) {
+      const foundSale = allSales.find(s => s.id === saleId);
+      setSale(foundSale || null);
+    }
+  }, [allSales, saleId]);
+
+  const isLoading = isPosLoading || (saleId && !sale);
 
   const { previousSaleId, nextSaleId } = useMemo(() => {
     if (!allSales || allSales.length === 0 || !saleId) {
@@ -104,8 +108,8 @@ function SaleDetailContent() {
         return { previousSaleId: null, nextSaleId: null };
     }
     
-    const previousSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
-    const nextSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
+    const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
+    const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
 
     return { 
         previousSaleId: previousSale ? previousSale.id : null,
@@ -179,7 +183,10 @@ function SaleDetailContent() {
   if (!sale) {
     return (
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 text-center">
-        <p>Vente non trouvée.</p>
+        <Alert variant="destructive">
+            <AlertTitle>Vente introuvable</AlertTitle>
+            <AlertDescription>La vente que vous cherchez n'existe pas ou a été supprimée.</AlertDescription>
+        </Alert>
         <Button asChild variant="link" className="mt-4">
             <Link href="/reports">Retour aux rapports</Link>
         </Button>
@@ -216,13 +223,13 @@ function SaleDetailContent() {
                     Avoir
                 </Button>
                 <div className="flex items-center">
-                    <Button asChild variant="outline" size="icon" disabled={!nextSaleId || fromPos}>
-                        <Link href={`/reports/${nextSaleId}`} scroll={false}>
+                    <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
+                        <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
                             <ArrowLeft />
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="icon" disabled={!previousSaleId || fromPos}>
-                        <Link href={`/reports/${previousSaleId}`} scroll={false}>
+                    <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
+                        <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
                             <ArrowRight />
                         </Link>
                     </Button>

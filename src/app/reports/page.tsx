@@ -27,9 +27,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useKeyboard } from '@/contexts/keyboard-context';
 
@@ -69,8 +66,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp, showI
 
 
 export default function ReportsPage() {
-    const firestore = useFirestore();
-    const { customers, users, isLoading: isPosLoading } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -81,9 +77,7 @@ export default function ReportsPage() {
         }
     }, [isCashier, router]);
 
-    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
-    const { data: allSales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
-    const isLoading = isPosLoading || isSalesLoading;
+    const isLoading = isPosLoading;
 
     const [isClient, setIsClient] = useState(false);
     
@@ -182,8 +176,8 @@ export default function ReportsPage() {
                     case 'date':
                         const aDate = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
                         const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-                        aValue = aDate.getTime();
-                        bValue = bDate.getTime();
+                        aValue = bDate.getTime(); // Invert for descending by default
+                        bValue = aDate.getTime();
                         break;
                     case 'tableName':
                         aValue = a.tableName || '';
@@ -245,6 +239,8 @@ export default function ReportsPage() {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
+        } else if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+            return setSortConfig({ key: 'date', direction: 'desc' }); // Default sort
         }
         setSortConfig({ key, direction });
     };

@@ -371,8 +371,8 @@ export function OrderSummary() {
         }
 
         return {
-            previousSale: currentIndex > 0 ? sortedSales[currentIndex - 1] : null,
-            nextSale: currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null,
+            previousSale: currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null,
+            nextSale: currentIndex > 0 ? sortedSales[currentIndex - 1] : null,
         };
     }, [readOnlyOrder, sales]);
 
@@ -726,14 +726,17 @@ export function OrderSummary() {
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
                  <div className='w-full grid grid-cols-1 gap-2'>
-                    <Button size="lg" className="w-full" onClick={handleEditTicket}>
-                        <Edit className="mr-2" />
-                        Modifier
-                    </Button>
-                    <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
-                        <Copy className="mr-2" />
-                        Dupliquer
-                    </Button>
+                    {readOnlyOrder[0]?.sourceSale && !readOnlyOrder[0].sourceSale.modifiedAt ? (
+                        <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                            <Edit className="mr-2" />
+                            Modifier
+                        </Button>
+                    ) : (
+                        <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
+                            <Copy className="mr-2" />
+                            Dupliquer
+                        </Button>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                         <Button size="lg" className="w-full" onClick={handlePrint}>
                             <Printer className="mr-2" />
