@@ -725,7 +725,7 @@ export function OrderSummary() {
             </div>
             <div className="mt-4 flex gap-2 no-print">
               {readOnlyOrder ? (
-                 <div className='w-full grid grid-cols-1 gap-2'>
+                 <div className='w-full grid grid-cols-3 gap-2'>
                     {readOnlyOrder[0]?.sourceSale && !readOnlyOrder[0].sourceSale.modifiedAt ? (
                         <Button size="lg" className="w-full" onClick={handleEditTicket}>
                             <Edit className="mr-2" />
@@ -737,15 +737,13 @@ export function OrderSummary() {
                             Dupliquer
                         </Button>
                     )}
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button size="lg" className="w-full" onClick={handlePrint}>
-                            <Printer className="mr-2" />
-                            Imprimer
-                        </Button>
-                        <Button size="lg" className="w-full" onClick={clearOrder}>
-                            Nouveau
-                        </Button>
-                    </div>
+                    <Button size="lg" className="w-full" onClick={handlePrint}>
+                        <Printer className="mr-2" />
+                        Imprimer
+                    </Button>
+                    <Button size="lg" className="w-full" onClick={clearOrder}>
+                        Nouveau
+                    </Button>
                 </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
@@ -802,3 +800,4 @@ export function OrderSummary() {
     </>
   );
 }
+
