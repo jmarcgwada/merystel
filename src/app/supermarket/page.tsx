@@ -22,7 +22,7 @@ const MAX_INITIAL_ITEMS = 100;
 
 export default function SupermarketPage() {
   const { items, addToOrder, heldOrders, order } = usePos();
-  const { setTargetInput } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -35,6 +35,12 @@ export default function SupermarketPage() {
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+
+  useEffect(() => {
+    if (targetInput?.name === 'supermarket-search') {
+      setSearchTerm(inputValue);
+    }
+  }, [inputValue, targetInput]);
 
   const filteredItems = useMemo(() => {
     if (!items) return [];
@@ -54,9 +60,8 @@ export default function SupermarketPage() {
       setListContent(filteredItems);
       setHighlightedIndex(-1);
     } else {
-      if (!listPersistenceTimer.current && searchTerm === '') {
-        setListContent([]);
-      }
+      if (listPersistenceTimer.current) return;
+      setListContent([]);
     }
   }, [searchTerm, filteredItems]);
 
@@ -89,7 +94,7 @@ export default function SupermarketPage() {
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+      setHighlightedIndex(prev => (prev > 0 ? prev : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (highlightedIndex >= 0 && listContent[highlightedIndex]) {
