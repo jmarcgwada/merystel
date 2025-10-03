@@ -95,7 +95,6 @@ export function OrderSummary() {
     saveTableOrderAndExit,
     promoteTableToTicket,
     showTicketImages,
-    descriptionDisplay,
     isKeypadOpen,
     currentSaleId,
     currentSaleContext,
@@ -536,13 +535,7 @@ export function OrderSummary() {
             {item.note && (
                 <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap">Note: {item.note}</p>
             )}
-            {descriptionDisplay !== 'none' && item.description && (
-                <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
-            )}
-            {descriptionDisplay === 'both' && item.description2 && (
-                <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>
-            )}
-             {item.serialNumbers && item.serialNumbers.length > 0 && (
+            {item.serialNumbers && item.serialNumbers.length > 0 && (
               <div className="text-xs text-muted-foreground mt-1">
                 S/N: {item.serialNumbers.filter(sn => sn).join(', ')}
               </div>
