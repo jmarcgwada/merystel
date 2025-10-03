@@ -54,14 +54,14 @@ export default function Header() {
   };
   
   const canAccessCompanySettings = user?.role === 'admin';
-  const isPosOrRestaurantPage = pathname.startsWith('/pos') || pathname.startsWith('/restaurant');
+  const isPosOrRestaurantOrSupermarketPage = pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
           "flex items-center gap-4 flex-1",
-          isClient && isPosOrRestaurantPage && 'pointer-events-none opacity-50'
+          isClient && isPosOrRestaurantOrSupermarketPage && 'pointer-events-none opacity-50'
         )}>
           <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
             <svg
