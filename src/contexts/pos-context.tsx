@@ -313,8 +313,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
   const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
   const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', 'https://www.google.com');
-  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', 'Lien Externe');
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
   const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
   const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
   const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
@@ -1329,6 +1329,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!companyId || !firestore || !user) return;
       
       const batch = writeBatch(firestore);
+
+      // Decrement stock for items with manageStock: true
+      saleData.items.forEach(orderItem => {
+        const originalItem = items.find(i => i.id === orderItem.itemId);
+        if (originalItem && originalItem.manageStock) {
+          const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+          const newStock = (originalItem.stock || 0) - orderItem.quantity;
+          batch.update(itemRef, { stock: newStock });
+        }
+      });
       
       // If sale comes from a table, free the table.
       if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
@@ -1404,7 +1414,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       getDocRef,
       getCollectionRef,
       currentSaleContext,
-      user
+      user,
+      items
     ]
   );
   // #endregion
