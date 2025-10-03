@@ -2022,6 +2022,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteTable,
       forceFreeTable,
       selectedTable,
+      setSelectedTable,
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
