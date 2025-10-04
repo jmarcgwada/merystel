@@ -276,8 +276,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   return (
     <>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2">
+    <div className="flex flex-col lg:flex-row gap-6 mb-6 items-start lg:items-end">
+        <div className="w-full lg:flex-1">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -334,15 +334,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Card>
             )}
         </div>
-        <div>
-            <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-foreground">Client</h3>
-                <Button variant="ghost" size="icon" onClick={() => setCustomerModalOpen(true)}>
-                    <UserIcon className="h-5 w-5" />
-                </Button>
-            </div>
-            <Card>
-                <CardContent className="pt-6">
+        <div className="w-full lg:w-1/3">
+             <Card>
+                <CardHeader className="flex-row items-center justify-between">
+                    <CardTitle>Client</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => setCustomerModalOpen(true)}>
+                        <UserIcon className="h-5 w-5" />
+                    </Button>
+                </CardHeader>
+                <CardContent>
                     {selectedCustomer ? (
                     <div className="text-sm">
                         <p className="font-bold">{selectedCustomer.name}</p>
