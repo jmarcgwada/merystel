@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -40,17 +39,16 @@ export default function SupermarketPage() {
   useEffect(() => {
     if (targetInput?.name === 'supermarket-search') {
       setSearchTerm(inputValue);
-       performSearch(inputValue);
     }
   }, [inputValue, targetInput]);
   
   useEffect(() => {
     if (!isKeyboardOpen && targetInput?.name === 'supermarket-search') {
-      setSearchTerm('');
+      // Don't clear search term when keyboard closes
     }
   }, [isKeyboardOpen, targetInput]);
 
-  const performSearch = useCallback((term: string) => {
+  const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
     if (!items) {
       setListContent([]);
       return;
@@ -58,13 +56,15 @@ export default function SupermarketPage() {
     const lowercasedTerm = term.toLowerCase();
     
     // Exact barcode match for scanner
-    const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
-    if(exactBarcodeMatch) {
-      addToOrder(exactBarcodeMatch.id);
-      setSearchTerm('');
-      setListContent([]);
-      searchInputRef.current?.focus();
-      return;
+    if (term.length > 3) { // Assume barcodes are longer
+        const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
+        if(exactBarcodeMatch) {
+          addToOrder(exactBarcodeMatch.id);
+          setSearchTerm('');
+          setListContent([]);
+          searchInputRef.current?.focus();
+          return;
+        }
     }
     
     if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
@@ -75,14 +75,14 @@ export default function SupermarketPage() {
     const filtered = items.filter((item) => {
       const name = item.name.toLowerCase();
       const barcode = item.barcode ? item.barcode.toLowerCase() : '';
-      if (searchType === 'startsWith') {
+      if (type === 'startsWith') {
         return name.startsWith(lowercasedTerm) || barcode.startsWith(lowercasedTerm);
       }
       return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
     });
     setListContent(filtered);
     setHighlightedIndex(filtered.length > 0 ? 0 : -1);
-  }, [items, searchType, addToOrder]);
+  }, [items, addToOrder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
@@ -98,7 +98,7 @@ export default function SupermarketPage() {
         setSearchTerm('');
         setListContent([]);
       } else {
-        performSearch(searchTerm);
+        performSearch(searchTerm, searchType);
       }
     }
   };
@@ -175,40 +175,9 @@ export default function SupermarketPage() {
   const handleChangeSearchType = () => {
     const newType = searchType === 'contains' ? 'startsWith' : 'contains';
     setSearchType(newType);
-    // Directly call performSearch with the new type and current term
-    // This is wrapped in a state update callback to ensure we use the 'newType' immediately
-    setSearchType(prev => {
-        const nextType = prev === 'contains' ? 'startsWith' : 'contains';
-        performSearch(searchTerm, nextType);
-        return nextType;
-    });
+    performSearch(searchTerm, newType); // Re-run search with the new type and current term
     searchInputRef.current?.focus();
   };
-
-   const performSearchWithNewType = useCallback((term: string, type: 'contains' | 'startsWith') => {
-    if (!items) {
-      setListContent([]);
-      return;
-    }
-    const lowercasedTerm = term.toLowerCase();
-    
-    if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
-        setListContent([]);
-        return;
-    }
-
-    const filtered = items.filter((item) => {
-      const name = item.name.toLowerCase();
-      const barcode = item.barcode ? item.barcode.toLowerCase() : '';
-      if (type === 'startsWith') {
-        return name.startsWith(lowercasedTerm) || barcode.startsWith(lowercasedTerm);
-      }
-      return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
-    });
-    setListContent(filtered);
-    setHighlightedIndex(filtered.length > 0 ? 0 : -1);
-  }, [items]);
-
 
   return (
     <>
@@ -294,7 +263,7 @@ export default function SupermarketPage() {
                       key={item.id}
                       ref={(el) => (itemRefs.current[index] = el)}
                       className={cn(
-                        "flex items-center p-1 cursor-pointer hover:bg-secondary",
+                        "flex items-center p-0.5 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
                       onDoubleClick={() => addToOrder(item.id)}
@@ -303,19 +272,19 @@ export default function SupermarketPage() {
                         <Image
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
                           alt={item.name}
-                          width={32}
-                          height={32}
-                          className="rounded-md object-cover mr-3"
+                          width={28}
+                          height={28}
+                          className="rounded-md object-cover mx-1"
                           data-ai-hint="product image"
                         />
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 px-1">
                         <div className="flex items-center gap-2">
                            <p className="font-semibold text-sm">{item.name}</p>
                            {item.barcode && <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>}
                         </div>
                       </div>
-                      <p className="text-base font-bold pr-2">{item.price.toFixed(2)}€</p>
+                      <p className="text-sm font-bold pr-2">{item.price.toFixed(2)}€</p>
                     </Card>
                   ))}
                 </div>
@@ -341,5 +310,3 @@ export default function SupermarketPage() {
     </>
   );
 }
-
-    
