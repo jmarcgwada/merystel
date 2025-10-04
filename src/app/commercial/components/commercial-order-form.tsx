@@ -481,7 +481,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Button>
                 <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 grid grid-cols-12 gap-4 px-6 min-h-0">
+            <div className="flex-1 grid grid-cols-12 gap-4 px-6 pb-4 min-h-0">
                 <div className="col-span-8 flex flex-col space-y-4">
                     <Input 
                         placeholder="Rechercher par nom ou email..." 
@@ -576,4 +576,3 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   );
 }
 
-    
