@@ -86,6 +86,7 @@ export function TableLayout() {
       router.push('/pos');
     } else {
       setSelectedTableById(table.id);
+      router.push(`/pos?tableId=${table.id}`);
     }
   };
 
