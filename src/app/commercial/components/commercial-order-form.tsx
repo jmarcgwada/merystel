@@ -25,6 +25,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const orderItemSchema = z.object({
+  id: z.string(),
   itemId: z.string().min(1, 'Article requis.'),
   name: z.string(),
   quantity: z.coerce.number().min(1, 'Qté > 0.'),
@@ -70,15 +71,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: order,
+      items: order.map(item => ({ ...item, remise: item.discountPercent || 0 })),
       escompte: 0,
       port: 0,
       acompte: 0,
     },
   });
-
+  
   useEffect(() => {
-    form.setValue('items', order);
+    form.setValue('items', order.map(item => ({ ...item, remise: item.discountPercent || 0 })));
   }, [order, form]);
   
   const watchItems = form.watch('items');
@@ -170,7 +171,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       
       const vatRate = vatRates.find(v => v.id === fullItem.vatId)?.rate || 0;
       const priceHT = item.price / (1 + vatRate / 100);
-      const remise = (item as any).remise || 0; // Cast to any to access remise if it exists
+      const remise = item.remise || 0;
       const totalHT = priceHT * item.quantity * (1 - remise / 100);
 
       return acc + totalHT;
@@ -191,7 +192,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
       if (vatInfo) {
         const priceHT = item.price / (1 + vatInfo.rate / 100);
-        const remise = (item as any).remise || 0;
+        const remise = item.remise || 0;
         const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
         const totalItemHTAvecEscompte = totalItemHT * (1 - escompte / 100);
         const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
@@ -221,7 +222,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   return (
     <>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -361,14 +362,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         control={form.control}
                         name={`items.${index}.remise`}
                         render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
+                            <Input type="number" {...controllerField} value={controllerField.value || 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
                         )}
                     />
                   <div className="font-medium h-10 flex items-center justify-end px-3">
                     {(() => {
                         const item = watchItems[index];
                         if(!item || !item.itemId) return '0.00€';
-                        const remise = (item as any).remise || 0;
+                        const remise = item.remise || 0;
                         const total = item.price * item.quantity * (1 - (remise || 0) / 100);
                         return `${total.toFixed(2)}€`
                     })()}
@@ -386,9 +387,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
               )}
             </div>
             
-            <Separator />
-            
             <div className="mt-auto pt-6">
+                <Separator className="mb-6"/>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                     <div className="space-y-4">
                         <h4 className="font-semibold">Taux de TVA</h4>
