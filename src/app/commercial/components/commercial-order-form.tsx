@@ -444,29 +444,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                            <Label>Prix Total HT</Label>
-                            <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="escompte">Escompte (%)</Label>
-                            <Controller control={form.control} name="escompte" render={({ field }) => (
-                                 <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
-                            )} />
-                        </div>
-                         <Separator />
-                         <div className="flex justify-between items-center">
-                            <Label>Total HT</Label>
-                            <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
-                        </div>
-                        <div className="flex justify-between items-center">
                             <Label>Cumul TVA</Label>
                             <span className="font-medium">{totalTVA.toFixed(2)}€</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="port">Port TTC (€)</Label>
-                             <Controller control={form.control} name="port" render={({ field }) => (
-                                 <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                            )} />
                         </div>
                          <Separator />
                         <div className="flex justify-between items-center font-bold text-lg">
@@ -523,7 +502,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                                 key={customer.id}
                                                 ref={el => customerListRef.current[index] = el}
                                                 className={cn(
-                                                    'w-full justify-start h-auto p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
+                                                    'w-full justify-between items-center h-auto p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex',
                                                     index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                                                 )}
                                                 onClick={() => setHighlightedCustomerIndex(index)}
@@ -542,7 +521,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </div>
                 <div className="col-span-1 flex flex-col space-y-2">
                     <Button 
-                        className="h-12 text-xl" 
+                        className="h-12 w-full" 
                         variant="outline"
                         onMouseDown={() => startScrolling('up')}
                         onMouseUp={stopScrolling}
@@ -554,7 +533,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         <ArrowUp className="h-5 w-5" />
                     </Button>
                     <Button 
-                        className="h-12 text-xl"
+                        className="h-12 w-full"
                         variant="outline"
                         onMouseDown={() => startScrolling('down')}
                         onMouseUp={stopScrolling}
