@@ -13,13 +13,13 @@ export default function CommercialPage() {
   
   return (
     <div className="h-full flex flex-col">
-       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 flex-1 flex flex-col">
+       <div className="container mx-auto px-4 pt-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
             title="Gestion Commerciale"
             subtitle="Créez une nouvelle commande ou une facture rapidement."
         />
         
-        <div className="mt-8 flex-1">
+        <div className="mt-4 flex-1">
             <CommercialOrderForm 
                 order={order} 
                 setOrder={setOrder}
