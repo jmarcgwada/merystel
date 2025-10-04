@@ -30,6 +30,7 @@ export default function Header() {
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
+    isKeypadOpen,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
@@ -55,12 +56,19 @@ export default function Header() {
   
   const canAccessCompanySettings = user?.role === 'admin';
   const isLoginPage = pathname.startsWith('/login');
+  const isSupermarketPage = pathname.startsWith('/supermarket');
+
+  // Disable navigation when keypad is open or when in supermarket mode with an order
+  const navDisabled = isKeypadOpen || (isSupermarketPage && order.length > 0);
 
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className={cn("flex items-center gap-4 flex-1")}>
+        <div className={cn(
+            "flex items-center gap-4 flex-1 transition-opacity",
+            navDisabled && 'opacity-50 pointer-events-none'
+            )}>
            <Link
             href="/"
             className={cn(
