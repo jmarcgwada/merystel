@@ -76,6 +76,7 @@ export function OrderSummary() {
   const { 
     order, 
     setOrder,
+    dynamicBgImage,
     readOnlyOrder, 
     setReadOnlyOrder,
     lastDirectSale,
@@ -570,8 +571,22 @@ export function OrderSummary() {
 
   return (
     <>
-      <div className="flex h-full flex-col relative bg-card print-area" style={{ backgroundColor: isClient ? backgroundColor : 'transparent' }}>
-        <div className="flex items-center justify-between p-2 border-b h-[64px] bg-card no-print">
+      <div className="flex h-full flex-col relative bg-card print-area">
+        {dynamicBgImage && (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-500 z-0"
+              style={{ backgroundImage: `url(${dynamicBgImage})` }}
+            />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0" />
+          </>
+        )}
+        <div 
+          className="absolute inset-0 z-0"
+          style={{ backgroundColor: isClient && !dynamicBgImage ? backgroundColor : 'transparent' }}
+        />
+
+        <div className="relative z-10 flex items-center justify-between p-2 border-b h-[64px] bg-card/80 backdrop-blur-sm no-print">
           <div className="text-lg font-bold tracking-tight font-headline flex-1">
              {getTitle()}
           </div>
@@ -579,7 +594,7 @@ export function OrderSummary() {
         </div>
 
         {isKeypadOpen && selectedItem && (
-          <div className="z-10 bg-secondary/95 backdrop-blur-sm border-b shadow-lg no-print">
+          <div className="relative z-20 bg-secondary/95 backdrop-blur-sm border-b shadow-lg no-print">
               <div className="bg-accent/50">
                 {renderOrderItem(selectedItem, true)}
               </div>
@@ -675,10 +690,10 @@ export function OrderSummary() {
           </div>
         )}
 
-        <ScrollArea className="flex-1" viewportRef={scrollAreaRef}>
+        <ScrollArea className="flex-1 relative z-10" viewportRef={scrollAreaRef}>
           {currentOrder.length === 0 ? (
             <div className="flex h-full items-center justify-center p-4">
-              <div className="text-center text-muted-foreground space-y-4">
+              <div className="text-center text-muted-foreground space-y-4 bg-background/70 p-6 rounded-lg backdrop-blur-sm">
                 <p>Aucun article dans la commande.</p>
                 <Separator />
                 <p className="text-sm">Consulter un ticket récent :</p>
@@ -702,9 +717,9 @@ export function OrderSummary() {
               </div>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className={cn("divide-y", dynamicBgImage && "text-white")}>
                 {currentOrder.map((item) => (
-                  <div key={item.id} className={cn(isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
+                  <div key={item.id} className={cn("bg-background/10 backdrop-blur-sm", isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
                       {renderOrderItem(item, false)}
                   </div>
                 ))}
@@ -712,7 +727,7 @@ export function OrderSummary() {
           )}
         </ScrollArea>
 
-        <div className="mt-auto border-t p-4 bg-card">
+        <div className="relative z-10 mt-auto border-t p-4 bg-card/80 backdrop-blur-sm">
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                 <span>Sous-total</span>

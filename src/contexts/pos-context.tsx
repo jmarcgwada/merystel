@@ -69,6 +69,7 @@ const TAKEAWAY_TABLE: Table = {
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
+  dynamicBgImage: string | null;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
@@ -300,6 +301,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
+  const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -905,6 +907,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setReadOnlyOrder(null);
     }
     setOrder([]);
+    setDynamicBgImage(null);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
@@ -948,6 +951,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
         return [...currentOrder, newOrderItem];
     });
+    if(item.image) setDynamicBgImage(item.image);
     triggerItemHighlight(item.id);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
@@ -1007,6 +1011,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [newItem, ...currentOrder];
         }
       });
+      if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
       triggerItemHighlight(uniqueId);
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
@@ -1121,6 +1126,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
     if (orderToRecall) {
       setOrder(orderToRecall.items);
+      if(orderToRecall.items?.[0]?.image) setDynamicBgImage(orderToRecall.items[0].image);
       setCurrentSaleId(orderToRecall.id);
       setSelectedTable(null); // Ensure no table is selected
       setCurrentSaleContext({
@@ -1142,7 +1148,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       } else {
           const tableToSelect = tableId ? tables.find((t) => t.id === tableId) : null;
           setSelectedTable(tableToSelect || null);
-          setOrder(tableToSelect?.order || []);
+          const tableOrder = tableToSelect?.order || [];
+          setOrder(tableOrder);
+          if (tableOrder.length > 0 && tableOrder[0].image) {
+            setDynamicBgImage(tableOrder[0].image);
+          } else {
+            setDynamicBgImage(null);
+          }
           setCurrentSaleId(null);
           setCurrentSaleContext({
               tableId: tableToSelect?.id,
@@ -1787,6 +1799,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const loadTicketForViewing = useCallback((ticket: Sale) => {
     const itemsWithSource = ticket.items.map(item => ({ ...item, sourceSale: ticket }));
     setReadOnlyOrder(itemsWithSource);
+    setDynamicBgImage(itemsWithSource?.[0]?.image || null);
     setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
     setCurrentSaleContext({ 
         ticketNumber: ticket.ticketNumber,
@@ -1821,6 +1834,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     () => ({
       order,
       setOrder,
+      dynamicBgImage,
       readOnlyOrder,
       setReadOnlyOrder,
       addToOrder,
@@ -1989,6 +2003,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [
       order,
       setOrder,
+      dynamicBgImage,
       readOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
