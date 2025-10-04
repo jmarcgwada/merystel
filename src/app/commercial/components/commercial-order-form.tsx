@@ -267,9 +267,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                     setListContent([]);
                                 }}
                                 >
-                                    <div>
+                                    <div className="flex items-center gap-2">
                                         <p className="font-semibold text-sm">{item.name}</p>
-                                        <p className="text-xs text-muted-foreground">{item.barcode}</p>
+                                        <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>
                                     </div>
                                     <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
                                 </div>
@@ -411,5 +411,3 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
-
-    
