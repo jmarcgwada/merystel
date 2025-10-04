@@ -57,17 +57,18 @@ export default function Header() {
   const isPosOrRestaurantOrSupermarketPage = pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket');
   const isLoginPage = pathname.startsWith('/login');
 
+  const getLogoLink = () => {
+    if (user) {
+        return "/dashboard";
+    }
+    return "/about";
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className={cn(
-          "flex items-center gap-4 flex-1",
-          isClient && (
-            (isPosOrRestaurantOrSupermarketPage && 'pointer-events-none opacity-50') ||
-            (!user && !isLoginPage && 'pointer-events-none opacity-50')
-          )
-        )}>
-          <Link href="/dashboard" className="flex items-center gap-2" onClick={(e) => handleNavClick(e, '/dashboard')}>
+        <div className={cn("flex items-center gap-4 flex-1")}>
+          <Link href={getLogoLink()} className="flex items-center gap-2" onClick={(e) => user && handleNavClick(e, '/dashboard')}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
