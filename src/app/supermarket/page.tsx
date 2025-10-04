@@ -31,7 +31,6 @@ export default function SupermarketPage() {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
-  const [lastSearchTerm, setLastSearchTerm] = useState('');
 
   const listScrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -57,20 +56,19 @@ export default function SupermarketPage() {
     }
     const lowercasedTerm = term.toLowerCase();
     
-    if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
-      setListContent([]);
-      setLastSearchTerm(term);
-      return;
-    }
-    
+    // Exact barcode match for scanner
     const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
     if(exactBarcodeMatch) {
       addToOrder(exactBarcodeMatch.id);
       setSearchTerm('');
       setListContent([]);
-      setLastSearchTerm('');
       searchInputRef.current?.focus();
       return;
+    }
+    
+    if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
+        setListContent([]);
+        return;
     }
 
     const filtered = items.filter((item) => {
@@ -83,7 +81,6 @@ export default function SupermarketPage() {
     });
     setListContent(filtered);
     setHighlightedIndex(filtered.length > 0 ? 0 : -1);
-    setLastSearchTerm(term);
   }, [items, searchType, addToOrder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -99,7 +96,6 @@ export default function SupermarketPage() {
         addToOrder(listContent[highlightedIndex].id);
         setSearchTerm('');
         setListContent([]);
-        setLastSearchTerm('');
       } else {
         performSearch(searchTerm);
       }
@@ -198,6 +194,8 @@ export default function SupermarketPage() {
                       variant="outline"
                       onClick={() => {
                         setSearchType(p => p === 'contains' ? 'startsWith' : 'contains');
+                        setSearchTerm('');
+                        setListContent([]);
                         searchInputRef.current?.focus();
                       }}
                       className="h-12 text-xs w-28"
@@ -271,8 +269,8 @@ export default function SupermarketPage() {
                         <Image
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
                           alt={item.name}
-                          width={32}
-                          height={32}
+                          width={24}
+                          height={24}
                           className="rounded-md object-cover mr-3"
                           data-ai-hint="product image"
                         />
@@ -293,8 +291,7 @@ export default function SupermarketPage() {
                 <div className="text-center text-muted-foreground">
                   <ScanLine className="mx-auto h-24 w-24 opacity-10" />
                   <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
-                  {lastSearchTerm && <p className="text-sm">Aucun article trouvé pour "{lastSearchTerm}".</p>}
-                   {!lastSearchTerm && <p className="text-sm">Commencez à saisir ou scanner un produit.</p>}
+                  <p className="text-sm">Appuyez sur "Entrée" pour lancer la recherche.</p>
                 </div>
               </div>
             )}
