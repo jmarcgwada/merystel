@@ -40,6 +40,7 @@ export default function SupermarketPage() {
   useEffect(() => {
     if (targetInput?.name === 'supermarket-search') {
       setSearchTerm(inputValue);
+       performSearch(inputValue);
     }
   }, [inputValue, targetInput]);
   
@@ -120,7 +121,7 @@ export default function SupermarketPage() {
       setSearchTerm('');
       setListContent(items.slice(0, MAX_INITIAL_ITEMS));
       setHighlightedIndex(-1);
-      searchInputRef.current?.focus();
+       searchInputRef.current?.focus();
     }
   };
 
@@ -171,18 +172,43 @@ export default function SupermarketPage() {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
   };
   
-  useEffect(() => {
-    performSearch(searchTerm);
-  }, [searchType, performSearch]);
-
   const handleChangeSearchType = () => {
+    const newType = searchType === 'contains' ? 'startsWith' : 'contains';
+    setSearchType(newType);
+    // Directly call performSearch with the new type and current term
+    // This is wrapped in a state update callback to ensure we use the 'newType' immediately
     setSearchType(prev => {
-        const newType = prev === 'contains' ? 'startsWith' : 'contains';
-        // The useEffect above will trigger the search with the new type
-        return newType;
+        const nextType = prev === 'contains' ? 'startsWith' : 'contains';
+        performSearch(searchTerm, nextType);
+        return nextType;
     });
     searchInputRef.current?.focus();
   };
+
+   const performSearchWithNewType = useCallback((term: string, type: 'contains' | 'startsWith') => {
+    if (!items) {
+      setListContent([]);
+      return;
+    }
+    const lowercasedTerm = term.toLowerCase();
+    
+    if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
+        setListContent([]);
+        return;
+    }
+
+    const filtered = items.filter((item) => {
+      const name = item.name.toLowerCase();
+      const barcode = item.barcode ? item.barcode.toLowerCase() : '';
+      if (type === 'startsWith') {
+        return name.startsWith(lowercasedTerm) || barcode.startsWith(lowercasedTerm);
+      }
+      return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
+    });
+    setListContent(filtered);
+    setHighlightedIndex(filtered.length > 0 ? 0 : -1);
+  }, [items]);
+
 
   return (
     <>
@@ -315,3 +341,5 @@ export default function SupermarketPage() {
     </>
   );
 }
+
+    
