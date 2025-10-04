@@ -30,10 +30,12 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [currentSelectedCustomer, setCurrentSelectedCustomer] = useState<Customer | null>(null);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
       setCurrentSelectedCustomer(null);
+      setSearchValue("");
     }
   }, [isOpen]);
 
@@ -54,6 +56,13 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
     }
   }
 
+  const filteredCustomers = customers?.filter(customer =>
+    customer.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+    customer.id.toLowerCase().includes(searchValue.toLowerCase()) ||
+    customer.postalCode?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    customer.city?.toLowerCase().includes(searchValue.toLowerCase())
+  ) || [];
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -61,10 +70,16 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
           <DialogHeader className="p-6 pb-4">
             <DialogTitle>Choisir un client</DialogTitle>
           </DialogHeader>
-            <div className="flex-1 relative mx-6 mb-6">
-                 <Command>
+            <div className="flex-1 flex flex-col min-h-0 mx-6 mb-6">
+                 <Command className="relative">
                     <div className="flex items-center gap-2 mb-2">
-                        <CommandInput placeholder="Rechercher nom, code, CP ou ville..." className="h-11 flex-1" autoFocus/>
+                        <CommandInput 
+                          placeholder="Rechercher nom, code, CP ou ville..." 
+                          className="h-11 flex-1" 
+                          autoFocus
+                          value={searchValue}
+                          onValueChange={setSearchValue}
+                        />
                         <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => setAddCustomerOpen(true)}>
                             <UserPlus className="h-5 w-5" />
                         </Button>
@@ -72,8 +87,8 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                             <Edit className="h-5 w-5" />
                         </Button>
                     </div>
-                    <div className="relative mt-2">
-                        <ScrollArea className="h-[calc(60vh-80px)]">
+                    <div className="relative mt-2 border rounded-md">
+                        <ScrollArea className="h-[calc(60vh-100px)]">
                             <CommandList>
                                 <CommandEmpty>
                                     <Button className="w-full" variant="outline" onClick={() => setAddCustomerOpen(true)}>
@@ -82,20 +97,13 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                                     </Button>
                                 </CommandEmpty>
                                 <CommandGroup>
-                                    {customers && customers.map((customer) => (
+                                    {filteredCustomers.map((customer) => (
                                     <CommandItem
                                         key={customer.id}
                                         value={`${customer.name} ${customer.id} ${customer.postalCode || ''} ${customer.city || ''}`}
-                                        onSelect={(currentValue) => {
-                                            const selected = customers.find(c => 
-                                                `${c.name} ${c.id} ${c.postalCode || ''} ${c.city || ''}`.toLowerCase() === currentValue.toLowerCase()
-                                            );
-                                            if (selected) {
-                                                handleSelectCustomer(selected);
-                                            }
-                                        }}
+                                        onSelect={() => handleSelectCustomer(customer)}
                                         onFocus={() => setCurrentSelectedCustomer(customer)}
-                                        className="py-2"
+                                        className="py-3"
                                     >
                                         <Check
                                             className={cn(
