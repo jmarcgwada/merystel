@@ -120,7 +120,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="max-w-xl h-[70vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-4 flex-row items-center gap-4">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={onClose}>
               <ArrowLeft className="h-4 w-4" />
@@ -136,7 +136,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     autoFocus
-                    className="max-w-xs"
+                    className="max-w-sm"
                 />
                  {!isCashier && (
                   <TooltipProvider>
@@ -175,7 +175,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                             key={customer.id}
                             ref={el => customerListRef.current[index] = el}
                             className={cn(
-                              'w-full p-3 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
+                              'w-full p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
                               index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                             )}
                             onClick={() => setHighlightedCustomerIndex(index)}
