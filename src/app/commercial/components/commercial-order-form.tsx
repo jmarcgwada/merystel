@@ -474,15 +474,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <Dialog open={isCustomerModalOpen} onOpenChange={setCustomerModalOpen}>
-        <DialogContent className="sm:max-w-2xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-3xl h-[70vh] flex flex-col p-0">
             <DialogHeader className="p-6 pb-0 flex-row items-center gap-4">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCustomerModalOpen(false)}>
                 <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 grid grid-cols-3 gap-4 px-6 min-h-0">
-                <div className="col-span-2 flex flex-col space-y-4">
+            <div className="flex-1 grid grid-cols-12 gap-4 px-6 min-h-0">
+                <div className="col-span-8 flex flex-col space-y-4">
                     <Input 
                         placeholder="Rechercher par nom ou email..." 
                         value={customerSearch}
@@ -501,7 +501,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                                 key={customer.id}
                                                 ref={el => customerListRef.current[index] = el}
                                                 className={cn(
-                                                    'w-full p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
+                                                    'w-full p-3 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
                                                     index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                                                 )}
                                                 onClick={() => setHighlightedCustomerIndex(index)}
@@ -518,7 +518,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         </ScrollArea>
                     </div>
                 </div>
-                <div className="col-span-1 flex flex-col space-y-2">
+                <div className="col-span-4 flex flex-col space-y-2">
                     <Button 
                         className="h-12 w-full" 
                         variant="outline"
