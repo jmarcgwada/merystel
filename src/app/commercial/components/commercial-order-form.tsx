@@ -45,11 +45,12 @@ interface CommercialOrderFormProps {
   addToOrder: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
+  setSubmitHandler: (handler: (() => void) | null) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, addCustomer } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -214,10 +215,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;
 
-  function onSubmit(data: CommercialOrderFormValues) {
+  const onSubmit = useCallback((data: CommercialOrderFormValues) => {
     console.log(data);
     toast({ title: 'Facture générée (simulation)' });
-  }
+  }, [toast]);
+  
+  useEffect(() => {
+    setSubmitHandler(() => form.handleSubmit(onSubmit));
+    return () => setSubmitHandler(null);
+  }, [form, onSubmit, setSubmitHandler]);
+
 
   // --- Customer Selection Logic ---
   const filteredCustomers = useMemo(() => {
@@ -282,7 +289,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   return (
     <>
-    <div className="flex flex-col lg:flex-row gap-6 mb-4 items-start lg:items-end">
+    <div className="flex flex-col lg:flex-row gap-6 items-end">
         <div className="w-full lg:flex-1">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -365,11 +372,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         </div>
       </div>
 
-    <Card className="h-full flex flex-col">
-      <CardContent className="p-6 flex-1 flex flex-col">
+    <Card className="h-full flex flex-col mt-4">
+      <CardContent className="p-6 flex flex-col">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col h-full">
-            <div className="space-y-2 overflow-auto pr-4 -mr-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
                 <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
@@ -426,7 +433,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
               )}
             </div>
             
-            <Separator className="mb-6"/>
+            <Separator />
             <div className="pt-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                     <div className="space-y-4">
@@ -469,10 +476,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                             <span>{netAPayer.toFixed(2)}€</span>
                         </div>
                     </div>
-                </div>
-
-                <div className="flex justify-end mt-8">
-                    <Button size="lg" type="submit">Générer la facture</Button>
                 </div>
             </div>
           </form>

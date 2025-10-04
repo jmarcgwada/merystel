@@ -6,10 +6,13 @@ import { CommercialOrderForm } from './components/commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../pos/components/variant-selection-modal';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 
 export default function CommercialPage() {
   const { addToOrder, order, setOrder, updateQuantity, removeFromOrder } = usePos();
+  const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   
   return (
     <div className="h-full flex flex-col">
@@ -17,15 +20,20 @@ export default function CommercialPage() {
         <PageHeader
             title="Gestion Commerciale"
             subtitle="Créez une nouvelle commande ou une facture rapidement."
-        />
+        >
+            {submitHandler && (
+                 <Button size="lg" onClick={submitHandler}>Générer la facture</Button>
+            )}
+        </PageHeader>
         
-        <div className="mt-0 flex-1">
+        <div className="flex-1">
             <CommercialOrderForm 
                 order={order} 
                 setOrder={setOrder}
                 addToOrder={addToOrder}
                 updateQuantity={updateQuantity}
                 removeFromOrder={removeFromOrder}
+                setSubmitHandler={setSubmitHandler}
             />
         </div>
       </div>
@@ -34,4 +42,5 @@ export default function CommercialPage() {
     </div>
   );
 }
+
 
