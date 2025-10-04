@@ -323,7 +323,7 @@ export function CommercialOrderForm() {
                         ))}
                     </div>
                 </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                     <div className="flex justify-between items-center">
                         <Label>Prix Total HT</Label>
                         <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
@@ -378,3 +378,4 @@ export function CommercialOrderForm() {
     </>
   );
 }
+
