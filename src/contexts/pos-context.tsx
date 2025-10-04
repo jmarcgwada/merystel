@@ -247,6 +247,7 @@ interface PosContextType {
   exportConfiguration: () => void;
   importConfiguration: (file: File) => Promise<void>;
   importDemoData: () => Promise<void>;
+  importDemoCustomers: () => Promise<void>;
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
   isLoading: boolean;
@@ -671,6 +672,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur d\'importation' });
     }
   }, [firestore, companyId, vatRates, toast]);
+
+    const importDemoCustomers = useCallback(async () => {
+    if (!firestore || !companyId) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
+      return;
+    }
+    toast({ title: 'Importation des clients de démo...' });
+
+    const demoCustomers = [
+      { name: 'Alice Martin', email: 'alice.martin@example.com', phone: '0612345678', address: '12 Rue de la Paix', postalCode: '75002', city: 'Paris', country: 'France' },
+      { name: 'Bruno Petit', email: 'bruno.petit@example.com', phone: '0623456789', address: '45 Avenue des Champs-Élysées', postalCode: '75008', city: 'Paris', country: 'France' },
+      { name: 'Chloé Durand', email: 'chloe.durand@example.com', phone: '0634567890', address: '8 Rue de la République', postalCode: '69001', city: 'Lyon', country: 'France' },
+      { name: 'David Lefebvre', email: 'david.lefebvre@example.com', phone: '0645678901', address: '22 Quai de la Joliette', postalCode: '13002', city: 'Marseille', country: 'France' },
+      { name: 'Émilie Moreau', email: 'emilie.moreau@example.com', phone: '0656789012', address: '15 Place du Capitole', postalCode: '31000', city: 'Toulouse', country: 'France' },
+      { name: 'François Lambert', email: 'francois.lambert@example.com', phone: '0667890123', address: '5 Rue Nationale', postalCode: '59000', city: 'Lille', country: 'France' },
+      { name: 'Gabrielle Simon', email: 'gabrielle.simon@example.com', phone: '0678901234', address: '30 Place de la Bourse', postalCode: '33000', city: 'Bordeaux', country: 'France' },
+      { name: 'Hugo Bernard', email: 'hugo.bernard@example.com', phone: '0689012345', address: '1 Place Masséna', postalCode: '06000', city: 'Nice', country: 'France' },
+      { name: 'Inès Girard', email: 'ines.girard@example.com', phone: '0690123456', address: '10 Rue de la Krutenau', postalCode: '67000', city: 'Strasbourg', country: 'France' },
+      { name: 'Julien Laurent', email: 'julien.laurent@example.com', phone: '0601234567', address: '2 Rue du Calvaire', postalCode: '44000', city: 'Nantes', country: 'France' },
+    ];
+    
+    try {
+      const batch = writeBatch(firestore);
+      const customersRef = collection(firestore, 'companies', companyId, 'customers');
+      
+      demoCustomers.forEach(customer => {
+        const newCustomerRef = doc(customersRef);
+        batch.set(newCustomerRef, customer);
+      });
+
+      await batch.commit();
+      toast({ title: 'Clients de démo ajoutés', description: '10 clients fictifs ont été ajoutés à votre liste.' });
+    } catch (error) {
+      console.error('Error importing demo customers:', error);
+      toast({ variant: 'destructive', title: 'Erreur d\'importation des clients' });
+    }
+  }, [firestore, companyId, toast]);
 
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
@@ -2005,6 +2043,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       exportConfiguration,
       importConfiguration,
       importDemoData,
+      importDemoCustomers,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -2139,6 +2178,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       exportConfiguration,
       importConfiguration,
       importDemoData,
+      importDemoCustomers,
       cameFromRestaurant,
       isLoading,
       user,

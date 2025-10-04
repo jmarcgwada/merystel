@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog, Users } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -27,7 +27,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers } = usePos();
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
@@ -56,6 +56,10 @@ export default function SettingsPage() {
     importDemoData();
   };
   
+  const handleImportDemoCustomers = () => {
+    importDemoCustomers();
+  };
+
   const handleResetData = () => {
     resetAllData();
     setResetDialogOpen(false);
@@ -182,7 +186,7 @@ export default function SettingsPage() {
             <div className="space-y-8">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Initialiser l'application</CardTitle>
@@ -245,6 +249,38 @@ export default function SettingsPage() {
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Annuler</AlertDialogCancel>
                                             <AlertDialogAction onClick={handleImportDemoData}>
+                                                Oui, importer
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Importer des clients de démo</CardTitle>
+                                <CardDescription>
+                                    Ajoute 10 clients fictifs à votre base de données.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="secondary">
+                                            <Users className="mr-2 h-4 w-4" />
+                                            Importer clients (Démo)
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Importer les clients de démo ?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Cette action ajoutera 10 clients fictifs à votre liste.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleImportDemoCustomers}>
                                                 Oui, importer
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
