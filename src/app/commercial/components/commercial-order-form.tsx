@@ -34,8 +34,6 @@ const orderItemSchema = z.object({
 const FormSchema = z.object({
   customerId: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Ajoutez au moins un article.'),
-  escompte: z.coerce.number().optional(),
-  port: z.coerce.number().optional(),
   acompte: z.coerce.number().optional(),
 });
 
@@ -76,8 +74,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     resolver: zodResolver(FormSchema),
     defaultValues: {
       items: order.map(item => ({ ...item, remise: item.discountPercent || 0 })),
-      escompte: 0,
-      port: 0,
       acompte: 0,
     },
   });
@@ -182,8 +178,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     }, 0);
   }, [watchItems, allItems, vatRates]);
 
-  const escompte = form.watch('escompte') || 0;
-  const totalHTAvecEscompte = subTotalHT * (1 - escompte / 100);
+
+  const totalHTAvecEscompte = subTotalHT;
 
   const vatBreakdown = useMemo(() => {
     if (!allItems || !vatRates) return {};
@@ -198,7 +194,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         const priceHT = item.price / (1 + vatInfo.rate / 100);
         const remise = item.remise || 0;
         const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
-        const totalItemHTAvecEscompte = totalItemHT * (1 - escompte / 100);
+        const totalItemHTAvecEscompte = totalItemHT;
         const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
 
         if (breakdown[vatInfo.rate]) {
@@ -211,11 +207,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     });
 
     return breakdown;
-  }, [watchItems, allItems, vatRates, escompte]);
+  }, [watchItems, allItems, vatRates]);
   
   const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
-  const port = form.watch('port') || 0;
-  const totalTTC = totalHTAvecEscompte + totalTVA + port;
+  const totalTTC = totalHTAvecEscompte + totalTVA;
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;
 
@@ -443,6 +438,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         </div>
                     </div>
                     <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Total HT</Label>
+                            <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
+                        </div>
                         <div className="flex justify-between items-center">
                             <Label>Cumul TVA</Label>
                             <span className="font-medium">{totalTVA.toFixed(2)}€</span>
