@@ -10,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, ChevronsUpDown, Check } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,9 +20,6 @@ import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -57,7 +54,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
-  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,11 +80,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue('customerId', customer.id);
-  }
-  
-  const onCustomerAdded = (newCustomer: Customer) => {
-    onCustomerSelected(newCustomer);
-    setAddCustomerOpen(false);
   }
 
   const handleAddItem = (item: Item) => {
@@ -293,56 +284,19 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     <CardTitle>Client</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isCustomerSearchOpen}
-                            className="w-[300px] justify-between"
-                            >
-                            {selectedCustomer ? selectedCustomer.name : "Sélectionner un client..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Rechercher un client..." />
-                                <CommandList>
-                                    <CommandEmpty>
-                                        <Button className="w-full" variant="outline" onClick={() => { setCustomerSearchOpen(false); setAddCustomerOpen(true);}}>
-                                            <UserIcon className="mr-2 h-4 w-4" />
-                                            Créer un nouveau client
-                                        </Button>
-                                    </CommandEmpty>
-                                    <CommandGroup>
-                                    {customers && customers.map((customer) => (
-                                        <CommandItem
-                                        key={customer.id}
-                                        value={customer.name}
-                                        onSelect={() => {
-                                            onCustomerSelected(customer);
-                                            setCustomerSearchOpen(false);
-                                        }}
-                                        >
-                                         <Check className={cn("mr-2 h-4 w-4", selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0")}/>
-                                        {customer.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Button variant="outline" onClick={() => setCustomerSearchOpen(true)} className="w-[300px] justify-between">
+                        {selectedCustomer ? selectedCustomer.name : "Sélectionner un client..."}
+                        <UserIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
                 </CardContent>
             </Card>
         </div>
       </div>
 
     <Card className="h-full flex flex-col mt-4">
-      <CardContent className="p-6 flex flex-col">
+      <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
             <div className="space-y-2">
                 <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
                   <span>Désignation</span>
@@ -400,47 +354,49 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
               )}
             </div>
             
-            <Separator className="mb-6"/>
-            <div className="pt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Taux de TVA</h4>
-                        <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
-                           <div className="text-sm font-medium">Base HT</div>
-                           <div className="text-sm font-medium">Taux</div>
-                           <div className="text-sm font-medium">Montant TVA</div>
-                            {Object.values(vatBreakdown).map(vat => (
-                                <React.Fragment key={vat.rate}>
-                                    <div className="text-sm">{vat.base.toFixed(2)}€</div>
-                                    <div className="text-sm">{vat.rate.toFixed(2)}%</div>
-                                    <div className="text-sm">{vat.total.toFixed(2)}€</div>
-                                </React.Fragment>
-                            ))}
+            <div className="mt-auto">
+                <Separator className="my-6"/>
+                <div className="pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Taux de TVA</h4>
+                            <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
+                               <div className="text-sm font-medium">Base HT</div>
+                               <div className="text-sm font-medium">Taux</div>
+                               <div className="text-sm font-medium">Montant TVA</div>
+                                {Object.values(vatBreakdown).map(vat => (
+                                    <React.Fragment key={vat.rate}>
+                                        <div className="text-sm">{vat.base.toFixed(2)}€</div>
+                                        <div className="text-sm">{vat.rate.toFixed(2)}%</div>
+                                        <div className="text-sm">{vat.total.toFixed(2)}€</div>
+                                    </React.Fragment>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <Label>Total HT</Label>
-                            <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <Label>Cumul TVA</Label>
-                            <span className="font-medium">{totalTVA.toFixed(2)}€</span>
-                        </div>
-                         <Separator />
-                        <div className="flex justify-between items-center font-bold text-lg">
-                            <span>Total TTC</span>
-                            <span>{totalTTC.toFixed(2)}€</span>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <Label htmlFor="acompte">Acompte (€)</Label>
-                             <Controller control={form.control} name="acompte" render={({ field }) => (
-                                <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                            )} />
-                        </div>
-                        <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
-                            <span>Net à Payer</span>
-                            <span>{netAPayer.toFixed(2)}€</span>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <Label>Total HT</Label>
+                                <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <Label>Cumul TVA</Label>
+                                <span className="font-medium">{totalTVA.toFixed(2)}€</span>
+                            </div>
+                             <Separator />
+                            <div className="flex justify-between items-center font-bold text-lg">
+                                <span>Total TTC</span>
+                                <span>{totalTTC.toFixed(2)}€</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <Label htmlFor="acompte">Acompte (€)</Label>
+                                 <Controller control={form.control} name="acompte" render={({ field }) => (
+                                    <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                )} />
+                            </div>
+                            <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                                <span>Net à Payer</span>
+                                <span>{netAPayer.toFixed(2)}€</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -450,7 +406,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       </CardContent>
     </Card>
     
-     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
     </>
   );
 }
