@@ -170,6 +170,11 @@ export default function SupermarketPage() {
   const stopScrolling = () => {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
   };
+  
+  // This effect will re-run the search whenever the searchType changes.
+  useEffect(() => {
+    performSearch(searchTerm);
+  }, [searchType, performSearch, searchTerm]);
 
   return (
     <>
@@ -182,7 +187,7 @@ export default function SupermarketPage() {
                   <Input
                       ref={searchInputRef}
                       type="text"
-                      placeholder="Scanner ou rechercher, puis Entrée..."
+                      placeholder="Scanner ou rechercher..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -190,12 +195,10 @@ export default function SupermarketPage() {
                       className="h-16 text-2xl pl-14 pr-40"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => {
                         setSearchType(p => p === 'contains' ? 'startsWith' : 'contains');
-                        setSearchTerm('');
-                        setListContent([]);
                         searchInputRef.current?.focus();
                       }}
                       className="h-12 text-xs w-28"
@@ -263,14 +266,14 @@ export default function SupermarketPage() {
                         "flex items-center p-1 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
-                      onDoubleClick={() => addToOrder(item.id)}
+                      onClick={() => addToOrder(item.id)}
                     >
                       {showItemImagesInGrid && (
                         <Image
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
                           alt={item.name}
-                          width={24}
-                          height={24}
+                          width={32}
+                          height={32}
                           className="rounded-md object-cover mr-3"
                           data-ai-hint="product image"
                         />
