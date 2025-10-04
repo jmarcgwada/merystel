@@ -71,15 +71,22 @@ const statusConfig = {
 
 
 export function TableLayout() {
-  const { tables, vatRates, isLoading, users, user } = usePos();
+  const { tables, vatRates, isLoading, users, user, items: allItems, setCameFromRestaurant, setSelectedTableById, promoteTableToTicket } = usePos();
   const router = useRouter();
 
   const handleTableSelect = (table: Table) => {
     if (table.verrou) {
         return; // Do nothing if table is locked
     }
-    // Navigate to the POS page with the table ID as a query parameter
-    router.push(`/pos?tableId=${table.id}`);
+     if (table.status === 'paying') {
+      promoteTableToTicket(table.id, table.order);
+      router.push('/pos');
+    } else if (table.id === 'takeaway') {
+      setCameFromRestaurant(true);
+      router.push('/pos');
+    } else {
+      setSelectedTableById(table.id);
+    }
   };
 
   const getUserName = useCallback((userId?: string) => {
@@ -150,17 +157,23 @@ export function TableLayout() {
                                 {table.order.length} article{table.order.length !== 1 ? 's' : ''}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent onClick={(e) => e.stopPropagation()} className="w-64">
+                        <PopoverContent onClick={(e) => e.stopPropagation()} className="w-72">
                             <div className="space-y-2">
                                 <h4 className="font-medium leading-none">Détail de la commande</h4>
                                 <Separator />
                                 <div className="text-sm space-y-2 max-h-64 overflow-y-auto">
-                                    {table.order.map(item => (
-                                        <div key={item.id} className="flex justify-between">
-                                            <span>{item.quantity}x {item.name}</span>
-                                            <span className="font-mono">{item.total.toFixed(2)}€</span>
-                                        </div>
-                                    ))}
+                                    {table.order.map(item => {
+                                        const fullItem = allItems?.find(i => i.id === item.itemId);
+                                        return (
+                                            <div key={item.id} className="grid grid-cols-3 gap-2 items-start">
+                                                <div className="col-span-2">
+                                                    <span>{item.quantity}x {item.name}</span>
+                                                    {fullItem?.barcode && <p className="text-xs text-muted-foreground font-mono">{fullItem.barcode}</p>}
+                                                </div>
+                                                <span className="font-mono text-right col-span-1">{item.total.toFixed(2)}€</span>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         </PopoverContent>
@@ -194,3 +207,4 @@ export function TableLayout() {
     </div>
   );
 }
+
