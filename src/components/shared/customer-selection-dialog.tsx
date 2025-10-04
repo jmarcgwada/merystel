@@ -86,9 +86,13 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                                     <CommandItem
                                         key={customer.id}
                                         value={`${customer.name} ${customer.id} ${customer.postalCode || ''} ${customer.city || ''}`}
-                                        onSelect={() => {
-                                            onCustomerSelected(customer);
-                                            onClose();
+                                        onSelect={(currentValue) => {
+                                            const selected = customers.find(c => 
+                                                `${c.name} ${c.id} ${c.postalCode || ''} ${c.city || ''}`.toLowerCase() === currentValue.toLowerCase()
+                                            );
+                                            if (selected) {
+                                                handleSelectCustomer(selected);
+                                            }
                                         }}
                                         onFocus={() => setCurrentSelectedCustomer(customer)}
                                         className="py-2"
