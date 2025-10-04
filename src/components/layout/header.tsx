@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowRight } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,27 +30,27 @@ export default function Header() {
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
+    isKeypadOpen,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
-  const [isClient, setIsClient] = useState(false);
   const [navDisabled, setNavDisabled] = useState(false);
 
-  const isSupermarketPage = pathname.startsWith('/supermarket');
-  
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const isSupermarketPage = pathname.startsWith('/supermarket');
+    const isPosPage = pathname.startsWith('/pos');
+    // Disable nav if in supermarket with items in order OR if keypad is open in POS
+    setNavDisabled((isSupermarketPage && order.length > 0) || (isPosPage && isKeypadOpen));
+  }, [pathname, order.length, isKeypadOpen]);
 
-  useEffect(() => {
-    if (isClient) {
-      setNavDisabled(isSupermarketPage && order.length > 0);
-    }
-  }, [isClient, isSupermarketPage, order.length]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (navDisabled) {
+      e.preventDefault();
+      return;
+    }
     if (order.length > 0 && href !== pathname) {
       e.preventDefault();
       showNavConfirm(href);
@@ -71,19 +71,17 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
             "flex items-center gap-4 flex-1 transition-opacity",
-            navDisabled && 'opacity-50 pointer-events-none'
+             navDisabled && 'opacity-50 pointer-events-none'
             )}>
            <Link
             href="/"
             className={cn(
-              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              isClient && !user && isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
+              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors"
             )}
             onClick={(e) => {
               if (user) handleNavClick(e, '/');
             }}
           >
-             {isClient && !user && isLoginPage && <ArrowRight className="h-5 w-5 text-primary animate-bounce-horizontal" />}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -100,7 +98,7 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
-          {isClient && user && companyInfo?.name && (
+          {user && companyInfo?.name && (
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
@@ -115,7 +113,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-           {isClient && user && isKeyboardVisibleInHeader && (
+           {user && isKeyboardVisibleInHeader && (
               <Button 
                 variant="outline"
                 size="icon"
@@ -124,7 +122,7 @@ export default function Header() {
                   <KeyboardIcon className="h-4 w-4" />
               </Button>
           )}
-          {isClient && user && externalLinkModalEnabled && (
+          {user && externalLinkModalEnabled && (
               <Button 
                 variant="outline"
                 size="icon"
@@ -133,7 +131,7 @@ export default function Header() {
                   <ExternalLink className="h-4 w-4" />
               </Button>
           )}
-          {isClient && user && (
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
