@@ -58,7 +58,6 @@ export default function Header() {
   const isLoginPage = pathname.startsWith('/login');
   const isSupermarketPage = pathname.startsWith('/supermarket');
 
-  // Disable navigation when keypad is open or when in supermarket mode with an order
   const navDisabled = isKeypadOpen || (isSupermarketPage && order.length > 0);
 
 
@@ -67,7 +66,7 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
             "flex items-center gap-4 flex-1 transition-opacity",
-            navDisabled && 'opacity-50 pointer-events-none'
+             isClient && navDisabled && 'opacity-50 pointer-events-none'
             )}>
            <Link
             href="/"
