@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,7 @@ export default function Header() {
               if (user) handleNavClick(e, '/dashboard');
             }}
           >
+             {isClient && !user && !isLoginPage && <ArrowRight className="h-5 w-5 text-primary animate-bounce-horizontal" />}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
