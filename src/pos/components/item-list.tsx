@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, forwardRef } from 'react';
@@ -32,6 +33,7 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
         itemCardImageOverlayOpacity,
         itemCardTextColor,
         itemCardShowPrice,
+        showItemImagesInGrid
     } = usePos();
     const [isClicked, setIsClicked] = useState(false);
     
@@ -60,7 +62,7 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
           'flex flex-col overflow-hidden transition-all duration-200 border-2 relative',
           isOutOfStock ? 'opacity-40' : 'hover:shadow-lg hover:-translate-y-0.5',
           isClicked && 'scale-105 shadow-xl ring-2 ring-accent',
-          itemCardShowImageAsBackground && 'relative'
+           itemCardShowImageAsBackground && 'relative'
         )}
         style={cardStyle}
       >
@@ -70,7 +72,7 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
             </div>
         )}
         <button onClick={handleItemClick} className="flex flex-col h-full text-left disabled:cursor-not-allowed" disabled={isOutOfStock}>
-          {showImage && item.image ? (
+          {showImage && showItemImagesInGrid && item.image ? (
             <CardHeader className="p-0">
               <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'aspect-[4/3]' : 'aspect-video')}>
                 <Image
@@ -113,14 +115,14 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
 };
 
 const ItemListItem = ({ item, onClick }: { item: Item, onClick: (item: Item) => void }) => {
-    const { getCategoryColor } = usePos();
+    const { getCategoryColor, showItemImagesInGrid } = usePos();
     const categoryColor = getCategoryColor(item.categoryId) || 'transparent';
     const isOutOfStock = item.manageStock && (item.stock || 0) <= 0;
 
     return (
         <div
             className={cn(
-                "flex items-center gap-4 p-3 rounded-lg border-2 hover:border-primary hover:bg-secondary/50 transition-all",
+                "flex items-center gap-4 p-3 rounded-lg border-2 hover:border-primary hover:bg-secondary/50 transition-all relative",
                 isOutOfStock ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
             )}
             onClick={() => !isOutOfStock && onClick(item)}
@@ -131,7 +133,7 @@ const ItemListItem = ({ item, onClick }: { item: Item, onClick: (item: Item) => 
                     <span className="font-semibold text-destructive">Rupture</span>
                 </div>
             )}
-            {item.image && (
+            {item.image && showItemImagesInGrid && (
                 <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md">
                     <Image
                         src={item.image}
@@ -207,11 +209,6 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
       return filteredItems.slice(0, ITEMS_PER_PAGE);
     }, [filteredItems, searchTerm]);
 
-
-    const getCategoryColor = (categoryId: string) => {
-      if (!categories) return 'transparent';
-      return categories.find(c => c.id === categoryId)?.color;
-    };
 
     if (itemDisplayMode === 'list') {
         return (

@@ -163,6 +163,8 @@ interface PosContextType {
   authRequired: boolean;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
+  showItemImagesInGrid: boolean;
+  setShowItemImagesInGrid: React.Dispatch<React.SetStateAction<boolean>>;
   descriptionDisplay: 'none' | 'first' | 'both';
   setDescriptionDisplay: React.Dispatch<React.SetStateAction<'none' | 'first' | 'both'>>;
   popularItemsCount: number;
@@ -303,6 +305,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
   const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
   const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
@@ -832,6 +835,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       ];
 
       // --- Batch Write ---
+      defaultCategories.forEach(data => {
+          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
+          batch.set(ref, data);
+      });
       defaultVatRates.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
           batch.set(ref, data);
@@ -844,18 +851,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-       defaultTables.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
+      defaultItems.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           batch.set(ref, data);
       });
-      seedCategories.forEach(data => {
-        const { id, ...categoryData } = data;
-        const ref = doc(firestore, 'companies', companyId, 'categories', id);
-        batch.set(ref, { ...categoryData, image: `https://picsum.photos/seed/${id}/200/150` });
-      });
-       seedItems.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
-          batch.set(ref, {...data, image: `https://picsum.photos/seed/${data.barcode}/200/150`});
+      defaultTables.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
+          batch.set(ref, data);
       });
       
       await batch.commit();
@@ -1903,6 +1905,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       showTicketImages,
       setShowTicketImages,
+      showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
       setDescriptionDisplay,
       popularItemsCount,
@@ -2061,6 +2065,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
       popularItemsCount,
       itemCardOpacity,

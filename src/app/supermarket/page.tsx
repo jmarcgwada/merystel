@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -21,7 +22,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 const MAX_INITIAL_ITEMS = 100;
 
 export default function SupermarketPage() {
-  const { items, addToOrder, heldOrders, order } = usePos();
+  const { items, addToOrder, heldOrders, order, showItemImagesInGrid } = usePos();
   const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
@@ -293,19 +294,21 @@ export default function SupermarketPage() {
                       key={item.id}
                       ref={(el) => (itemRefs.current[index] = el)}
                       className={cn(
-                        "flex items-center p-2 cursor-pointer hover:bg-secondary",
+                        "flex items-center p-2 cursor-pointer hover:bg-secondary h-14",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
                       onDoubleClick={() => handleItemClick(item)}
                     >
-                      <Image
-                        src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
-                        alt={item.name}
-                        width={32}
-                        height={32}
-                        className="rounded-md object-cover mr-3"
-                        data-ai-hint="product image"
-                      />
+                      {showItemImagesInGrid && (
+                        <Image
+                          src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
+                          alt={item.name}
+                          width={32}
+                          height={32}
+                          className="rounded-md object-cover mr-3"
+                          data-ai-hint="product image"
+                        />
+                      )}
                       <div className="flex-1">
                         <p className="font-semibold text-sm">{item.name}</p>
                         <p className="text-xs text-muted-foreground font-mono">{item.barcode}</p>

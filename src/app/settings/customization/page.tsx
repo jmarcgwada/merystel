@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Link as LinkIcon, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, BarChart3, Image } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -22,6 +22,8 @@ export default function CustomizationPage() {
   const { 
     showTicketImages, 
     setShowTicketImages, 
+    showItemImagesInGrid,
+    setShowItemImagesInGrid,
     popularItemsCount, 
     setPopularItemsCount, 
     itemCardOpacity, 
@@ -211,6 +213,21 @@ export default function CustomizationPage() {
                     id="ticket-images" 
                     checked={showTicketImages}
                     onCheckedChange={setShowTicketImages}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="item-images-grid" className="text-base flex items-center gap-2"><Image />Afficher les images des articles</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Affiche ou masque les images dans le POS et le mode supermarché.
+                  </p>
+                </div>
+                {isClient ? (
+                  <Switch 
+                    id="item-images-grid" 
+                    checked={showItemImagesInGrid}
+                    onCheckedChange={setShowItemImagesInGrid}
                   />
                 ) : <Skeleton className="h-6 w-11" />}
             </div>
