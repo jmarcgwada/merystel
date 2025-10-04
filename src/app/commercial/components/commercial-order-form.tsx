@@ -491,7 +491,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     />
                     <div className="flex-1 relative">
                         <ScrollArea className="absolute inset-0">
-                            <div className="p-1 pr-2">
+                            <div className="pr-2">
                                 {filteredCustomers.length === 0 ? (
                                     <p className="text-center text-sm text-muted-foreground p-4">Aucun client trouvé.</p>
                                 ) : (
@@ -501,7 +501,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                                 key={customer.id}
                                                 ref={el => customerListRef.current[index] = el}
                                                 className={cn(
-                                                    'w-full justify-between items-center h-auto p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex',
+                                                    'w-full p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
                                                     index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                                                 )}
                                                 onClick={() => setHighlightedCustomerIndex(index)}
