@@ -141,60 +141,63 @@ export function CommercialOrderForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 flex flex-col">
             {/* Header */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                     <Label>Client</Label>
-                    <div className="flex gap-2 mt-2">
-                        <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                            <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={isCustomerSearchOpen} className="w-full justify-start">
-                                {selectedCustomer ? selectedCustomer.name : "Rechercher un client..."}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Rechercher un client..." />
-                                <CommandList>
-                                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                                    <CommandGroup>
-                                    {customers && customers.map((customer) => (
-                                        <CommandItem
-                                        key={customer.id}
-                                        onSelect={() => {
-                                            setSelectedCustomer(customer);
-                                            form.setValue('customerId', customer.id);
-                                            setCustomerSearchOpen(false);
-                                        }}
-                                        >
-                                        {customer.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <Button type="button" size="icon" onClick={() => setAddCustomerOpen(true)}>
-                            <UserPlus className="h-4 w-4" />
-                        </Button>
-                    </div>
+              {/* Left Column for general info */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input readOnly value={format(new Date(), 'dd/MM/yyyy', {locale: fr})} />
                 </div>
                 <div className="space-y-2">
-                    {selectedCustomer && (
-                        <div className="text-sm border p-2 rounded-md bg-muted/50 h-full">
-                            <p className="font-semibold">{selectedCustomer.name}</p>
-                            <p>{selectedCustomer.address}</p>
-                            <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                        </div>
-                    )}
+                    <Label>Numéro de Facture</Label>
+                    <Input readOnly value="501304" />
                 </div>
-                 <div className="space-y-2">
-                     <Label>Date</Label>
-                     <Input readOnly value={format(new Date(), 'dd/MM/yyyy', {locale: fr})} />
+              </div>
+              
+              {/* Right Column for customer info */}
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <div className="flex gap-2">
+                  <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={isCustomerSearchOpen} className="w-full justify-start">
+                        {selectedCustomer ? selectedCustomer.name : "Rechercher un client..."}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Rechercher un client..." />
+                        <CommandList>
+                          <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                          <CommandGroup>
+                            {customers && customers.map((customer) => (
+                              <CommandItem
+                                key={customer.id}
+                                onSelect={() => {
+                                  setSelectedCustomer(customer);
+                                  form.setValue('customerId', customer.id);
+                                  setCustomerSearchOpen(false);
+                                }}
+                              >
+                                {customer.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Button type="button" size="icon" onClick={() => setAddCustomerOpen(true)}>
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
                 </div>
-                 <div className="space-y-2">
-                     <Label>Numéro de Facture</Label>
-                     <Input readOnly value="501304" />
-                </div>
+                {selectedCustomer && (
+                  <div className="text-sm border p-2 rounded-md bg-muted/50 mt-2">
+                    <p className="font-semibold">{selectedCustomer.name}</p>
+                    <p>{selectedCustomer.address}</p>
+                    <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <Separator />
