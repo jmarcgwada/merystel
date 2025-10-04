@@ -65,7 +65,7 @@ export default function Header() {
             href="/"
             className={cn(
               "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-               isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary",
+              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
             )}
             onClick={(e) => {
               if (user) handleNavClick(e, '/dashboard');
@@ -87,7 +87,7 @@ export default function Header() {
               Zenith POS
             </span>
           </Link>
-          {user && companyInfo?.name && (
+          {isClient && user && companyInfo?.name && (
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
@@ -120,7 +120,7 @@ export default function Header() {
                   <ExternalLink className="h-4 w-4" />
               </Button>
           )}
-          {user && (
+          {isClient && user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
