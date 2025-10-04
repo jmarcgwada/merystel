@@ -163,12 +163,10 @@ export function TableLayout() {
                                 <Separator />
                                 <div className="text-sm space-y-2 max-h-64 overflow-y-auto">
                                     {table.order.map(item => {
-                                        const fullItem = allItems?.find(i => i.id === item.itemId);
                                         return (
                                             <div key={item.id} className="grid grid-cols-3 gap-2 items-start">
                                                 <div className="col-span-2">
                                                     <span>{item.quantity}x {item.name}</span>
-                                                    {fullItem?.barcode && <p className="text-xs text-muted-foreground font-mono">{fullItem.barcode}</p>}
                                                 </div>
                                                 <span className="font-mono text-right col-span-1">{item.total.toFixed(2)}€</span>
                                             </div>
@@ -207,4 +205,3 @@ export function TableLayout() {
     </div>
   );
 }
-

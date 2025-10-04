@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { OrderSummary } from '@/app/pos/components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import { Input } from '@/components/ui/input';
@@ -29,10 +30,8 @@ export default function SupermarketPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const listPersistenceTimer = useRef<NodeJS.Timeout | null>(null);
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
   const [lastSearchTerm, setLastSearchTerm] = useState('');
-
 
   const listScrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +45,6 @@ export default function SupermarketPage() {
   }, [inputValue, targetInput]);
   
   useEffect(() => {
-    // When keyboard closes, clear the search term if it was the target
     if (!isKeyboardOpen && targetInput?.name === 'supermarket-search') {
       setSearchTerm('');
     }
@@ -57,18 +55,21 @@ export default function SupermarketPage() {
       setListContent([]);
       return;
     }
-
     const lowercasedTerm = term.toLowerCase();
     
-    // Check for exact barcode match first
-    const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
-    if(exactBarcodeMatch) {
-      handleItemClick(exactBarcodeMatch, true);
+    if (lowercasedTerm.length < 2 && !/\d{4,}/.test(term)) {
+      setListContent([]);
+      setLastSearchTerm(term);
       return;
     }
     
-    if (term.length < 2) {
+    const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
+    if(exactBarcodeMatch) {
+      addToOrder(exactBarcodeMatch.id);
+      setSearchTerm('');
       setListContent([]);
+      setLastSearchTerm('');
+      searchInputRef.current?.focus();
       return;
     }
 
@@ -81,38 +82,11 @@ export default function SupermarketPage() {
       return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
     });
     setListContent(filtered);
-    setHighlightedIndex(0);
+    setHighlightedIndex(filtered.length > 0 ? 0 : -1);
     setLastSearchTerm(term);
-  }, [items, searchType]);
-
-  const clearSearchWithDelay = useCallback(() => {
-    if (listPersistenceTimer.current) {
-      clearTimeout(listPersistenceTimer.current);
-    }
-    setSearchTerm('');
-    setListContent([]);
-    setLastSearchTerm('');
-    searchInputRef.current?.focus();
-  }, []);
-
-  const handleItemClick = useCallback((item: Item, fromEnterKey: boolean = false) => {
-    addToOrder(item.id);
-    if (fromEnterKey) {
-        setSearchTerm('');
-        setListContent([]);
-        setLastSearchTerm('');
-        searchInputRef.current?.focus();
-    } else {
-        clearSearchWithDelay();
-    }
-  }, [addToOrder, clearSearchWithDelay]);
+  }, [items, searchType, addToOrder]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (listPersistenceTimer.current) {
-      clearTimeout(listPersistenceTimer.current);
-      listPersistenceTimer.current = null;
-    }
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
@@ -122,7 +96,10 @@ export default function SupermarketPage() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
-        handleItemClick(listContent[highlightedIndex], true);
+        addToOrder(listContent[highlightedIndex].id);
+        setSearchTerm('');
+        setListContent([]);
+        setLastSearchTerm('');
       } else {
         performSearch(searchTerm);
       }
@@ -142,23 +119,11 @@ export default function SupermarketPage() {
     searchInputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (listPersistenceTimer.current) {
-        clearTimeout(listPersistenceTimer.current);
-      }
-    };
-  }, []);
-
   const handleShowAll = () => {
     if (items) {
       setSearchTerm('');
       setListContent(items.slice(0, MAX_INITIAL_ITEMS));
       setHighlightedIndex(-1);
-      if (listPersistenceTimer.current) {
-        clearTimeout(listPersistenceTimer.current);
-        listPersistenceTimer.current = null;
-      }
       searchInputRef.current?.focus();
     }
   };
@@ -171,7 +136,6 @@ export default function SupermarketPage() {
     });
   };
 
-  // --- Scroll Logic ---
   useEffect(() => {
     const scrollArea = listScrollAreaRef.current;
     if (!scrollArea) return;
@@ -184,7 +148,6 @@ export default function SupermarketPage() {
     checkScrollability();
     scrollArea.addEventListener('scroll', checkScrollability);
     
-    // Also check on content change
     const observer = new MutationObserver(checkScrollability);
     observer.observe(scrollArea, { childList: true, subtree: true });
 
@@ -211,7 +174,6 @@ export default function SupermarketPage() {
   const stopScrolling = () => {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
   };
-  // --- End Scroll Logic ---
 
   return (
     <>
@@ -303,7 +265,7 @@ export default function SupermarketPage() {
                         "flex items-center p-1 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
-                      onDoubleClick={() => handleItemClick(item)}
+                      onDoubleClick={() => addToOrder(item.id)}
                     >
                       {showItemImagesInGrid && (
                         <Image
@@ -316,8 +278,10 @@ export default function SupermarketPage() {
                         />
                       )}
                       <div className="flex-1">
-                        <p className="font-semibold text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{item.barcode}</p>
+                        <div className="flex items-center gap-2">
+                           <p className="font-semibold text-sm">{item.name}</p>
+                           {item.barcode && <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>}
+                        </div>
                       </div>
                       <p className="text-base font-bold pr-2">{item.price.toFixed(2)}€</p>
                     </Card>
