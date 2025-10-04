@@ -235,7 +235,7 @@ export default function SupermarketPage() {
                     >
                       {searchType === 'contains' ? 'Contient' : 'Commence par'}
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
+                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={() => { handleShowAll(); searchInputRef.current?.focus(); }}>
                         <List className="h-6 w-6" />
                     </Button>
                   </div>
