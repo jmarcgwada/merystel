@@ -64,7 +64,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
             <div className="flex-1 relative mx-6 mb-6">
                  <Command>
                     <div className="flex items-center gap-2 mb-2">
-                        <CommandInput placeholder="Rechercher par nom ou code client..." className="h-11 flex-1" autoFocus/>
+                        <CommandInput placeholder="Rechercher nom, code, CP ou ville..." className="h-11 flex-1" autoFocus/>
                         <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => setAddCustomerOpen(true)}>
                             <UserPlus className="h-5 w-5" />
                         </Button>
@@ -85,8 +85,11 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                                     {customers && customers.map((customer) => (
                                     <CommandItem
                                         key={customer.id}
-                                        value={`${customer.name} ${customer.id}`}
-                                        onSelect={() => handleSelectCustomer(customer)}
+                                        value={`${customer.name} ${customer.id} ${customer.postalCode || ''} ${customer.city || ''}`}
+                                        onSelect={() => {
+                                            onCustomerSelected(customer);
+                                            onClose();
+                                        }}
                                         onFocus={() => setCurrentSelectedCustomer(customer)}
                                         className="py-2"
                                     >
