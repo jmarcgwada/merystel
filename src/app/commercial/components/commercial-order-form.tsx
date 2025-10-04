@@ -308,68 +308,70 @@ export function CommercialOrderForm() {
             <Separator />
             
             {/* Footer */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                <div className="space-y-4">
-                    <h4 className="font-semibold">Taux de TVA</h4>
-                    <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
-                       <div className="text-sm font-medium">Base HT</div>
-                       <div className="text-sm font-medium">Taux</div>
-                       <div className="text-sm font-medium">Montant TVA</div>
-                        {Object.values(vatBreakdown).map(vat => (
-                            <React.Fragment key={vat.rate}>
-                                <div className="text-sm">{vat.base.toFixed(2)}€</div>
-                                <div className="text-sm">{vat.rate.toFixed(2)}%</div>
-                                <div className="text-sm">{vat.total.toFixed(2)}€</div>
-                            </React.Fragment>
-                        ))}
+            <div className="mt-auto pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                    <div className="space-y-4">
+                        <h4 className="font-semibold">Taux de TVA</h4>
+                        <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
+                           <div className="text-sm font-medium">Base HT</div>
+                           <div className="text-sm font-medium">Taux</div>
+                           <div className="text-sm font-medium">Montant TVA</div>
+                            {Object.values(vatBreakdown).map(vat => (
+                                <React.Fragment key={vat.rate}>
+                                    <div className="text-sm">{vat.base.toFixed(2)}€</div>
+                                    <div className="text-sm">{vat.rate.toFixed(2)}%</div>
+                                    <div className="text-sm">{vat.total.toFixed(2)}€</div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Prix Total HT</Label>
+                            <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="escompte">Escompte (%)</Label>
+                            <Controller control={form.control} name="escompte" render={({ field }) => (
+                                 <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
+                            )} />
+                        </div>
+                         <Separator />
+                         <div className="flex justify-between items-center">
+                            <Label>Total HT</Label>
+                            <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <Label>Cumul TVA</Label>
+                            <span className="font-medium">{totalTVA.toFixed(2)}€</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="port">Port TTC (€)</Label>
+                             <Controller control={form.control} name="port" render={({ field }) => (
+                                 <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                            )} />
+                        </div>
+                         <Separator />
+                        <div className="flex justify-between items-center font-bold text-lg">
+                            <span>Total TTC</span>
+                            <span>{totalTTC.toFixed(2)}€</span>
+                        </div>
+                         <div className="flex justify-between items-center">
+                            <Label htmlFor="acompte">Acompte (€)</Label>
+                             <Controller control={form.control} name="acompte" render={({ field }) => (
+                                <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                            )} />
+                        </div>
+                        <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                            <span>Net à Payer</span>
+                            <span>{netAPayer.toFixed(2)}€</span>
+                        </div>
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <Label>Prix Total HT</Label>
-                        <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="escompte">Escompte (%)</Label>
-                        <Controller control={form.control} name="escompte" render={({ field }) => (
-                             <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
-                        )} />
-                    </div>
-                     <Separator />
-                     <div className="flex justify-between items-center">
-                        <Label>Total HT</Label>
-                        <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <Label>Cumul TVA</Label>
-                        <span className="font-medium">{totalTVA.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="port">Port TTC (€)</Label>
-                         <Controller control={form.control} name="port" render={({ field }) => (
-                             <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                        )} />
-                    </div>
-                     <Separator />
-                    <div className="flex justify-between items-center font-bold text-lg">
-                        <span>Total TTC</span>
-                        <span>{totalTTC.toFixed(2)}€</span>
-                    </div>
-                     <div className="flex justify-between items-center">
-                        <Label htmlFor="acompte">Acompte (€)</Label>
-                         <Controller control={form.control} name="acompte" render={({ field }) => (
-                            <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                        )} />
-                    </div>
-                    <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
-                        <span>Net à Payer</span>
-                        <span>{netAPayer.toFixed(2)}€</span>
-                    </div>
-                </div>
-            </div>
 
-            <div className="flex justify-end mt-auto pt-6">
-                <Button size="lg" type="submit">Générer la facture</Button>
+                <div className="flex justify-end mt-8">
+                    <Button size="lg" type="submit">Générer la facture</Button>
+                </div>
             </div>
           </form>
         </Form>
