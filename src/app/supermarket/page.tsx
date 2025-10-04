@@ -17,6 +17,8 @@ import Image from 'next/image';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Label } from '@/components/ui/label';
 
 const MAX_INITIAL_ITEMS = 100;
 
@@ -30,6 +32,7 @@ export default function SupermarketPage() {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const listPersistenceTimer = useRef<NodeJS.Timeout | null>(null);
+  const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
 
   const listScrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -55,12 +58,16 @@ export default function SupermarketPage() {
       return [];
     }
     const lowercasedTerm = searchTerm.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(lowercasedTerm) ||
-        (item.barcode && item.barcode.toLowerCase().includes(lowercasedTerm))
-    );
-  }, [searchTerm, items]);
+    
+    return items.filter((item) => {
+      const name = item.name.toLowerCase();
+      const barcode = item.barcode ? item.barcode.toLowerCase() : '';
+      if (searchType === 'startsWith') {
+        return name.startsWith(lowercasedTerm) || barcode.startsWith(lowercasedTerm);
+      }
+      return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
+    });
+  }, [searchTerm, items, searchType]);
 
   useEffect(() => {
     if (searchTerm.length >= 2) {
@@ -205,21 +212,39 @@ export default function SupermarketPage() {
       <div className="grid grid-cols-1 md:grid-cols-12 h-full">
         <div className="md:col-span-8 flex flex-col overflow-hidden">
           <div className="p-4 flex flex-col sm:flex-row items-start gap-4">
-            <div className="relative flex-1 w-full">
-              <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Scanner ou rechercher un article..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={handleSearchFocus}
-                className="h-16 text-2xl pl-14 pr-14"
-              />
-              <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12" onClick={handleShowAll}>
-                <List className="h-6 w-6" />
-              </Button>
+            <div className="flex-1 w-full space-y-2">
+                <div className="relative">
+                <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Scanner ou rechercher un article..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={handleSearchFocus}
+                    className="h-16 text-2xl pl-14 pr-14"
+                />
+                <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12" onClick={handleShowAll}>
+                    <List className="h-6 w-6" />
+                </Button>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Label>Type de recherche :</Label>
+                    <ToggleGroup 
+                        type="single" 
+                        value={searchType} 
+                        onValueChange={(value: 'contains' | 'startsWith') => value && setSearchType(value)}
+                        aria-label="Type de recherche"
+                    >
+                        <ToggleGroupItem value="contains" aria-label="Contient">
+                            Contient
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="startsWith" aria-label="Commence par">
+                            Commence par
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                </div>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
                <div className="flex items-center gap-1">
