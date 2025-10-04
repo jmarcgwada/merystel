@@ -214,36 +214,29 @@ export default function SupermarketPage() {
           <div className="p-4 flex flex-col sm:flex-row items-start gap-4">
             <div className="flex-1 w-full space-y-2">
                 <div className="relative">
-                <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-                <Input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Scanner ou rechercher un article..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={handleSearchFocus}
-                    className="h-16 text-2xl pl-14 pr-14"
-                />
-                <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12" onClick={handleShowAll}>
-                    <List className="h-6 w-6" />
-                </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                    <Label>Type de recherche :</Label>
-                    <ToggleGroup 
-                        type="single" 
-                        value={searchType} 
-                        onValueChange={(value: 'contains' | 'startsWith') => value && setSearchType(value)}
-                        aria-label="Type de recherche"
+                  <ScanLine className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                  <Input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Scanner ou rechercher un article..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onFocus={handleSearchFocus}
+                      className="h-16 text-2xl pl-14 pr-14"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setSearchType(p => p === 'contains' ? 'startsWith' : 'contains')}
+                      className="h-12 text-xs w-28"
                     >
-                        <ToggleGroupItem value="contains" aria-label="Contient">
-                            Contient
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="startsWith" aria-label="Commence par">
-                            Commence par
-                        </ToggleGroupItem>
-                    </ToggleGroup>
+                      {searchType === 'contains' ? 'Contient' : 'Commence par'}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
+                        <List className="h-6 w-6" />
+                    </Button>
+                  </div>
                 </div>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
