@@ -1,8 +1,8 @@
 
 'use client';
 
-import React from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { usePos } from '@/contexts/pos-context';
@@ -10,33 +10,49 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Trash2 } from 'lucide-react';
+import { Trash2, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { OrderItem } from '@/lib/types';
+import type { Customer, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const orderItemSchema = z.object({
+  itemId: z.string().min(1, 'Article requis.'),
+  quantity: z.coerce.number().min(1, 'Qté > 0.'),
+  price: z.coerce.number(),
+  remise: z.coerce.number().min(0).max(100).optional(),
+});
 
 const FormSchema = z.object({
-  items: z.array(z.object({
-    itemId: z.string().min(1, { message: 'Article requis' }),
-    quantity: z.number().min(1, { message: 'Qté > 0' }),
-  })).min(1, 'Ajoutez au moins un article.'),
+  customerId: z.string().optional(),
+  items: z.array(orderItemSchema).min(1, 'Ajoutez au moins un article.'),
+  escompte: z.coerce.number().optional(),
+  port: z.coerce.number().optional(),
+  acompte: z.coerce.number().optional(),
 });
 
 type CommercialOrderFormValues = z.infer<typeof FormSchema>;
 
-interface CommercialOrderFormProps {
-  onOrderConfirm: (orderItems: OrderItem[]) => void;
-}
-
-export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps) {
-  const { items: allItems, isLoading } = usePos();
+export function CommercialOrderForm() {
+  const { items: allItems, customers, isLoading, vatRates, addCustomer } = usePos();
   const { toast } = useToast();
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: [{ itemId: '', quantity: 1 }],
+      items: [{ itemId: '', quantity: 1, price: 0, remise: 0 }],
+      escompte: 0,
+      port: 0,
+      acompte: 0,
     },
   });
 
@@ -44,126 +60,295 @@ export function CommercialOrderForm({ onOrderConfirm }: CommercialOrderFormProps
     control: form.control,
     name: 'items',
   });
+  
+  const watchItems = form.watch('items');
+
+  const onCustomerAdded = (newCustomer: Customer) => {
+    setSelectedCustomer(newCustomer);
+    form.setValue('customerId', newCustomer.id);
+  }
+  
+  const subTotalHT = useMemo(() => {
+    return watchItems.reduce((acc, item) => {
+      const fullItem = allItems.find(i => i.id === item.itemId);
+      if (!fullItem) return acc;
+      
+      const vatRate = vatRates.find(v => v.id === fullItem.vatId)?.rate || 0;
+      const priceHT = item.price / (1 + vatRate / 100);
+      const remise = item.remise || 0;
+      const totalHT = priceHT * item.quantity * (1 - remise / 100);
+
+      return acc + totalHT;
+    }, 0);
+  }, [watchItems, allItems, vatRates]);
+
+  const escompte = form.watch('escompte') || 0;
+  const totalHTAvecEscompte = subTotalHT * (1 - escompte / 100);
+
+  const vatBreakdown = useMemo(() => {
+    const breakdown: { [key: string]: { rate: number; total: number, base: number } } = {};
+
+    watchItems.forEach(item => {
+      const fullItem = allItems.find(i => i.id === item.itemId);
+      if (!fullItem) return;
+
+      const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
+      if (vatInfo) {
+        const priceHT = item.price / (1 + vatInfo.rate / 100);
+        const remise = item.remise || 0;
+        const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
+        const totalItemHTAvecEscompte = totalItemHT * (1 - escompte / 100);
+        const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
+
+        if (breakdown[vatInfo.rate]) {
+          breakdown[vatInfo.rate].total += taxForItem;
+          breakdown[vatInfo.rate].base += totalItemHTAvecEscompte;
+        } else {
+          breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHTAvecEscompte };
+        }
+      }
+    });
+
+    return breakdown;
+  }, [watchItems, allItems, vatRates, escompte]);
+  
+  const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
+  const port = form.watch('port') || 0;
+  const totalTTC = totalHTAvecEscompte + totalTVA + port;
+  const acompte = form.watch('acompte') || 0;
+  const netAPayer = totalTTC - acompte;
 
   function onSubmit(data: CommercialOrderFormValues) {
-    if (!allItems) return;
-    const orderItems: OrderItem[] = data.items.map(item => {
-        const product = allItems.find(p => p.id === item.itemId);
-        if (!product) throw new Error('Produit non trouvé');
-        return {
-            ...product,
-            quantity: item.quantity,
-            total: product.price * item.quantity,
-        };
-    });
-    onOrderConfirm(orderItems);
-    toast({ title: 'Commande prête pour le paiement.' });
+    console.log(data);
+    toast({ title: 'Facture générée (simulation)' });
   }
-
-  const watchItems = form.watch('items');
-  const selectedItemIds = watchItems.map(item => item.itemId);
-
-  const availableItems = allItems?.filter(item => !selectedItemIds.includes(item.id)) || [];
-
-  if (isLoading) {
-    return (
-        <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <div className="flex justify-between">
-                <Skeleton className="h-10 w-32" />
-                <Skeleton className="h-10 w-48" />
-            </div>
-        </div>
-    )
+  
+  const handleItemChange = (itemId: string, index: number) => {
+    const item = allItems.find(i => i.id === itemId);
+    if(item) {
+        form.setValue(`items.${index}.price`, item.price);
+    }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          {fields.map((field, index) => {
-            const currentItemId = watchItems[index]?.itemId;
-            const currentItem = allItems?.find(i => i.id === currentItemId);
-
-            return (
-              <div key={field.id} className="grid grid-cols-12 gap-4 items-start">
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.itemId`}
-                  render={({ field }) => (
-                    <FormItem className="col-span-6">
-                      <FormLabel className={cn(index !== 0 && "sr-only")}>Article</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez un article" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {currentItem && <SelectItem value={currentItem.id}>{currentItem.name}</SelectItem>}
-                          {availableItems.map(item => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.quantity`}
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                       <FormLabel className={cn(index !== 0 && "sr-only")}>Quantité</FormLabel>
-                      <FormControl>
-                        <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(parseInt(e.target.value) || 0)}
-                            min={1}
-                            onFocus={(e) => e.target.select()}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="col-span-3">
-                    <FormLabel className={cn(index !== 0 && "sr-only")}>Prix Total</FormLabel>
-                    <div className="font-medium h-10 flex items-center px-3">
-                        {currentItem ? `${(currentItem.price * (watchItems[index]?.quantity || 0)).toFixed(2)}€` : '0.00€'}
+    <>
+    <Card className="h-full flex flex-col">
+      <CardContent className="p-6 flex-1 flex flex-col">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 flex flex-col">
+            {/* Header */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                     <Label>Client</Label>
+                    <div className="flex gap-2 mt-2">
+                        <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                            <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={isCustomerSearchOpen} className="w-full justify-start">
+                                {selectedCustomer ? selectedCustomer.name : "Rechercher un client..."}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Rechercher un client..." />
+                                <CommandList>
+                                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                                    <CommandGroup>
+                                    {customers && customers.map((customer) => (
+                                        <CommandItem
+                                        key={customer.id}
+                                        onSelect={() => {
+                                            setSelectedCustomer(customer);
+                                            form.setValue('customerId', customer.id);
+                                            setCustomerSearchOpen(false);
+                                        }}
+                                        >
+                                        {customer.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <Button type="button" size="icon" onClick={() => setAddCustomerOpen(true)}>
+                            <UserPlus className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
-
-                <div className={cn("col-span-1", index === 0 && "pt-8")}>
-                  {fields.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                <div className="space-y-2">
+                    {selectedCustomer && (
+                        <div className="text-sm border p-2 rounded-md bg-muted/50 h-full">
+                            <p className="font-semibold">{selectedCustomer.name}</p>
+                            <p>{selectedCustomer.address}</p>
+                            <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                        </div>
+                    )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+                 <div className="space-y-2">
+                     <Label>Date</Label>
+                     <Input readOnly value={format(new Date(), 'dd/MM/yyyy', {locale: fr})} />
+                </div>
+                 <div className="space-y-2">
+                     <Label>Numéro de Facture</Label>
+                     <Input readOnly value="501304" />
+                </div>
+            </div>
 
-        <div className="flex items-center justify-between">
-            <Button
+            <Separator />
+            
+            {/* Items */}
+            <div className="space-y-2 flex-1 overflow-auto">
+              <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
+                <span>Désignation</span>
+                <span className="text-right">Qté</span>
+                <span className="text-right">P.U. TTC</span>
+                <span className="text-right">Remise %</span>
+                <span className="text-right">Total TTC</span>
+                <span></span>
+              </div>
+              <div className="space-y-2">
+              {fields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
+                  <Controller
+                      control={form.control}
+                      name={`items.${index}.itemId`}
+                      render={({ field: controllerField }) => (
+                        <Select onValueChange={(value) => {
+                            controllerField.onChange(value);
+                            handleItemChange(value, index);
+                        }} defaultValue={controllerField.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionnez un article" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {allItems.map(item => (
+                                <SelectItem key={item.id} value={item.id}>
+                                {item.name}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  
+                    <Controller
+                        control={form.control}
+                        name={`items.${index}.quantity`}
+                        render={({ field: controllerField }) => (
+                            <Input type="number" {...controllerField} onChange={e => controllerField.onChange(parseInt(e.target.value) || 0)} min={1} className="text-right" />
+                        )}
+                    />
+                    <Controller
+                        control={form.control}
+                        name={`items.${index}.price`}
+                        render={({ field: controllerField }) => (
+                            <Input type="number" step="0.01" {...controllerField} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} className="text-right" />
+                        )}
+                    />
+                     <Controller
+                        control={form.control}
+                        name={`items.${index}.remise`}
+                        render={({ field: controllerField }) => (
+                            <Input type="number" {...controllerField} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
+                        )}
+                    />
+                  <div className="font-medium h-10 flex items-center justify-end px-3">
+                    {(() => {
+                        const item = watchItems[index];
+                        if(!item || !item.itemId) return '0.00€';
+                        const total = item.price * item.quantity * (1 - (item.remise || 0) / 100);
+                        return `${total.toFixed(2)}€`
+                    })()}
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              </div>
+            </div>
+             <Button
                 type="button"
                 variant="outline"
-                onClick={() => append({ itemId: '', quantity: 1 })}
+                size="sm"
+                className="self-start"
+                onClick={() => append({ itemId: '', quantity: 1, price: 0, remise: 0 })}
             >
                 Ajouter une ligne
             </Button>
-            <Button type="submit">Confirmer la commande</Button>
-        </div>
-      </form>
-    </Form>
+            
+            <Separator />
+            {/* Footer */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                <div className="space-y-4">
+                    <h4 className="font-semibold">Taux de TVA</h4>
+                    <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
+                       <div className="col-span-1 text-sm font-medium">Base HT</div>
+                       <div className="col-span-1 text-sm font-medium">Taux</div>
+                       <div className="col-span-2 text-sm font-medium">Montant TVA</div>
+                        {Object.values(vatBreakdown).map(vat => (
+                            <React.Fragment key={vat.rate}>
+                                <div className="col-span-1 text-sm">{vat.base.toFixed(2)}€</div>
+                                <div className="col-span-1 text-sm">{vat.rate.toFixed(2)}%</div>
+                                <div className="col-span-2 text-sm">{vat.total.toFixed(2)}€</div>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Label>Prix Total HT</Label>
+                        <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="escompte">Escompte (%)</Label>
+                        <Controller control={form.control} name="escompte" render={({ field }) => (
+                             <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
+                        )} />
+                    </div>
+                     <Separator />
+                     <div className="flex justify-between items-center">
+                        <Label>Total HT</Label>
+                        <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <Label>Cumul TVA</Label>
+                        <span className="font-medium">{totalTVA.toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="port">Port TTC (€)</Label>
+                         <Controller control={form.control} name="port" render={({ field }) => (
+                             <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                        )} />
+                    </div>
+                     <Separator />
+                    <div className="flex justify-between items-center font-bold text-lg">
+                        <span>Total TTC</span>
+                        <span>{totalTTC.toFixed(2)}€</span>
+                    </div>
+                     <div className="flex justify-between items-center">
+                        <Label htmlFor="acompte">Acompte (€)</Label>
+                         <Controller control={form.control} name="acompte" render={({ field }) => (
+                            <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                        )} />
+                    </div>
+                    <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                        <span>Net à Payer</span>
+                        <span>{netAPayer.toFixed(2)}€</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end">
+                <Button size="lg" type="submit">Générer la facture</Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+    <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+    </>
   );
 }
