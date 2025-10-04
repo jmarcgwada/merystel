@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -32,6 +31,8 @@ export default function SupermarketPage() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const listPersistenceTimer = useRef<NodeJS.Timeout | null>(null);
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
+  const [lastSearchTerm, setLastSearchTerm] = useState('');
+
 
   const listScrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,14 +52,27 @@ export default function SupermarketPage() {
     }
   }, [isKeyboardOpen, targetInput]);
 
-  const filteredItems = useMemo(() => {
-    if (!items) return [];
-    if (searchTerm.length < 2) {
-      return [];
+  const performSearch = useCallback((term: string) => {
+    if (!items) {
+      setListContent([]);
+      return;
     }
-    const lowercasedTerm = searchTerm.toLowerCase();
+
+    const lowercasedTerm = term.toLowerCase();
     
-    return items.filter((item) => {
+    // Check for exact barcode match first
+    const exactBarcodeMatch = items.find(item => item.barcode?.toLowerCase() === lowercasedTerm);
+    if(exactBarcodeMatch) {
+      handleItemClick(exactBarcodeMatch, true);
+      return;
+    }
+    
+    if (term.length < 2) {
+      setListContent([]);
+      return;
+    }
+
+    const filtered = items.filter((item) => {
       const name = item.name.toLowerCase();
       const barcode = item.barcode ? item.barcode.toLowerCase() : '';
       if (searchType === 'startsWith') {
@@ -66,34 +80,31 @@ export default function SupermarketPage() {
       }
       return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
     });
-  }, [searchTerm, items, searchType]);
-
-  useEffect(() => {
-    if (searchTerm.length >= 2) {
-      setListContent(filteredItems);
-      setHighlightedIndex(-1);
-    } else {
-      if (listPersistenceTimer.current) return;
-      setListContent([]);
-    }
-  }, [searchTerm, filteredItems]);
+    setListContent(filtered);
+    setHighlightedIndex(0);
+    setLastSearchTerm(term);
+  }, [items, searchType]);
 
   const clearSearchWithDelay = useCallback(() => {
     if (listPersistenceTimer.current) {
       clearTimeout(listPersistenceTimer.current);
     }
     setSearchTerm('');
+    setListContent([]);
+    setLastSearchTerm('');
     searchInputRef.current?.focus();
-
-    listPersistenceTimer.current = setTimeout(() => {
-      setListContent([]);
-      listPersistenceTimer.current = null;
-    }, 3000);
   }, []);
 
-  const handleItemClick = useCallback((item: Item) => {
+  const handleItemClick = useCallback((item: Item, fromEnterKey: boolean = false) => {
     addToOrder(item.id);
-    clearSearchWithDelay();
+    if (fromEnterKey) {
+        setSearchTerm('');
+        setListContent([]);
+        setLastSearchTerm('');
+        searchInputRef.current?.focus();
+    } else {
+        clearSearchWithDelay();
+    }
   }, [addToOrder, clearSearchWithDelay]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -110,15 +121,10 @@ export default function SupermarketPage() {
       setHighlightedIndex(prev => (prev > 0 ? prev : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlightedIndex >= 0 && listContent[highlightedIndex]) {
-        handleItemClick(listContent[highlightedIndex]);
+      if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
+        handleItemClick(listContent[highlightedIndex], true);
       } else {
-        const foundItem = items?.find(
-          (item) => item.barcode && item.barcode.toLowerCase() === searchTerm.toLowerCase()
-        );
-        if (foundItem) {
-          handleItemClick(foundItem);
-        }
+        performSearch(searchTerm);
       }
     }
   };
@@ -218,12 +224,12 @@ export default function SupermarketPage() {
                   <Input
                       ref={searchInputRef}
                       type="text"
-                      placeholder="Scanner ou rechercher un article..."
+                      placeholder="Scanner ou rechercher, puis Entrée..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={handleKeyDown}
                       onFocus={handleSearchFocus}
-                      className="h-16 text-2xl pl-14 pr-14"
+                      className="h-16 text-2xl pl-14 pr-40"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <Button 
@@ -288,13 +294,13 @@ export default function SupermarketPage() {
           <div className="flex-1 flex flex-col overflow-hidden px-4 pb-4">
             {listContent.length > 0 ? (
               <ScrollArea className="flex-1" viewportRef={listScrollAreaRef}>
-                <div className="p-1 space-y-2">
+                <div className="p-1 space-y-1">
                   {listContent.map((item, index) => (
                     <Card
                       key={item.id}
                       ref={(el) => (itemRefs.current[index] = el)}
                       className={cn(
-                        "flex items-center p-2 cursor-pointer hover:bg-secondary h-14",
+                        "flex items-center p-1 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
                       onDoubleClick={() => handleItemClick(item)}
@@ -313,7 +319,7 @@ export default function SupermarketPage() {
                         <p className="font-semibold text-sm">{item.name}</p>
                         <p className="text-xs text-muted-foreground font-mono">{item.barcode}</p>
                       </div>
-                      <p className="text-base font-bold">{item.price.toFixed(2)}€</p>
+                      <p className="text-base font-bold pr-2">{item.price.toFixed(2)}€</p>
                     </Card>
                   ))}
                 </div>
@@ -323,8 +329,8 @@ export default function SupermarketPage() {
                 <div className="text-center text-muted-foreground">
                   <ScanLine className="mx-auto h-24 w-24 opacity-10" />
                   <p className="mt-4 text-lg">Le résumé de la commande s'affichera à droite.</p>
-                  {searchTerm.length < 2 && <p className="text-sm">Commencez à saisir pour rechercher un article.</p>}
-                  {searchTerm.length >= 2 && <p className="text-sm">Aucun article trouvé pour "{searchTerm}".</p>}
+                  {lastSearchTerm && <p className="text-sm">Aucun article trouvé pour "{lastSearchTerm}".</p>}
+                   {!lastSearchTerm && <p className="text-sm">Commencez à saisir ou scanner un produit.</p>}
                 </div>
               </div>
             )}
