@@ -95,7 +95,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-           {isClient && isKeyboardVisibleInHeader && (
+           {isClient && user && isKeyboardVisibleInHeader && (
               <Button 
                 variant="outline"
                 size="icon"
@@ -104,7 +104,7 @@ export default function Header() {
                   <KeyboardIcon className="h-4 w-4" />
               </Button>
           )}
-          {isClient && externalLinkModalEnabled && (
+          {isClient && user && externalLinkModalEnabled && (
               <Button 
                 variant="outline"
                 size="icon"
