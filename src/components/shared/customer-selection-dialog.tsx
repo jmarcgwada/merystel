@@ -120,7 +120,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="max-w-2xl h-[70vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-4 flex-row items-center gap-4">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={onClose}>
               <ArrowLeft className="h-4 w-4" />
