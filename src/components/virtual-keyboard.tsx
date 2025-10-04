@@ -69,7 +69,7 @@ export function VirtualKeyboard() {
   }
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && handleClose()} modal={false}>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && handleClose()} modal={false} shouldScaleBackground={false}>
       <DrawerContent className="p-2 pb-4 max-w-4xl mx-auto bg-secondary/80 backdrop-blur-sm" aria-describedby={undefined}>
         <DrawerHeader className="p-0 h-0">
             <DrawerTitle className="sr-only">Clavier Virtuel</DrawerTitle>
