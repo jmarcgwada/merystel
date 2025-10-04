@@ -2,27 +2,24 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useFieldArray, useForm, Controller } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, UserPlus, List, Search } from 'lucide-react';
+import { Trash2, UserPlus, List, Search, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -57,8 +54,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const { items: allItems, customers, isLoading, vatRates, addCustomer } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,6 +66,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const customerListRef = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
@@ -220,6 +221,59 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     toast({ title: 'Facture générée (simulation)' });
   }
 
+  // --- Customer Selection Logic ---
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    if (!customerSearch) return customers.slice(0, 50); // Show first 50 if no search term
+    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.email?.toLowerCase().includes(customerSearch.toLowerCase()));
+  }, [customers, customerSearch]);
+
+  useEffect(() => {
+    if (isCustomerModalOpen) {
+        setHighlightedCustomerIndex(0);
+    }
+  }, [customerSearch, isCustomerModalOpen]);
+
+  useEffect(() => {
+      customerListRef.current[highlightedCustomerIndex]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+      });
+  }, [highlightedCustomerIndex]);
+
+  const handleSelectCustomer = () => {
+      const customer = filteredCustomers[highlightedCustomerIndex];
+      if (customer) {
+          setSelectedCustomer(customer);
+          setCustomerModalOpen(false);
+      }
+  };
+
+  const handleNavigation = (direction: 'up' | 'down') => {
+      setHighlightedCustomerIndex(prevIndex => {
+          const newIndex = direction === 'up' ? prevIndex - 1 : prevIndex + 1;
+          if (newIndex >= 0 && newIndex < filteredCustomers.length) {
+              return newIndex;
+          }
+          return prevIndex; // Stay at bounds
+      });
+  };
+
+  const startScrolling = (direction: 'up' | 'down') => {
+      stopScrolling();
+      scrollIntervalRef.current = setInterval(() => {
+          handleNavigation(direction);
+      }, 100);
+  };
+  
+  const stopScrolling = () => {
+      if (scrollIntervalRef.current) {
+          clearInterval(scrollIntervalRef.current);
+          scrollIntervalRef.current = null;
+      }
+  };
+  // --- End of Customer Selection Logic ---
+
   return (
     <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -280,57 +334,29 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Card>
             )}
         </div>
-        <Card>
-            <CardHeader>
-                <CardTitle>
-                    <div className="flex justify-between items-center">
-                        <span>Client</span>
-                        <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                            <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                {selectedCustomer ? "Changer" : "Sélectionner"}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0">
-                                <Command>
-                                <CommandInput placeholder="Rechercher un client..." />
-                                <CommandList>
-                                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                                    <CommandGroup>
-                                    {customers && customers.map((customer) => (
-                                        <CommandItem
-                                        key={customer.id}
-                                        onSelect={() => {
-                                            setSelectedCustomer(customer);
-                                            form.setValue('customerId', customer.id);
-                                            setCustomerSearchOpen(false);
-                                        }}
-                                        >
-                                        {customer.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+        <div>
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold text-foreground">Client</h3>
+                <Button variant="ghost" size="icon" onClick={() => setCustomerModalOpen(true)}>
+                    <UserIcon className="h-5 w-5" />
+                </Button>
+            </div>
+            <Card>
+                <CardContent className="pt-6">
+                    {selectedCustomer ? (
+                    <div className="text-sm">
+                        <p className="font-bold">{selectedCustomer.name}</p>
+                        <p className="text-muted-foreground">{selectedCustomer.address}</p>
+                        <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                     </div>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                {selectedCustomer ? (
-                <div className="text-sm">
-                    <p className="font-bold">{selectedCustomer.name}</p>
-                    <p>{selectedCustomer.address}</p>
-                    <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                </div>
-                ) : (
-                <div className="text-sm text-muted-foreground">
-                    Aucun client sélectionné.
-                </div>
-                )}
-            </CardContent>
-        </Card>
+                    ) : (
+                    <div className="text-sm text-muted-foreground">
+                        Aucun client sélectionné.
+                    </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
       </div>
 
     <Card className="h-full flex flex-col">
@@ -362,7 +388,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         control={form.control}
                         name={`items.${index}.remise`}
                         render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} value={controllerField.value || 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
+                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
                         )}
                     />
                   <div className="font-medium h-10 flex items-center justify-end px-3">
@@ -413,7 +439,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         <div className="flex justify-between items-center">
                             <Label htmlFor="escompte">Escompte (%)</Label>
                             <Controller control={form.control} name="escompte" render={({ field }) => (
-                                 <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
+                                 <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="max-w-[100px] text-right" placeholder="0"/>
                             )} />
                         </div>
                          <Separator />
@@ -428,7 +454,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         <div className="flex justify-between items-center">
                             <Label htmlFor="port">Port TTC (€)</Label>
                              <Controller control={form.control} name="port" render={({ field }) => (
-                                 <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                 <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
                             )} />
                         </div>
                          <Separator />
@@ -439,7 +465,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                          <div className="flex justify-between items-center">
                             <Label htmlFor="acompte">Acompte (€)</Label>
                              <Controller control={form.control} name="acompte" render={({ field }) => (
-                                <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
                             )} />
                         </div>
                         <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
@@ -457,6 +483,96 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         </Form>
       </CardContent>
     </Card>
+    
+    <Dialog open={isCustomerModalOpen} onOpenChange={setCustomerModalOpen}>
+        <DialogContent className="sm:max-w-xl">
+            <DialogHeader className="flex-row items-center gap-4">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCustomerModalOpen(false)}>
+                <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 grid grid-cols-3 gap-4 h-[60vh]">
+                <div className="col-span-2 flex flex-col space-y-4">
+                    <Input 
+                        placeholder="Rechercher par nom ou email..." 
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        autoFocus
+                    />
+                    <div className="flex-1 relative">
+                        <ScrollArea className="absolute inset-0">
+                            <div className="p-1 pr-2">
+                                {filteredCustomers.length === 0 ? (
+                                    <p className="text-center text-sm text-muted-foreground p-4">Aucun client trouvé.</p>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {filteredCustomers.map((customer, index) => (
+                                            <div
+                                                key={customer.id}
+                                                ref={el => customerListRef.current[index] = el}
+                                                className={cn(
+                                                    'w-full justify-start h-auto p-3 text-left border-2 border-transparent rounded-lg cursor-pointer',
+                                                    index === highlightedCustomerIndex && 'border-primary bg-primary/10'
+                                                )}
+                                                onClick={() => setHighlightedCustomerIndex(index)}
+                                            >
+                                                <p className="font-semibold">{customer.name}</p>
+                                                <p className="text-xs text-muted-foreground">{customer.email}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+                <div className="col-span-1 flex flex-col space-y-4">
+                    <Button 
+                        className="h-24 text-2xl" 
+                        variant="outline"
+                        onMouseDown={() => startScrolling('up')}
+                        onMouseUp={stopScrolling}
+                        onMouseLeave={stopScrolling}
+                        onTouchStart={() => startScrolling('up')}
+                        onTouchEnd={stopScrolling}
+                        onClick={() => handleNavigation('up')}
+                    >
+                        <ArrowUp className="h-8 w-8" />
+                    </Button>
+                    <Button 
+                        className="h-24 text-2xl"
+                        variant="outline"
+                        onMouseDown={() => startScrolling('down')}
+                        onMouseUp={stopScrolling}
+                        onMouseLeave={stopScrolling}
+                        onTouchStart={() => startScrolling('down')}
+                        onTouchEnd={stopScrolling}
+                        onClick={() => handleNavigation('down')}
+                    >
+                        <ArrowDown className="h-8 w-8" />
+                    </Button>
+                    <Button 
+                        className="h-24 text-2xl"
+                        onClick={handleSelectCustomer} 
+                        disabled={filteredCustomers.length === 0}
+                    >
+                        <Check className="h-8 w-8" />
+                    </Button>
+                </div>
+            </div>
+            <DialogFooter className="justify-between items-center">
+                <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Créer un nouveau client
+                </Button>
+                <Button variant="ghost" onClick={() => setCustomerModalOpen(false)}>
+                    Annuler
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
     </>
   );
