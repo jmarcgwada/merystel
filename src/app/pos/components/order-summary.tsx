@@ -728,28 +728,28 @@ export function OrderSummary() {
                 <span>{(orderTotal + orderTax).toFixed(2)}€</span>
                 </div>
             </div>
-            <div className="mt-4 flex gap-2 no-print">
+            <div className="mt-4 flex justify-between items-center gap-2 no-print">
               {readOnlyOrder ? (
-                 <div className='w-full grid grid-cols-3 gap-2'>
+                <>
                     {readOnlyOrder[0]?.sourceSale && !readOnlyOrder[0].sourceSale.modifiedAt ? (
-                        <Button size="lg" className="w-full" onClick={handleEditTicket}>
+                        <Button size="lg" className="flex-1" onClick={handleEditTicket}>
                             <Edit className="mr-2" />
                             Modifier
                         </Button>
                     ) : (
-                        <Button size="lg" className="w-full" onClick={handleDuplicateTicket}>
+                        <Button size="lg" className="flex-1" onClick={handleDuplicateTicket}>
                             <Copy className="mr-2" />
                             Dupliquer
                         </Button>
                     )}
-                    <Button size="lg" className="w-full" onClick={handlePrint}>
+                    <Button size="lg" className="flex-1" onClick={handlePrint}>
                         <Printer className="mr-2" />
                         Imprimer
                     </Button>
-                    <Button size="lg" className="w-full" onClick={clearOrder}>
+                    <Button size="lg" className="flex-1" onClick={clearOrder}>
                         Nouveau
                     </Button>
-                </div>
+                </>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
                   <Button
@@ -777,7 +777,7 @@ export function OrderSummary() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="flex-1"
+                    className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
                     onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
                   >
@@ -795,7 +795,7 @@ export function OrderSummary() {
                   </Button>
                   <Button
                     size="lg"
-                    className="flex-1"
+                    className="w-full"
                     disabled={order.length === 0 || isKeypadOpen}
                     onClick={() => setCheckoutOpen(true)}
                   >
