@@ -80,6 +80,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue('customerId', customer.id);
+    setCustomerSearchOpen(false);
   }
 
   const handleAddItem = (item: Item) => {
@@ -410,3 +411,5 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
+
+    

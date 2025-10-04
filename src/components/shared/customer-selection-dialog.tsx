@@ -1,22 +1,19 @@
 
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
 import type { Customer } from '@/lib/types';
-import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, UserPlus, Edit } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, Edit, UserPlus } from 'lucide-react';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
-import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface CustomerSelectionDialogProps {
   isOpen: boolean;
@@ -29,108 +26,101 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [search, setSearch] = useState('');
   const [currentSelectedCustomer, setCurrentSelectedCustomer] = useState<Customer | null>(null);
-  const [searchValue, setSearchValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isOpen) {
-      setCurrentSelectedCustomer(null);
-      setSearchValue("");
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [isOpen]);
 
-  const handleSelectCustomer = (customer: Customer) => {
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    return customers.filter(customer =>
+      customer.name.toLowerCase().includes(search.toLowerCase()) ||
+      customer.id.toLowerCase().includes(search.toLowerCase()) ||
+      (customer.postalCode && customer.postalCode.toLowerCase().includes(search.toLowerCase())) ||
+      (customer.city && customer.city.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [customers, search]);
+  
+  const handleSelect = (customer: Customer) => {
     onCustomerSelected(customer);
     onClose();
   };
 
-  const onCustomerAdded = (newCustomer: Customer) => {
-    handleSelectCustomer(newCustomer);
-    setAddCustomerOpen(false);
-  }
-  
-  const handleEditCustomer = () => {
-    if(currentSelectedCustomer) {
+  const handleEdit = () => {
+    if (currentSelectedCustomer) {
       setCustomerToEdit(currentSelectedCustomer);
       setEditCustomerOpen(true);
     }
   }
 
-  const filteredCustomers = customers?.filter(customer =>
-    customer.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    customer.id.toLowerCase().includes(searchValue.toLowerCase()) ||
-    customer.postalCode?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    customer.city?.toLowerCase().includes(searchValue.toLowerCase())
-  ) || [];
-
+  const handleCustomerAdded = (newCustomer: Customer) => {
+    setAddCustomerOpen(false);
+    onCustomerSelected(newCustomer);
+    onClose();
+  }
+  
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-xl h-[70vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-4">
+        <DialogContent className="sm:max-w-3xl h-[70vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>Choisir un client</DialogTitle>
           </DialogHeader>
-            <div className="flex-1 flex flex-col min-h-0 mx-6 mb-6">
-                 <Command className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CommandInput 
-                          placeholder="Rechercher nom, code, CP ou ville..." 
-                          className="h-11 flex-1" 
-                          autoFocus
-                          value={searchValue}
-                          onValueChange={setSearchValue}
-                        />
-                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => setAddCustomerOpen(true)}>
-                            <UserPlus className="h-5 w-5" />
-                        </Button>
-                         <Button variant="outline" size="icon" className="h-11 w-11" onClick={handleEditCustomer} disabled={!currentSelectedCustomer}>
-                            <Edit className="h-5 w-5" />
-                        </Button>
+          <div className="px-6 pb-4 border-b">
+            <Command shouldFilter={false} className="bg-transparent">
+              <CommandInput
+                ref={inputRef}
+                placeholder="Rechercher par nom, code, code postal ou ville..."
+                value={search}
+                onValueChange={setSearch}
+              />
+            </Command>
+          </div>
+          <div className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                <div className="p-2">
+                {filteredCustomers.map(customer => (
+                  <div
+                    key={customer.id}
+                    onClick={() => handleSelect(customer)}
+                    onMouseEnter={() => setCurrentSelectedCustomer(customer)}
+                    className="p-3 flex justify-between items-center rounded-md cursor-pointer hover:bg-secondary"
+                  >
+                    <div>
+                      <p className="font-semibold">{customer.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {customer.id} | {customer.postalCode} {customer.city}
+                      </p>
                     </div>
-                    <div className="relative mt-2 border rounded-md">
-                        <ScrollArea className="h-[calc(60vh-100px)]">
-                            <CommandList>
-                                <CommandEmpty>
-                                    <Button className="w-full" variant="outline" onClick={() => setAddCustomerOpen(true)}>
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Créer un nouveau client
-                                    </Button>
-                                </CommandEmpty>
-                                <CommandGroup>
-                                    {filteredCustomers.map((customer) => (
-                                    <CommandItem
-                                        key={customer.id}
-                                        value={`${customer.name} ${customer.id} ${customer.postalCode || ''} ${customer.city || ''}`}
-                                        onSelect={() => handleSelectCustomer(customer)}
-                                        onFocus={() => setCurrentSelectedCustomer(customer)}
-                                        className="py-3"
-                                    >
-                                        <Check
-                                            className={cn(
-                                                "mr-2 h-4 w-4",
-                                                currentSelectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        <div className="flex flex-col">
-                                            <span>{customer.name}</span>
-                                            <div className="flex items-center text-xs text-muted-foreground gap-2">
-                                                <span className="font-mono bg-muted px-1 rounded-sm">{customer.id.substring(0,8)}</span>
-                                                {(customer.postalCode || customer.city) && <span>|</span>}
-                                                {customer.postalCode && <span>{customer.postalCode}</span>}
-                                                {customer.city && <span>{customer.city}</span>}
-                                            </div>
-                                        </div>
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </ScrollArea>
-                    </div>
-                </Command>
-            </div>
+                  </div>
+                ))}
+                </div>
+              </ScrollArea>
+          </div>
+          <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Nouveau client
+            </Button>
+            <Button onClick={handleEdit} disabled={!currentSelectedCustomer}>
+                <Edit className="mr-2 h-4 w-4"/>
+                Modifier le client sélectionné
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Annuler
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+      
+      <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={handleCustomerAdded} />
       <EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={customerToEdit} />
     </>
   );

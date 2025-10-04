@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator, Check, UserPlus, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ import { fr } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Image from 'next/image';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -66,12 +67,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
 
-
   const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
-
 
   const amountInputRef = useRef<HTMLInputElement>(null);
   
@@ -105,10 +104,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     paymentMethods?.filter(m => m.isActive && !MAIN_PAYMENT_NAMES.includes(m.name) && m.name !== 'AUTRE') || [],
     [paymentMethods]
   );
-
-  const onCustomerSelected = (customer: Customer) => {
-    setSelectedCustomer(customer);
-  }
 
   const selectAndFocusInput = () => {
     setTimeout(() => {
@@ -396,6 +391,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           </div>
         </div>
     );
+  
+    const onCustomerSelected = (newCustomer: Customer) => {
+        setSelectedCustomer(newCustomer);
+        setCustomerSearchOpen(false);
+    }
 
   const renderPaymentView = () => (
     <>
@@ -421,22 +421,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             <fieldset disabled={isOverpaid}>
                 <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
-                  {selectedCustomer ? (
-                    <div className="flex items-center justify-between">
-                        <Button variant="ghost" className="w-full justify-start p-0 h-auto" onClick={() => setCustomerModalOpen(true)}>
-                            <p className="font-medium">{selectedCustomer.name}</p>
-                            <p className="text-sm text-muted-foreground ml-2">{selectedCustomer.email}</p>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setSelectedCustomer(null)}>
-                            <XCircle className="h-4 w-4" />
-                        </Button>
-                    </div>
-                  ) : (
-                    <Button variant="outline" className="w-full justify-start" onClick={() => setCustomerModalOpen(true)}>
-                        <UserIcon className="mr-2 h-4 w-4"/>
-                        Associer un client
+                    <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
+                        {selectedCustomer ? selectedCustomer.name : 'Choisir un client...'}
+                        <UserIcon className="h-4 w-4 ml-2" />
                     </Button>
-                  )}
                 </div>
             </fieldset>
             
@@ -563,7 +551,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-4xl" modal={false}>
         {!isPaid ? (
             (() => {
                 switch(view) {
@@ -589,7 +577,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
-    <CustomerSelectionDialog isOpen={isCustomerModalOpen} onClose={() => setCustomerModalOpen(false)} onCustomerSelected={onCustomerSelected} />
+    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
     <AlertDialog open={showOverpaymentAlert} onOpenChange={setShowOverpaymentAlert}>
         <AlertDialogContent>
             <AlertDialogHeader>
