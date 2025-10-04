@@ -21,6 +21,7 @@ import { AddCustomerDialog } from '@/app/management/customers/components/add-cus
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Label } from '@/components/ui/label';
 
 const orderItemSchema = z.object({
   itemId: z.string().min(1, 'Article requis.'),
@@ -69,6 +70,7 @@ export function CommercialOrderForm() {
   }
   
   const subTotalHT = useMemo(() => {
+    if (!allItems || !vatRates) return 0;
     return watchItems.reduce((acc, item) => {
       const fullItem = allItems.find(i => i.id === item.itemId);
       if (!fullItem) return acc;
@@ -86,6 +88,7 @@ export function CommercialOrderForm() {
   const totalHTAvecEscompte = subTotalHT * (1 - escompte / 100);
 
   const vatBreakdown = useMemo(() => {
+    if (!allItems || !vatRates) return {};
     const breakdown: { [key: string]: { rate: number; total: number, base: number } } = {};
 
     watchItems.forEach(item => {
@@ -124,7 +127,7 @@ export function CommercialOrderForm() {
   }
   
   const handleItemChange = (itemId: string, index: number) => {
-    const item = allItems.find(i => i.id === itemId);
+    const item = allItems?.find(i => i.id === itemId);
     if(item) {
         form.setValue(`items.${index}.price`, item.price);
     }
@@ -223,7 +226,7 @@ export function CommercialOrderForm() {
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            {allItems.map(item => (
+                            {allItems?.map(item => (
                                 <SelectItem key={item.id} value={item.id}>
                                 {item.name}
                                 </SelectItem>
