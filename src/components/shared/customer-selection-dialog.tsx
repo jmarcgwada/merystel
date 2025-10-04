@@ -120,7 +120,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="max-w-xl h-[70vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-4 flex-row items-center gap-4">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={onClose}>
               <ArrowLeft className="h-4 w-4" />
@@ -136,14 +136,14 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     autoFocus
-                    className="flex-1"
+                    className="max-w-xs"
                 />
                  {!isCashier && (
                   <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" onClick={() => setAddCustomerOpen(true)}>
-                                <UserPlus className="h-4 w-4" />
+                                <UserPlus className="h-5 w-5" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -153,7 +153,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                      <Tooltip>
                         <TooltipTrigger asChild>
                              <Button variant="outline" size="icon" onClick={handleEditCustomer} disabled={filteredCustomers.length === 0}>
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-5 w-5" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -196,7 +196,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
 
             <div className="col-span-4 flex flex-col space-y-2">
               <Button
-                className="h-12 w-full"
+                className="h-10 w-full"
                 variant="outline"
                 onMouseDown={() => startScrolling('up')}
                 onMouseUp={stopScrolling}
@@ -208,7 +208,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                 <ArrowUp className="h-5 w-5" />
               </Button>
               <Button
-                className="h-12 w-full"
+                className="h-10 w-full"
                 variant="outline"
                 onMouseDown={() => startScrolling('down')}
                 onMouseUp={stopScrolling}
@@ -220,7 +220,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                 <ArrowDown className="h-5 w-5" />
               </Button>
               <Button
-                className="h-16 text-xl mt-auto"
+                className="h-14 text-xl mt-auto"
                 onClick={handleSelectCustomer}
                 disabled={filteredCustomers.length === 0}
               >
