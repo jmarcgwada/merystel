@@ -9,12 +9,13 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, UserPlus, List, Search, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { Trash2, UserPlus, List, Search, User as UserIcon, ArrowLeft, ArrowUp, ArrowDown, Check, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
@@ -56,6 +57,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
 
@@ -247,6 +250,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
           setSelectedCustomer(customer);
           setCustomerModalOpen(false);
       }
+  };
+
+  const handleEditCustomer = () => {
+    const customer = filteredCustomers[highlightedCustomerIndex];
+    if (customer) {
+      setCustomerToEdit(customer);
+      setEditCustomerOpen(true);
+    }
   };
 
   const handleNavigation = (direction: 'up' | 'down') => {
@@ -562,10 +573,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </div>
             </div>
             <DialogFooter className="justify-between items-center">
-                <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Créer un nouveau client
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Nouveau
+                    </Button>
+                    <Button variant="outline" onClick={handleEditCustomer} disabled={filteredCustomers.length === 0}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Modifier la fiche
+                    </Button>
+                </div>
                 <Button variant="ghost" onClick={() => setCustomerModalOpen(false)}>
                     Annuler
                 </Button>
@@ -574,6 +591,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Dialog>
 
     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
+    <EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={customerToEdit} />
     </>
   );
 }
