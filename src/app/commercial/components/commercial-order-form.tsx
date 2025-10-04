@@ -496,14 +496,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <Dialog open={isCustomerModalOpen} onOpenChange={setCustomerModalOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl h-[70vh] flex flex-col">
             <DialogHeader className="flex-row items-center gap-4">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCustomerModalOpen(false)}>
                 <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
             </DialogHeader>
-            <div className="py-4 grid grid-cols-3 gap-4 h-[60vh]">
+            <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
                 <div className="col-span-2 flex flex-col space-y-4">
                     <Input 
                         placeholder="Rechercher par nom ou email..." 
@@ -538,9 +538,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         </ScrollArea>
                     </div>
                 </div>
-                <div className="col-span-1 flex flex-col space-y-4">
+                <div className="col-span-1 flex flex-col space-y-2">
                     <Button 
-                        className="h-24 text-2xl" 
+                        className="h-20 text-xl" 
                         variant="outline"
                         onMouseDown={() => startScrolling('up')}
                         onMouseUp={stopScrolling}
@@ -549,10 +549,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         onTouchEnd={stopScrolling}
                         onClick={() => handleNavigation('up')}
                     >
-                        <ArrowUp className="h-8 w-8" />
+                        <ArrowUp className="h-6 w-6" />
                     </Button>
                     <Button 
-                        className="h-24 text-2xl"
+                        className="h-20 text-xl"
                         variant="outline"
                         onMouseDown={() => startScrolling('down')}
                         onMouseUp={stopScrolling}
@@ -561,18 +561,18 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         onTouchEnd={stopScrolling}
                         onClick={() => handleNavigation('down')}
                     >
-                        <ArrowDown className="h-8 w-8" />
+                        <ArrowDown className="h-6 w-6" />
                     </Button>
                     <Button 
-                        className="h-24 text-2xl"
+                        className="h-20 text-xl mt-auto"
                         onClick={handleSelectCustomer} 
                         disabled={filteredCustomers.length === 0}
                     >
-                        <Check className="h-8 w-8" />
+                        <Check className="h-6 w-6" />
                     </Button>
                 </div>
             </div>
-            <DialogFooter className="justify-between items-center">
+            <DialogFooter className="justify-between items-center border-t pt-4 mt-auto">
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
                         <UserPlus className="mr-2 h-4 w-4" />
