@@ -56,30 +56,18 @@ export default function Header() {
   const canAccessCompanySettings = user?.role === 'admin';
   const isLoginPage = pathname.startsWith('/login');
 
-  const getLogoLink = () => {
-    if (!isClient) return '#'; // Render a neutral link on the server
-    if (user) {
-        return "/dashboard";
-    }
-    return "/about";
-  }
-
-  const isLogoClickable = !user || (pathname !== '/dashboard');
-  const isLogoDisabled = !isClient && !isLoginPage;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn("flex items-center gap-4 flex-1")}>
            <Link
-            href={getLogoLink()}
+            href="/"
             className={cn(
               "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary",
-              isLogoDisabled && "pointer-events-none opacity-50"
+               isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary",
             )}
             onClick={(e) => {
-              if(!isLogoClickable) e.preventDefault();
               if (user) handleNavClick(e, '/dashboard');
             }}
           >
