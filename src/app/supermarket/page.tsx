@@ -17,8 +17,6 @@ import Image from 'next/image';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { useKeyboard } from '@/contexts/keyboard-context';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Label } from '@/components/ui/label';
 
 const MAX_INITIAL_ITEMS = 100;
 
@@ -154,6 +152,7 @@ export default function SupermarketPage() {
         clearTimeout(listPersistenceTimer.current);
         listPersistenceTimer.current = null;
       }
+      searchInputRef.current?.focus();
     }
   };
 
@@ -228,7 +227,10 @@ export default function SupermarketPage() {
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <Button 
                       variant="outline"
-                      onClick={() => setSearchType(p => p === 'contains' ? 'startsWith' : 'contains')}
+                      onClick={() => {
+                        setSearchType(p => p === 'contains' ? 'startsWith' : 'contains');
+                        searchInputRef.current?.focus();
+                      }}
                       className="h-12 text-xs w-28"
                     >
                       {searchType === 'contains' ? 'Contient' : 'Commence par'}
