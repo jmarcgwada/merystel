@@ -1,19 +1,19 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
+import { Trash2, UserPlus, List, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Customer, Item } from '@/lib/types';
+import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
@@ -21,6 +21,8 @@ import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
+import { useKeyboard } from '@/contexts/keyboard-context';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const orderItemSchema = z.object({
   itemId: z.string().min(1, 'Article requis.'),
@@ -40,28 +42,44 @@ const FormSchema = z.object({
 
 type CommercialOrderFormValues = z.infer<typeof FormSchema>;
 
-export function CommercialOrderForm() {
+interface CommercialOrderFormProps {
+  order: OrderItem[];
+  setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
+  addToOrder: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  removeFromOrder: (itemId: string) => void;
+}
+
+const MAX_SEARCH_ITEMS = 100;
+
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, addCustomer } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
-  const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+
+  const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [listContent, setListContent] = useState<Item[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: [],
+      items: order,
       escompte: 0,
       port: 0,
       acompte: 0,
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'items',
-  });
+  useEffect(() => {
+    form.setValue('items', order);
+  }, [order, form]);
   
   const watchItems = form.watch('items');
 
@@ -71,15 +89,78 @@ export function CommercialOrderForm() {
   }
 
   const handleAddItem = (item: Item) => {
-    append({
-        itemId: item.id,
-        name: item.name,
-        quantity: 1,
-        price: item.price,
-        remise: 0
-    });
-    setItemSearchOpen(false);
+    addToOrder(item.id);
   }
+
+  // --- Search Logic from Supermarket ---
+  const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
+    if (!allItems) {
+      setListContent([]);
+      return;
+    }
+    const lowercasedTerm = term.toLowerCase();
+
+    if (lowercasedTerm.length < 2) {
+        setListContent([]);
+        return;
+    }
+
+    const filtered = allItems.filter((item) => {
+      const name = item.name.toLowerCase();
+      const barcode = item.barcode ? item.barcode.toLowerCase() : '';
+      if (type === 'startsWith') {
+        return name.startsWith(lowercasedTerm) || barcode.startsWith(lowercasedTerm);
+      }
+      return name.includes(lowercasedTerm) || barcode.includes(lowercasedTerm);
+    });
+    setListContent(filtered.slice(0, MAX_SEARCH_ITEMS));
+    setHighlightedIndex(filtered.length > 0 ? 0 : -1);
+  }, [allItems]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
+        handleAddItem(listContent[highlightedIndex]);
+        setSearchTerm('');
+        setListContent([]);
+      } else {
+        performSearch(searchTerm, searchType);
+      }
+    }
+  };
+  
+  useEffect(() => {
+    if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [highlightedIndex]);
+  
+  const handleShowAll = () => {
+    if (allItems) {
+      setSearchTerm('');
+      setListContent(allItems.slice(0, MAX_SEARCH_ITEMS));
+      setHighlightedIndex(-1);
+      searchInputRef.current?.focus();
+    }
+  };
+  
+  const handleChangeSearchType = () => {
+    const newType = searchType === 'contains' ? 'startsWith' : 'contains';
+    setSearchType(newType);
+    performSearch(searchTerm, newType);
+    searchInputRef.current?.focus();
+  };
+  // --- End of Search Logic ---
   
   const subTotalHT = useMemo(() => {
     if (!allItems || !vatRates) return 0;
@@ -89,7 +170,7 @@ export function CommercialOrderForm() {
       
       const vatRate = vatRates.find(v => v.id === fullItem.vatId)?.rate || 0;
       const priceHT = item.price / (1 + vatRate / 100);
-      const remise = item.remise || 0;
+      const remise = (item as any).remise || 0; // Cast to any to access remise if it exists
       const totalHT = priceHT * item.quantity * (1 - remise / 100);
 
       return acc + totalHT;
@@ -110,7 +191,7 @@ export function CommercialOrderForm() {
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
       if (vatInfo) {
         const priceHT = item.price / (1 + vatInfo.rate / 100);
-        const remise = item.remise || 0;
+        const remise = (item as any).remise || 0;
         const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
         const totalItemHTAvecEscompte = totalItemHT * (1 - escompte / 100);
         const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
@@ -140,117 +221,122 @@ export function CommercialOrderForm() {
 
   return (
     <>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    ref={searchInputRef}
+                    placeholder="Rechercher ou scanner un article..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        performSearch(e.target.value, searchType);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    className="h-14 text-xl pl-12 pr-40"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <Button
+                        variant="outline"
+                        onClick={handleChangeSearchType}
+                        className="h-12 text-xs w-28"
+                    >
+                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
+                        <List className="h-6 w-6" />
+                    </Button>
+                </div>
+            </div>
+            {listContent.length > 0 && (
+                <Card className="mt-2 absolute z-10 w-full max-w-2xl">
+                    <ScrollArea className="h-full max-h-80">
+                         <div className="p-1 space-y-1">
+                            {listContent.map((item, index) => (
+                                <div
+                                key={item.id}
+                                ref={(el) => (itemRefs.current[index] = el)}
+                                className={cn(
+                                    "p-2 rounded-md cursor-pointer flex justify-between items-center",
+                                    index === highlightedIndex && "bg-secondary"
+                                )}
+                                onClick={() => {
+                                    handleAddItem(item);
+                                    setSearchTerm('');
+                                    setListContent([]);
+                                }}
+                                >
+                                    <div>
+                                        <p className="font-semibold text-sm">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground">{item.barcode}</p>
+                                    </div>
+                                    <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </Card>
+            )}
+        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>
+                    <div className="flex justify-between items-center">
+                        <span>Client</span>
+                        <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                            <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                {selectedCustomer ? "Changer" : "Sélectionner"}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                                <Command>
+                                <CommandInput placeholder="Rechercher un client..." />
+                                <CommandList>
+                                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                                    <CommandGroup>
+                                    {customers && customers.map((customer) => (
+                                        <CommandItem
+                                        key={customer.id}
+                                        onSelect={() => {
+                                            setSelectedCustomer(customer);
+                                            form.setValue('customerId', customer.id);
+                                            setCustomerSearchOpen(false);
+                                        }}
+                                        >
+                                        {customer.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {selectedCustomer ? (
+                <div className="text-sm">
+                    <p className="font-bold">{selectedCustomer.name}</p>
+                    <p>{selectedCustomer.address}</p>
+                    <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                </div>
+                ) : (
+                <div className="text-sm text-muted-foreground">
+                    Aucun client sélectionné.
+                </div>
+                )}
+            </CardContent>
+        </Card>
+      </div>
+
     <Card className="h-full flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 flex flex-col">
-            {/* Header */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Column for general info */}
-              <div className="space-y-6">
-                <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Input readOnly value={format(new Date(), 'dd/MM/yyyy', {locale: fr})} />
-                </div>
-                <div className="space-y-2">
-                    <Label>Numéro de Facture</Label>
-                    <Input readOnly value="501304" />
-                </div>
-              </div>
-              
-              {/* Right Column for customer info */}
-              <div className="space-y-2">
-                <Label>Client</Label>
-                <div className="flex gap-2">
-                  <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={isCustomerSearchOpen} className="w-full justify-start">
-                        {selectedCustomer ? selectedCustomer.name : "Rechercher un client..."}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Rechercher un client..." />
-                        <CommandList>
-                          <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                          <CommandGroup>
-                            {customers && customers.map((customer) => (
-                              <CommandItem
-                                key={customer.id}
-                                onSelect={() => {
-                                  setSelectedCustomer(customer);
-                                  form.setValue('customerId', customer.id);
-                                  setCustomerSearchOpen(false);
-                                }}
-                              >
-                                {customer.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <Button type="button" size="icon" onClick={() => setAddCustomerOpen(true)}>
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {selectedCustomer && (
-                  <div className="text-sm border p-2 rounded-md bg-muted/50 mt-2">
-                    <p className="font-semibold">{selectedCustomer.name}</p>
-                    <p>{selectedCustomer.address}</p>
-                    <p>{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-            
-            {/* Items */}
-            <div className="space-y-4 flex-1 flex flex-col">
-              <div className="space-y-2">
-                <Label>Ajouter un article</Label>
-                 <Popover open={isItemSearchOpen} onOpenChange={setItemSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isItemSearchOpen}
-                        className="w-full justify-between"
-                      >
-                        Rechercher un article à ajouter...
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Rechercher un article..." />
-                        <CommandList>
-                          <CommandEmpty>Aucun article trouvé.</CommandEmpty>
-                          <CommandGroup>
-                            {allItems?.map((item) => (
-                              <CommandItem
-                                key={item.id}
-                                onSelect={() => handleAddItem(item)}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    fields.some(f => f.itemId === item.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {item.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2 flex-1 overflow-auto pr-4 -mr-4">
+            <div className="space-y-2 flex-1 overflow-auto pr-4 -mr-4">
                 <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
@@ -260,23 +346,17 @@ export function CommercialOrderForm() {
                   <span></span>
                 </div>
                 <div className="space-y-2">
-                {fields.map((field, index) => (
+                {watchItems.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
                     <Input readOnly value={field.name} className="bg-muted/50" />
-                    <Controller
-                        control={form.control}
-                        name={`items.${index}.quantity`}
-                        render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} onChange={e => controllerField.onChange(parseInt(e.target.value) || 0)} min={1} className="text-right" />
-                        )}
+                    <Input 
+                        type="number" 
+                        value={field.quantity}
+                        onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                        min={1} 
+                        className="text-right" 
                     />
-                    <Controller
-                        control={form.control}
-                        name={`items.${index}.price`}
-                        render={({ field: controllerField }) => (
-                            <Input type="number" step="0.01" {...controllerField} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} className="text-right" />
-                        )}
-                    />
+                    <Input type="number" step="0.01" defaultValue={field.price} className="text-right" />
                      <Controller
                         control={form.control}
                         name={`items.${index}.remise`}
@@ -288,17 +368,18 @@ export function CommercialOrderForm() {
                     {(() => {
                         const item = watchItems[index];
                         if(!item || !item.itemId) return '0.00€';
-                        const total = item.price * item.quantity * (1 - (item.remise || 0) / 100);
+                        const remise = (item as any).remise || 0;
+                        const total = item.price * item.quantity * (1 - (remise || 0) / 100);
                         return `${total.toFixed(2)}€`
                     })()}
                   </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive">
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
               </div>
-              {fields.length === 0 && (
+              {watchItems.length === 0 && (
                 <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
                     Aucun article dans la commande.
                 </div>
@@ -307,7 +388,6 @@ export function CommercialOrderForm() {
             
             <Separator />
             
-            {/* Footer */}
             <div className="mt-auto pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                     <div className="space-y-4">
