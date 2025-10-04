@@ -474,7 +474,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <Dialog open={isCustomerModalOpen} onOpenChange={setCustomerModalOpen}>
-        <DialogContent className="sm:max-w-xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-2xl h-[70vh] flex flex-col p-0">
             <DialogHeader className="p-6 pb-0 flex-row items-center gap-4">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCustomerModalOpen(false)}>
                 <ArrowLeft className="h-4 w-4" />
@@ -575,3 +575,5 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
+
+    
