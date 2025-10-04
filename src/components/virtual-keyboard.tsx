@@ -3,7 +3,7 @@
 
 import { useKeyboard } from "@/contexts/keyboard-context";
 import { Button } from "./ui/button";
-import { ArrowLeft, Languages, Delete, X } from "lucide-react";
+import { ArrowLeft, Languages, Delete, CornerDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 import { useEffect } from "react";
@@ -40,6 +40,7 @@ export function VirtualKeyboard() {
     pressKey,
     pressSpace,
     pressBackspace,
+    pressEnter,
     targetInput,
   } = useKeyboard();
 
@@ -101,8 +102,8 @@ export function VirtualKeyboard() {
                         Espace
                     </Key>
                     <Key onClick={() => pressKey(".")} flex={1}>.</Key>
-                    <Key onClick={handleClose} flex={1.5} className="bg-destructive/80 text-destructive-foreground">
-                        Fermer
+                    <Key onClick={pressEnter} flex={1.5} className="bg-primary/80 text-primary-foreground">
+                        <CornerDownLeft className="h-5 w-5" />
                     </Key>
                 </div>
             </div>
@@ -118,9 +119,14 @@ export function VirtualKeyboard() {
                         ))}
                     </div>
                 ))}
-                <Key onClick={pressBackspace}>
-                    <ArrowLeft className="h-5 w-5" />
-                </Key>
+                <div className="flex space-x-1">
+                  <Key onClick={pressBackspace} flex={1}>
+                      <ArrowLeft className="h-5 w-5" />
+                  </Key>
+                   <Key onClick={handleClose} flex={1} className="bg-destructive/80 text-destructive-foreground">
+                        Fermer
+                    </Key>
+                </div>
             </div>
         </div>
       </DrawerContent>

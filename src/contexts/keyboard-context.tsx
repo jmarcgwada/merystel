@@ -27,6 +27,7 @@ interface KeyboardContextType {
     pressKey: (key: string) => void;
     pressSpace: () => void;
     pressBackspace: () => void;
+    pressEnter: () => void;
     clearInput: () => void;
 }
 
@@ -88,6 +89,20 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         setInputValue(prev => prev.slice(0, -1));
     }, []);
 
+    const pressEnter = useCallback(() => {
+        if (activeInput?.ref.current) {
+            const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true,
+            });
+            activeInput.ref.current.dispatchEvent(enterEvent);
+        }
+    }, [activeInput]);
+
     const isKeyboardVisibleInHeader = useMemo(() => {
         return !!activeInput?.name;
     }, [activeInput]);
@@ -107,11 +122,12 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
         pressKey,
         pressSpace,
         pressBackspace,
+        pressEnter,
         clearInput,
     }), [
         isOpen, showKeyboard, hideKeyboard, toggleKeyboard, isCaps, toggleCaps, 
         inputValue, activeInput, setTargetInput, isKeyboardVisibleInHeader,
-        pressKey, pressSpace, pressBackspace, clearInput
+        pressKey, pressSpace, pressBackspace, pressEnter, clearInput
     ]);
 
     return (
