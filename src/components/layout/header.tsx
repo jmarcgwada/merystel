@@ -58,7 +58,7 @@ export default function Header() {
   const isLoginPage = pathname.startsWith('/login');
   const isSupermarketPage = pathname.startsWith('/supermarket');
 
-  const navDisabled = isKeypadOpen || (isSupermarketPage && order.length > 0);
+  const navDisabled = isClient && (isKeypadOpen || (isSupermarketPage && order.length > 0));
 
 
   return (
@@ -66,7 +66,7 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
             "flex items-center gap-4 flex-1 transition-opacity",
-             isClient && navDisabled && 'opacity-50 pointer-events-none'
+             navDisabled && 'opacity-50 pointer-events-none'
             )}>
            <Link
             href="/"
