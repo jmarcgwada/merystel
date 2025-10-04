@@ -306,19 +306,20 @@ export function CommercialOrderForm() {
             </div>
             
             <Separator />
+            
             {/* Footer */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                 <div className="space-y-4">
                     <h4 className="font-semibold">Taux de TVA</h4>
-                    <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
-                       <div className="col-span-1 text-sm font-medium">Base HT</div>
-                       <div className="col-span-1 text-sm font-medium">Taux</div>
-                       <div className="col-span-2 text-sm font-medium">Montant TVA</div>
+                    <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
+                       <div className="text-sm font-medium">Base HT</div>
+                       <div className="text-sm font-medium">Taux</div>
+                       <div className="text-sm font-medium">Montant TVA</div>
                         {Object.values(vatBreakdown).map(vat => (
                             <React.Fragment key={vat.rate}>
-                                <div className="col-span-1 text-sm">{vat.base.toFixed(2)}€</div>
-                                <div className="col-span-1 text-sm">{vat.rate.toFixed(2)}%</div>
-                                <div className="col-span-2 text-sm">{vat.total.toFixed(2)}€</div>
+                                <div className="text-sm">{vat.base.toFixed(2)}€</div>
+                                <div className="text-sm">{vat.rate.toFixed(2)}%</div>
+                                <div className="text-sm">{vat.total.toFixed(2)}€</div>
                             </React.Fragment>
                         ))}
                     </div>
@@ -378,4 +379,3 @@ export function CommercialOrderForm() {
     </>
   );
 }
-
