@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
 import type { Customer } from '@/lib/types';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandInput } from '@/components/ui/command';
 import { Edit, UserPlus } from 'lucide-react';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
@@ -25,15 +25,63 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    return customers.filter(customer => {
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        return (
+            customer.name.toLowerCase().includes(lowerSearchTerm) ||
+            customer.id.toLowerCase().includes(lowerSearchTerm) ||
+            (customer.postalCode && customer.postalCode.toLowerCase().includes(lowerSearchTerm)) ||
+            (customer.city && customer.city.toLowerCase().includes(lowerSearchTerm))
+        );
+    });
+  }, [customers, searchTerm]);
+
+  useEffect(() => {
+    // Reset highlight when search term changes
+    setHighlightedIndex(filteredCustomers.length > 0 ? 0 : -1);
+  }, [searchTerm, filteredCustomers.length]);
+  
+  useEffect(() => {
+    if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [highlightedIndex]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.min(prev + 1, filteredCustomers.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && filteredCustomers[highlightedIndex]) {
+        handleSelect(filteredCustomers[highlightedIndex]);
+      }
+    }
+  };
 
   const handleSelect = (customer: Customer) => {
     onCustomerSelected(customer);
     onClose();
   };
 
-  const handleEdit = (customer: Customer) => {
-    setCustomerToEdit(customer);
-    setEditCustomerOpen(true);
+  const handleEdit = () => {
+    if (highlightedIndex >= 0 && filteredCustomers[highlightedIndex]) {
+      setCustomerToEdit(filteredCustomers[highlightedIndex]);
+      setEditCustomerOpen(true);
+    }
   }
 
   const handleCustomerAdded = (newCustomer: Customer) => {
@@ -48,42 +96,59 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
         <DialogContent className="sm:max-w-3xl h-[70vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>Choisir un client</DialogTitle>
+             <DialogDescription>
+                Recherchez par nom, code, code postal ou ville.
+            </DialogDescription>
           </DialogHeader>
-          <Command className="flex-1 min-h-0 border-b">
-             <CommandInput
-                placeholder="Rechercher par nom, code, code postal ou ville..."
+          <div className="px-6">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Rechercher un client..."
+                value={searchTerm}
+                onValueChange={setSearchTerm}
+                onKeyDown={handleKeyDown}
               />
-              <CommandList>
-                <ScrollArea className="h-[calc(60vh-120px)]">
-                  <CommandEmpty>Aucun client trouvé.</CommandEmpty>
-                  <CommandGroup>
-                    {customers && customers.map(customer => (
-                      <CommandItem
-                        key={customer.id}
-                        onSelect={() => handleSelect(customer)}
-                        className="flex justify-between items-center"
-                      >
-                        <div>
-                          <p className="font-semibold">{customer.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {customer.id} | {customer.postalCode} {customer.city}
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(customer)}}>
-                            <Edit className="h-4 w-4"/>
-                        </Button>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </ScrollArea>
-              </CommandList>
-          </Command>
+            </Command>
+          </div>
+          <div className="flex-1 min-h-0 px-6">
+            <ScrollArea className="h-full">
+              {filteredCustomers.length === 0 ? (
+                <div className="py-6 text-center text-sm">Aucun client trouvé.</div>
+              ) : (
+                <div className="space-y-1 py-2">
+                  {filteredCustomers.map((customer, index) => (
+                    <div
+                      key={customer.id}
+                      ref={(el) => (itemRefs.current[index] = el)}
+                      onClick={() => handleSelect(customer)}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-md cursor-pointer",
+                        index === highlightedIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+                      )}
+                    >
+                      <div>
+                        <p className="font-semibold">{customer.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {customer.id} | {customer.postalCode} {customer.city}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
           <DialogFooter className="p-4 border-t gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               Nouveau client
             </Button>
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={handleEdit} disabled={highlightedIndex === -1}>
+              <Edit className="mr-2 h-4 w-4" />
+              Modifier
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
               Annuler
             </Button>
           </DialogFooter>
@@ -95,5 +160,6 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
     </>
   );
 }
+
 
 
