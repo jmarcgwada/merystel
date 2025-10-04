@@ -2,8 +2,8 @@
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Mail } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 
 export default function AboutPage() {
   return (
@@ -47,10 +47,16 @@ export default function AboutPage() {
                         <strong>Rapports Détaillés :</strong> Suivez vos performances de vente, identifiez vos articles les plus populaires et prenez des décisions éclairées grâce à des rapports clairs.
                     </li>
                 </ul>
-                <div className="pt-4 text-center">
-                    <p>Prêt à transformer votre gestion ? Connectez-vous pour commencer.</p>
-                </div>
             </CardContent>
+            <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
+                <p>Prêt à transformer votre gestion ?</p>
+                <Button asChild>
+                    <a href="mailto:contact@zenith-pos.app?subject=Demande d'information Zenith POS">
+                        <Mail className="mr-2 h-4 w-4" />
+                        Contactez-nous pour une inscription
+                    </a>
+                </Button>
+            </CardFooter>
         </Card>
       </div>
     </div>

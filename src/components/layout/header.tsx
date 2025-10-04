@@ -54,7 +54,6 @@ export default function Header() {
   };
   
   const canAccessCompanySettings = user?.role === 'admin';
-  const isPosOrRestaurantOrSupermarketPage = pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket');
   const isLoginPage = pathname.startsWith('/login');
 
   const getLogoLink = () => {
@@ -68,7 +67,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn("flex items-center gap-4 flex-1")}>
-          <Link href={getLogoLink()} className="flex items-center gap-2" onClick={(e) => user && handleNavClick(e, '/dashboard')}>
+           <Link
+            href={getLogoLink()}
+            className={cn(
+              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
+              !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
+            )}
+            onClick={(e) => user && handleNavClick(e, '/dashboard')}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

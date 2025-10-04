@@ -103,6 +103,18 @@ body {
       border-color: hsl(var(--accent));
     }
   }
+  
+  .animate-pulse-button-subtle {
+    animation: pulse-button-subtle 2s infinite ease-in-out;
+  }
+  @keyframes pulse-button-subtle {
+    0%, 100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: hsl(var(--accent) / 0.1);
+    }
+  }
 }
 
 @media print {
