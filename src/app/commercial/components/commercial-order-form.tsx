@@ -370,17 +370,23 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex-1 flex flex-col">
             <div className="space-y-2 flex-1 overflow-auto pr-4 -mr-4">
-                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
+                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
-                  <span className="text-right">P.U. TTC</span>
+                  <span className="text-right">P.U. HT</span>
+                  <span className="text-right">Code TVA</span>
                   <span className="text-right">Remise %</span>
-                  <span className="text-right">Total TTC</span>
+                  <span className="text-right">Total HT</span>
                   <span></span>
                 </div>
                 <div className="space-y-2">
-                {watchItems.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
+                {watchItems.map((field, index) => {
+                  const fullItem = allItems.find(i => i.id === field.itemId);
+                  const vatInfo = vatRates.find(v => v.id === fullItem?.vatId);
+                  const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
+
+                  return (
+                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
                     <Input readOnly value={field.name} className="bg-muted/50" />
                     <Input 
                         type="number" 
@@ -389,7 +395,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         min={1} 
                         className="text-right" 
                     />
-                    <Input type="number" step="0.01" defaultValue={field.price} className="text-right" />
+                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-muted/50" />
+                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-muted/50 font-mono" />
                      <Controller
                         control={form.control}
                         name={`items.${index}.remise`}
@@ -402,7 +409,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         const item = watchItems[index];
                         if(!item || !item.itemId) return '0.00€';
                         const remise = item.remise || 0;
-                        const total = item.price * item.quantity * (1 - (remise || 0) / 100);
+                        const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
                         return `${total.toFixed(2)}€`
                     })()}
                   </div>
@@ -410,7 +417,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+              )})}
               </div>
               {watchItems.length === 0 && (
                 <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
@@ -575,4 +582,3 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
-
