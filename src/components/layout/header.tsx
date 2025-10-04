@@ -30,17 +30,25 @@ export default function Header() {
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
-    isKeypadOpen,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isClient, setIsClient] = useState(false);
+  const [navDisabled, setNavDisabled] = useState(false);
+
+  const isSupermarketPage = pathname.startsWith('/supermarket');
   
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      setNavDisabled(isSupermarketPage && order.length > 0);
+    }
+  }, [isClient, isSupermarketPage, order.length]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && href !== pathname) {
@@ -56,9 +64,6 @@ export default function Header() {
   
   const canAccessCompanySettings = user?.role === 'admin';
   const isLoginPage = pathname.startsWith('/login');
-  const isSupermarketPage = pathname.startsWith('/supermarket');
-
-  const navDisabled = isClient && (isKeypadOpen || (isSupermarketPage && order.length > 0));
 
 
   return (
@@ -66,7 +71,7 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
             "flex items-center gap-4 flex-1 transition-opacity",
-             navDisabled && 'opacity-50 pointer-events-none'
+            navDisabled && 'opacity-50 pointer-events-none'
             )}>
            <Link
             href="/"
