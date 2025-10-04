@@ -128,7 +128,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
             <DialogTitle className="text-2xl font-headline">Choisir un client</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 grid grid-cols-12 gap-4 px-6 pb-4 min-h-0">
+          <div className="flex-1 grid grid-cols-12 gap-4 px-6 min-h-0">
             <div className="col-span-8 flex flex-col space-y-4">
                <div className="flex items-center gap-2">
                 <Input
@@ -177,7 +177,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                             key={customer.id}
                             ref={el => customerListRef.current[index] = el}
                             className={cn(
-                              'w-full p-1 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
+                              'w-full p-2 text-left border-2 border-transparent rounded-lg cursor-pointer flex items-center justify-between',
                               index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                             )}
                             onClick={() => setHighlightedCustomerIndex(index)}
