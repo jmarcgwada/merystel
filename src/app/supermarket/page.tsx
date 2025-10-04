@@ -21,7 +21,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 const MAX_INITIAL_ITEMS = 100;
 
 export default function SupermarketPage() {
-  const { items, addToOrder, heldOrders, order, showItemImagesInGrid } = usePos();
+  const { items, addToOrder, heldOrders, order, showItemImagesInGrid, isKeypadOpen } = usePos();
   const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
@@ -182,7 +182,7 @@ export default function SupermarketPage() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-        <div className="md:col-span-8 flex flex-col overflow-hidden">
+        <div className={cn("md:col-span-8 flex flex-col overflow-hidden transition-opacity", isKeypadOpen && 'opacity-50 pointer-events-none')}>
           <div className="p-4 flex flex-col sm:flex-row items-start gap-4">
             <div className="flex-1 w-full space-y-2">
                 <div className="relative">

@@ -248,7 +248,7 @@ export default function PosPage() {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className={cn(
+             <div className={cn(
               "flex flex-col transition-opacity h-full overflow-hidden bg-card",
               isKeypadOpen && 'opacity-50 pointer-events-none'
             )}>
