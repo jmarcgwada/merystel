@@ -231,7 +231,7 @@ export default function PosPage() {
       <div className="h-full p-4" style={{ backgroundColor }}>
         <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
           <ResizablePanel defaultSize={18} minSize={15} maxSize={25}>
-            <div className="bg-card flex flex-col h-full overflow-hidden rounded-l-lg">
+            <div className={cn("bg-card flex flex-col h-full overflow-hidden rounded-l-lg transition-opacity", isKeypadOpen && 'opacity-50 pointer-events-none')}>
               <CategoryList
                 scrollRef={categoryScrollAreaRef}
                 selectedCategory={selectedCategory}
