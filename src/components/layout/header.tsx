@@ -65,13 +65,13 @@ export default function Header() {
             href="/"
             className={cn(
               "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
+              isClient && !user && isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
             )}
             onClick={(e) => {
-              if (user) handleNavClick(e, '/dashboard');
+              if (user) handleNavClick(e, '/');
             }}
           >
-             {isClient && !user && !isLoginPage && <ArrowRight className="h-5 w-5 text-primary animate-bounce-horizontal" />}
+             {isClient && !user && isLoginPage && <ArrowRight className="h-5 w-5 text-primary animate-bounce-horizontal" />}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
