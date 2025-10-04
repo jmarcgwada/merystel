@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -70,6 +71,10 @@ interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   dynamicBgImage: string | null;
+  enableDynamicBg: boolean;
+  setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
+  dynamicBgOpacity: number;
+  setDynamicBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
@@ -302,6 +307,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
+  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -1835,6 +1842,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       order,
       setOrder,
       dynamicBgImage,
+      enableDynamicBg,
+      setEnableDynamicBg,
+      dynamicBgOpacity,
+      setDynamicBgOpacity,
       readOnlyOrder,
       setReadOnlyOrder,
       addToOrder,
@@ -2004,6 +2015,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       order,
       setOrder,
       dynamicBgImage,
+      enableDynamicBg,
+      setEnableDynamicBg,
+      dynamicBgOpacity,
+      setDynamicBgOpacity,
       readOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,

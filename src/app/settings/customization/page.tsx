@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Link as LinkIcon, BarChart3, Image } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, BarChart3, Image, Wallpaper } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -52,6 +52,10 @@ export default function CustomizationPage() {
     setExternalLinkModalHeight,
     showDashboardStats,
     setShowDashboardStats,
+    enableDynamicBg,
+    setEnableDynamicBg,
+    dynamicBgOpacity,
+    setDynamicBgOpacity,
    } = usePos();
 
   const [isClient, setIsClient] = useState(false);
@@ -216,6 +220,36 @@ export default function CustomizationPage() {
                   />
                 ) : <Skeleton className="h-6 w-11" />}
             </div>
+             <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="dynamic-bg" className="text-base flex items-center gap-2"><Wallpaper />Fond d'écran de commande dynamique</Label>
+                  <p className="text-sm text-muted-foreground">
+                    L'arrière-plan de la commande prend l'image du dernier article ajouté.
+                  </p>
+                </div>
+                {isClient ? (
+                  <Switch 
+                    id="dynamic-bg" 
+                    checked={enableDynamicBg}
+                    onCheckedChange={setEnableDynamicBg}
+                  />
+                ) : <Skeleton className="h-6 w-11" />}
+            </div>
+             {isClient && (
+              <div className="grid gap-2 pt-4 transition-opacity" style={{ opacity: enableDynamicBg ? 1 : 0.5 }}>
+                  <div className="flex justify-between items-center">
+                      <Label htmlFor="dynamic-bg-opacity">Opacité du fond dynamique</Label>
+                      <span className="text-sm font-bold text-primary">{dynamicBgOpacity}%</span>
+                  </div>
+                  <Slider 
+                      id="dynamic-bg-opacity"
+                      value={[dynamicBgOpacity]} 
+                      onValueChange={(v) => setDynamicBgOpacity(v[0])}
+                      min={0} max={100} step={5} 
+                      disabled={!enableDynamicBg}
+                  />
+              </div>
+            )}
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="item-images-grid" className="text-base flex items-center gap-2"><Image />Afficher les images des articles</Label>

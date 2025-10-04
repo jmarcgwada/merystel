@@ -77,6 +77,8 @@ export function OrderSummary() {
     order, 
     setOrder,
     dynamicBgImage,
+    enableDynamicBg,
+    dynamicBgOpacity,
     readOnlyOrder, 
     setReadOnlyOrder,
     lastDirectSale,
@@ -572,13 +574,16 @@ export function OrderSummary() {
   return (
     <>
       <div className="flex h-full flex-col relative bg-card print-area">
-        {dynamicBgImage && (
+        {enableDynamicBg && dynamicBgImage && (
           <>
             <div
               className="absolute inset-0 bg-cover bg-center transition-all duration-500 z-0"
               style={{ backgroundImage: `url(${dynamicBgImage})` }}
             />
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0" />
+            <div 
+              className="absolute inset-0 bg-black backdrop-blur-sm z-0" 
+              style={{ opacity: dynamicBgOpacity / 100 }}
+            />
           </>
         )}
         <div 
@@ -717,7 +722,7 @@ export function OrderSummary() {
               </div>
             </div>
           ) : (
-            <div className={cn("divide-y", dynamicBgImage && "text-white")}>
+            <div className={cn("divide-y", (enableDynamicBg && dynamicBgImage) && "text-white")}>
                 {currentOrder.map((item) => (
                   <div key={item.id} className={cn("bg-background/10 backdrop-blur-sm", isKeypadOpen && selectedItem?.id === item.id && 'opacity-0 h-0 overflow-hidden')}>
                       {renderOrderItem(item, false)}
