@@ -8,11 +8,10 @@ import * as z from 'zod';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Trash2, UserPlus } from 'lucide-react';
+import { Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Customer, OrderItem } from '@/lib/types';
+import type { Customer, Item } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -25,6 +24,7 @@ import { Label } from '@/components/ui/label';
 
 const orderItemSchema = z.object({
   itemId: z.string().min(1, 'Article requis.'),
+  name: z.string(),
   quantity: z.coerce.number().min(1, 'Qté > 0.'),
   price: z.coerce.number(),
   remise: z.coerce.number().min(0).max(100).optional(),
@@ -45,12 +45,13 @@ export function CommercialOrderForm() {
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: [{ itemId: '', quantity: 1, price: 0, remise: 0 }],
+      items: [],
       escompte: 0,
       port: 0,
       acompte: 0,
@@ -67,6 +68,17 @@ export function CommercialOrderForm() {
   const onCustomerAdded = (newCustomer: Customer) => {
     setSelectedCustomer(newCustomer);
     form.setValue('customerId', newCustomer.id);
+  }
+
+  const handleAddItem = (item: Item) => {
+    append({
+        itemId: item.id,
+        name: item.name,
+        quantity: 1,
+        price: item.price,
+        remise: 0
+    });
+    setItemSearchOpen(false);
   }
   
   const subTotalHT = useMemo(() => {
@@ -124,13 +136,6 @@ export function CommercialOrderForm() {
   function onSubmit(data: CommercialOrderFormValues) {
     console.log(data);
     toast({ title: 'Facture générée (simulation)' });
-  }
-  
-  const handleItemChange = (itemId: string, index: number) => {
-    const item = allItems?.find(i => i.id === itemId);
-    if(item) {
-        form.setValue(`items.${index}.price`, item.price);
-    }
   }
 
   return (
@@ -203,42 +208,61 @@ export function CommercialOrderForm() {
             <Separator />
             
             {/* Items */}
-            <div className="space-y-2 flex-1 overflow-auto">
-              <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
-                <span>Désignation</span>
-                <span className="text-right">Qté</span>
-                <span className="text-right">P.U. TTC</span>
-                <span className="text-right">Remise %</span>
-                <span className="text-right">Total TTC</span>
-                <span></span>
-              </div>
+            <div className="space-y-4 flex-1 flex flex-col">
               <div className="space-y-2">
-              {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
-                  <Controller
-                      control={form.control}
-                      name={`items.${index}.itemId`}
-                      render={({ field: controllerField }) => (
-                        <Select onValueChange={(value) => {
-                            controllerField.onChange(value);
-                            handleItemChange(value, index);
-                        }} defaultValue={controllerField.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez un article" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {allItems?.map(item => (
-                                <SelectItem key={item.id} value={item.id}>
+                <Label>Ajouter un article</Label>
+                 <Popover open={isItemSearchOpen} onOpenChange={setItemSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isItemSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        Rechercher un article à ajouter...
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Rechercher un article..." />
+                        <CommandList>
+                          <CommandEmpty>Aucun article trouvé.</CommandEmpty>
+                          <CommandGroup>
+                            {allItems?.map((item) => (
+                              <CommandItem
+                                key={item.id}
+                                onSelect={() => handleAddItem(item)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    fields.some(f => f.itemId === item.id) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
                                 {item.name}
-                                </SelectItem>
+                              </CommandItem>
                             ))}
-                            </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2 flex-1 overflow-auto pr-4 -mr-4">
+                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
+                  <span>Désignation</span>
+                  <span className="text-right">Qté</span>
+                  <span className="text-right">P.U. TTC</span>
+                  <span className="text-right">Remise %</span>
+                  <span className="text-right">Total TTC</span>
+                  <span></span>
+                </div>
+                <div className="space-y-2">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
+                    <Input readOnly value={field.name} className="bg-muted/50" />
                     <Controller
                         control={form.control}
                         name={`items.${index}.quantity`}
@@ -274,16 +298,12 @@ export function CommercialOrderForm() {
                 </div>
               ))}
               </div>
+              {fields.length === 0 && (
+                <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                    Aucun article dans la commande.
+                </div>
+              )}
             </div>
-             <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="self-start"
-                onClick={() => append({ itemId: '', quantity: 1, price: 0, remise: 0 })}
-            >
-                Ajouter une ligne
-            </Button>
             
             <Separator />
             {/* Footer */}
