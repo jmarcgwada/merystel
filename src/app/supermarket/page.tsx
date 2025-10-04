@@ -171,10 +171,18 @@ export default function SupermarketPage() {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
   };
   
-  // This effect will re-run the search whenever the searchType changes.
   useEffect(() => {
     performSearch(searchTerm);
-  }, [searchType, performSearch, searchTerm]);
+  }, [searchType, performSearch]);
+
+  const handleChangeSearchType = () => {
+    setSearchType(prev => {
+        const newType = prev === 'contains' ? 'startsWith' : 'contains';
+        // The useEffect above will trigger the search with the new type
+        return newType;
+    });
+    searchInputRef.current?.focus();
+  };
 
   return (
     <>
@@ -197,10 +205,7 @@ export default function SupermarketPage() {
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setSearchType(p => p === 'contains' ? 'startsWith' : 'contains');
-                        searchInputRef.current?.focus();
-                      }}
+                      onClick={handleChangeSearchType}
                       className="h-12 text-xs w-28"
                     >
                       {searchType === 'contains' ? 'Contient' : 'Commence par'}
@@ -266,7 +271,7 @@ export default function SupermarketPage() {
                         "flex items-center p-1 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
-                      onClick={() => addToOrder(item.id)}
+                      onDoubleClick={() => addToOrder(item.id)}
                     >
                       {showItemImagesInGrid && (
                         <Image
