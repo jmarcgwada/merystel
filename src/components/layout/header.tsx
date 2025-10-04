@@ -57,11 +57,15 @@ export default function Header() {
   const isLoginPage = pathname.startsWith('/login');
 
   const getLogoLink = () => {
+    if (!isClient) return '#'; // Render a neutral link on the server
     if (user) {
         return "/dashboard";
     }
     return "/about";
   }
+
+  const isLogoClickable = !user || (pathname !== '/dashboard');
+  const isLogoDisabled = !isClient && !isLoginPage;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
@@ -71,9 +75,13 @@ export default function Header() {
             href={getLogoLink()}
             className={cn(
               "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
+              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary",
+              isLogoDisabled && "pointer-events-none opacity-50"
             )}
-            onClick={(e) => user && handleNavClick(e, '/dashboard')}
+            onClick={(e) => {
+              if(!isLogoClickable) e.preventDefault();
+              if (user) handleNavClick(e, '/dashboard');
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
