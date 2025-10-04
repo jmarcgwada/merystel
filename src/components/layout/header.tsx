@@ -71,7 +71,7 @@ export default function Header() {
             href={getLogoLink()}
             className={cn(
               "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
+              isClient && !user && !isLoginPage && "animate-pulse-button-subtle hover:bg-secondary"
             )}
             onClick={(e) => user && handleNavClick(e, '/dashboard')}
           >
