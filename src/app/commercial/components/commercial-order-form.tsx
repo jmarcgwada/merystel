@@ -368,7 +368,7 @@ export function CommercialOrderForm() {
                 </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-auto pt-6">
                 <Button size="lg" type="submit">Générer la facture</Button>
             </div>
           </form>
