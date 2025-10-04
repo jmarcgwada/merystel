@@ -252,7 +252,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             {listContent.length > 0 && (
                 <Card className="mt-2 absolute z-10 w-full max-w-2xl">
                     <ScrollArea className="h-full max-h-80">
-                         <div className="p-1 space-y-1">
+                         <div className="space-y-px">
                             {listContent.map((item, index) => (
                                 <div
                                 key={item.id}
