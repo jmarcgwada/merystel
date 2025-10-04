@@ -752,55 +752,63 @@ export function OrderSummary() {
                 </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={() => saveTableOrderAndExit(selectedTable.id, order)}
-                  >
-                     <Save className="mr-2 h-4 w-4" />
-                    Sauvegarder
-                  </Button>
-                   <Button
-                    size="lg"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={handleCloturer}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Clôturer
-                  </Button>
+                  <div className="flex-1">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                      disabled={order.length === 0 || isKeypadOpen}
+                      onClick={() => saveTableOrderAndExit(selectedTable.id, order)}
+                    >
+                       <Save className="mr-2 h-4 w-4" />
+                      Sauvegarder
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                     <Button
+                      size="lg"
+                      className="w-full"
+                      disabled={order.length === 0 || isKeypadOpen}
+                      onClick={handleCloturer}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Clôturer
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
-                  >
-                    {currentSaleId ? (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Dupliquer
-                        </>
-                    ) : (
-                        <>
-                         <Hand className="mr-2 h-4 w-4" />
-                         Mettre en attente
-                        </>
-                    )}
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    disabled={order.length === 0 || isKeypadOpen}
-                    onClick={() => setCheckoutOpen(true)}
-                  >
-                    Payer maintenant
-                  </Button>
+                  <div className="flex-1">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                      disabled={order.length === 0 || isKeypadOpen}
+                      onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
+                    >
+                      {currentSaleId ? (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliquer
+                          </>
+                      ) : (
+                          <>
+                           <Hand className="mr-2 h-4 w-4" />
+                           Mettre en attente
+                          </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      disabled={order.length === 0 || isKeypadOpen}
+                      onClick={() => setCheckoutOpen(true)}
+                    >
+                      Payer maintenant
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
