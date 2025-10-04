@@ -282,7 +282,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   return (
     <>
-    <div className="flex flex-col lg:flex-row gap-6 mb-6 items-start lg:items-end">
+    <div className="flex flex-col lg:flex-row gap-6 mb-6 items-start lg:items-end mt-4">
         <div className="w-full lg:flex-1">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -474,7 +474,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <Dialog open={isCustomerModalOpen} onOpenChange={setCustomerModalOpen}>
-        <DialogContent className="sm:max-w-3xl h-[70vh] flex flex-col p-0">
+        <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0">
             <DialogHeader className="p-6 pb-0 flex-row items-center gap-4">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCustomerModalOpen(false)}>
                 <ArrowLeft className="h-4 w-4" />
