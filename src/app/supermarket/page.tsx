@@ -253,7 +253,7 @@ export default function SupermarketPage() {
                     onTouchEnd={stopScrolling}
                     disabled={!canScrollUp}
                 >
-                    <ArrowUp className="h-6 w-6" />
+                    <ArrowUp className="h-8 w-8" />
                 </Button>
                 <Button 
                     variant="outline" 
@@ -265,7 +265,7 @@ export default function SupermarketPage() {
                     onTouchEnd={stopScrolling}
                     disabled={!canScrollDown}
                 >
-                    <ArrowDown className="h-6 w-6" />
+                    <ArrowDown className="h-8 w-8" />
                 </Button>
               </div>
               <Button
@@ -293,7 +293,7 @@ export default function SupermarketPage() {
                       key={item.id}
                       ref={(el) => (itemRefs.current[index] = el)}
                       className={cn(
-                        "flex items-center p-3 cursor-pointer hover:bg-secondary",
+                        "flex items-center p-2 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
                       onDoubleClick={() => handleItemClick(item)}
@@ -301,16 +301,16 @@ export default function SupermarketPage() {
                       <Image
                         src={item.image || 'https://picsum.photos/seed/placeholder/100/100'}
                         alt={item.name}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover mr-4"
+                        width={32}
+                        height={32}
+                        className="rounded-md object-cover mr-3"
                         data-ai-hint="product image"
                       />
                       <div className="flex-1">
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{item.barcode}</p>
                       </div>
-                      <p className="text-lg font-bold">{item.price.toFixed(2)}€</p>
+                      <p className="text-base font-bold">{item.price.toFixed(2)}€</p>
                     </Card>
                   ))}
                 </div>
