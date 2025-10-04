@@ -25,22 +25,9 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
-  const [search, setSearch] = useState('');
 
-  const filteredCustomers = useMemo(() => {
-    if (!customers) return [];
-    if (!search) return customers;
-    return customers.filter(customer =>
-      customer.name.toLowerCase().includes(search.toLowerCase()) ||
-      customer.id.toLowerCase().includes(search.toLowerCase()) ||
-      (customer.postalCode && customer.postalCode.toLowerCase().includes(search.toLowerCase())) ||
-      (customer.city && customer.city.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [customers, search]);
-  
   const handleSelect = (customer: Customer) => {
     onCustomerSelected(customer);
-    setSearch('');
     onClose();
   };
 
@@ -52,30 +39,25 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const handleCustomerAdded = (newCustomer: Customer) => {
     setAddCustomerOpen(false);
     onCustomerSelected(newCustomer);
-    setSearch('');
     onClose();
   }
   
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { setSearch(''); onClose();} }}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-3xl h-[70vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>Choisir un client</DialogTitle>
           </DialogHeader>
-          <div className="px-6 pb-4 border-b">
+          <Command className="flex-1 min-h-0 border-b">
              <CommandInput
                 placeholder="Rechercher par nom, code, code postal ou ville..."
-                value={search}
-                onValueChange={setSearch}
               />
-          </div>
-          <Command shouldFilter={false} className="flex-1 min-h-0">
               <CommandList>
                 <ScrollArea className="h-[calc(60vh-120px)]">
-                  {filteredCustomers.length === 0 && <CommandEmpty>Aucun client trouvé.</CommandEmpty>}
+                  <CommandEmpty>Aucun client trouvé.</CommandEmpty>
                   <CommandGroup>
-                    {filteredCustomers.map(customer => (
+                    {customers && customers.map(customer => (
                       <CommandItem
                         key={customer.id}
                         onSelect={() => handleSelect(customer)}
@@ -113,4 +95,5 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
     </>
   );
 }
+
 
