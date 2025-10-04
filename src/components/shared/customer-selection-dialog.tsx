@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -7,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
 import type { Customer } from '@/lib/types';
-import { Command, CommandEmpty, CommandInput } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
 import { Edit, UserPlus } from 'lucide-react';
 import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
@@ -29,6 +28,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
@@ -44,7 +44,13 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   }, [customers, searchTerm]);
 
   useEffect(() => {
-    // Reset highlight when search term changes
+    if (isOpen) {
+      setSearchTerm('');
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+  
+  useEffect(() => {
     setHighlightedIndex(filteredCustomers.length > 0 ? 0 : -1);
   }, [searchTerm, filteredCustomers.length]);
   
@@ -101,14 +107,13 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
             </DialogDescription>
           </DialogHeader>
           <div className="px-6">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="Rechercher un client..."
-                value={searchTerm}
-                onValueChange={setSearchTerm}
-                onKeyDown={handleKeyDown}
-              />
-            </Command>
+            <Input
+              ref={inputRef}
+              placeholder="Rechercher un client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
           </div>
           <div className="flex-1 min-h-0 px-6">
             <ScrollArea className="h-full">
@@ -127,12 +132,12 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
                         index === highlightedIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
                       )}
                     >
-                      <div>
-                        <p className="font-semibold">{customer.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {customer.id} | {customer.postalCode} {customer.city}
-                        </p>
-                      </div>
+                      <p className="font-semibold">
+                        {customer.name}
+                        <span className="ml-4 text-xs text-muted-foreground font-normal">
+                          {`(${customer.id.slice(0, 8)}...) | ${customer.postalCode || ''} ${customer.city || ''}`}
+                        </span>
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -160,6 +165,3 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
     </>
   );
 }
-
-
-
