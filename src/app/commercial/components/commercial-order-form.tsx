@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -9,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,9 @@ import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -52,7 +56,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const { items: allItems, customers, isLoading, vatRates } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +84,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue('customerId', customer.id);
+  }
+  
+  const onCustomerAdded = (newCustomer: Customer) => {
+    onCustomerSelected(newCustomer);
+    setAddCustomerOpen(false);
   }
 
   const handleAddItem = (item: Item) => {
@@ -277,26 +287,53 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Card>
             )}
         </div>
-        <div className="w-full lg:w-1/3">
+        <div className="w-full lg:w-auto">
              <Card>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex-row items-center justify-between pb-2">
                     <CardTitle>Client</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={() => setCustomerModalOpen(true)}>
-                        <UserIcon className="h-5 w-5" />
-                    </Button>
                 </CardHeader>
                 <CardContent>
-                    {selectedCustomer ? (
-                    <div className="text-sm">
-                        <p className="font-bold">{selectedCustomer.name}</p>
-                        <p className="text-muted-foreground">{selectedCustomer.address}</p>
-                        <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                    </div>
-                    ) : (
-                    <div className="text-sm text-muted-foreground">
-                        Aucun client sélectionné.
-                    </div>
-                    )}
+                     <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isCustomerSearchOpen}
+                            className="w-[300px] justify-between"
+                            >
+                            {selectedCustomer ? selectedCustomer.name : "Sélectionner un client..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Rechercher un client..." />
+                                <CommandList>
+                                    <CommandEmpty>
+                                        <Button className="w-full" variant="outline" onClick={() => { setCustomerSearchOpen(false); setAddCustomerOpen(true);}}>
+                                            <UserIcon className="mr-2 h-4 w-4" />
+                                            Créer un nouveau client
+                                        </Button>
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                    {customers && customers.map((customer) => (
+                                        <CommandItem
+                                        key={customer.id}
+                                        value={customer.name}
+                                        onSelect={() => {
+                                            onCustomerSelected(customer);
+                                            setCustomerSearchOpen(false);
+                                        }}
+                                        >
+                                         <Check className={cn("mr-2 h-4 w-4", selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0")}/>
+                                        {customer.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </CardContent>
             </Card>
         </div>
@@ -413,11 +450,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       </CardContent>
     </Card>
     
-    <CustomerSelectionDialog
-      isOpen={isCustomerModalOpen}
-      onClose={() => setCustomerModalOpen(false)}
-      onCustomerSelected={onCustomerSelected}
-    />
+     <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
     </>
   );
 }

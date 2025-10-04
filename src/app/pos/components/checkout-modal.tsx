@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator, ChevronsUpDown, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,9 @@ import { fr } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Image from 'next/image';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -68,6 +71,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+
 
   const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -395,6 +401,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           </div>
         </div>
     );
+    
+    const onCustomerAdded = (newCustomer: Customer) => {
+        onCustomerSelected(newCustomer);
+        setAddCustomerOpen(false);
+    }
 
   const renderPaymentView = () => (
     <>
@@ -422,19 +433,84 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                   {selectedCustomer ? (
                     <div className="flex items-center justify-between">
-                        <div onClick={() => setCustomerModalOpen(true)} className="cursor-pointer flex-1">
-                            <p className="font-medium">{selectedCustomer.name}</p>
-                            <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
-                        </div>
+                        <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start p-0 h-auto">
+                                    <p className="font-medium">{selectedCustomer.name}</p>
+                                    <p className="text-sm text-muted-foreground ml-2">{selectedCustomer.email}</p>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Rechercher un client..." />
+                                    <CommandList>
+                                        <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                                        <CommandGroup>
+                                        {customers && customers.map((customer) => (
+                                            <CommandItem
+                                            key={customer.id}
+                                            value={customer.name}
+                                            onSelect={() => {
+                                                setSelectedCustomer(customer);
+                                                setCustomerSearchOpen(false);
+                                            }}
+                                            >
+                                            <Check className={cn("mr-2 h-4 w-4", selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0")} />
+                                            {customer.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setSelectedCustomer(null)}>
                             <XCircle className="h-4 w-4" />
                         </Button>
                     </div>
                   ) : (
-                    <Button variant="outline" className="w-full justify-start" onClick={() => setCustomerModalOpen(true)}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      Associer un client
-                    </Button>
+                     <Popover open={isCustomerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isCustomerSearchOpen}
+                            className="w-full justify-between"
+                            >
+                            Associer un client
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Rechercher un client..." />
+                                <CommandList>
+                                    <CommandEmpty>
+                                        <Button className="w-full" variant="outline" onClick={() => { setCustomerSearchOpen(false); setAddCustomerOpen(true);}}>
+                                            <UserIcon className="mr-2 h-4 w-4" />
+                                            Créer un nouveau client
+                                        </Button>
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                    {customers && customers.map((customer) => (
+                                        <CommandItem
+                                        key={customer.id}
+                                        value={customer.name}
+                                        onSelect={() => {
+                                            setSelectedCustomer(customer);
+                                            setCustomerSearchOpen(false);
+                                        }}
+                                        >
+                                         <Check className={cn("mr-2 h-4 w-4", selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0")}/>
+                                        {customer.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                   )}
                 </div>
             </fieldset>
@@ -588,11 +664,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
-    <CustomerSelectionDialog 
-      isOpen={isCustomerModalOpen}
-      onClose={() => setCustomerModalOpen(false)}
-      onCustomerSelected={onCustomerSelected}
-    />
+    <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerAdded} />
     <AlertDialog open={showOverpaymentAlert} onOpenChange={setShowOverpaymentAlert}>
         <AlertDialogContent>
             <AlertDialogHeader>
