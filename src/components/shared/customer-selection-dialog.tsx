@@ -19,6 +19,7 @@ import { EditCustomerDialog } from '@/app/management/customers/components/edit-c
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, ArrowUp, ArrowDown, Check, Edit, UserPlus } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface CustomerSelectionDialogProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && filteredCustomers.length > 0) {
+    if (isOpen && filteredCustomers.length > 0 && customerListRef.current[highlightedCustomerIndex]) {
       customerListRef.current[highlightedCustomerIndex]?.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
@@ -129,12 +130,39 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
 
           <div className="flex-1 grid grid-cols-12 gap-4 px-6 pb-4 min-h-0">
             <div className="col-span-8 flex flex-col space-y-4">
-              <Input
-                placeholder="Rechercher par nom ou email..."
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-                autoFocus
-              />
+               <div className="flex items-center gap-2">
+                <Input
+                    placeholder="Rechercher par nom ou email..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    autoFocus
+                    className="flex-1"
+                />
+                 {!isCashier && (
+                  <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" onClick={() => setAddCustomerOpen(true)}>
+                                <UserPlus className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Ajouter un nouveau client</p>
+                        </TooltipContent>
+                    </Tooltip>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button variant="outline" size="icon" onClick={handleEditCustomer} disabled={filteredCustomers.length === 0}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Modifier le client sélectionné</p>
+                        </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+               </div>
               <div className="flex-1 relative">
                 <ScrollArea className="absolute inset-0">
                   <div className="pr-2">
@@ -201,21 +229,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
             </div>
           </div>
 
-          <DialogFooter className="justify-between items-center border-t p-4 mt-auto">
-            <div className="flex gap-2">
-               {!isCashier && (
-                 <>
-                    <Button variant="outline" onClick={() => setAddCustomerOpen(true)}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Nouveau
-                    </Button>
-                    <Button variant="outline" onClick={handleEditCustomer} disabled={filteredCustomers.length === 0}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier la fiche
-                    </Button>
-                 </>
-               )}
-            </div>
+          <DialogFooter className="justify-end items-center border-t p-4 mt-auto">
             <Button variant="ghost" onClick={onClose}>
               Annuler
             </Button>
