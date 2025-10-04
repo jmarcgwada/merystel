@@ -523,13 +523,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                                 key={customer.id}
                                                 ref={el => customerListRef.current[index] = el}
                                                 className={cn(
-                                                    'w-full justify-start h-auto p-3 text-left border-2 border-transparent rounded-lg cursor-pointer',
+                                                    'w-full justify-start h-auto p-2 text-left border-2 border-transparent rounded-lg cursor-pointer',
                                                     index === highlightedCustomerIndex && 'border-primary bg-primary/10'
                                                 )}
                                                 onClick={() => setHighlightedCustomerIndex(index)}
                                             >
                                                 <p className="font-semibold">{customer.name}</p>
-                                                <p className="text-xs text-muted-foreground">{customer.email}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  {customer.id.substring(0, 8).toUpperCase()} | {customer.postalCode} {customer.city}
+                                                </p>
                                             </div>
                                         ))}
                                     </div>
@@ -540,7 +542,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </div>
                 <div className="col-span-1 flex flex-col space-y-2">
                     <Button 
-                        className="h-20 text-xl" 
+                        className="h-16 text-xl" 
                         variant="outline"
                         onMouseDown={() => startScrolling('up')}
                         onMouseUp={stopScrolling}
@@ -549,10 +551,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         onTouchEnd={stopScrolling}
                         onClick={() => handleNavigation('up')}
                     >
-                        <ArrowUp className="h-6 w-6" />
+                        <ArrowUp className="h-5 w-5" />
                     </Button>
                     <Button 
-                        className="h-20 text-xl"
+                        className="h-16 text-xl"
                         variant="outline"
                         onMouseDown={() => startScrolling('down')}
                         onMouseUp={stopScrolling}
@@ -561,7 +563,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         onTouchEnd={stopScrolling}
                         onClick={() => handleNavigation('down')}
                     >
-                        <ArrowDown className="h-6 w-6" />
+                        <ArrowDown className="h-5 w-5" />
                     </Button>
                     <Button 
                         className="h-20 text-xl mt-auto"
