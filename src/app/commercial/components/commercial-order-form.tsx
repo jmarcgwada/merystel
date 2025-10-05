@@ -338,7 +338,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 value={field.description2 || ''}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
                                 placeholder="Description 2..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap"
+                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1"
                                 rows={2}
                             />
                         )}
@@ -437,5 +437,3 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
-
-    
