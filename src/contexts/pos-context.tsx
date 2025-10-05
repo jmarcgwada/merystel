@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -779,7 +778,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
-      const seedItems = [
+      const defaultItems = [
         // Boulangerie (10)
         { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456789' },
         { name: 'Croissant au Beurre AOP', price: 1.50, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456796' },
@@ -1410,7 +1409,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
+            const salesCollRef = getCollectionRef('sales');
+             if (!salesCollRef) {
+                throw new Error("Sales collection reference is not available.");
+            }
+
             let pieceRef;
             let existingData: Partial<Sale> = {};
 
@@ -1424,9 +1427,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 pieceRef = doc(salesCollRef);
             }
 
-            // Check if a number needs to be generated
-            const needsNumber = (saleData.status === 'paid' && !existingData.ticketNumber) || 
-                                (currentSaleContext?.isInvoice && !existingData.ticketNumber);
+            const needsNumber = (saleData.status === 'paid' || currentSaleContext?.isInvoice) && !existingData.ticketNumber?.startsWith('Fact-') && !existingData.ticketNumber?.startsWith('Tick-');
             
             let pieceNumber = existingData.ticketNumber || '';
 
@@ -1455,7 +1456,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 userId: user.uid,
                 userName: sellerName,
-                ...(needsNumber && { date: serverTimestamp(), ticketNumber: pieceNumber }),
+                ...(needsNumber && { date: existingData.date || serverTimestamp(), ticketNumber: pieceNumber }),
                 ...(!needsNumber && saleIdToUpdate && { modifiedAt: serverTimestamp() }),
             });
 
@@ -1488,7 +1489,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         console.error("Transaction failed: ", error);
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "La pièce n'a pas pu être enregistrée." });
     }
-}, [companyId, firestore, user, items, currentSaleContext, toast]);
+}, [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]);
   // #endregion
 
   // #region User Management & Session
