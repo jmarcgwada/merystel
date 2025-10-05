@@ -55,6 +55,7 @@ interface CommercialOrderFormProps {
 }
 
 const MAX_SEARCH_ITEMS = 100;
+const MAX_INITIAL_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, setCurrentSaleContext } = usePos();
@@ -225,7 +226,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (order.length === 0 || !selectedCustomer) return;
     
     // Set the context to indicate this is an invoice
-    setCurrentSaleContext({ isInvoice: true });
+    setCurrentSaleContext({ isInvoice: true, customerId: selectedCustomer.id });
 
     recordSale({
         items: order,
@@ -248,7 +249,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   return (
     <>
-    <div className="flex flex-col lg:flex-row gap-6 items-end mt-4">
+    <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
         <div className="w-full lg:flex-1">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -345,13 +346,13 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             </div>
             <div className="flex-1 space-y-2">
                 <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2">
-                  <span>Désignation</span>
-                  <span className="text-right">Qté</span>
-                  <span className="text-right">P.U. HT</span>
-                  <span className="text-center">Code TVA</span>
-                  <span className="text-right">Remise %</span>
-                  <span className="text-right">Total HT</span>
-                  <span></span>
+                  <span className="py-2">Désignation</span>
+                  <span className="text-right py-2">Qté</span>
+                  <span className="text-right py-2">P.U. HT</span>
+                  <span className="text-center py-2">Code TVA</span>
+                  <span className="text-right py-2">Remise %</span>
+                  <span className="text-right py-2">Total HT</span>
+                  <span className="py-2"></span>
                 </div>
                 <div className="space-y-2">
                 {watchItems.map((field, index) => {
