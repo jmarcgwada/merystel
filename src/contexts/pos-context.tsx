@@ -234,7 +234,7 @@ interface PosContextType {
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -1413,7 +1413,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
             await runTransaction(firestore, async (transaction) => {
                 const salesCollRef = getCollectionRef('sales');
-                 if (!salesCollRef) {
+                if (!salesCollRef) {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur critique',
@@ -1421,8 +1421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     });
                     throw new Error('Sales collection reference is not available.');
                 }
-
-
+                
                 let pieceRef;
                 let existingData: Partial<Sale> = {};
 
@@ -1466,7 +1465,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     userId: user.uid,
                     userName: sellerName,
                     ticketNumber: pieceNumber,
-                    date: existingData.date || serverTimestamp(), // Preserve original date if exists
+                    date: existingData.date || serverTimestamp(), // Use serverTimestamp for new documents
                     ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
                 });
 
@@ -2293,3 +2292,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
