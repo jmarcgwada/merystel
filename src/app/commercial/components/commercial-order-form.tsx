@@ -324,7 +324,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
                     <div className="space-y-1">
                         <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0" />
-                         {(descriptionDisplay === 'first' && field.description) && (
+                        {descriptionDisplay === 'first' && field.description && (
                             <Textarea
                                 value={field.description}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
@@ -333,7 +333,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 rows={2}
                             />
                         )}
-                         {descriptionDisplay === 'both' && (
+                        {descriptionDisplay === 'both' && (
                             <>
                                 {field.description && (
                                     <Textarea

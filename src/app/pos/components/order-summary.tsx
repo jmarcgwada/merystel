@@ -533,7 +533,7 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="font-semibold pr-2">{item.name}</p>
-                 {(descriptionDisplay === 'first' && item.description) && (
+                {descriptionDisplay === 'first' && item.description && (
                   <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
                 )}
                 {descriptionDisplay === 'both' && (
