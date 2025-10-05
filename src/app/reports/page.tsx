@@ -37,7 +37,10 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
-        if (!date) return;
+        if (!date) {
+            setFormattedDate('Date non disponible');
+            return;
+        }
         
         let jsDate: Date;
         if (date instanceof Date) {
@@ -139,7 +142,7 @@ export default function ReportsPage() {
             const customerName = getCustomerName(sale.customerId);
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
-            const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');
+            const statusMatch = filterStatus === 'all' || (sale.status === filterStatus);
             const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
             
             const saleSellerName = getUserName(sale.userId, sale.userName);
@@ -556,10 +559,11 @@ export default function ReportsPage() {
                         ))}
                         {!isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
+                            const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture' : 'Ticket';
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell className="font-mono text-muted-foreground text-xs">
-                                        {sale.ticketNumber}
+                                        <Badge variant={pieceType === 'Facture' ? 'outline' : 'secondary'}>{sale.ticketNumber}</Badge>
                                     </TableCell>
                                     <TableCell className="font-medium whitespace-nowrap">
                                         <ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} />
@@ -598,3 +602,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

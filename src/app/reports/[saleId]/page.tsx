@@ -78,7 +78,7 @@ function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
   const fromPos = searchParams.get('from') === 'pos';
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
   const router = useRouter();
   const { user } = useUser();
 
@@ -119,6 +119,8 @@ function SaleDetailContent() {
   }, [allSales, saleId]);
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
+  const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
+  const sellerName = seller ? `${seller.firstName} ${seller.lastName}` : sale?.userName;
 
   const getVatInfo = (vatId: string) => {
     return vatRates?.find(v => v.id === vatId);
@@ -357,14 +359,14 @@ function SaleDetailContent() {
           </Card>
 
           <div className="space-y-4">
-            {sale.userName && (
+            {sellerName && (
                 <Card>
                     <CardHeader className="flex-row items-center gap-4 space-y-0">
                         <User className="h-6 w-6 text-muted-foreground" />
                         <CardTitle>Vendeur</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p>{sale.userName}</p>
+                        <p>{sellerName}</p>
                     </CardContent>
                 </Card>
             )}
@@ -406,3 +408,4 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
+

@@ -48,6 +48,8 @@ import {
   getDoc,
   updateDoc,
   deleteField,
+  serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -1279,7 +1281,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           order: orderData.map(cleanDataForFirebase),
           status: 'paying',
           occupiedByUserId: user?.uid,
-          occupiedAt: table.status === 'available' ? new Date() : table.occupiedAt,
+          occupiedAt: table.status === 'available' ? serverTimestamp() : table.occupiedAt,
         });
         setCurrentSaleId(`table-${tableId}`);
         setCurrentSaleContext({
@@ -1305,9 +1307,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || new Date()) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || serverTimestamp()) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: orderData.length === 0 ? new Date() : deleteField(),
+            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
         });
       } catch (error) {
         console.error('Error updating table order:', error);
@@ -1327,9 +1329,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || new Date()) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || serverTimestamp()) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: orderData.length === 0 ? new Date() : deleteField(),
+            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
           });
           toast({ title: 'Table sauvegardée' });
           await clearOrder();
@@ -1351,7 +1353,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           occupiedByUserId: deleteField(),
           occupiedAt: deleteField(),
           closedByUserId: user?.uid,
-          closedAt: new Date(),
+          closedAt: serverTimestamp(),
         });
       }
       
@@ -1399,100 +1401,88 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
-  const recordSale = useCallback(
+    const recordSale = useCallback(
     async (
       saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
       saleIdToUpdate?: string
     ) => {
-        if (!companyId || !firestore || !user) return;
+      if (!companyId || !firestore || !user) return;
 
-        const batch = writeBatch(firestore);
-        
-        // Decrement stock for items with manageStock: true
-        if (saleData.status === 'paid') {
-          saleData.items.forEach(orderItem => {
-              const originalItem = items.find(i => i.id === orderItem.itemId);
-              if (originalItem && originalItem.manageStock) {
-                  const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-                  const newStock = (originalItem.stock || 0) - orderItem.quantity;
-                  batch.update(itemRef, { stock: newStock });
-              }
+      const batch = writeBatch(firestore);
+      let pieceNumber = saleData.ticketNumber || '';
+      
+      // Decrement stock for paid items
+      if (saleData.status === 'paid') {
+        saleData.items.forEach(orderItem => {
+          const originalItem = items.find(i => i.id === orderItem.itemId);
+          if (originalItem && originalItem.manageStock) {
+            const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+            const newStock = (originalItem.stock || 0) - orderItem.quantity;
+            batch.update(itemRef, { stock: newStock });
+          }
+        });
+      }
+
+      // Free table if the sale is paid and comes from a table
+      if (saleData.status === 'paid' && currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+        const tableRef = getDocRef('tables', currentSaleContext.tableId);
+        if (tableRef) {
+          batch.update(tableRef, {
+            status: 'available',
+            order: [],
+            occupiedByUserId: deleteField(),
+            occupiedAt: deleteField(),
+            closedByUserId: user.uid,
+            closedAt: serverTimestamp(),
           });
         }
+      }
+      
+      // Generate piece number if it doesn't exist and the piece is being finalized
+      if (!pieceNumber && (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'))) {
+        const today = new Date();
+        const startOfToday = startOfDay(today);
+        const endOfToday = endOfDay(today);
+        const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
+        const todaysSalesSnapshot = await getDocs(salesQuery);
+        const todaysSalesCount = todaysSalesSnapshot.size;
 
-        // If sale comes from a table, free the table.
-        if (saleData.status === 'paid' && currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-            const tableRef = getDocRef('tables', currentSaleContext.tableId);
-            if (tableRef) {
-                batch.update(tableRef, {
-                    status: 'available',
-                    order: [],
-                    occupiedByUserId: deleteField(),
-                    occupiedAt: deleteField(),
-                    closedByUserId: user?.uid,
-                    closedAt: new Date(),
-                });
-            }
-        }
-        // If sale comes from a recalled held order, delete the held order
-        if (saleData.status === 'paid' && currentSaleId && !currentSaleContext?.isTableSale) {
-            const docRef = getDocRef('heldOrders', currentSaleId);
-            if (docRef) batch.delete(docRef);
-        }
+        const dayMonth = format(today, 'ddMM');
+        const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+        const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
+        pieceNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+      }
+      
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
-        const isInvoice = currentSaleContext?.isInvoice || false;
-        const prefix = isInvoice ? 'Fact-' : 'Tick-';
-        
-        let ticketNumber = saleData.ticketNumber || '';
-        
-        // Generate a new number if it's a new piece or if it's an invoice being created.
-        if (!ticketNumber || (isInvoice && !ticketNumber.startsWith('Fact-'))) {
-            const today = new Date();
-            const dayMonth = format(today, 'ddMM');
-            const startOfToday = startOfDay(today);
-            const endOfToday = endOfDay(today);
-            const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
-            const todaysSalesSnapshot = await getDocs(salesQuery);
-            const todaysSalesCount = todaysSalesSnapshot.size;
+      const finalSaleData: any = {
+        ...saleData,
+        userId: user.uid,
+        userName: sellerName,
+        items: saleData.items.map(cleanDataForFirebase),
+      };
 
-            const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-            ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
-        }
-        
-        const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-
-        const finalSale: Omit<Sale, 'id'> = {
-            ...saleData,
-            date: saleData.date || new Date(),
-            ticketNumber: ticketNumber,
-            userId: user.uid,
-            userName: sellerName,
-        };
+      if (pieceNumber) {
+        finalSaleData.ticketNumber = pieceNumber;
+      }
+      
+      const salesCollRef = getCollectionRef('sales');
+      if (salesCollRef) {
+        const docRef = saleIdToUpdate ? doc(salesCollRef, saleIdToUpdate) : doc(salesCollRef);
         
         if (saleIdToUpdate) {
-            finalSale.modifiedAt = new Date();
+            finalSaleData.modifiedAt = serverTimestamp();
+        } else {
+            finalSaleData.date = serverTimestamp();
         }
         
-        const finalCleanedSale = cleanDataForFirebase(finalSale);
-        
-        const salesCollRef = getCollectionRef('sales');
-        if (salesCollRef) {
-            const saleRef = saleIdToUpdate ? doc(salesCollRef, saleIdToUpdate) : doc(salesCollRef);
-            batch.set(saleRef, finalCleanedSale, { merge: true });
-            setCurrentSaleId(saleRef.id);
-            await batch.commit();
-        }
+        batch.set(docRef, cleanDataForFirebase(finalSaleData), { merge: true });
+        setCurrentSaleId(docRef.id);
+      }
+      
+      await batch.commit();
     },
-    [
-        companyId,
-        currentSaleId,
-        firestore,
-        getDocRef,
-        getCollectionRef,
-        currentSaleContext,
-        user,
-        items
-    ]
+    [companyId, firestore, user, items, currentSaleContext, getCollectionRef, getDocRef]
   );
   // #endregion
 
@@ -2151,71 +2141,38 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages,
       showItemImagesInGrid,
-      setShowItemImagesInGrid,
       descriptionDisplay,
-      setDescriptionDisplay,
       popularItemsCount,
-      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity,
       paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
       itemDisplayMode,
-      setItemDisplayMode,
       itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
-      setItemCardImageOverlayOpacity,
       itemCardTextColor,
-      setItemCardTextColor,
       itemCardShowPrice,
-      setItemCardShowPrice,
       externalLinkModalEnabled,
-      setExternalLinkModalEnabled,
       externalLinkUrl,
-      setExternalLinkUrl,
       externalLinkTitle,
-      setExternalLinkTitle,
       externalLinkModalWidth,
-      setExternalLinkModalWidth,
       externalLinkModalHeight,
-      setExternalLinkModalHeight,
       showDashboardStats,
-      setShowDashboardStats,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
       showNotifications,
-      setShowNotifications,
       notificationDuration,
-      setNotificationDuration,
       enableSerialNumber,
-      setEnableSerialNumber,
       directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
-      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
       dashboardBgType,
-      setDashboardBgType,
       dashboardBackgroundColor,
-      setDashboardBackgroundColor,
       dashboardBackgroundImage,
-      setDashboardBackgroundImage,
       dashboardBgOpacity,
-      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
-      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2229,7 +2186,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoData,
       importDemoCustomers,
       cameFromRestaurant,
-      setCameFromRestaurant,
       isLoading,
       user,
       holdOrder,
@@ -2241,6 +2197,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setSessionInvalidated,
       setCameFromRestaurant,
       setShowTicketImages,
+      setShowItemImagesInGrid,
       setDescriptionDisplay,
       setPopularItemsCount,
       setItemCardOpacity,
@@ -2286,3 +2243,4 @@ export function usePos() {
   }
   return context;
 }
+
