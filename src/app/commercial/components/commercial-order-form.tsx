@@ -333,6 +333,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 rows={2}
                             />
                         )}
+                         {descriptionDisplay === 'both' && (
+                            <Textarea
+                                value={field.description2 || ''}
+                                onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                placeholder="Description 2..."
+                                className="text-xs text-muted-foreground whitespace-pre-wrap"
+                                rows={2}
+                            />
+                        )}
                     </div>
                     <Input 
                         type="number" 
@@ -409,7 +418,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 <Label htmlFor="acompte">Acompte (€)</Label>
                                  <Controller control={form.control} name="acompte" render={({ field }) => (
                                     <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                                )} />
+                                )}/>
                             </div>
                             <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
                                 <span>Net à Payer</span>
