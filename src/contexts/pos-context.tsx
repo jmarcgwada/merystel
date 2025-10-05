@@ -25,7 +25,7 @@ import type {
   SelectedVariant,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
   useUser as useFirebaseUser,
@@ -1066,6 +1066,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             discount: 0,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
+            barcode: itemToAdd.barcode,
             selectedVariants,
             serialNumbers: [],
           };
@@ -1446,12 +1447,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         let ticketNumber = currentSaleContext?.ticketNumber || '';
         
-        if (
-          !saleIdToUpdate || // Always generate for new sales
-          (isInvoice && (!ticketNumber || !ticketNumber.startsWith('Fact-'))) // Or if it's an invoice being finalized without a proper number
-        ) {
+        // Generate a new number if it's a new piece or if it's an invoice being created.
+        if (!saleIdToUpdate || (isInvoice && !ticketNumber.startsWith('Fact-'))) {
             const dayMonth = format(today, 'ddMM');
-            const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
+            const startOfToday = startOfDay(today);
+            const endOfToday = endOfDay(today);
+            const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
             const todaysSalesSnapshot = await getDocs(salesQuery);
             const todaysSalesCount = todaysSalesSnapshot.size;
             const shortUuid = uuidv4().substring(0, 4).toUpperCase();
