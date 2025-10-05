@@ -154,7 +154,6 @@ interface PosContextType {
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
     saleId?: string,
-    prefix?: string
   ) => void;
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -1400,85 +1399,90 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Sales
   const recordSale = useCallback(
-    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string, prefix: string = 'Tick-') => {
-      if (!companyId || !firestore || !user) return;
-      
-      const batch = writeBatch(firestore);
+    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string) => {
+        if (!companyId || !firestore || !user) return;
 
-      // Decrement stock for items with manageStock: true
-      saleData.items.forEach(orderItem => {
-        const originalItem = items.find(i => i.id === orderItem.itemId);
-        if (originalItem && originalItem.manageStock) {
-          const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-          const newStock = (originalItem.stock || 0) - orderItem.quantity;
-          batch.update(itemRef, { stock: newStock });
+        const batch = writeBatch(firestore);
+        const prefix = currentSaleId?.startsWith('Fact-') ? 'Fact-' : 'Tick-';
+        // Decrement stock for items with manageStock: true
+        saleData.items.forEach(orderItem => {
+            const originalItem = items.find(i => i.id === orderItem.itemId);
+            if (originalItem && originalItem.manageStock) {
+                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                const newStock = (originalItem.stock || 0) - orderItem.quantity;
+                batch.update(itemRef, { stock: newStock });
+            }
+        });
+
+        // If sale comes from a table, free the table.
+        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+            const tableRef = getDocRef('tables', currentSaleContext.tableId);
+            if (tableRef) {
+                batch.update(tableRef, {
+                    status: 'available',
+                    order: [],
+                    occupiedByUserId: deleteField(),
+                    occupiedAt: deleteField(),
+                    closedByUserId: user?.uid,
+                    closedAt: new Date(),
+                });
+            }
         }
-      });
-      
-      // If sale comes from a table, free the table.
-      if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-        const tableRef = getDocRef('tables', currentSaleContext.tableId);
-        if (tableRef) {
-          batch.update(tableRef, { 
-            status: 'available', 
-            order: [], 
-            occupiedByUserId: deleteField(),
-            occupiedAt: deleteField(),
-            closedByUserId: user?.uid,
-            closedAt: new Date(),
-          });
+        // If sale comes from a recalled held order, delete the held order
+        if (currentSaleId && !currentSaleContext?.isTableSale) {
+            const docRef = getDocRef('heldOrders', currentSaleId);
+            if (docRef) batch.delete(docRef);
         }
-      }
-      // If sale comes from a recalled held order, delete the held order
-      if (currentSaleId && !currentSaleContext?.isTableSale) {
-        const docRef = getDocRef('heldOrders', currentSaleId);
-        if (docRef) batch.delete(docRef);
-      }
 
-      const today = new Date();
-      const dayMonth = format(today, 'ddMM');
-      const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
-      const todaysSalesSnapshot = await getDocs(salesQuery);
-      const todaysSalesCount = todaysSalesSnapshot.size;
-      const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-      
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+        const today = new Date();
+        
+        let ticketNumber = currentSaleContext?.ticketNumber || '';
+        
+        if (!saleIdToUpdate) {
+            const dayMonth = format(today, 'ddMM');
+            const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
+            const todaysSalesSnapshot = await getDocs(salesQuery);
+            const todaysSalesCount = todaysSalesSnapshot.size;
+            const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+            ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+        }
+        
 
-      const finalSale: Omit<Sale, 'id'> = {
-        ...saleData,
-        date: today,
-        ticketNumber: saleIdToUpdate ? (currentSaleContext?.ticketNumber || 'N/A') : `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`,
-        userId: user.uid,
-        userName: sellerName || '',
-        ...(currentSaleContext?.tableId && {
-          tableId: currentSaleContext.tableId,
-          tableName: currentSaleContext.tableName,
-        }),
-      };
-      
-      const salesCollRef = getCollectionRef('sales');
-      if (salesCollRef) {
-          let saleRef;
-          if (saleIdToUpdate) {
-            saleRef = doc(salesCollRef, saleIdToUpdate);
-            batch.set(saleRef, cleanDataForFirebase({ ...finalSale, modifiedAt: new Date() }), { merge: true });
-          } else {
-            saleRef = doc(salesCollRef);
-            batch.set(saleRef, cleanDataForFirebase(finalSale));
-          }
-          setCurrentSaleId(saleRef.id);
-          await batch.commit();
-      }
+        const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+
+        const finalSale: Omit<Sale, 'id'> = {
+            ...saleData,
+            date: currentSaleContext?.date || today,
+            ticketNumber,
+            userId: user.uid,
+            userName: sellerName || '',
+        };
+        
+        const finalCleanedSale = cleanDataForFirebase(finalSale);
+        
+        const salesCollRef = getCollectionRef('sales');
+        if (salesCollRef) {
+            let saleRef;
+            if (saleIdToUpdate) {
+                saleRef = doc(salesCollRef, saleIdToUpdate);
+                batch.set(saleRef, { ...finalCleanedSale, modifiedAt: new Date() }, { merge: true });
+            } else {
+                saleRef = doc(salesCollRef);
+                batch.set(saleRef, finalCleanedSale);
+            }
+            setCurrentSaleId(saleRef.id);
+            await batch.commit();
+        }
     },
     [
-      companyId,
-      currentSaleId,
-      firestore,
-      getDocRef,
-      getCollectionRef,
-      currentSaleContext,
-      user,
-      items
+        companyId,
+        currentSaleId,
+        firestore,
+        getDocRef,
+        getCollectionRef,
+        currentSaleContext,
+        user,
+        items
     ]
   );
   // #endregion

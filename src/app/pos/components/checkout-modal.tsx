@@ -130,11 +130,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
       ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
+      ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
+      ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
     };
   
     const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-') || false;
     
-    recordSale(saleInfo, currentSaleId ?? undefined, isInvoice ? 'Fact-' : 'Tick-');
+    recordSale(saleInfo, currentSaleId ?? undefined);
     
     if (isFullyPaid) {
         setIsPaid(true);
@@ -161,7 +163,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     } else {
         toast({
             title: 'Vente mise en attente',
-            description: `Le paiement est partiel. La facture est en attente.`
+            description: `La facture est en attente.`
         })
         clearOrder();
         handleOpenChange(false);
@@ -298,8 +300,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }
   }
 
-
-  const finalizeButtonDisabled = balanceDue > 0.009;
+  const isInvoiceMode = currentSaleId?.startsWith('Fact-');
+  const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
       // If the payment method has a fixed value (like a voucher), use that. Otherwise, use the entered amount.
@@ -525,9 +527,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
           Annuler
         </Button>
-        {balanceDue < 0.009 && (
-          <Button onClick={() => handleFinalizeSale(payments, true)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
-              Finaliser la vente
+        {(balanceDue < 0.009 || isInvoiceMode) && (
+          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+              Finaliser
           </Button>
         )}
       </DialogFooter>
