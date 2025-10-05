@@ -902,7 +902,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-      seedItems.forEach(data => {
+      defaultItems.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           const { isRestaurantOnly, ...itemData } = data;
           batch.set(ref, itemData);
@@ -2263,3 +2263,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
