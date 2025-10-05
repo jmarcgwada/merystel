@@ -112,8 +112,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, 100);
   }
   
-  const handleFinalizeSale = useCallback((finalPayments: Payment[]) => {
-    if (isPaid) return;
+ const handleFinalizeSale = useCallback((finalPayments: Payment[], isFullyPaid: boolean) => {
+    if (isPaid && isFullyPaid) return; // Prevent re-finalizing a paid sale
     
     const allPayments = [...previousPayments, ...finalPayments];
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -125,34 +125,49 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       tax: orderTax,
       total: totalAmount,
       payments: allPayments,
+      status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
       ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
     };
   
-    recordSale(saleInfo);
+    const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-') || false;
     
-    setIsPaid(true);
-  
-    setTimeout(() => {
-      toast({
-        title: 'Paiement réussi',
-        description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
-      });
+    recordSale(saleInfo, currentSaleId ?? undefined, isInvoice ? 'Fact-' : 'Tick-');
+    
+    if (isFullyPaid) {
+        setIsPaid(true);
+        setTimeout(() => {
+          toast({
+            title: 'Paiement réussi',
+            description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
+          });
+          
+          const isTableSale = currentSaleContext?.isTableSale;
       
-      const isTableSale = currentSaleContext?.isTableSale;
-  
-      if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
-          if(cameFromRestaurant) setCameFromRestaurant(false);
-          router.push('/restaurant');
-      } else {
+          if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
+              if(cameFromRestaurant) setCameFromRestaurant(false);
+              router.push('/restaurant');
+          } else if (isInvoice) {
+              router.push('/dashboard');
+          }
+          else {
+            clearOrder();
+          }
+      
+          handleOpenChange(false);
+        }, 500);
+    } else {
+        toast({
+            title: 'Vente mise en attente',
+            description: `Le paiement est partiel. La facture est en attente.`
+        })
         clearOrder();
-      }
-  
-      handleOpenChange(false);
-    }, 500);
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments]);
+        handleOpenChange(false);
+        router.push('/dashboard');
+    }
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId]);
 
 
   useEffect(() => {
@@ -190,8 +205,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      onClose();
-      setTimeout(handleReset, 300);
+      const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-');
+      if (payments.length > 0 && balanceDue > 0 && isInvoice) {
+          handleFinalizeSale(payments, false); // Finalize as pending
+      } else {
+          onClose();
+          setTimeout(handleReset, 300);
+      }
     }
   };
   
@@ -233,7 +253,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
         if (Math.abs(newBalance) < 0.009) { // Exactly paid
             autoFinalizeTimer.current = setTimeout(() => {
-                handleFinalizeSale(newPayments);
+                handleFinalizeSale(newPayments, true);
             }, 1000);
         }
     }
@@ -506,7 +526,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           Annuler
         </Button>
         {balanceDue < 0.009 && (
-          <Button onClick={() => handleFinalizeSale(payments)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(payments, true)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               Finaliser la vente
           </Button>
         )}

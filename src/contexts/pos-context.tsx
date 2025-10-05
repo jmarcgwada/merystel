@@ -1431,22 +1431,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const todaysSalesCount = todaysSalesSnapshot.size;
       const shortUuid = uuidv4().substring(0, 4).toUpperCase();
       const ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
-      const totalPaid = saleData.payments.reduce((acc, p) => acc + p.amount, 0);
-      const change = totalPaid - saleData.total;
-
-      // Clean up items before saving
-      const cleanedItems = saleData.items.map(item => cleanDataForFirebase(item));
       
       const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
-        items: cleanedItems,
         date: today,
         ticketNumber,
         userId: user.uid,
         userName: sellerName || '',
-        ...(change > 0.009 && { change: change }),
         ...(currentSaleContext?.tableId && {
           tableId: currentSaleContext.tableId,
           tableName: currentSaleContext.tableName,
@@ -1455,20 +1448,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const salesCollRef = getCollectionRef('sales');
       if (salesCollRef) {
-        if(saleId) {
-          const saleRef = getDocRef('sales', saleId);
-          if (saleRef) {
-            batch.set(saleRef, {
-              ...finalSale,
-              modifiedAt: new Date(),
-            });
-          }
-        } else {
-            const newSaleRef = doc(salesCollRef);
-            batch.set(newSaleRef, cleanDataForFirebase(finalSale));
-            setCurrentSaleId(newSaleRef.id);
-        }
-        await batch.commit();
+          const newSaleRef = doc(salesCollRef, saleId || undefined);
+          batch.set(newSaleRef, cleanDataForFirebase(finalSale), { merge: true });
+          setCurrentSaleId(newSaleRef.id);
+          await batch.commit();
       }
     },
     [
@@ -1849,7 +1832,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const loadTicketForViewing = useCallback((ticket: Sale) => {
     const itemsWithSource = ticket.items.map(item => ({ ...item, sourceSale: ticket }));
     setReadOnlyOrder(itemsWithSource);
-    setDynamicBgImage(itemsWithSource?.[0]?.image || null);
+    if(itemsWithSource?.[0]?.image) setDynamicBgImage(itemsWithSource[0].image);
     setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
     setCurrentSaleContext({ 
         ticketNumber: ticket.ticketNumber,
