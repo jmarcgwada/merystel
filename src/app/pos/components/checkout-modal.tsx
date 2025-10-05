@@ -550,7 +550,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={handleOpenChange} modal={false}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-4xl">
         {!isPaid ? (
             (() => {
