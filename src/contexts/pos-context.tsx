@@ -258,15 +258,24 @@ interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper function to remove undefined properties from an object before sending to Firebase
-const cleanDataForFirebase = (data: any) => {
-    const cleanedData: any = {};
+// Helper function to recursively remove undefined properties from an object before sending to Firebase
+const cleanDataForFirebase = (data: any): any => {
+  if (Array.isArray(data)) {
+    return data.map(item => cleanDataForFirebase(item));
+  }
+  if (data !== null && typeof data === 'object') {
+    const cleanedData: { [key: string]: any } = {};
     for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key) && data[key] !== undefined) {
-        cleanedData[key] = data[key];
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        const value = data[key];
+        if (value !== undefined) {
+          cleanedData[key] = cleanDataForFirebase(value);
+        }
       }
     }
     return cleanedData;
+  }
+  return data;
 };
 
 // Helper hook for persisting state to localStorage
@@ -902,10 +911,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-      defaultItems.forEach(data => {
+      seedItems.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           const { isRestaurantOnly, ...itemData } = data;
-          batch.set(ref, itemData);
+          const category = defaultCategories.find(c => c.id === itemData.categoryId);
+          const fullItemData = { ...itemData, isRestaurantOnly: category?.isRestaurantOnly || false };
+          batch.set(ref, fullItemData);
       });
       defaultTables.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
@@ -1419,7 +1430,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       }
       // If sale comes from a recalled held order, delete the held order
-      if (currentSaleId && !currentSaleId.startsWith('table-')) {
+      if (currentSaleId && !currentSaleContext?.isTableSale) {
         const docRef = getDocRef('heldOrders', currentSaleId);
         if (docRef) batch.delete(docRef);
       }
@@ -1450,7 +1461,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let saleRef;
           if (saleIdToUpdate) {
             saleRef = doc(salesCollRef, saleIdToUpdate);
-            batch.set(saleRef, { ...cleanDataForFirebase(finalSale), modifiedAt: new Date()}, { merge: true });
+            batch.set(saleRef, cleanDataForFirebase({ ...finalSale, modifiedAt: new Date() }), { merge: true });
           } else {
             saleRef = doc(salesCollRef);
             batch.set(saleRef, cleanDataForFirebase(finalSale));
