@@ -1427,17 +1427,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 pieceRef = doc(salesCollRef);
             }
 
-            const needsNumber = (saleData.status === 'paid' || currentSaleContext?.isInvoice) && !existingData.ticketNumber?.startsWith('Fact-') && !existingData.ticketNumber?.startsWith('Tick-');
+            // A number should be generated if the piece is being finalized (paid or pending invoice)
+            // AND it doesn't already have an official number.
+            const needsNumber = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending')) 
+                && !existingData.ticketNumber?.startsWith('Fact-') 
+                && !existingData.ticketNumber?.startsWith('Tick-');
             
             let pieceNumber = existingData.ticketNumber || '';
+            let pieceDate = existingData.date || serverTimestamp();
 
             if (needsNumber) {
                 const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
+                
+                // Use server time for accurate daily counting
                 const today = new Date();
                 const startOfToday = startOfDay(today);
                 const endOfToday = endOfDay(today);
-
-                // This query requires an index on 'date'.
+                
                 const q = query(salesCollRef, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
                 const todaysSalesSnapshot = await transaction.get(q);
 
@@ -1456,8 +1462,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 userId: user.uid,
                 userName: sellerName,
-                ...(needsNumber && { date: existingData.date || serverTimestamp(), ticketNumber: pieceNumber }),
-                ...(!needsNumber && saleIdToUpdate && { modifiedAt: serverTimestamp() }),
+                ticketNumber: pieceNumber,
+                date: pieceDate,
+                ...(!needsNumber && saleIdToUpdate && { modifiedAt: serverTimestamp() }), // Add modification date only on updates
             });
 
             transaction.set(pieceRef, finalSaleData, { merge: true });
