@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -323,9 +324,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
                     <div className="space-y-1">
                         <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0" />
-                         {descriptionDisplay !== 'none' && (
+                         {(descriptionDisplay === 'first' && field.description) && (
                             <Textarea
-                                value={field.description || ''}
+                                value={field.description}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
                                 placeholder="Description/Note pour cet article..."
                                 className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0"
@@ -333,13 +334,26 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                             />
                         )}
                          {descriptionDisplay === 'both' && (
-                            <Textarea
-                                value={field.description2 || ''}
-                                onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                placeholder="Description 2..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0"
-                                rows={2}
-                            />
+                            <>
+                                {field.description && (
+                                    <Textarea
+                                        value={field.description}
+                                        onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                        placeholder="Description 1..."
+                                        className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0"
+                                        rows={2}
+                                    />
+                                )}
+                                {field.description2 && (
+                                    <Textarea
+                                        value={field.description2}
+                                        onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                        placeholder="Description 2..."
+                                        className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0"
+                                        rows={2}
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
                     <Input 
@@ -436,5 +450,3 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
-
-    
