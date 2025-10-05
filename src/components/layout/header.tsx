@@ -42,7 +42,14 @@ export default function Header() {
   const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
-    setCurrentDate(format(new Date(), 'eeee d MMMM yyyy', { locale: fr }));
+    const updateDate = () => {
+      setCurrentDate(format(new Date(), 'eeee d MMMM yyyy', { locale: fr }));
+    };
+
+    updateDate(); // Set initial date
+    const intervalId = setInterval(updateDate, 60000); // Update every minute
+
+    return () => clearInterval(intervalId); // Cleanup interval on unmount
   }, []);
 
   useEffect(() => {
