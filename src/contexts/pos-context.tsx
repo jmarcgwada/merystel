@@ -95,8 +95,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean } | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null>>;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   serialNumberItem: { item: Item; quantity: number } | null;
@@ -153,7 +153,7 @@ interface PosContextType {
   sales: Sale[];
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
-    saleId?: string,
+    saleIdToUpdate?: string
   ) => void;
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -362,7 +362,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -1403,7 +1403,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (!companyId || !firestore || !user) return;
 
         const batch = writeBatch(firestore);
-        const prefix = currentSaleId?.startsWith('Fact-') ? 'Fact-' : 'Tick-';
+        
         // Decrement stock for items with manageStock: true
         saleData.items.forEach(orderItem => {
             const originalItem = items.find(i => i.id === orderItem.itemId);
@@ -1434,6 +1434,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (docRef) batch.delete(docRef);
         }
 
+        const isInvoice = currentSaleContext?.isInvoice || false;
+        const prefix = isInvoice ? 'Fact-' : 'Tick-';
         const today = new Date();
         
         let ticketNumber = currentSaleContext?.ticketNumber || '';
@@ -1447,7 +1449,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
         }
         
-
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
         const finalSale: Omit<Sale, 'id'> = {
