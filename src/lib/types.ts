@@ -44,6 +44,9 @@ export interface Item {
   marginCoefficient?: number;
   requiresSerialNumber?: boolean;
   additionalCosts?: number;
+  manageStock?: boolean;
+  stock?: number;
+  lowStockThreshold?: number;
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
 }
@@ -64,6 +67,8 @@ export interface OrderItem {
   selectedVariants?: SelectedVariant[];
   note?: string;
   sourceSale?: Sale; // Used for viewing old sales, not stored in DB
+  description?: string;
+  description2?: string;
 }
 
 export interface Table {

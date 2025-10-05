@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -27,6 +28,8 @@ const orderItemSchema = z.object({
   quantity: z.coerce.number().min(1, 'Qté > 0.'),
   price: z.coerce.number(),
   remise: z.coerce.number().min(0).max(100).optional(),
+  description: z.string().optional(),
+  description2: z.string().optional(),
 });
 
 const FormSchema = z.object({
@@ -49,7 +52,7 @@ interface CommercialOrderFormProps {
 const MAX_SEARCH_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -316,7 +319,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                   return (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
-                    <Input readOnly value={field.name} className="bg-muted/50" />
+                    <div>
+                        <Input readOnly value={field.name} className="bg-muted/50 font-semibold" />
+                         {descriptionDisplay !== 'none' && field.description && (
+                            <p className="text-xs text-muted-foreground mt-1 px-2 whitespace-pre-wrap">{field.description}</p>
+                        )}
+                        {descriptionDisplay === 'both' && field.description2 && (
+                            <p className="text-xs text-muted-foreground mt-1 px-2 whitespace-pre-wrap">{field.description2}</p>
+                        )}
+                    </div>
                     <Input 
                         type="number" 
                         value={field.quantity}

@@ -98,6 +98,7 @@ export function OrderSummary() {
     saveTableOrderAndExit,
     promoteTableToTicket,
     showTicketImages,
+    descriptionDisplay,
     isKeypadOpen,
     currentSaleId,
     currentSaleContext,
@@ -532,6 +533,12 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="font-semibold pr-2">{item.name}</p>
+                 {descriptionDisplay !== 'none' && item.description && (
+                  <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
+                )}
+                {descriptionDisplay === 'both' && item.description2 && (
+                    <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>
+                )}
                 {item.selectedVariants && (
                   <p className="text-xs text-muted-foreground capitalize">
                     {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
