@@ -1427,11 +1427,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
 
             const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
-            const needsNumber = isFinalizing && !existingData.ticketNumber?.startsWith('Fact-') && !existingData.ticketNumber?.startsWith('Tick-');
+            
+            const needsNumber = isFinalizing && !existingData.ticketNumber;
             
             let pieceNumber = existingData.ticketNumber || '';
-            let pieceDate = existingData.date || serverTimestamp();
-
+            
             if (needsNumber) {
                 const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
                 
@@ -1447,9 +1447,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const dayMonth = format(new Date(), 'ddMM');
                 const shortUuid = uuidv4().substring(0, 4).toUpperCase();
                 pieceNumber = `${prefix}${dayMonth}-${(countForPrefix + 1).toString().padStart(4, '0')}-${shortUuid}`;
-                
-                // If it's a new finalization, set the date now
-                pieceDate = serverTimestamp();
             }
 
             const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
@@ -1460,8 +1457,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 userId: user.uid,
                 userName: sellerName,
                 ticketNumber: pieceNumber,
-                date: pieceDate,
+                ...(saleIdToUpdate && !existingData.date && { date: serverTimestamp() }), // Set date on first finalization
                 ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
+                ...(!saleIdToUpdate && { date: serverTimestamp() }),
             });
 
             transaction.set(pieceRef, finalSaleData, { merge: true });
@@ -2151,71 +2149,38 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages,
       showItemImagesInGrid,
-      setShowItemImagesInGrid,
       descriptionDisplay,
-      setDescriptionDisplay,
       popularItemsCount,
-      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity,
       paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
       itemDisplayMode,
-      setItemDisplayMode,
       itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
-      setItemCardImageOverlayOpacity,
       itemCardTextColor,
-      setItemCardTextColor,
       itemCardShowPrice,
-      setItemCardShowPrice,
       externalLinkModalEnabled,
-      setExternalLinkModalEnabled,
       externalLinkUrl,
-      setExternalLinkUrl,
       externalLinkTitle,
-      setExternalLinkTitle,
       externalLinkModalWidth,
-      setExternalLinkModalWidth,
       externalLinkModalHeight,
-      setExternalLinkModalHeight,
       showDashboardStats,
-      setShowDashboardStats,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
       showNotifications,
-      setShowNotifications,
       notificationDuration,
-      setNotificationDuration,
       enableSerialNumber,
-      setEnableSerialNumber,
       directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
-      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
       dashboardBgType,
-      setDashboardBgType,
       dashboardBackgroundColor,
-      setDashboardBackgroundColor,
       dashboardBackgroundImage,
-      setDashboardBackgroundImage,
       dashboardBgOpacity,
-      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
-      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2239,37 +2204,39 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setSerialNumberItem,
       setSessionInvalidated,
       setCameFromRestaurant,
-      setEnableRestaurantCategoryFilter,
-      setShowDashboardStats,
-      setExternalLinkModalHeight,
-      setExternalLinkModalWidth,
-      setExternalLinkTitle,
-      setExternalLinkUrl,
-      setExternalLinkModalEnabled,
-      setItemCardShowPrice,
-      setItemCardTextColor,
-      setItemCardImageOverlayOpacity,
-      setItemCardShowImageAsBackground,
-      setItemDisplayMode,
-      setPaymentMethodImageOpacity,
-      setItemCardOpacity,
-      setPopularItemsCount,
+      setShowTicketImages,
+      setShowItemImagesInGrid,
       setDescriptionDisplay,
-      setDashboardButtonBorderColor,
-      setDashboardButtonShowBorder,
-      setDashboardButtonOpacity,
-      setDashboardButtonBackgroundColor,
-      setDashboardBgOpacity,
-      setDashboardBackgroundImage,
-      setDashboardBackgroundColor,
-      setDashboardBgType,
-      setRestaurantModeBgOpacity,
-      setDirectSaleBgOpacity,
-      setRestaurantModeBackgroundColor,
-      setDirectSaleBackgroundColor,
-      setEnableSerialNumber,
-      setNotificationDuration,
+      setPopularItemsCount,
+      setItemCardOpacity,
+      setPaymentMethodImageOpacity,
+      setItemDisplayMode,
+      setItemCardShowImageAsBackground,
+      setItemCardImageOverlayOpacity,
+      setItemCardTextColor,
+      setItemCardShowPrice,
+      setExternalLinkModalEnabled,
+      setExternalLinkUrl,
+      setExternalLinkTitle,
+      setExternalLinkModalWidth,
+      setExternalLinkModalHeight,
+      setShowDashboardStats,
+      setEnableRestaurantCategoryFilter,
       setShowNotifications,
+      setNotificationDuration,
+      setEnableSerialNumber,
+      setDirectSaleBackgroundColor,
+      setRestaurantModeBackgroundColor,
+      setDirectSaleBgOpacity,
+      setRestaurantModeBgOpacity,
+      setDashboardBgType,
+      setDashboardBackgroundColor,
+      setDashboardBackgroundImage,
+      setDashboardBgOpacity,
+      setDashboardButtonBackgroundColor,
+      setDashboardButtonOpacity,
+      setDashboardButtonShowBorder,
+      setDashboardButtonBorderColor,
       setCurrentSaleContext,
     ]
   );
@@ -2284,5 +2251,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
