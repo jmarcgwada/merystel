@@ -10,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -57,7 +57,7 @@ interface CommercialOrderFormProps {
 const MAX_SEARCH_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, orderTotal, orderTax, recordSale } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -226,16 +226,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     
     recordSale({
         items: order,
-        subtotal: orderTotal,
-        tax: orderTax,
-        total: orderTotal + orderTax,
+        subtotal: subTotalHT,
+        tax: totalTVA,
+        total: totalTTC,
         payments: [],
         status: 'pending',
         customerId: selectedCustomer.id,
-    }, undefined, 'Fact-');
+    }, 'Fact-');
 
     setCheckoutOpen(true);
-  }, [order, selectedCustomer, recordSale, orderTotal, orderTax]);
+  }, [order, selectedCustomer, recordSale, subTotalHT, totalTVA, totalTTC]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
@@ -304,16 +304,24 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Card>
             )}
         </div>
-        <div className="w-full lg:w-auto">
-             <Card>
-                <CardHeader className="flex-row items-center justify-between pb-2">
-                    <CardTitle>Client</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="outline" onClick={() => setCustomerSearchOpen(true)} className="w-[300px] justify-between">
-                        {selectedCustomer ? selectedCustomer.name : "Sélectionner un client..."}
-                        <UserIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        <div className="w-full lg:w-auto grid gap-2">
+            <Label>Client</Label>
+            <Card className="w-[350px]">
+                <CardContent className="p-4 relative">
+                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
+                    {selectedCustomer ? (
+                        <div className="space-y-1 text-sm">
+                            <p className="font-semibold text-base">{selectedCustomer.name}</p>
+                            <p className="text-muted-foreground">{selectedCustomer.address}</p>
+                            <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                        </div>
+                    ) : (
+                        <div className="text-muted-foreground text-sm py-5 text-center">
+                            Aucun client sélectionné.
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -351,38 +359,38 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   return (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
                     <div className="space-y-1">
-                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                        {descriptionDisplay === 'first' && field.description && (
+                      <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                      {descriptionDisplay === 'first' && field.description && (
+                        <Textarea
+                          value={field.description}
+                          onChange={(e) => updateItemNote(field.id, e.target.value)}
+                          placeholder="Description/Note pour cet article..."
+                          className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                          rows={1}
+                        />
+                      )}
+                      {descriptionDisplay === 'both' && (
+                        <>
+                          {field.description && (
                             <Textarea
-                                value={field.description}
-                                onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                placeholder="Description/Note pour cet article..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
-                                rows={1}
+                              value={field.description}
+                              onChange={(e) => updateItemNote(field.id, e.target.value)}
+                              placeholder="Description 1..."
+                              className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                              rows={1}
                             />
-                        )}
-                        {descriptionDisplay === 'both' && (
-                            <>
-                                {field.description && (
-                                    <Textarea
-                                        value={field.description}
-                                        onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                        placeholder="Description 1..."
-                                        className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
-                                        rows={1}
-                                    />
-                                )}
-                                {field.description2 && (
-                                    <Textarea
-                                        value={field.description2}
-                                        onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                        placeholder="Description 2..."
-                                        className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
-                                        rows={1}
-                                    />
-                                )}
-                            </>
-                        )}
+                          )}
+                          {field.description2 && (
+                            <Textarea
+                              value={field.description2}
+                              onChange={(e) => updateItemNote(field.id, e.target.value)}
+                              placeholder="Description 2..."
+                              className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                              rows={1}
+                            />
+                          )}
+                        </>
+                      )}
                     </div>
                     <Input 
                         type="number" 
@@ -475,7 +483,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
-    <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={orderTotal + orderTax} />
+    <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={totalTTC} />
     </>
   );
 }
