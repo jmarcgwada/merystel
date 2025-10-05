@@ -1246,14 +1246,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       return;
     }
-    const cleanedItems = order.map(item => cleanDataForFirebase(item));
     const newHeldOrder: Omit<HeldOrder, 'id'> = {
       date: new Date(),
-      items: cleanedItems,
+      items: order,
       total: orderTotal + orderTax,
     };
-    addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
-    await clearOrder();
+    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
+    clearOrder();
   }, [order, orderTotal, orderTax, addEntity, clearOrder, toast, currentSaleContext, getDocRef]);
   
   const deleteHeldOrder = useCallback(
@@ -1443,18 +1442,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const isInvoice = currentSaleContext?.isInvoice || false;
         const prefix = isInvoice ? 'Fact-' : 'Tick-';
-        const today = new Date();
         
-        let ticketNumber = currentSaleContext?.ticketNumber || '';
+        let ticketNumber = saleData.ticketNumber || '';
         
         // Generate a new number if it's a new piece or if it's an invoice being created.
-        if (!saleIdToUpdate || (isInvoice && !ticketNumber.startsWith('Fact-'))) {
+        if (!ticketNumber || (isInvoice && !ticketNumber.startsWith('Fact-'))) {
+            const today = new Date();
             const dayMonth = format(today, 'ddMM');
             const startOfToday = startOfDay(today);
             const endOfToday = endOfDay(today);
             const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
             const todaysSalesSnapshot = await getDocs(salesQuery);
             const todaysSalesCount = todaysSalesSnapshot.size;
+
             const shortUuid = uuidv4().substring(0, 4).toUpperCase();
             ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
         }
@@ -1463,24 +1463,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const finalSale: Omit<Sale, 'id'> = {
             ...saleData,
-            date: currentSaleContext?.date || new Date(),
+            date: saleData.date || new Date(),
             ticketNumber: ticketNumber,
             userId: user.uid,
             userName: sellerName,
         };
         
+        if (saleIdToUpdate) {
+            finalSale.modifiedAt = new Date();
+        }
+        
         const finalCleanedSale = cleanDataForFirebase(finalSale);
         
         const salesCollRef = getCollectionRef('sales');
         if (salesCollRef) {
-            let saleRef;
-            if (saleIdToUpdate) {
-                saleRef = doc(salesCollRef, saleIdToUpdate);
-                batch.set(saleRef, { ...finalCleanedSale, modifiedAt: new Date() }, { merge: true });
-            } else {
-                saleRef = doc(salesCollRef);
-                batch.set(saleRef, finalCleanedSale);
-            }
+            const saleRef = saleIdToUpdate ? doc(salesCollRef, saleIdToUpdate) : doc(salesCollRef);
+            batch.set(saleRef, finalCleanedSale, { merge: true });
             setCurrentSaleId(saleRef.id);
             await batch.commit();
         }
