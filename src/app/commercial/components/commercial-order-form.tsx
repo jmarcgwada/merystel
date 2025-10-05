@@ -20,6 +20,8 @@ import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+import { Textarea } from '@/components/ui/textarea';
+
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -47,11 +49,12 @@ interface CommercialOrderFormProps {
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
+  updateItemNote: (itemId: string, note: string) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -319,13 +322,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                   return (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
-                    <div>
+                    <div className="space-y-1">
                         <Input readOnly value={field.name} className="bg-muted/50 font-semibold" />
-                         {descriptionDisplay !== 'none' && field.description && (
-                            <p className="text-xs text-muted-foreground mt-1 px-2 whitespace-pre-wrap">{field.description}</p>
-                        )}
-                        {descriptionDisplay === 'both' && field.description2 && (
-                            <p className="text-xs text-muted-foreground mt-1 px-2 whitespace-pre-wrap">{field.description2}</p>
+                        {descriptionDisplay !== 'none' && (
+                            <Textarea
+                                value={field.description || ''}
+                                onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                placeholder="Description/Note pour cet article..."
+                                className="text-xs text-muted-foreground whitespace-pre-wrap"
+                                rows={2}
+                            />
                         )}
                     </div>
                     <Input 

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 
 
 export default function CommercialPage() {
-  const { addToOrder, order, setOrder, updateQuantity, removeFromOrder } = usePos();
+  const { addToOrder, order, setOrder, updateQuantity, removeFromOrder, updateItemNote } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   
   return (
@@ -34,6 +34,7 @@ export default function CommercialPage() {
                 updateQuantity={updateQuantity}
                 removeFromOrder={removeFromOrder}
                 setSubmitHandler={setSubmitHandler}
+                updateItemNote={updateItemNote}
             />
         </div>
       </div>
