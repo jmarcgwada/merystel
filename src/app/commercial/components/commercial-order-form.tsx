@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -323,13 +322,13 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   return (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
                     <div className="space-y-1">
-                        <Input readOnly value={field.name} className="bg-muted/50 font-semibold" />
+                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0" />
                          {descriptionDisplay !== 'none' && (
                             <Textarea
                                 value={field.description || ''}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
                                 placeholder="Description/Note pour cet article..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap"
+                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0"
                                 rows={2}
                             />
                         )}
@@ -338,7 +337,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 value={field.description2 || ''}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
                                 placeholder="Description 2..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1"
+                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0"
                                 rows={2}
                             />
                         )}
@@ -348,15 +347,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         value={field.quantity}
                         onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
                         min={1} 
-                        className="text-right" 
+                        className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" 
                     />
-                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-muted/50" />
-                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-muted/50 font-mono" />
+                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" />
+                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0" />
                      <Controller
                         control={form.control}
                         name={`items.${index}.remise`}
                         render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right" />
+                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" />
                         )}
                     />
                   <div className="font-medium h-10 flex items-center justify-end px-3">
@@ -437,3 +436,5 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
+
+    
