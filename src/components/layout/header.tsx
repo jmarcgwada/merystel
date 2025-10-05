@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function Header() {
   const pathname = usePathname();
@@ -37,6 +39,11 @@ export default function Header() {
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [navDisabled, setNavDisabled] = useState(false);
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    setCurrentDate(format(new Date(), 'eeee d MMMM yyyy', { locale: fr }));
+  }, []);
 
   useEffect(() => {
     const isSalesPage = pathname.startsWith('/pos') || 
@@ -113,8 +120,14 @@ export default function Header() {
             </>
           )}
         </div>
+        
+        {user && (
+           <div className="hidden lg:block text-sm text-muted-foreground capitalize">
+             {currentDate}
+           </div>
+        )}
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 pl-4">
            {user && isKeyboardVisibleInHeader && (
               <Button 
                 variant="outline"
