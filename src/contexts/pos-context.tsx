@@ -1431,7 +1431,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const todaysSalesCount = todaysSalesSnapshot.size;
       const shortUuid = uuidv4().substring(0, 4).toUpperCase();
       
-      
       const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
       const finalSale: Omit<Sale, 'id'> = {
@@ -2263,5 +2262,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
