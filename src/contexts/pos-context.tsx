@@ -50,6 +50,7 @@ import {
   serverTimestamp,
   Timestamp,
   runTransaction,
+  CollectionReference,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -918,7 +919,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const { isRestaurantOnly, ...itemData } = data;
           const category = defaultCategories.find(c => c.id === itemData.categoryId);
           const fullItemData = { ...itemData, isRestaurantOnly: category?.isRestaurantOnly || false };
-          batch.set(ref, fullItemData);
+          batch.set(ref, { ...fullItemData, barcode: uuidv4() });
       });
       defaultTables.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
@@ -1405,17 +1406,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
         saleIdToUpdate?: string
     ) => {
-        try {
-            if (!firestore || !user) {
-                throw new Error('Services indisponibles. Impossible de sauvegarder.');
-            }
+        if (!firestore || !user || !companyId) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données indisponibles.' });
+            return;
+        }
 
+        try {
             await runTransaction(firestore, async (transaction) => {
-                const salesCollRef = getCollectionRef('sales');
+                const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
                 if (!salesCollRef) {
-                  throw new Error('La référence à la collection des ventes est invalide.');
+                    throw new Error("La référence à la collection des ventes est invalide.");
                 }
-                
+
                 let pieceRef;
                 let existingData: Partial<Sale> = {};
 
@@ -1493,7 +1495,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             console.error("Transaction failed: ", error);
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
         }
-    }, [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]);
+    }, [companyId, firestore, user, items, currentSaleContext, toast]);
   // #endregion
 
   // #region User Management & Session
@@ -2287,5 +2289,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
