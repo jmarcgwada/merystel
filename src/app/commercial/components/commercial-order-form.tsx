@@ -131,7 +131,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev : 0));
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
