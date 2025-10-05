@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -36,7 +37,9 @@
         "legalForm": { "type": "string" },
         "iban": { "type": "string" },
         "bic": { "type": "string" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "ticketCounter": { "type": "number", "description": "Counter for ticket numbers." },
+        "invoiceCounter": { "type": "number", "description": "Counter for invoice numbers." }
       },
       "required": ["name", "address", "postalCode", "city", "country", "email"]
     },
