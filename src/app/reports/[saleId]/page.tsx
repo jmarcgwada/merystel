@@ -136,7 +136,7 @@ function SaleDetailContent() {
     sale.items.forEach(item => {
       const vatInfo = getVatInfo(item.vatId);
       if (vatInfo) {
-        const taxForItem = item.total * (vatInfo.rate / 100);
+        const taxForItem = item.total * ((vatInfo?.rate || 0) / 100);
         if (breakdown[vatInfo.rate]) {
           breakdown[vatInfo.rate].total += taxForItem;
         } else {
@@ -157,12 +157,14 @@ function SaleDetailContent() {
         router.push('/reports');
     }
   }
+  
+  const pieceType = sale?.ticketNumber.startsWith('Fact-') ? 'Facture' : 'Ticket';
 
   if (isLoading) {
       return (
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
-                title="Détails de la vente"
+                title="Détails de la pièce"
                 subtitle="Chargement des données..."
             >
                 <Skeleton className="h-10 w-40" />
@@ -184,8 +186,8 @@ function SaleDetailContent() {
     return (
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 text-center">
         <Alert variant="destructive">
-            <AlertTitle>Vente introuvable</AlertTitle>
-            <AlertDescription>La vente que vous cherchez n'existe pas ou a été supprimée.</AlertDescription>
+            <AlertTitle>Pièce introuvable</AlertTitle>
+            <AlertDescription>La pièce que vous cherchez n'existe pas ou a été supprimée.</AlertDescription>
         </Alert>
         <Button asChild variant="link" className="mt-4">
             <Link href="/reports">Retour aux rapports</Link>
@@ -197,7 +199,7 @@ function SaleDetailContent() {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title={`Détail de la vente #${sale.ticketNumber}`}
+        title={`Détail ${pieceType} #${sale.ticketNumber}`}
         subtitle={
           <span className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-sm mt-1">
             <span>
@@ -370,10 +372,10 @@ function SaleDetailContent() {
                  <Card>
                     <CardHeader className="flex-row items-center gap-4 space-y-0">
                         <Utensils className="h-6 w-6 text-muted-foreground" />
-                        <CardTitle>Origine de la vente</CardTitle>
+                        <CardTitle>Origine</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p>Cette vente provient de la table : <span className="font-semibold">{sale.tableName}</span>.</p>
+                        <p>Cette pièce provient de la table : <span className="font-semibold">{sale.tableName}</span>.</p>
                     </CardContent>
                 </Card>
             )}

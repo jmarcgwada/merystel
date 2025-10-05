@@ -1265,7 +1265,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
-    [heldOrders, getDocRef, deleteEntity, toast, updateDoc]
+    [heldOrders, getDocRef, deleteEntity, toast]
   );
   
   const promoteTableToTicket = useCallback(
@@ -1405,17 +1405,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const batch = writeBatch(firestore);
         
         // Decrement stock for items with manageStock: true
-        saleData.items.forEach(orderItem => {
-            const originalItem = items.find(i => i.id === orderItem.itemId);
-            if (originalItem && originalItem.manageStock) {
-                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-                const newStock = (originalItem.stock || 0) - orderItem.quantity;
-                batch.update(itemRef, { stock: newStock });
-            }
-        });
+        if (saleData.status === 'paid') {
+          saleData.items.forEach(orderItem => {
+              const originalItem = items.find(i => i.id === orderItem.itemId);
+              if (originalItem && originalItem.manageStock) {
+                  const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                  const newStock = (originalItem.stock || 0) - orderItem.quantity;
+                  batch.update(itemRef, { stock: newStock });
+              }
+          });
+        }
 
         // If sale comes from a table, free the table.
-        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+        if (saleData.status === 'paid' && currentSaleContext?.isTableSale && currentSaleContext.tableId) {
             const tableRef = getDocRef('tables', currentSaleContext.tableId);
             if (tableRef) {
                 batch.update(tableRef, {
@@ -1429,7 +1431,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
         }
         // If sale comes from a recalled held order, delete the held order
-        if (currentSaleId && !currentSaleContext?.isTableSale) {
+        if (saleData.status === 'paid' && currentSaleId && !currentSaleContext?.isTableSale) {
             const docRef = getDocRef('heldOrders', currentSaleId);
             if (docRef) batch.delete(docRef);
         }

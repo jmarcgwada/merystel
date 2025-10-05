@@ -302,8 +302,8 @@ export default function ReportsPage() {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Rapports"
-        subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} ventes sur ${allSales?.length || 0} au total)` : "Analysez vos performances de vente."}
+        title="Rapports des pièces"
+        subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
       >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="h-4 w-4" />
@@ -338,7 +338,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nombre de ventes</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nombre de pièces</CardTitle>
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -505,7 +505,7 @@ export default function ReportsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Ticket</TableHead>
+                            <TableHead>Numéro</TableHead>
                             <TableHead>
                                <Button variant="ghost" onClick={() => requestSort('date')}>
                                     Date {getSortIcon('date')}
