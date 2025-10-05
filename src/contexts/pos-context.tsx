@@ -55,6 +55,7 @@ import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
+import { useToast } from '@/hooks/use-toast';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -1280,7 +1281,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         await updateDoc(tableRef, {
           order: orderData.map(cleanDataForFirebase),
           status: 'paying',
-          occupiedByUserId: user?.uid,
+          occupiedByUserId: table.status === 'available' ? user?.uid : table.occupiedByUserId,
           occupiedAt: table.status === 'available' ? serverTimestamp() : table.occupiedAt,
         });
         setCurrentSaleId(`table-${tableId}`);
@@ -1401,97 +1402,104 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
-  const recordSale = useCallback(async (
-    saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
-    saleIdToUpdate?: string
-) => {
-    const salesCollRef = getCollectionRef('sales');
-    if (!companyId || !firestore || !user || !salesCollRef) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Services indisponibles. Impossible de sauvegarder.' });
-        return;
-    }
+    const recordSale = useCallback(async (
+        saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
+        saleIdToUpdate?: string
+    ) => {
+        try {
+            if (!firestore || !user) {
+                throw new Error('Services indisponibles. Impossible de sauvegarder.');
+            }
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            let pieceRef;
-            let existingData: Partial<Sale> = {};
-
-            if (saleIdToUpdate) {
-                pieceRef = doc(salesCollRef, saleIdToUpdate);
-                const existingDoc = await transaction.get(pieceRef);
-                if (existingDoc.exists()) {
-                    existingData = existingDoc.data() as Sale;
+            await runTransaction(firestore, async (transaction) => {
+                const salesCollRef = getCollectionRef('sales');
+                 if (!salesCollRef) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur critique',
+                        description: 'Impossible de trouver la collection des ventes.',
+                    });
+                    throw new Error('Sales collection reference is not available.');
                 }
-            } else {
-                pieceRef = doc(salesCollRef);
-            }
 
-            const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
-            
-            const needsNumber = isFinalizing && !existingData.ticketNumber;
-            
-            let pieceNumber = existingData.ticketNumber || '';
-            
-            if (needsNumber) {
-                const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
-                
-                const startOfToday = startOfDay(new Date());
-                const endOfToday = endOfDay(new Date());
-                
-                const q = query(salesCollRef, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
-                const todaysSalesSnapshot = await transaction.get(q);
 
-                const todaysPieces = todaysSalesSnapshot.docs.map(d => d.data() as Sale);
-                const countForPrefix = todaysPieces.filter(p => p.ticketNumber?.startsWith(prefix)).length;
-                
-                const dayMonth = format(new Date(), 'ddMM');
-                const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-                pieceNumber = `${prefix}${dayMonth}-${(countForPrefix + 1).toString().padStart(4, '0')}-${shortUuid}`;
-            }
+                let pieceRef;
+                let existingData: Partial<Sale> = {};
 
-            const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-
-            const finalSaleData = cleanDataForFirebase({
-                ...existingData,
-                ...saleData,
-                userId: user.uid,
-                userName: sellerName,
-                ticketNumber: pieceNumber,
-                ...(saleIdToUpdate && !existingData.date && { date: serverTimestamp() }), // Set date on first finalization
-                ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
-                ...(!saleIdToUpdate && { date: serverTimestamp() }),
-            });
-
-            transaction.set(pieceRef, finalSaleData, { merge: true });
-
-            if (finalSaleData.status === 'paid') {
-                finalSaleData.items?.forEach((orderItem: OrderItem) => {
-                    const itemDoc = items.find(i => i.id === orderItem.itemId);
-                    if (itemDoc && itemDoc.manageStock) {
-                        const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-                        const newStock = (itemDoc.stock || 0) - orderItem.quantity;
-                        transaction.update(itemRef, { stock: newStock });
+                if (saleIdToUpdate) {
+                    pieceRef = doc(salesCollRef, saleIdToUpdate);
+                    const existingDoc = await transaction.get(pieceRef);
+                    if (existingDoc.exists()) {
+                        existingData = existingDoc.data() as Sale;
                     }
+                } else {
+                    pieceRef = doc(salesCollRef);
+                }
+
+                const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
+                const needsNumber = isFinalizing && !existingData.ticketNumber;
+
+                let pieceNumber = existingData.ticketNumber || '';
+                
+                if (needsNumber) {
+                    const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
+                    const now = new Date();
+                    const startOfToday = startOfDay(now);
+                    const endOfToday = endOfDay(now);
+                    
+                    const q = query(salesCollRef, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
+                    const todaysSalesSnapshot = await transaction.get(q);
+
+                    const todaysPieces = todaysSalesSnapshot.docs.map(d => d.data() as Sale);
+                    const countForPrefix = todaysPieces.filter(p => p.ticketNumber?.startsWith(prefix)).length;
+                    
+                    const dayMonth = format(now, 'ddMM');
+                    const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+                    pieceNumber = `${prefix}${dayMonth}-${(countForPrefix + 1).toString().padStart(4, '0')}-${shortUuid}`;
+                }
+
+                const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+
+                const finalSaleData = cleanDataForFirebase({
+                    ...existingData,
+                    ...saleData,
+                    userId: user.uid,
+                    userName: sellerName,
+                    ticketNumber: pieceNumber,
+                    date: existingData.date || serverTimestamp(), // Preserve original date if exists
+                    ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
                 });
 
-                if (finalSaleData.tableId) {
-                    const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
-                    transaction.update(tableRef, {
-                        status: 'available',
-                        order: [],
-                        occupiedByUserId: deleteField(),
-                        occupiedAt: deleteField(),
-                        closedByUserId: user.uid,
-                        closedAt: serverTimestamp(),
+                transaction.set(pieceRef, finalSaleData, { merge: true });
+
+                if (finalSaleData.status === 'paid') {
+                    finalSaleData.items?.forEach((orderItem: OrderItem) => {
+                        const itemDoc = items.find(i => i.id === orderItem.itemId);
+                        if (itemDoc && itemDoc.manageStock) {
+                            const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                            const newStock = (itemDoc.stock || 0) - orderItem.quantity;
+                            transaction.update(itemRef, { stock: newStock });
+                        }
                     });
+
+                    if (finalSaleData.tableId) {
+                        const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
+                        transaction.update(tableRef, {
+                            status: 'available',
+                            order: [],
+                            occupiedByUserId: deleteField(),
+                            occupiedAt: deleteField(),
+                            closedByUserId: user.uid,
+                            closedAt: serverTimestamp(),
+                        });
+                    }
                 }
-            }
-        });
-    } catch (error) {
-        console.error("Transaction failed: ", error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "La pièce n'a pas pu être enregistrée." });
-    }
-}, [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]);
+            });
+        } catch (error) {
+            console.error("Transaction failed: ", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "La pièce n'a pas pu être enregistrée." });
+        }
+    }, [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]);
   // #endregion
 
   // #region User Management & Session
@@ -2149,38 +2157,71 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      setShowTicketImages,
       showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
       paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       itemDisplayMode,
+      setItemDisplayMode,
       itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
+      setItemCardImageOverlayOpacity,
       itemCardTextColor,
+      setItemCardTextColor,
       itemCardShowPrice,
+      setItemCardShowPrice,
       externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
       externalLinkUrl,
+      setExternalLinkUrl,
       externalLinkTitle,
+      setExternalLinkTitle,
       externalLinkModalWidth,
+      setExternalLinkModalWidth,
       externalLinkModalHeight,
+      setExternalLinkModalHeight,
       showDashboardStats,
+      setShowDashboardStats,
       enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
       showNotifications,
+      setShowNotifications,
       notificationDuration,
+      setNotificationDuration,
       enableSerialNumber,
+      setEnableSerialNumber,
       directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
+      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       dashboardBgType,
+      setDashboardBgType,
       dashboardBackgroundColor,
+      setDashboardBackgroundColor,
       dashboardBackgroundImage,
+      setDashboardBackgroundImage,
       dashboardBgOpacity,
+      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
+      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2194,6 +2235,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoData,
       importDemoCustomers,
       cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
       holdOrder,
@@ -2203,7 +2245,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCurrentSaleId,
       setSerialNumberItem,
       setSessionInvalidated,
-      setCameFromRestaurant,
+      setCompanyInfo,
       setShowTicketImages,
       setShowItemImagesInGrid,
       setDescriptionDisplay,
