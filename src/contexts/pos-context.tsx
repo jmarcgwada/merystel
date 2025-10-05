@@ -1389,7 +1389,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Sales
   const recordSale = useCallback(
-    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleId?: string, prefix: string = 'Tick-') => {
+    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string, prefix: string = 'Tick-') => {
       if (!companyId || !firestore || !user) return;
       
       const batch = writeBatch(firestore);
@@ -1419,7 +1419,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       }
       // If sale comes from a recalled held order, delete the held order
-      if (currentSaleId && !currentSaleContext?.isTableSale) {
+      if (currentSaleId && !currentSaleId.startsWith('table-')) {
         const docRef = getDocRef('heldOrders', currentSaleId);
         if (docRef) batch.delete(docRef);
       }
@@ -1430,14 +1430,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const todaysSalesSnapshot = await getDocs(salesQuery);
       const todaysSalesCount = todaysSalesSnapshot.size;
       const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-      const ticketNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+      
       
       const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
 
       const finalSale: Omit<Sale, 'id'> = {
         ...saleData,
         date: today,
-        ticketNumber,
+        ticketNumber: saleIdToUpdate ? (currentSaleContext?.ticketNumber || 'N/A') : `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`,
         userId: user.uid,
         userName: sellerName || '',
         ...(currentSaleContext?.tableId && {
@@ -1448,9 +1448,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const salesCollRef = getCollectionRef('sales');
       if (salesCollRef) {
-          const newSaleRef = doc(salesCollRef, saleId || undefined);
-          batch.set(newSaleRef, cleanDataForFirebase(finalSale), { merge: true });
-          setCurrentSaleId(newSaleRef.id);
+          let saleRef;
+          if (saleIdToUpdate) {
+            saleRef = doc(salesCollRef, saleIdToUpdate);
+            batch.set(saleRef, { ...cleanDataForFirebase(finalSale), modifiedAt: new Date()}, { merge: true });
+          } else {
+            saleRef = doc(salesCollRef);
+            batch.set(saleRef, cleanDataForFirebase(finalSale));
+          }
+          setCurrentSaleId(saleRef.id);
           await batch.commit();
       }
     },
