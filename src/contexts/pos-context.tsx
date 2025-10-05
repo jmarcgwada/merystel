@@ -55,7 +55,6 @@ import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
-import { useToast } from '@/hooks/use-toast';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -234,7 +233,7 @@ interface PosContextType {
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -774,11 +773,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Client au comptoir', isDefault: true },
       ];
 
-      const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
-      ];
-
       const defaultItems = [
         // Boulangerie (10)
         { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456789' },
@@ -895,6 +889,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Le Nordique (Saumon fumé, crème aneth)', price: 7.50, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-NORDIQUE' },
         { name: 'L\'Italien (Jambon cru, mozza, pesto)', price: 7.20, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-ITALIEN' },
         { name: 'Le Complet (Poulet, oeuf, tomate, salade)', price: 7.00, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-COMPLET' },
+      ];
+
+      const defaultTables = [
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
       // --- Batch Write ---
@@ -1414,12 +1413,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             await runTransaction(firestore, async (transaction) => {
                 const salesCollRef = getCollectionRef('sales');
                 if (!salesCollRef) {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur critique',
-                        description: 'Impossible de trouver la collection des ventes.',
-                    });
-                    throw new Error('Sales collection reference is not available.');
+                  throw new Error('La référence à la collection des ventes est invalide.');
                 }
                 
                 let pieceRef;
@@ -1473,6 +1467,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 if (finalSaleData.status === 'paid') {
                     finalSaleData.items?.forEach((orderItem: OrderItem) => {
+                        if (!items) return;
                         const itemDoc = items.find(i => i.id === orderItem.itemId);
                         if (itemDoc && itemDoc.manageStock) {
                             const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
@@ -1496,7 +1491,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             });
         } catch (error) {
             console.error("Transaction failed: ", error);
-            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "La pièce n'a pas pu être enregistrée." });
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
         }
     }, [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]);
   // #endregion
