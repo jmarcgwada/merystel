@@ -23,7 +23,8 @@ import type {
   SelectedVariant,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import {
   useUser as useFirebaseUser,
@@ -49,8 +50,8 @@ import {
   serverTimestamp,
   Timestamp,
   runTransaction,
-  CollectionReference,
   increment,
+  CollectionReference,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -73,6 +74,7 @@ const TAKEAWAY_TABLE: Table = {
 interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
+  systemDate: Date;
   dynamicBgImage: string | null;
   enableDynamicBg: boolean;
   setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
@@ -321,6 +323,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
+  const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
@@ -386,6 +389,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSystemDate(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
@@ -1402,37 +1412,38 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
-  const recordSale = useCallback(async (
-    saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
-    saleIdToUpdate?: string
-  ) => {
-    if (!firestore || !companyId || !user) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données indisponibles.' });
-      return;
-    }
+  const recordSale = useCallback(
+    async (
+      saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
+      saleIdToUpdate?: string
+    ) => {
+      const salesCollRef = getCollectionRef('sales');
+      if (!firestore || !companyId || !user || !salesCollRef) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
+        return;
+      }
+      
+      try {
+        await runTransaction(firestore, async (transaction) => {
+          const companyRef = doc(firestore, 'companies', companyId);
+          let pieceRef;
+          let existingData: Partial<Sale> = {};
 
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        const companyRef = doc(firestore, 'companies', companyId);
-        
-        let pieceRef;
-        let existingData: Partial<Sale> = {};
-        
-        if (saleIdToUpdate) {
+          if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
-                existingData = existingDoc.data() as Sale;
+              existingData = existingDoc.data() as Sale;
             }
-        } else {
-            pieceRef = doc(collection(firestore, 'companies', companyId, 'sales'));
-        }
+          } else {
+            pieceRef = doc(salesCollRef);
+          }
 
-        const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
-        const needsNumber = isFinalizing && !existingData.ticketNumber;
-        let pieceNumber = existingData.ticketNumber || '';
+          const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
+          const needsNumber = isFinalizing && !existingData.ticketNumber;
+          let pieceNumber = existingData.ticketNumber || '';
 
-        if (needsNumber) {
+          if (needsNumber) {
             const prefix = currentSaleContext?.isInvoice ? 'Fact' : 'Tick';
             const counterField = currentSaleContext?.isInvoice ? 'invoiceCounter' : 'ticketCounter';
             const companyDoc = await transaction.get(companyRef);
@@ -1441,50 +1452,52 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             transaction.update(companyRef, { [counterField]: increment(1) });
             const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
-        }
-        
-        const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-
-        const finalSaleData = cleanDataForFirebase({
-          ...existingData,
-          ...saleData,
-          userId: user.uid,
-          userName: sellerName,
-          ticketNumber: pieceNumber,
-          date: existingData.date || serverTimestamp(), // Corrected line
-          ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
-        });
-
-        transaction.set(pieceRef, finalSaleData, { merge: true });
-
-        if (finalSaleData.status === 'paid' && !saleIdToUpdate) { // Only decrement stock for new sales
-          finalSaleData.items?.forEach((orderItem: OrderItem) => {
-            if (!items) return;
-            const itemDoc = items.find(i => i.id === orderItem.itemId);
-            if (itemDoc && itemDoc.manageStock) {
-              const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-              transaction.update(itemRef, { stock: increment(-orderItem.quantity) });
-            }
-          });
-
-          if (finalSaleData.tableId) {
-            const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
-            transaction.update(tableRef, {
-              status: 'available',
-              order: [],
-              occupiedByUserId: deleteField(),
-              occupiedAt: deleteField(),
-              closedByUserId: user.uid,
-              closedAt: serverTimestamp(),
-            });
           }
-        }
-      });
-    } catch (error) {
-      console.error("Transaction failed: ", error);
-      toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
-    }
-  }, [companyId, firestore, user, items, currentSaleContext, toast]);
+
+          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+
+          const finalSaleData = cleanDataForFirebase({
+            ...existingData,
+            ...saleData,
+            userId: user.uid,
+            userName: sellerName,
+            ticketNumber: pieceNumber,
+            date: existingData.date || serverTimestamp(),
+            ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
+          });
+          
+          transaction.set(pieceRef, finalSaleData, { merge: true });
+
+          if (finalSaleData.status === 'paid' && !saleIdToUpdate) {
+            finalSaleData.items?.forEach((orderItem: OrderItem) => {
+              if (!items) return;
+              const itemDoc = items.find(i => i.id === orderItem.itemId);
+              if (itemDoc && itemDoc.manageStock) {
+                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                transaction.update(itemRef, { stock: increment(-orderItem.quantity) });
+              }
+            });
+
+            if (finalSaleData.tableId) {
+              const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
+              transaction.update(tableRef, {
+                status: 'available',
+                order: [],
+                occupiedByUserId: deleteField(),
+                occupiedAt: deleteField(),
+                closedByUserId: user.uid,
+                closedAt: serverTimestamp(),
+              });
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Transaction failed: ", error);
+        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
+      }
+    },
+    [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]
+  );
   // #endregion
 
   // #region User Management & Session
@@ -1887,11 +1900,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     () => ({
       order,
       setOrder,
+      systemDate,
       dynamicBgImage,
-      enableDynamicBg,
-      setEnableDynamicBg,
-      dynamicBgOpacity,
-      setDynamicBgOpacity,
+      enableDynamicBg, setEnableDynamicBg,
+      dynamicBgOpacity, setDynamicBgOpacity,
       readOnlyOrder,
       setReadOnlyOrder,
       addToOrder,
@@ -2060,6 +2072,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       order,
+      systemDate,
       readOnlyOrder,
       dynamicBgImage,
       enableDynamicBg, setEnableDynamicBg,

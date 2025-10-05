@@ -33,25 +33,14 @@ export default function Header() {
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
     isKeypadOpen,
+    systemDate,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [navDisabled, setNavDisabled] = useState(false);
-  const [currentDate, setCurrentDate] = useState('');
-
-  useEffect(() => {
-    const updateDate = () => {
-      setCurrentDate(format(new Date(), 'eeee d MMMM yyyy', { locale: fr }));
-    };
-
-    updateDate(); // Set initial date
-    const intervalId = setInterval(updateDate, 60000); // Update every minute
-
-    return () => clearInterval(intervalId); // Cleanup interval on unmount
-  }, []);
-
+  
   useEffect(() => {
     const isSalesPage = pathname.startsWith('/pos') || 
                         pathname.startsWith('/supermarket') || 
@@ -130,7 +119,7 @@ export default function Header() {
         
         {user && (
            <div className="hidden lg:block text-sm text-muted-foreground capitalize">
-             {currentDate}
+             {format(systemDate, 'eeee d MMMM yyyy', { locale: fr })}
            </div>
         )}
 
