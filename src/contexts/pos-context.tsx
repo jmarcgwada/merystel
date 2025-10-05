@@ -1405,15 +1405,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
     saleIdToUpdate?: string
 ) => {
-    if (!companyId || !firestore || !user) return;
+    const salesCollRef = getCollectionRef('sales');
+    if (!companyId || !firestore || !user || !salesCollRef) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Services indisponibles. Impossible de sauvegarder.' });
+        return;
+    }
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const salesCollRef = getCollectionRef('sales');
-             if (!salesCollRef) {
-                throw new Error("Sales collection reference is not available.");
-            }
-
             let pieceRef;
             let existingData: Partial<Sale> = {};
 
@@ -1427,11 +1426,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 pieceRef = doc(salesCollRef);
             }
 
-            // A number should be generated if the piece is being finalized (paid or pending invoice)
-            // AND it doesn't already have an official number.
-            const needsNumber = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending')) 
-                && !existingData.ticketNumber?.startsWith('Fact-') 
-                && !existingData.ticketNumber?.startsWith('Tick-');
+            const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
+            const needsNumber = isFinalizing && !existingData.ticketNumber?.startsWith('Fact-') && !existingData.ticketNumber?.startsWith('Tick-');
             
             let pieceNumber = existingData.ticketNumber || '';
             let pieceDate = existingData.date || serverTimestamp();
@@ -1439,10 +1435,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (needsNumber) {
                 const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
                 
-                // Use server time for accurate daily counting
-                const today = new Date();
-                const startOfToday = startOfDay(today);
-                const endOfToday = endOfDay(today);
+                const startOfToday = startOfDay(new Date());
+                const endOfToday = endOfDay(new Date());
                 
                 const q = query(salesCollRef, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
                 const todaysSalesSnapshot = await transaction.get(q);
@@ -1450,9 +1444,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const todaysPieces = todaysSalesSnapshot.docs.map(d => d.data() as Sale);
                 const countForPrefix = todaysPieces.filter(p => p.ticketNumber?.startsWith(prefix)).length;
                 
-                const dayMonth = format(today, 'ddMM');
+                const dayMonth = format(new Date(), 'ddMM');
                 const shortUuid = uuidv4().substring(0, 4).toUpperCase();
                 pieceNumber = `${prefix}${dayMonth}-${(countForPrefix + 1).toString().padStart(4, '0')}-${shortUuid}`;
+                
+                // If it's a new finalization, set the date now
+                pieceDate = serverTimestamp();
             }
 
             const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
@@ -1464,7 +1461,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 userName: sellerName,
                 ticketNumber: pieceNumber,
                 date: pieceDate,
-                ...(!needsNumber && saleIdToUpdate && { modifiedAt: serverTimestamp() }), // Add modification date only on updates
+                ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
             });
 
             transaction.set(pieceRef, finalSaleData, { merge: true });
@@ -2287,3 +2284,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
