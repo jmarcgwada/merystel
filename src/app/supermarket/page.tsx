@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -263,10 +264,15 @@ export default function SupermarketPage() {
                       key={item.id}
                       ref={(el) => (itemRefs.current[index] = el)}
                       className={cn(
-                        "flex items-center p-0.5 cursor-pointer hover:bg-secondary",
+                        "flex items-center p-2 cursor-pointer hover:bg-secondary",
                         index === highlightedIndex && "bg-secondary border-primary"
                       )}
                       onDoubleClick={() => addToOrder(item.id)}
+                      onClick={() => {
+                        addToOrder(item.id);
+                        setSearchTerm('');
+                        setListContent([]);
+                      }}
                     >
                       {showItemImagesInGrid && (
                         <Image

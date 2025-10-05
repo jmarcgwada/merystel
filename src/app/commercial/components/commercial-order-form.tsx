@@ -323,8 +323,17 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
+            <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                {order.length > 0 && (
+                  <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Tout effacer
+                  </Button>
+                )}
+            </div>
             <div className="space-y-2">
-                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-center font-semibold text-sm text-muted-foreground px-2">
+                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
                   <span className="text-right">P.U. HT</span>
@@ -340,16 +349,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
                   return (
-                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-4 items-start">
+                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-start py-2 border-b">
                     <div className="space-y-1">
-                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0" />
+                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                         {descriptionDisplay === 'first' && field.description && (
                             <Textarea
                                 value={field.description}
                                 onChange={(e) => updateItemNote(field.id, e.target.value)}
                                 placeholder="Description/Note pour cet article..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0"
-                                rows={2}
+                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                                rows={1}
                             />
                         )}
                         {descriptionDisplay === 'both' && (
@@ -359,8 +368,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                         value={field.description}
                                         onChange={(e) => updateItemNote(field.id, e.target.value)}
                                         placeholder="Description 1..."
-                                        className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0"
-                                        rows={2}
+                                        className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                                        rows={1}
                                     />
                                 )}
                                 {field.description2 && (
@@ -368,8 +377,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                         value={field.description2}
                                         onChange={(e) => updateItemNote(field.id, e.target.value)}
                                         placeholder="Description 2..."
-                                        className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0"
-                                        rows={2}
+                                        className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                                        rows={1}
                                     />
                                 )}
                             </>
@@ -380,18 +389,18 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         value={field.quantity}
                         onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
                         min={1} 
-                        className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" 
+                        className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
                     />
-                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" />
-                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0" />
+                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                      <Controller
                         control={form.control}
                         name={`items.${index}.remise`}
                         render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0" />
+                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                         )}
                     />
-                  <div className="font-medium h-10 flex items-center justify-end px-3">
+                  <div className="font-medium h-full flex items-center justify-end">
                     {(() => {
                         const item = watchItems[index];
                         if(!item || !item.itemId) return '0.00€';
