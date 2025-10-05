@@ -263,6 +263,10 @@ const cleanDataForFirebase = (data: any): any => {
     return data.map(item => cleanDataForFirebase(item));
   }
   if (data !== null && typeof data === 'object') {
+    // This handles Firebase Timestamps and other special objects correctly
+    if (typeof data.toDate === 'function') {
+        return data;
+    }
     return Object.entries(data).reduce((acc, [key, value]) => {
       if (value !== undefined) {
         (acc as any)[key] = cleanDataForFirebase(value);
@@ -272,6 +276,7 @@ const cleanDataForFirebase = (data: any): any => {
   }
   return data;
 };
+
 
 // Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -1395,7 +1400,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Sales
   const recordSale = useCallback(
-    async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string) => {
+    async (
+      saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
+      saleIdToUpdate?: string
+    ) => {
         if (!companyId || !firestore || !user) return;
 
         const batch = writeBatch(firestore);
@@ -1438,7 +1446,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         let ticketNumber = currentSaleContext?.ticketNumber || '';
         
-        if (!saleIdToUpdate) {
+        if (
+          !saleIdToUpdate || // Always generate for new sales
+          (isInvoice && (!ticketNumber || !ticketNumber.startsWith('Fact-'))) // Or if it's an invoice being finalized without a proper number
+        ) {
             const dayMonth = format(today, 'ddMM');
             const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', new Date(today.getFullYear(), today.getMonth(), today.getDate())));
             const todaysSalesSnapshot = await getDocs(salesQuery);
