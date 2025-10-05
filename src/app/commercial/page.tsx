@@ -8,11 +8,15 @@ import { SerialNumberModal } from '../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../pos/components/variant-selection-modal';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 
 export default function CommercialPage() {
   const { addToOrder, order, setOrder, updateQuantity, removeFromOrder, updateItemNote } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
+  const [isInvoiceReady, setIsInvoiceReady] = useState(false);
+  const router = useRouter();
   
   return (
     <div className="h-full flex flex-col">
@@ -21,8 +25,13 @@ export default function CommercialPage() {
             title="Gestion Commerciale"
             subtitle="Créez une nouvelle commande ou une facture rapidement."
         >
-            {submitHandler && (
-                 <Button size="lg" onClick={submitHandler}>Générer la facture</Button>
+            {isInvoiceReady && submitHandler ? (
+                 <Button size="lg" onClick={submitHandler}>Sauvegarder la facture</Button>
+            ) : (
+                <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push('/dashboard')}>
+                    <ArrowLeft />
+                    Retour au tableau de bord
+                </Button>
             )}
         </PageHeader>
         
@@ -35,6 +44,7 @@ export default function CommercialPage() {
                 removeFromOrder={removeFromOrder}
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
+                setIsInvoiceReady={setIsInvoiceReady}
             />
         </div>
       </div>
@@ -43,5 +53,6 @@ export default function CommercialPage() {
     </div>
   );
 }
+
 
 

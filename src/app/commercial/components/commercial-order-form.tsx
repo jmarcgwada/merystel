@@ -21,6 +21,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 
 
 const orderItemSchema = z.object({
@@ -50,15 +51,17 @@ interface CommercialOrderFormProps {
   removeFromOrder: (itemId: string) => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
   updateItemNote: (itemId: string, note: string) => void;
+  setIsInvoiceReady: (isReady: boolean) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay } = usePos();
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, orderTotal, orderTax, recordSale } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isCheckoutOpen, setCheckoutOpen] = useState(false);
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +84,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [order, form]);
   
   const watchItems = form.watch('items');
+
+  useEffect(() => {
+    const isReady = !!selectedCustomer && watchItems.length > 0;
+    setIsInvoiceReady(isReady);
+  }, [selectedCustomer, watchItems, setIsInvoiceReady]);
 
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -123,7 +131,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+      setHighlightedIndex(prev => (prev > 0 ? prev : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
@@ -213,10 +221,21 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;
 
-  const onSubmit = useCallback((data: CommercialOrderFormValues) => {
-    console.log(data);
-    toast({ title: 'Facture générée (simulation)' });
-  }, [toast]);
+  const onSubmit = useCallback(() => {
+    if (order.length === 0 || !selectedCustomer) return;
+    
+    recordSale({
+        items: order,
+        subtotal: orderTotal,
+        tax: orderTax,
+        total: orderTotal + orderTax,
+        payments: [],
+        status: 'pending',
+        customerId: selectedCustomer.id,
+    }, undefined, 'Fact-');
+
+    setCheckoutOpen(true);
+  }, [order, selectedCustomer, recordSale, orderTotal, orderTax]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
@@ -447,6 +466,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </Card>
     
     <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
+    <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={orderTotal + orderTax} />
     </>
   );
 }
