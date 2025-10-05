@@ -333,7 +333,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 )}
             </div>
             <div className="space-y-2">
-                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3">
+                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
                   <span className="text-right">P.U. HT</span>
@@ -349,7 +349,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
                   return (
-                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-start py-2 border-b">
+                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
                     <div className="space-y-1">
                         <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                         {descriptionDisplay === 'first' && field.description && (
