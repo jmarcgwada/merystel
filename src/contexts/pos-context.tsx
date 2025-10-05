@@ -50,6 +50,7 @@ import {
   deleteField,
   serverTimestamp,
   Timestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import type { CombinedUser } from '@/firebase/auth/use-user';
 import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -266,7 +267,7 @@ const cleanDataForFirebase = (data: any): any => {
   }
   if (data !== null && typeof data === 'object') {
     // This handles Firebase Timestamps and other special objects correctly
-    if (typeof data.toDate === 'function') {
+    if (typeof data.toDate === 'function' || data instanceof Timestamp) {
         return data;
     }
     return Object.entries(data).reduce((acc, [key, value]) => {
@@ -1401,89 +1402,98 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
-    const recordSale = useCallback(
-    async (
-      saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
-      saleIdToUpdate?: string
+    const recordSale = useCallback(async (
+        saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
+        saleIdToUpdate?: string
     ) => {
-      if (!companyId || !firestore || !user) return;
-
-      const batch = writeBatch(firestore);
-      let pieceNumber = saleData.ticketNumber || '';
-      
-      // Decrement stock for paid items
-      if (saleData.status === 'paid') {
-        saleData.items.forEach(orderItem => {
-          const originalItem = items.find(i => i.id === orderItem.itemId);
-          if (originalItem && originalItem.manageStock) {
-            const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-            const newStock = (originalItem.stock || 0) - orderItem.quantity;
-            batch.update(itemRef, { stock: newStock });
-          }
-        });
-      }
-
-      // Free table if the sale is paid and comes from a table
-      if (saleData.status === 'paid' && currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-        const tableRef = getDocRef('tables', currentSaleContext.tableId);
-        if (tableRef) {
-          batch.update(tableRef, {
-            status: 'available',
-            order: [],
-            occupiedByUserId: deleteField(),
-            occupiedAt: deleteField(),
-            closedByUserId: user.uid,
-            closedAt: serverTimestamp(),
-          });
-        }
-      }
-      
-      // Generate piece number if it doesn't exist and the piece is being finalized
-      if (!pieceNumber && (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'))) {
-        const today = new Date();
-        const startOfToday = startOfDay(today);
-        const endOfToday = endOfDay(today);
-        const salesQuery = query(getCollectionRef('sales')!, where('date', '>=', startOfToday), where('date', '<=', endOfToday));
-        const todaysSalesSnapshot = await getDocs(salesQuery);
-        const todaysSalesCount = todaysSalesSnapshot.size;
-
-        const dayMonth = format(today, 'ddMM');
-        const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-        const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
-        pieceNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
-      }
-      
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-
-      const finalSaleData: any = {
-        ...saleData,
-        userId: user.uid,
-        userName: sellerName,
-        items: saleData.items.map(cleanDataForFirebase),
-      };
-
-      if (pieceNumber) {
-        finalSaleData.ticketNumber = pieceNumber;
-      }
-      
-      const salesCollRef = getCollectionRef('sales');
-      if (salesCollRef) {
-        const docRef = saleIdToUpdate ? doc(salesCollRef, saleIdToUpdate) : doc(salesCollRef);
+        if (!companyId || !firestore || !user) return;
         
-        if (saleIdToUpdate) {
-            finalSaleData.modifiedAt = serverTimestamp();
-        } else {
-            finalSaleData.date = serverTimestamp();
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
+                let pieceNumber = saleData.ticketNumber || '';
+                let isNewPiece = !saleIdToUpdate;
+                
+                let pieceRef;
+                let existingData: Partial<Sale> = {};
+
+                if (saleIdToUpdate) {
+                    pieceRef = doc(salesCollRef, saleIdToUpdate);
+                    const existingDoc = await transaction.get(pieceRef);
+                    if (existingDoc.exists()) {
+                        existingData = existingDoc.data() as Sale;
+                        isNewPiece = !existingData.ticketNumber; // It's new if it has no number yet.
+                    }
+                } else {
+                    pieceRef = doc(salesCollRef);
+                }
+
+                if (isNewPiece && (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'))) {
+                    const today = new Date();
+                    const startOfToday = startOfDay(today);
+                    const endOfToday = endOfDay(today);
+                    
+                    const prefix = currentSaleContext?.isInvoice ? 'Fact-' : 'Tick-';
+                    
+                    const q = query(salesCollRef, where("date", ">=", startOfToday), where("date", "<=", endOfToday), where("ticketNumber", ">=", prefix), where("ticketNumber", "<", prefix + 'z'));
+                    const todaysSalesSnapshot = await getDocs(q);
+                    
+                    const todaysSalesCount = todaysSalesSnapshot.size;
+                    
+                    const dayMonth = format(today, 'ddMM');
+                    const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+                    pieceNumber = `${prefix}${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}-${shortUuid}`;
+                }
+
+                const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+
+                const finalSaleData: Partial<Sale> = cleanDataForFirebase({
+                    ...existingData,
+                    ...saleData,
+                    items: saleData.items.map(cleanDataForFirebase),
+                    userId: user.uid,
+                    userName: sellerName,
+                    ...(pieceNumber && { ticketNumber: pieceNumber }),
+                    ...(isNewPiece && { date: serverTimestamp() }),
+                    ...(!isNewPiece && { modifiedAt: serverTimestamp() }),
+                });
+
+                transaction.set(pieceRef, finalSaleData, { merge: true });
+
+                // Handle stock decrement and table freeing in the same transaction
+                if (finalSaleData.status === 'paid') {
+                    finalSaleData.items?.forEach(orderItem => {
+                        const originalItem = items.find(i => i.id === orderItem.itemId);
+                        if (originalItem && originalItem.manageStock) {
+                            const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                            const newStock = (originalItem.stock || 0) - orderItem.quantity;
+                            transaction.update(itemRef, { stock: newStock });
+                        }
+                    });
+
+                    if (finalSaleData.tableId) {
+                        const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
+                        transaction.update(tableRef, {
+                            status: 'available',
+                            order: [],
+                            occupiedByUserId: deleteField(),
+                            occupiedAt: deleteField(),
+                            closedByUserId: user.uid,
+                            closedAt: serverTimestamp(),
+                        });
+                    }
+                }
+            });
+            
+            // Set the current sale ID for context after successful transaction
+            const finalDoc = await getDoc(doc(salesCollRef, saleIdToUpdate || ''));
+            if(finalDoc.exists()) setCurrentSaleId(finalDoc.id);
+
+        } catch (error) {
+            console.error("Transaction failed: ", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "La pièce n'a pas pu être enregistrée." });
         }
-        
-        batch.set(docRef, cleanDataForFirebase(finalSaleData), { merge: true });
-        setCurrentSaleId(docRef.id);
-      }
-      
-      await batch.commit();
-    },
-    [companyId, firestore, user, items, currentSaleContext, getCollectionRef, getDocRef]
-  );
+    }, [companyId, firestore, user, items, currentSaleContext, toast]);
   // #endregion
 
   // #region User Management & Session
@@ -2243,4 +2253,3 @@ export function usePos() {
   }
   return context;
 }
-
