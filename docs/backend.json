@@ -123,7 +123,7 @@
       "required": ["name", "number", "status", "order"]
     },
     "Sale": {
-      "$schema": "http://json-schema.org/draft-07_schema#",
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Sale",
       "type": "object",
       "description": "Represents a completed sale transaction.",

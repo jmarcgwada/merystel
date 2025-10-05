@@ -24,7 +24,7 @@ import type {
   SelectedVariant,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import {
   useUser as useFirebaseUser,
@@ -1415,19 +1415,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     try {
       await runTransaction(firestore, async (transaction) => {
         const companyRef = doc(firestore, 'companies', companyId);
-        const salesCollRef = collection(companyRef, 'sales');
         
         let pieceRef;
         let existingData: Partial<Sale> = {};
 
         if (saleIdToUpdate) {
-          pieceRef = doc(salesCollRef, saleIdToUpdate);
+          pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
           const existingDoc = await transaction.get(pieceRef);
           if (existingDoc.exists()) {
             existingData = existingDoc.data() as Sale;
           }
         } else {
-          pieceRef = doc(salesCollRef);
+          pieceRef = doc(collection(firestore, 'companies', companyId, 'sales'));
         }
 
         const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
@@ -1435,17 +1434,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         let pieceNumber = existingData.ticketNumber || '';
 
         if (needsNumber) {
-          const prefix = currentSaleContext?.isInvoice ? 'invoice' : 'ticket';
-          const counterField = prefix === 'invoice' ? 'invoiceCounter' : 'ticketCounter';
-          
-          const companyDoc = await transaction.get(companyRef);
-          const currentCounter = companyDoc.data()?.[counterField] || 0;
-          const newCount = currentCounter + 1;
-          
-          transaction.update(companyRef, { [counterField]: increment(1) });
-          
-          const dayMonth = format(new Date(), 'ddMM');
-          pieceNumber = `${prefix === 'invoice' ? 'Fact' : 'Tick'}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
+            const prefix = currentSaleContext?.isInvoice ? 'Fact' : 'Tick';
+            const counterField = currentSaleContext?.isInvoice ? 'invoiceCounter' : 'ticketCounter';
+            
+            const companyDoc = await transaction.get(companyRef);
+            const currentCounter = companyDoc.data()?.[counterField] || 0;
+            const newCount = currentCounter + 1;
+            
+            transaction.update(companyRef, { [counterField]: newCount });
+            
+            const dayMonth = format(new Date(), 'ddMM');
+            pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
         }
         
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
@@ -1456,7 +1455,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           userId: user.uid,
           userName: sellerName,
           ticketNumber: pieceNumber,
-          date: existingData.date || serverTimestamp(), // Use serverTimestamp for new documents
+          date: existingData.date || serverTimestamp(),
           ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
         });
 
