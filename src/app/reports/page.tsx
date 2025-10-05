@@ -33,7 +33,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
 const ITEMS_PER_PAGE = 20;
 
-const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp, showIcon?: boolean }) => {
+const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
@@ -125,7 +125,7 @@ export default function ReportsPage() {
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
         if (saleUser?.firstName && saleUser?.lastName) {
-            return `${saleUser.firstName} ${saleUser.lastName}`;
+            return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
@@ -136,7 +136,7 @@ export default function ReportsPage() {
 
         // Apply filters
         let filteredSales = allSales.filter(sale => {
-            const customerName = sale.customerId ? getCustomerName(sale.customerId) : 'Client au comptoir';
+            const customerName = getCustomerName(sale.customerId);
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             const statusMatch = filterStatus === 'all' || (sale.status === filterStatus) || (!sale.payments || sale.payments.length === 0 && filterStatus === 'pending');

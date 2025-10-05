@@ -263,16 +263,12 @@ const cleanDataForFirebase = (data: any): any => {
     return data.map(item => cleanDataForFirebase(item));
   }
   if (data !== null && typeof data === 'object') {
-    const cleanedData: { [key: string]: any } = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        const value = data[key];
-        if (value !== undefined) {
-          cleanedData[key] = cleanDataForFirebase(value);
-        }
+    return Object.entries(data).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        (acc as any)[key] = cleanDataForFirebase(value);
       }
-    }
-    return cleanedData;
+      return acc;
+    }, {});
   }
   return data;
 };
@@ -1455,10 +1451,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const finalSale: Omit<Sale, 'id'> = {
             ...saleData,
-            date: currentSaleContext?.date || today,
-            ticketNumber,
+            date: currentSaleContext?.date || new Date(),
+            ticketNumber: ticketNumber,
             userId: user.uid,
-            userName: sellerName || '',
+            userName: sellerName,
         };
         
         const finalCleanedSale = cleanDataForFirebase(finalSale);

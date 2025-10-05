@@ -57,7 +57,7 @@ interface CommercialOrderFormProps {
 const MAX_SEARCH_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, setCurrentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -156,7 +156,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const handleShowAll = () => {
     if (allItems) {
       setSearchTerm('');
-      setListContent(allItems.slice(0, MAX_SEARCH_ITEMS));
+      setListContent(allItems.slice(0, MAX_INITIAL_ITEMS));
       setHighlightedIndex(-1);
       searchInputRef.current?.focus();
     }
@@ -224,6 +224,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const onSubmit = useCallback(() => {
     if (order.length === 0 || !selectedCustomer) return;
     
+    // Set the context to indicate this is an invoice
+    setCurrentSaleContext({ isInvoice: true });
+
     recordSale({
         items: order,
         subtotal: subTotalHT,
@@ -232,10 +235,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         payments: [],
         status: 'pending',
         customerId: selectedCustomer.id,
-    }, 'Fact-');
+    });
 
     setCheckoutOpen(true);
-  }, [order, selectedCustomer, recordSale, subTotalHT, totalTVA, totalTTC]);
+  }, [order, selectedCustomer, recordSale, subTotalHT, totalTVA, totalTTC, setCurrentSaleContext]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
@@ -340,7 +343,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                   </Button>
                 )}
             </div>
-            <div className="space-y-2">
+            <div className="flex-1 space-y-2">
                 <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2">
                   <span>Désignation</span>
                   <span className="text-right">Qté</span>
@@ -358,14 +361,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                   return (
                   <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
-                    <div className="space-y-1">
+                    <div className="flex flex-col h-full justify-center">
                       <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                       {descriptionDisplay === 'first' && field.description && (
                         <Textarea
                           value={field.description}
                           onChange={(e) => updateItemNote(field.id, e.target.value)}
                           placeholder="Description/Note pour cet article..."
-                          className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                          className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
                           rows={1}
                         />
                       )}
@@ -376,7 +379,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                               value={field.description}
                               onChange={(e) => updateItemNote(field.id, e.target.value)}
                               placeholder="Description 1..."
-                              className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                              className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
                               rows={1}
                             />
                           )}
