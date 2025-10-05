@@ -39,11 +39,13 @@ export default function Header() {
   const [navDisabled, setNavDisabled] = useState(false);
 
   useEffect(() => {
-    const isSupermarketPage = pathname.startsWith('/supermarket');
-    const isPosPage = pathname.startsWith('/pos');
-    // Disable nav if in supermarket with items in order OR if keypad is open in POS
-    setNavDisabled((isSupermarketPage && order.length > 0) || (isPosPage && isKeypadOpen));
-  }, [pathname, order.length, isKeypadOpen]);
+    const isSalesPage = pathname.startsWith('/pos') || 
+                        pathname.startsWith('/supermarket') || 
+                        pathname.startsWith('/restaurant') || 
+                        pathname.startsWith('/commercial');
+
+    setNavDisabled(isSalesPage);
+  }, [pathname]);
 
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
