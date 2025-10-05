@@ -86,7 +86,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     addToOrder(item.id);
   }
 
-  // --- Search Logic from Supermarket ---
+  // --- Search Logic ---
   const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
     if (!allItems) {
       setListContent([]);
@@ -257,7 +257,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 key={item.id}
                                 ref={(el) => (itemRefs.current[index] = el)}
                                 className={cn(
-                                    "p-2 rounded-md cursor-pointer flex justify-between items-center",
+                                    "flex items-center justify-between p-2 rounded-md cursor-pointer",
                                     index === highlightedIndex && "bg-secondary"
                                 )}
                                 onClick={() => {
@@ -265,6 +265,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                     setSearchTerm('');
                                     setListContent([]);
                                 }}
+                                onMouseEnter={() => setHighlightedIndex(index)}
                                 >
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold text-sm">{item.name}</p>
@@ -410,3 +411,5 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     </>
   );
 }
+
+    
