@@ -242,11 +242,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (order.length === 0 || !selectedCustomer) return;
     
     // Set the context to indicate this is an invoice
-    setCurrentSaleContext(prev => ({ ...prev, isInvoice: true, customerId: selectedCustomer.id }));
+    setCurrentSaleContext(prev => ({ ...prev, isInvoice: true, customerId: selectedCustomer.id, acompte }));
 
     // Open checkout modal directly. The sale will be recorded from there.
     setCheckoutOpen(true);
-  }, [order, selectedCustomer, setCurrentSaleContext]);
+  }, [order, selectedCustomer, setCurrentSaleContext, acompte]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
