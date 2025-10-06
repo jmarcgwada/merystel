@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -1239,7 +1238,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
             occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
+            closedAt: serverTimestamp(),
         });
       } catch (error) {
         console.error('Error updating table order:', error);
@@ -2275,4 +2274,3 @@ export function usePos() {
   }
   return context;
 }
-
