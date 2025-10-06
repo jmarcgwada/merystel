@@ -370,40 +370,18 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                     return (
                     <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
-                      <div className="flex flex-col h-full justify-center">
-                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                        {descriptionDisplay === 'first' && field.description && (
-                          <Textarea
-                            value={field.description}
-                            onChange={(e) => updateItemNote(field.id, e.target.value)}
-                            placeholder="Description/Note pour cet article..."
-                            className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
-                            rows={1}
-                          />
-                        )}
-                        {descriptionDisplay === 'both' && (
-                          <>
-                            {field.description && (
-                              <Textarea
-                                value={field.description}
-                                onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                placeholder="Description 1..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
-                                rows={1}
-                              />
-                            )}
-                            {field.description2 && (
-                              <Textarea
-                                value={field.description2}
-                                onChange={(e) => updateItemNote(field.id, e.target.value)}
-                                placeholder="Description 2..."
-                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
-                                rows={1}
-                              />
-                            )}
-                          </>
-                        )}
-                      </div>
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{field.name}</span>
+                          {descriptionDisplay === 'first' && field.description && (
+                            <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>
+                          )}
+                          {descriptionDisplay === 'both' && (
+                            <>
+                              {field.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>}
+                              {field.description2 && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description2}</p>}
+                            </>
+                          )}
+                        </div>
                       <Input 
                           type="number" 
                           value={field.quantity}
