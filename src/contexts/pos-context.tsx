@@ -1283,8 +1283,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       items: order,
       total: orderTotal + orderTax,
     };
-    await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
-    clearOrder();
+    addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
+    await clearOrder();
   }, [order, orderTotal, orderTax, addEntity, clearOrder, toast, currentSaleContext, getDocRef]);
   
   const deleteHeldOrder = useCallback(
@@ -1442,6 +1442,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+        const today = Timestamp.now();
         
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
@@ -1449,14 +1450,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let existingData: Partial<Sale> = {};
           const isNewPiece = !saleIdToUpdate;
           
-          let saleDate = new Date();
+          let saleDate = today;
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
               existingData = existingDoc.data() as Sale;
-              saleDate = existingData.date || new Date();
+              saleDate = existingData.date || today;
             }
           } else {
             const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
@@ -1486,7 +1487,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...saleData,
             id: pieceRef.id,
             date: saleDate, // Use original date on update, new date on create
-            modifiedAt: isNewPiece ? undefined : serverTimestamp(),
+            modifiedAt: isNewPiece ? undefined : today,
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
@@ -1513,7 +1514,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               occupiedByUserId: deleteField(),
               occupiedAt: deleteField(),
               closedByUserId: user.uid,
-              closedAt: serverTimestamp(),
+              closedAt: today,
             });
           }
         });
@@ -2261,5 +2262,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
