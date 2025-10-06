@@ -174,5 +174,3 @@ export interface User {
   sessionToken?: string;
   isDisabled?: boolean;
 }
-
-    

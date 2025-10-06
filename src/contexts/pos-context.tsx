@@ -317,7 +317,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useShadcnToast();
+  const { toast } = useShadcnToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -381,14 +381,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
+  const showToast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
-      shadcnToast({
+      toast({
         ...props,
         duration: props?.duration || notificationDuration,
       });
     }
-  }, [showNotifications, notificationDuration, shadcnToast]);
+  }, [showNotifications, notificationDuration, toast]);
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -501,15 +501,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         const docRef = await addDoc(ref, cleanDataForFirebase(data));
-        toast({ title: toastTitle });
+        showToast({ title: toastTitle });
         return { ...data, id: docRef.id };
       } catch (error) {
         console.error(`Error adding ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: `Erreur lors de l'ajout` });
+        showToast({ variant: 'destructive', title: `Erreur lors de l'ajout` });
         return null;
       }
     },
-    [getCollectionRef, toast]
+    [getCollectionRef, showToast]
   );
 
   const updateEntity = useCallback(
@@ -526,13 +526,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         await setDoc(ref, cleanDataForFirebase(data), { merge: true });
-        if(toastTitle) toast({ title: toastTitle });
+        if(toastTitle) showToast({ title: toastTitle });
       } catch (error) {
         console.error(`Error updating ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: 'Erreur de mise à jour' });
+        showToast({ variant: 'destructive', title: 'Erreur de mise à jour' });
       }
     },
-    [getDocRef, toast]
+    [getDocRef, showToast]
   );
 
   const deleteEntity = useCallback(
@@ -543,24 +543,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         await deleteDoc(ref);
-        toast({ title: toastTitle });
+        showToast({ title: toastTitle });
       } catch (error) {
         console.error(`Error deleting ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: 'Erreur de suppression' });
+        showToast({ variant: 'destructive', title: 'Erreur de suppression' });
       }
     },
-    [getDocRef, toast]
+    [getDocRef, showToast]
   );
   // #endregion
 
   // #region Config Import/Export
     const exportConfiguration = useCallback(async () => {
         if (!companyId || !firestore) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            showToast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
 
-        toast({ title: 'Exportation en cours...' });
+        showToast({ title: 'Exportation en cours...' });
         try {
             const collectionsToExport = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
             const config: { [key: string]: any[] } = {};
@@ -586,16 +586,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            toast({ title: 'Exportation réussie', description: 'Le fichier de configuration a été téléchargé.' });
+            showToast({ title: 'Exportation réussie', description: 'Le fichier de configuration a été téléchargé.' });
         } catch (error) {
             console.error("Error exporting configuration:", error);
-            toast({ variant: 'destructive', title: 'Erreur d\'exportation' });
+            showToast({ variant: 'destructive', title: 'Erreur d\'exportation' });
         }
-    }, [companyId, firestore, toast]);
+    }, [companyId, firestore, showToast]);
 
     const importConfiguration = useCallback(async (file: File) => {
         if (!companyId || !firestore) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            showToast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
 
@@ -604,7 +604,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             try {
                 const jsonString = event.target?.result as string;
                 const config = JSON.parse(jsonString);
-                toast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
+                showToast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
 
                 // 1. Delete existing data
                 const collectionsToDelete = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
@@ -637,27 +637,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
                 await importBatch.commit();
                 
-                toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée. L\'application va se recharger.' });
+                showToast({ title: 'Importation réussie!', description: 'La configuration a été restaurée. L\'application va se recharger.' });
                 
                 // Force reload to reflect all changes
                 setTimeout(() => window.location.reload(), 2000);
             } catch (error) {
                 console.error("Error importing configuration:", error);
-                toast({ variant: 'destructive', title: 'Erreur d\'importation', description: 'Le fichier est peut-être invalide ou corrompu.' });
+                showToast({ variant: 'destructive', title: 'Erreur d\'importation', description: 'Le fichier est peut-être invalide ou corrompu.' });
             }
         };
         reader.readAsText(file);
-    }, [companyId, firestore, toast]);
+    }, [companyId, firestore, showToast]);
   // #endregion
 
   // #region Data Seeding
   const importDemoData = useCallback(async () => {
     if (!firestore || !companyId || !vatRates) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Les services ne sont pas prêts.' });
+        showToast({ variant: 'destructive', title: 'Erreur', description: 'Les services ne sont pas prêts.' });
         return;
     }
 
-    toast({ title: 'Importation des données de démo...' });
+    showToast({ title: 'Importation des données de démo...' });
     
     try {
         const batch = writeBatch(firestore);
@@ -666,7 +666,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
 
         if (!defaultVatId) {
-            toast({ variant: 'destructive', title: 'Erreur de configuration', description: 'Aucun taux de TVA n\'est configuré. Veuillez en ajouter un avant d\'importer.' });
+            showToast({ variant: 'destructive', title: 'Erreur de configuration', description: 'Aucun taux de TVA n\'est configuré. Veuillez en ajouter un avant d\'importer.' });
             return;
         }
 
@@ -690,19 +690,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
 
         await batch.commit();
-        toast({ title: 'Importation réussie', description: 'Les articles et catégories de démonstration ont été ajoutés.' });
+        showToast({ title: 'Importation réussie', description: 'Les articles et catégories de démonstration ont été ajoutés.' });
     } catch (error) {
         console.error('Error importing demo data:', error);
-        toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+        showToast({ variant: 'destructive', title: 'Erreur d\'importation' });
     }
-  }, [firestore, companyId, vatRates, toast]);
+  }, [firestore, companyId, vatRates, showToast]);
 
     const importDemoCustomers = useCallback(async () => {
     if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
+      showToast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
       return;
     }
-    toast({ title: 'Importation des clients de démo...' });
+    showToast({ title: 'Importation des clients de démo...' });
 
     const demoCustomers = [
       { name: 'Alice Martin', email: 'alice.martin@example.com', phone: '0612345678', address: '12 Rue de la Paix', postalCode: '75002', city: 'Paris', country: 'France' },
@@ -727,23 +727,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
 
       await batch.commit();
-      toast({ title: 'Clients de démo ajoutés', description: '10 clients fictifs ont été ajoutés à votre liste.' });
+      showToast({ title: 'Clients de démo ajoutés', description: '10 clients fictifs ont été ajoutés à votre liste.' });
     } catch (error) {
       console.error('Error importing demo customers:', error);
-      toast({ variant: 'destructive', title: 'Erreur d\'importation des clients' });
+      showToast({ variant: 'destructive', title: 'Erreur d\'importation des clients' });
     }
-  }, [firestore, companyId, toast]);
+  }, [firestore, companyId, showToast]);
 
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+      showToast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
       return;
     }
 
     const canSeed = !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
 
     if (!canSeed) {
-      toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données de configuration existent déjà." });
+      showToast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données de configuration existent déjà." });
       return;
     }
 
@@ -933,16 +933,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       
       await batch.commit();
-      toast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
+      showToast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
     } catch (error) {
       console.error('Error seeding data:', error);
-      toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
+      showToast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
     }
-  }, [firestore, companyId, categories, vatRates, paymentMethods, toast]);
+  }, [firestore, companyId, categories, vatRates, paymentMethods, showToast]);
 
     const resetAllData = useCallback(async () => {
         if (!firestore || !companyId) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+            showToast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
             return;
         }
 
@@ -962,13 +962,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
 
             await batch.commit();
-            toast({ title: 'Réinitialisation réussie', description: 'Toutes les données de l\'application ont été supprimées.' });
+            showToast({ title: 'Réinitialisation réussie', description: 'Toutes les données de l\'application ont été supprimées.' });
         } catch (error) {
             console.error('Error resetting data:', error);
-            toast({ variant: 'destructive', title: 'Erreur de réinitialisation', description: 'Une erreur s\'est produite lors de la suppression des données.' });
+            showToast({ variant: 'destructive', title: 'Erreur de réinitialisation', description: 'Une erreur s\'est produite lors de la suppression des données.' });
         }
 
-    }, [firestore, companyId, getCollectionRef, toast]);
+    }, [firestore, companyId, getCollectionRef, showToast]);
   // #endregion
 
   // #region Order Management
@@ -976,18 +976,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
     }
-    if(selectedTable) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-          await updateDoc(tableRef, { lockedBy: deleteField() });
-        }
-    }
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [selectedTable, getDocRef, readOnlyOrder]);
+  }, [readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1030,8 +1024,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
     if(item.image) setDynamicBgImage(item.image);
     triggerItemHighlight(item.id);
-    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
-  }, [toast]);
+    showToast({ title: `${item.name} ajouté/mis à jour dans la commande` });
+  }, [showToast]);
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -1082,18 +1076,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             discount: 0,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
-            barcode: itemToAdd.barcode,
             selectedVariants,
             serialNumbers: [],
+            barcode: itemToAdd.barcode,
           };
           return [newItem, ...currentOrder];
         }
       });
       if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
       triggerItemHighlight(uniqueId);
-      toast({ title: `${itemToAdd.name} ajouté à la commande` });
+      showToast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, order, toast, enableSerialNumber]
+    [items, order, showToast, enableSerialNumber]
   );
 
   const updateQuantity = useCallback(
@@ -1146,8 +1140,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         item.id === itemId ? { ...item, note } : item
       )
     );
-    toast({ title: 'Note ajoutée à l\'article.' });
-  }, [toast]);
+    showToast({ title: 'Note ajoutée à l\'article.' });
+  }, [showToast]);
 
   const applyDiscount = useCallback(
     (
@@ -1212,10 +1206,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           tableName: orderToRecall.tableName,
       });
       await deleteEntity('heldOrders', orderId, '');
-      toast({ title: 'Commande rappelée' });
+      showToast({ title: 'Commande rappelée' });
       routerRef.current.push('/pos');
     }
-  }, [deleteEntity, toast]);
+  }, [deleteEntity, showToast]);
 
   const setSelectedTableById = useCallback(
     (tableId: string | null) => {
@@ -1255,7 +1249,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     if (order.length === 0) {
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Commande vide',
         description: 'Ajoutez des articles avant de mettre en attente.',
@@ -1269,7 +1263,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     await addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
     clearOrder();
-  }, [order, orderTotal, orderTax, addEntity, clearOrder, toast, currentSaleContext, getDocRef]);
+  }, [order, orderTotal, orderTax, addEntity, clearOrder, showToast, currentSaleContext, getDocRef]);
   
   const deleteHeldOrder = useCallback(
     async (orderId: string) => {
@@ -1282,7 +1276,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
       await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
     },
-    [heldOrders, getDocRef, deleteEntity, toast]
+    [heldOrders, getDocRef, deleteEntity, showToast]
   );
   
   const promoteTableToTicket = useCallback(
@@ -1305,10 +1299,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (error) {
         console.error('Error promoting table to ticket:', error);
-        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+        showToast({ variant: 'destructive', title: 'Erreur de clôture' });
       }
     },
-    [getDocRef, toast, tables, user]
+    [getDocRef, showToast, tables, user]
   );
 
   const updateTableOrder = useCallback(
@@ -1327,10 +1321,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (error) {
         console.error('Error updating table order:', error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
+        showToast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
       }
     },
-    [getDocRef, toast, tables, user]
+    [getDocRef, showToast, tables, user]
   );
 
   const saveTableOrderAndExit = useCallback(
@@ -1347,11 +1341,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
             closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
           });
-          toast({ title: 'Table sauvegardée' });
+          showToast({ title: 'Table sauvegardée' });
           await clearOrder();
       }
     },
-    [getDocRef, clearOrder, toast, tables, user]
+    [getDocRef, clearOrder, showToast, tables, user]
   );
 
   const forceFreeTable = useCallback(
@@ -1382,9 +1376,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       }
       await batch.commit();
-      toast({ title: 'Table libérée' });
+      showToast({ title: 'Table libérée' });
     },
-    [firestore, getDocRef, heldOrders, toast, user]
+    [firestore, getDocRef, heldOrders, showToast, user]
   );
 
   const addTable = useCallback(
@@ -1420,7 +1414,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saleIdToUpdate?: string
     ) => {
       if (!firestore || !companyId || !user) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
+        showToast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
         return;
       }
 
@@ -1433,7 +1427,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let existingData: Partial<Sale> = {};
           const isNewPiece = !saleIdToUpdate;
           
-          const today = new Date();
+          const today = Timestamp.fromDate(new Date());
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
@@ -1460,7 +1454,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             transaction.update(companyRef, { [counterField]: increment(1) });
             
-            const dayMonth = format(today, 'ddMM');
+            const dayMonth = format(today.toDate(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
@@ -1468,7 +1462,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...existingData,
             ...saleData,
             id: pieceRef.id,
-            date: isNewPiece ? today : existingData.date,
+            date: isNewPiece ? today : (existingData.date || today),
             modifiedAt: isNewPiece ? undefined : today,
             userId: user.uid,
             userName: sellerName,
@@ -1502,10 +1496,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (error) {
         console.error("Transaction failed: ", error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
+        showToast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
       }
     },
-    [companyId, firestore, user, items, currentSaleContext, toast]
+    [companyId, firestore, user, items, currentSaleContext, showToast]
   );
   // #endregion
 
@@ -1514,7 +1508,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
       const authInstance = getAuth();
       if (!authInstance || !firestore) {
-        toast({
+        showToast({
           variant: 'destructive',
           title: 'Erreur',
           description: 'Le service d\'authentification n\'est pas disponible.',
@@ -1524,7 +1518,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       const finalPassword = password;
       if (!finalPassword) {
-        toast({
+        showToast({
           variant: 'destructive',
           title: 'Erreur',
           description: 'Un mot de passe est requis pour créer un utilisateur.',
@@ -1545,7 +1539,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
 
-        toast({
+        showToast({
             title: 'Utilisateur créé avec succès',
         });
 
@@ -1559,11 +1553,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         } else if (error.code === 'auth/weak-password') {
           description = 'Le mot de passe est trop faible.';
         }
-        toast({ variant: 'destructive', title: 'Erreur de création', description });
+        showToast({ variant: 'destructive', title: 'Erreur de création', description });
         throw error; // Re-throw to be caught by the caller if needed
       }
     },
-    [firestore, toast]
+    [firestore, showToast]
   );
 
   const updateUser = useCallback(
@@ -1581,17 +1575,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordResetEmailForUser = useCallback(async (email: string) => {
     if (!auth) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Service d\'authentification non disponible.' });
+        showToast({ variant: 'destructive', title: 'Erreur', description: 'Service d\'authentification non disponible.' });
         return;
     }
     try {
         await sendPasswordResetEmail(auth, email);
-        toast({ title: 'E-mail envoyé', description: `Un e-mail de réinitialisation de mot de passe a été envoyé à ${email}.` });
+        showToast({ title: 'E-mail envoyé', description: `Un e-mail de réinitialisation de mot de passe a été envoyé à ${email}.` });
     } catch (error: any) {
         console.error("Password reset error:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
+        showToast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
     }
-  }, [auth, toast]);
+  }, [auth, showToast]);
 
     const findUserByEmail = useCallback((email: string) => {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -1615,12 +1609,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const forceSignOut = useCallback(async (message: string) => {
         await handleSignOut();
-        toast({
+        showToast({
             variant: 'destructive',
             title: "Session expirée",
             description: message,
         });
-    }, [toast, handleSignOut]);
+    }, [showToast, handleSignOut]);
 
     const forceSignOutUser = useCallback(
       async (userId: string) => {
@@ -1629,13 +1623,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         try {
           await updateDoc(userRef, { sessionToken: deleteField() });
           // The onSnapshot listener for the users collection will automatically update the UI.
-          toast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
+          showToast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
         } catch (error) {
           console.error("Error forcing user sign out:", error);
-          toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
+          showToast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
         }
       },
-      [getDocRef, toast]
+      [getDocRef, showToast]
     );
 
   // #endregion
@@ -1712,9 +1706,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
       await batch.commit();
-      toast({ title: `Favoris mis à jour.` });
+      showToast({ title: `Favoris mis à jour.` });
     },
-    [firestore, getDocRef, toast]
+    [firestore, getDocRef, showToast]
   );
 
   const addCustomer = useCallback(
@@ -1752,9 +1746,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
       await batch.commit();
-      toast({ title: 'Client par défaut modifié' });
+      showToast({ title: 'Client par défaut modifié' });
     },
-    [customers, firestore, getDocRef, toast]
+    [customers, firestore, getDocRef, showToast]
   );
 
   const addPaymentMethod = useCallback(
