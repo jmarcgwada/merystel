@@ -19,7 +19,7 @@ import { Progress } from './ui/progress';
 
 export function SessionManager({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
-  const { handleSignOut, order } = usePos();
+  const { handleSignOut } = usePos();
   const [isWarningOpen, setWarningOpen] = useState(false);
   const [countdown, setCountdown] = useState(10);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -33,14 +33,16 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     
-    const testDuration = 15000;
+    const sessionDurationMs = user?.sessionDuration ? user.sessionDuration * 60 * 1000 : 0;
 
-    if (testDuration > 0) {
+    if (sessionDurationMs > 0) {
+      // Set timer to show warning 10 seconds before expiration
+      const warningTime = sessionDurationMs > 10000 ? sessionDurationMs - 10000 : 0;
       timerRef.current = setTimeout(() => {
         setWarningOpen(true);
-      }, testDuration);
+      }, warningTime);
     }
-  }, []);
+  }, [user]);
 
   const handleExtendSession = () => {
     setWarningOpen(false);
