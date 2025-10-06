@@ -49,13 +49,6 @@ const allQuickLinks = [
         roles: ['admin', 'manager', 'cashier'],
     },
     {
-        href: '/reports',
-        title: 'Rapports de Vente',
-        description: "Analyser les performances de vente.",
-        icon: BarChart3,
-        roles: ['admin', 'manager'],
-    },
-     {
         href: '/settings',
         title: 'Paramètres',
         description: "Configurer l'application.",
@@ -347,6 +340,25 @@ export default function DashboardPage() {
                            </div>
                       </CardContent>
                   </Card>
+                   <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <BarChart3 className="h-8 w-8 text-primary mb-2" />
+                                    <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Rapports</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">Analyser les performances et les données.</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/reports">Pièces de vente</Link>
+                                </Button>
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/reports/payments">Paiements</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
@@ -394,4 +406,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

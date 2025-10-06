@@ -1,5 +1,4 @@
 
-
 export type SpecialCategory = 'all' | 'popular';
 
 export interface Category {
@@ -114,6 +113,7 @@ export interface PaymentMethod {
 export interface Payment {
   method: PaymentMethod;
   amount: number;
+  date: Date;
 }
 
 export interface Sale {
@@ -175,5 +175,3 @@ export interface User {
   sessionToken?: string;
   isDisabled?: boolean;
 }
-
-    

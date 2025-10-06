@@ -34,6 +34,9 @@ import { fr } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Image from 'next/image';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 
 
 interface CheckoutModalProps {
@@ -66,6 +69,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
@@ -190,6 +194,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             const newBalance = totalAmount - amountPaidFromPrevious;
             setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
         }
+        setPaymentDate(new Date());
     } else {
         setTimeout(() => {
             setPayments([]);
@@ -198,6 +203,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setSelectedCustomer(null);
             setView('payment');
             setShowCalculator(false);
+            setPaymentDate(new Date());
         }, 300);
     }
   }, [isOpen, isPaid, totalAmount, customers, currentSaleContext, amountPaidFromPrevious]);
@@ -210,6 +216,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setSelectedCustomer(null);
     setView('payment');
     setShowCalculator(false);
+    setPaymentDate(new Date());
   }
 
   const handleOpenChange = (open: boolean) => {
@@ -241,7 +248,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       return;
     }
   
-    const newPayment: Payment = { method, amount: amountToAdd };
+    const newPayment: Payment = { method, amount: amountToAdd, date: paymentDate };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
     
@@ -457,6 +464,32 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </Button>
                 </div>
             </fieldset>
+
+            <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
+              <h3 className="font-semibold text-secondary-foreground">Détails du paiement</h3>
+               <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !paymentDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {paymentDate ? format(paymentDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarPicker
+                      mode="single"
+                      selected={paymentDate}
+                      onSelect={(date) => date && setPaymentDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+            </div>
             
             <div className="space-y-2 flex-1">
                  <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
