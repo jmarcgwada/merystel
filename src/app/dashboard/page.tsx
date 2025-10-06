@@ -62,6 +62,13 @@ const allQuickLinks = [
         roles: ['admin', 'manager'],
     },
      {
+        href: '/settings',
+        title: 'Paramètres',
+        description: "Configurer l'application.",
+        icon: Settings,
+        roles: ['admin', 'manager'],
+    },
+    {
         href: '/help',
         title: "Assistance et Aide",
         description: "Obtenir de l'aide et des conseils.",
@@ -100,7 +107,7 @@ export default function DashboardPage() {
     
     const quickLinks = useMemo(() => {
         if (!authUser) return [];
-        const links = allQuickLinks
+        return allQuickLinks
             .map(link => {
                 if (link.id === 'sales-mode') {
                     const modeMap = {
@@ -114,17 +121,6 @@ export default function DashboardPage() {
             })
             .filter(link => link.roles.includes(authUser.role));
 
-        if (authUser.role !== 'cashier') {
-            links.push({
-                href: '/settings',
-                title: 'Paramètres',
-                description: "Configurer l'application.",
-                icon: Settings,
-                roles: ['admin', 'manager'],
-                id: 'settings',
-            });
-        }
-        return links;
     }, [authUser, defaultSalesMode]);
 
     const totalSales = useMemo(() => {

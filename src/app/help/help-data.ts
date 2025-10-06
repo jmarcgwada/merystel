@@ -21,10 +21,10 @@ export const helpData: HelpCategory[] = [
 Le tableau de bord est votre page d'accueil. Il vous donne un aperçu rapide de l'activité de votre commerce.
 
 **Composants du Tableau de Bord :**
-- **Statistiques clés :** Chiffre d'affaires total, nombre de ventes du jour, et panier moyen.
-- **Accès Rapide :** Des boutons pour naviguer vers les sections principales : Point de Vente, Mode Restaurant, Gestion, Rapports, etc.
-- **Articles Populaires :** Une liste des articles les plus vendus pour identifier les tendances.
-- **Personnalisation :** L'arrière-plan et l'apparence des boutons sont entièrement personnalisables dans les Paramètres d'Apparence.
+- **Statistiques clés :** Chiffre d'affaires du jour, nombre de ventes et panier moyen. (Affichage optionnel via Paramètres)
+- **Accès Rapide :** Des boutons pour naviguer vers les sections principales : Mode Caisse, Commercial, Gestion, Rapports, Paramètres, et Aide.
+- **Top Articles du Jour :** Une liste des articles les plus vendus pour identifier rapidement les tendances.
+- **Personnalisation :** L'arrière-plan et l'apparence des boutons sont entièrement personnalisables dans Paramètres > Apparence.
         `,
       },
       {
@@ -34,9 +34,9 @@ Le tableau de bord est votre page d'accueil. Il vous donne un aperçu rapide de 
 L'application gère trois types de rôles avec des permissions différentes pour sécuriser l'accès aux fonctionnalités.
 
 **Les Rôles :**
-- **Administrateur (Admin) :** A un accès complet à toute l'application, y compris la gestion des utilisateurs et les paramètres de l'entreprise. C'est le rôle le plus élevé.
+- **Administrateur (Admin) :** A un accès complet à toute l'application, y compris la gestion des utilisateurs, les paramètres de l'entreprise et les opérations de base de données.
 - **Manager :** Peut gérer les opérations quotidiennes : articles, catégories, clients, tables, et voir les rapports. Il ne peut pas gérer les utilisateurs ni les paramètres avancés de l'entreprise.
-- **Caissier (Cashier) :** A un accès limité au Point de Vente et au Mode Restaurant. Il peut consulter certaines informations (comme la liste des articles) mais ne peut pas les modifier.
+- **Caissier (Cashier) :** A un accès limité aux modes de vente (POS, Supermarché, Restaurant). Il peut consulter certaines informations mais ne peut pas les modifier.
         `,
       },
     ],
@@ -44,36 +44,30 @@ L'application gère trois types de rôles avec des permissions différentes pour
   {
     category: "Vente",
     topics: [
-      {
-        slug: "pos-direct-sale",
-        title: "Point de Vente (Vente Directe)",
+       {
+        slug: "sales-modes",
+        title: "Les Modes de Vente",
         content: `
-L'interface de vente directe est conçue pour être rapide et intuitive.
+Zenith POS propose plusieurs modes de vente pour s'adapter à votre activité. Vous pouvez choisir votre mode par défaut dans **Paramètres > Paramétrage**.
 
-**Fonctionnement :**
-1.  **Sélectionnez une catégorie** dans la colonne de gauche.
-2.  **Cliquez sur un article** dans la grille centrale pour l'ajouter à la commande sur la droite.
-3.  **Ajustez la quantité ou appliquez une remise** en cliquant sur un article dans la commande pour ouvrir le pavé numérique.
-4.  **Mettez en attente** la commande pour la sauvegarder et la rappeler plus tard.
-5.  **Cliquez sur "Payer"** pour finaliser la vente.
-
-La modale de paiement vous permet de gérer les paiements multiples et d'associer la vente à un client.
+**Modes Disponibles :**
+- **Point de Vente (POS) :** L'interface standard. Rapide et visuelle, idéale pour les cafés, boulangeries et ventes au comptoir. Navigation par catégories et grille d'articles.
+- **Mode Supermarché :** Une interface optimisée pour la rapidité et l'utilisation d'un scanner de codes-barres. Une grande barre de recherche est au centre de l'écran pour une saisie immédiate.
+- **Mode Restaurant :** Conçu pour le service en salle. Il affiche un plan de tables avec leur statut (disponible, occupée, en paiement) et permet de gérer les commandes associées à chaque table.
         `,
       },
       {
-        slug: "restaurant-mode",
-        title: "Mode Restaurant",
+        slug: "commercial-invoicing",
+        title: "Gestion Commerciale (Facturation)",
         content: `
-Le mode restaurant est optimisé pour la gestion des commandes à table.
+La section Commercial est dédiée à la création et à la gestion des factures.
 
 **Fonctionnement :**
-1.  **Sélectionnez une table disponible** sur le plan de salle.
-2.  Vous êtes redirigé vers l'interface du point de vente, mais la commande est maintenant associée à la table.
-3.  Ajoutez des articles à la commande.
-4.  Vous pouvez **"Sauvegarder"** la commande et revenir au plan de salle. La table passera au statut "Occupée".
-5.  Pour encaisser, retournez sur la table et cliquez sur **"Clôturer"**. La table passe au statut "Paiement" et vous pouvez procéder à l'encaissement.
-
-La table "Vente à emporter" fonctionne comme un point de vente direct mais depuis l'interface du restaurant.
+1.  **Sélectionnez un client** ou créez-en un nouveau. La sélection d'un client est obligatoire pour une facture.
+2.  **Ajoutez des articles** à la commande en les recherchant ou en scannant leur code-barres.
+3.  **Ajustez les détails :** modifiez les quantités, appliquez des remises en pourcentage ou en montant fixe sur chaque ligne.
+4.  **Saisissez un acompte** si nécessaire. Le "Net à Payer" sera calculé automatiquement.
+5.  **Sauvegardez la facture** pour l'encaisser. Vous serez redirigé vers la modale de paiement. Les factures peuvent aussi être enregistrées en attente de paiement.
         `,
       },
       {
@@ -84,10 +78,10 @@ La modale de paiement est le centre de l'encaissement.
 
 **Fonctionnalités :**
 - **Client :** Associez la vente à un client existant ou créez-en un nouveau rapidement.
-- **Montant :** Le montant à payer est affiché. Vous pouvez le modifier pour les paiements partiels (ex: en espèces).
-- **Méthodes de paiement :** Cliquez sur les boutons correspondants (Espèces, Carte, etc.) pour ajouter un paiement.
+- **Montant :** Le montant à payer est affiché. Vous pouvez utiliser la calculatrice intégrée pour entrer des montants spécifiques (paiements partiels, etc.).
+- **Méthodes de paiement :** Cliquez sur les boutons correspondants (Espèces, Carte, Chèque, etc.) pour ajouter un paiement. Des méthodes de paiement avancées (comme les titres-restaurant) sont disponibles.
 - **Multi-paiement :** Vous pouvez ajouter plusieurs paiements de différentes méthodes jusqu'à ce que le solde soit à zéro.
-- **Rendu Monnaie :** Si le montant payé est supérieur au total, le rendu est calculé et affiché.
+- **Rendu Monnaie :** Si le montant payé en espèces est supérieur au total, le rendu est calculé et affiché.
 - **Finalisation :** Une fois le montant total atteint, la vente est finalisée et un reçu peut être généré.
         `,
       },
@@ -103,23 +97,11 @@ La modale de paiement est le centre de l'encaissement.
 La section de gestion des articles vous permet de contrôler votre catalogue de produits.
 
 **Actions Possibles :**
-- **Ajouter :** Créez un nouvel article en définissant son nom, prix, catégorie, taux de TVA, et son image (qui peut être générée par une IA).
-- **Modifier :** Mettez à jour les informations de n'importe quel article.
-- **Supprimer :** Retirez un article de votre catalogue.
+- **Ajouter/Modifier :** Créez ou modifiez un article en définissant son nom, prix de vente et d'achat, catégorie, TVA, code-barres, descriptions et son image (qui peut être générée par une IA).
+- **Gestion de stock :** Activez le suivi du stock, définissez la quantité actuelle et un seuil d'alerte pour le stock bas.
+- **Numéros de série :** Exigez la saisie d'un numéro de série à la vente pour certains articles.
+- **Déclinaisons :** Créez des variantes pour un article (ex: Taille, Couleur) qui seront demandées lors de l'ajout à la commande.
 - **Favoris :** Marquez un article comme "favori" pour qu'il apparaisse dans la catégorie spéciale du POS.
-- **Filtres et Tri :** Utilisez les filtres pour retrouver facilement des articles par nom ou catégorie, et triez les colonnes.
-        `,
-      },
-      {
-        slug: "manage-categories",
-        title: "Gérer les Catégories",
-        content: `
-Organisez vos articles en catégories pour une navigation plus facile dans le point de vente.
-
-**Actions Possibles :**
-- **Ajouter :** Créez une nouvelle catégorie avec un nom et une couleur personnalisée.
-- **Modifier :** Changez le nom ou la couleur d'une catégorie existante.
-- **Dédié au Restaurant :** Cochez l'option "Dédié au mode restaurant" pour qu'une catégorie (ex: "Entrées") n'apparaisse que lors d'une commande à table.
         `,
       },
       {
@@ -129,11 +111,57 @@ Organisez vos articles en catégories pour une navigation plus facile dans le po
 Cette section (réservée aux administrateurs) permet de gérer les accès à l'application.
 
 **Actions Possibles :**
-- **Ajouter :** Créez un nouveau compte utilisateur en définissant son nom, email, et son rôle (Admin, Manager, ou Caissier).
-- **Modifier :** Changez le rôle ou les informations personnelles d'un utilisateur.
+- **Ajouter/Modifier :** Créez ou modifiez un compte utilisateur (nom, email, rôle).
+- **Activer/Désactiver :** Désactivez un compte pour bloquer temporairement son accès sans le supprimer.
 - **Réinitialiser le mot de passe :** Envoyez un email à l'utilisateur pour qu'il puisse définir un nouveau mot de passe.
 - **Forcer la déconnexion :** Déconnectez un utilisateur de sa session active à distance.
-- **Supprimer :** Supprimez un compte utilisateur.
+- **Supprimer :** Supprimez un compte utilisateur de manière permanente.
+        `,
+      },
+    ],
+  },
+   {
+    category: "Paramètres",
+    topics: [
+      {
+        slug: "settings-customization",
+        title: "Personnalisation",
+        content: `
+Cette section vous permet d'ajuster l'apparence et le comportement de l'interface pour qu'elle corresponde à vos préférences.
+
+**Options Disponibles :**
+- **Modale Externe :** Affichez un bouton dans l'en-tête pour ouvrir un site web (ex: votre site de réservation, une radio en ligne) dans une fenêtre modale.
+- **Visibilité des éléments :** Masquez les statistiques du tableau de bord, les images dans le ticket, ou activez un fond d'écran dynamique basé sur le dernier article ajouté.
+- **Affichage des articles :** Personnalisez l'apparence des cartes d'articles dans le POS (opacité, image en fond, couleur du texte, etc.).
+- **Filtres :** Activez un filtre qui ne montre que les catégories "restaurant" lorsque vous êtes en mode restaurant.
+        `,
+      },
+       {
+        slug: "settings-parameters",
+        title: "Paramétrage",
+        content: `
+Cette section contient les réglages fonctionnels de l'application.
+
+**Options Disponibles :**
+- **Mode de vente par défaut :** Choisissez quel écran (POS, Supermarché, Restaurant) est lancé lorsque vous cliquez sur "Mode Caisse".
+- **Mode forcé :** Verrouillez l'application sur le mode de vente par défaut, idéal pour une caisse dédiée.
+- **Numéros de série :** Activez ou désactivez globalement la fonctionnalité de saisie des numéros de série.
+- **Notifications :** Activez/désactivez les notifications et ajustez leur durée d'affichage.
+- **Description dans la commande :** Choisissez si et comment les descriptions d'articles sont affichées dans le ticket de commande.
+        `,
+      },
+       {
+        slug: "settings-firestore",
+        title: "Données Firestore (Admin)",
+        content: `
+Cette section, réservée aux administrateurs et protégée par un code PIN, permet de réaliser des opérations sensibles sur la base de données.
+
+**Actions Possibles :**
+- **Initialiser l'application :** Crée un jeu de données de base (catégories, TVA) si l'application est vide.
+- **Importer des données de démo :** Ajoute des articles et des clients fictifs pour tester l'application.
+- **Exporter/Importer la configuration :** Sauvegardez ou restaurez toute votre configuration (articles, catégories, etc.) dans un fichier JSON.
+- **Zone de danger :** Contient des options pour supprimer toutes les ventes ou réinitialiser complètement l'application.
+- **Générer le Prompt Projet :** Crée un prompt détaillé pour recréer une copie de cette application dans un autre environnement Firebase Studio.
         `,
       },
     ],
