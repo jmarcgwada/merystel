@@ -382,7 +382,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof useToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -903,11 +903,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Le Complet (Poulet, oeuf, tomate, salade)', price: 7.00, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-COMPLET' },
       ];
 
-      const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
-      ];
-
       // --- Batch Write ---
       defaultCategories.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
@@ -925,12 +920,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-      defaultItems.forEach(data => {
+      seedItems.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           const { isRestaurantOnly, ...itemData } = data;
           const category = defaultCategories.find(c => c.id === itemData.categoryId);
           const fullItemData = { ...itemData, isRestaurantOnly: category?.isRestaurantOnly || false };
-          batch.set(ref, { ...fullItemData, barcode: uuidv4() });
+          batch.set(ref, fullItemData);
       });
       defaultTables.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
@@ -2086,6 +2081,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       order,
+      setOrder,
       systemDate,
       readOnlyOrder,
       dynamicBgImage,
