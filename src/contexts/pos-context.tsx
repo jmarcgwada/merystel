@@ -120,7 +120,7 @@ interface PosContextType {
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
   findUserByEmail: (email: string) => User | undefined;
-  handleSignOut: () => Promise<void>;
+  handleSignOut: (isAuto?: boolean) => Promise<void>;
   validateSession: (userId: string, token: string) => boolean;
   forceSignOut: (message: string) => void;
   forceSignOutUser: (userId: string) => void;
@@ -1611,16 +1611,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
-    const handleSignOut = useCallback(async () => {
+    const handleSignOut = useCallback(async (isAuto = false) => {
         if (!auth || !user) return;
         
+        if (isAuto && order.length > 0) {
+            await clearOrder();
+        }
+
         await updateDoc(doc(firestore, 'users', user.uid), {
             sessionToken: deleteField()
         });
         
         await signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth, user, firestore]);
+    }, [auth, user, firestore, order, clearOrder]);
 
     const validateSession = useCallback((userId: string, token: string) => {
         const user = users.find(u => u.id === userId);
@@ -2142,12 +2146,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       clearOrder,
       orderTotal,
       orderTax,
-      isKeypadOpen, setIsKeypadOpen,
-      currentSaleId, setCurrentSaleId,
-      currentSaleContext, setCurrentSaleContext,
-      recentlyAddedItemId, setRecentlyAddedItemId,
-      serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem,
+      isKeypadOpen,
+      setIsKeypadOpen,
+      currentSaleId,
+      setCurrentSaleId,
+      currentSaleContext,
+      setCurrentSaleContext,
+      recentlyAddedItemId,
+      setRecentlyAddedItemId,
+      serialNumberItem,
+      setSerialNumberItem,
+      variantItem,
+      setVariantItem,
       lastDirectSale,
       lastRestaurantSale,
       loadTicketForViewing,
@@ -2162,7 +2172,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       validateSession,
       forceSignOut,
       forceSignOutUser,
-      sessionInvalidated, setSessionInvalidated,
+      sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -2186,7 +2197,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateTable,
       deleteTable,
       forceFreeTable,
-      selectedTable, setSelectedTable,
+      selectedTable,
+      setSelectedTable,
       setSelectedTableById,
       updateTableOrder,
       saveTableOrderAndExit,
@@ -2207,33 +2219,60 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       recallOrder,
       deleteHeldOrder,
       authRequired,
-      showTicketImages, setShowTicketImages,
-      showItemImagesInGrid, setShowItemImagesInGrid,
-      descriptionDisplay, setDescriptionDisplay,
-      popularItemsCount, setPopularItemsCount,
-      itemCardOpacity, setItemCardOpacity,
-      paymentMethodImageOpacity, setPaymentMethodImageOpacity,
-      itemDisplayMode, setItemDisplayMode,
-      itemCardShowImageAsBackground, setItemCardShowImageAsBackground,
-      itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity,
-      itemCardTextColor, setItemCardTextColor,
-      itemCardShowPrice, setItemCardShowPrice,
-      externalLinkModalEnabled, setExternalLinkModalEnabled,
-      externalLinkUrl, setExternalLinkUrl,
-      externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth,
-      externalLinkModalHeight, setExternalLinkModalHeight,
-      showDashboardStats, setShowDashboardStats,
-      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter,
-      showNotifications, setShowNotifications,
-      notificationDuration, setNotificationDuration,
-      enableSerialNumber, setEnableSerialNumber,
-      defaultSalesMode, setDefaultSalesMode,
-      isForcedMode, setIsForcedMode,
-      directSaleBackgroundColor, setDirectSaleBackgroundColor,
-      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor,
-      directSaleBgOpacity, setDirectSaleBgOpacity,
-      restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      showTicketImages,
+      setShowTicketImages,
+      showItemImagesInGrid,
+      setShowItemImagesInGrid,
+      descriptionDisplay,
+      setDescriptionDisplay,
+      popularItemsCount,
+      setPopularItemsCount,
+      itemCardOpacity,
+      setItemCardOpacity,
+      paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
+      itemDisplayMode,
+      setItemDisplayMode,
+      itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
+      itemCardImageOverlayOpacity,
+      setItemCardImageOverlayOpacity,
+      itemCardTextColor,
+      setItemCardTextColor,
+      itemCardShowPrice,
+      setItemCardShowPrice,
+      externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
+      externalLinkUrl,
+      setExternalLinkUrl,
+      externalLinkTitle,
+      setExternalLinkTitle,
+      externalLinkModalWidth,
+      setExternalLinkModalWidth,
+      externalLinkModalHeight,
+      setExternalLinkModalHeight,
+      showDashboardStats,
+      setShowDashboardStats,
+      enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
+      showNotifications,
+      setShowNotifications,
+      notificationDuration,
+      setNotificationDuration,
+      enableSerialNumber,
+      setEnableSerialNumber,
+      defaultSalesMode,
+      setDefaultSalesMode,
+      isForcedMode,
+      setIsForcedMode,
+      directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
+      directSaleBgOpacity,
+      setDirectSaleBgOpacity,
+      restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       dashboardBgType,
       setDashboardBgType,
       dashboardBackgroundColor,
@@ -2250,7 +2289,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
       setDashboardButtonBorderColor,
-      companyInfo, setCompanyInfo,
+      companyInfo,
+      setCompanyInfo,
       isNavConfirmOpen,
       showNavConfirm,
       closeNavConfirm,
@@ -2261,7 +2301,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importConfiguration,
       importDemoData,
       importDemoCustomers,
-      cameFromRestaurant, setCameFromRestaurant,
+      cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
       toast,
