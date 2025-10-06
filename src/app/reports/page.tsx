@@ -665,7 +665,7 @@ export default function ReportsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading && Array.from({length: 10}).map((_, i) => (
+                        {isClient && isLoading && Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -679,7 +679,7 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
-                        {!isLoading && paginatedSales && paginatedSales.map(sale => {
+                        {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
                             const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture'
                                             : sale.ticketNumber?.startsWith('Devis-') ? 'Devis'
