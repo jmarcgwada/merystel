@@ -160,7 +160,7 @@ function SaleDetailContent() {
     }
   }
   
-  const pieceType = sale?.ticketNumber.startsWith('Fact-') ? 'Facture' : 'Ticket';
+  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : 'Ticket';
 
   if (isLoading) {
       return (
@@ -408,4 +408,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-

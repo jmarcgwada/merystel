@@ -101,10 +101,10 @@ export default function ReportsPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
-    const [filterStatus, setFilterStatus] = useState(searchParams.get('filter') === 'Fact-' ? 'pending' : 'all');
+    const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterArticleRef, setFilterArticleRef] = useState('');
-    const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') === 'Fact-' ? 'Fact-' : '');
+    const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') || '');
     const [isSummaryOpen, setSummaryOpen] = useState(false);
     const [isFiltersOpen, setFiltersOpen] = useState(false);
     const [filterSellerName, setFilterSellerName] = useState('');
