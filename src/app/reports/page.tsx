@@ -18,7 +18,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -73,6 +73,7 @@ export default function ReportsPage() {
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         if (isCashier) {
@@ -93,7 +94,7 @@ export default function ReportsPage() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterArticleRef, setFilterArticleRef] = useState('');
-    const [generalFilter, setGeneralFilter] = useState('');
+    const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') === 'invoice' ? 'Fact-' : '');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
@@ -158,14 +159,17 @@ export default function ReportsPage() {
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
-            const generalMatch = !generalFilter || sale.items.some(item => {
-                const lowerGeneralFilter = generalFilter.toLowerCase();
-                const nameMatch = item.name.toLowerCase().includes(lowerGeneralFilter);
-                const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
-                const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
-                const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
-                return nameMatch || noteMatch || serialMatch || variantMatch;
-            });
+            const generalMatch = !generalFilter || (
+                (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                sale.items.some(item => {
+                    const lowerGeneralFilter = generalFilter.toLowerCase();
+                    const nameMatch = item.name.toLowerCase().includes(lowerGeneralFilter);
+                    const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
+                    const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
+                    const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
+                    return nameMatch || noteMatch || serialMatch || variantMatch;
+                })
+            );
 
             return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch;
         });
@@ -399,7 +403,7 @@ export default function ReportsPage() {
                         <div className="pt-2 pb-4 flex items-center gap-2 flex-wrap">
                             <Input
                                 ref={generalFilterRef}
-                                placeholder="Rechercher désignation..."
+                                placeholder="Rechercher (N°, article, note...)"
                                 value={generalFilter}
                                 onChange={(e) => setGeneralFilter(e.target.value)}
                                 className="max-w-sm"
@@ -602,4 +606,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

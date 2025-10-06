@@ -134,7 +134,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
     };
   
-    const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-') || false;
+    const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-') || currentSaleContext?.isInvoice || false;
     
     recordSale(saleInfo, currentSaleId ?? undefined);
     
@@ -143,7 +143,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setTimeout(() => {
           toast({
             title: 'Paiement réussi',
-            description: `Vente de ${totalAmount.toFixed(2)}€ finalisée.`,
+            description: `${isInvoice ? 'Facture' : 'Vente'} de ${totalAmount.toFixed(2)}€ finalisée.`,
           });
           
           const isTableSale = currentSaleContext?.isTableSale;
@@ -152,9 +152,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
           } else if (isInvoice) {
-              router.push('/dashboard');
-          }
-          else {
+              clearOrder({ clearCustomer: true });
+              router.push('/reports?filter=invoice');
+          } else {
             clearOrder();
           }
       
@@ -165,18 +165,25 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             title: 'Vente mise en attente',
             description: `La facture est en attente.`
         })
-        clearOrder();
+        clearOrder({ clearCustomer: true });
         handleOpenChange(false);
-        router.push('/dashboard');
+        router.push('/reports?filter=invoice');
     }
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId]);
 
 
   useEffect(() => {
     if (isOpen) {
-        const defaultCustomer = customers?.find(c => c.isDefault);
-        if (defaultCustomer) {
-            setSelectedCustomer(defaultCustomer);
+        if (currentSaleContext?.customerId) {
+            const customerFromContext = customers?.find(c => c.id === currentSaleContext.customerId);
+            if (customerFromContext) {
+                setSelectedCustomer(customerFromContext);
+            }
+        } else {
+            const defaultCustomer = customers?.find(c => c.isDefault);
+            if (defaultCustomer) {
+                setSelectedCustomer(defaultCustomer);
+            }
         }
         
         if (!isPaid) {
@@ -207,7 +214,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-');
+      const isInvoice = currentSaleContext?.isInvoice || false;
       if (payments.length > 0 && balanceDue > 0 && isInvoice) {
           handleFinalizeSale(payments, false); // Finalize as pending
       } else {
@@ -300,7 +307,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }
   }
 
-  const isInvoiceMode = currentSaleId?.startsWith('Fact-');
+  const isInvoiceMode = currentSaleContext?.isInvoice || false;
   const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
@@ -440,7 +447,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       </DialogHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
-            <fieldset disabled={isOverpaid}>
+            <fieldset disabled={isOverpaid || isInvoiceMode} className={cn(isInvoiceMode && "opacity-70")}>
                 <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                     <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
@@ -525,7 +532,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
-          Annuler
+          {isInvoiceMode && balanceDue > 0 ? 'Enregistrer comme facture en attente' : 'Annuler'}
         </Button>
         {(balanceDue < 0.009 || isInvoiceMode) && (
           <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">

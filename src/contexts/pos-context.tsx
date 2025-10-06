@@ -94,7 +94,7 @@ interface PosContextType {
     value: number,
     type: 'percentage' | 'fixed'
   ) => void;
-  clearOrder: () => void;
+  clearOrder: (options?: { clearCustomer?: boolean }) => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
@@ -752,27 +752,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     try {
       const batch = writeBatch(firestore);
 
-      const defaultCategories = [
-        { id: 'boulangerie', name: 'Boulangerie', color: '#f59e0b' },
-        { id: 'patisserie', name: 'Pâtisserie', color: '#ec4899' },
-        { id: 'epicerie_sucree', name: 'Épicerie Sucrée', color: '#8b5cf6' },
-        { id: 'epicerie_salee', name: 'Épicerie Salée', color: '#10b981' },
-        { id: 'boissons_fraiches', name: 'Boissons Fraîches', color: '#3b82f6' },
-        { id: 'boissons_chaudes', name: 'Boissons Chaudes', color: '#a16207' },
-        { id: 'vins_spiritueux', name: 'Vins & Spiritueux', color: '#dc2626' },
-        { id: 'fruits_legumes', name: 'Fruits & Légumes', color: '#84cc16' },
-        { id: 'cremerie', name: 'Crémerie', color: '#fde047' },
-        { id: 'boucherie', name: 'Boucherie', color: '#ef4444', isRestaurantOnly: true },
-        { id: 'plats_cuisines', name: 'Plats Cuisinés', color: '#f97316', isRestaurantOnly: true },
-        { id: 'sandwichs', name: 'Sandwichs', color: '#64748b' },
-      ];
-
       const defaultVatRates = [
         { id: 'vat_0', name: 'Exonéré', rate: 0, code: 1 },
         { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 2 },
         { id: 'vat_8_5', name: 'Taux Spécifique', rate: 8.5, code: 3 },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 4 },
-        { id: 'vat_5_5', name: 'Taux Réduit', rate: 5.5, code: 5 },
       ];
       
       const defaultPaymentMethods = [
@@ -808,51 +791,51 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       const seedItems = [
         // Boulangerie (10)
-        { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456789' },
-        { name: 'Croissant au Beurre AOP', price: 1.50, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456796' },
-        { name: 'Pain au Chocolat', price: 1.70, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456802' },
-        { name: 'Pain Complet Bio', price: 2.80, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: 'REF-PAIN-COMP' },
-        { name: 'Pain aux Céréales', price: 3.10, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: 'REF-PAIN-CERE' },
+        { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456789' },
+        { name: 'Croissant au Beurre AOP', price: 1.50, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456796' },
+        { name: 'Pain au Chocolat', price: 1.70, categoryId: 'boulangerie', vatId: 'vat_20', barcode: '3700123456802' },
+        { name: 'Pain Complet Bio', price: 2.80, categoryId: 'boulangerie', vatId: 'vat_8_5', barcode: 'REF-PAIN-COMP' },
+        { name: 'Pain aux Céréales', price: 3.10, categoryId: 'boulangerie', vatId: 'vat_8_5', barcode: 'REF-PAIN-CERE' },
         { name: 'Ficelle Apéro', price: 2.50, categoryId: 'boulangerie', vatId: 'vat_20', barcode: 'APERO-FICELLE' },
-        { name: 'Brioche Nanterre', price: 5.50, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: 'BRIOCHE-NANT' },
-        { name: 'Pain de Mie Artisanal', price: 4.20, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: 'PAIN-MIE-ART' },
+        { name: 'Brioche Nanterre', price: 5.50, categoryId: 'boulangerie', vatId: 'vat_20', barcode: 'BRIOCHE-NANT' },
+        { name: 'Pain de Mie Artisanal', price: 4.20, categoryId: 'boulangerie', vatId: 'vat_20', barcode: 'PAIN-MIE-ART' },
         { name: 'Gougère au fromage', price: 1.90, categoryId: 'boulangerie', vatId: 'vat_20', barcode: 'GOUGERE-FROM' },
-        { name: 'Pain de Seigle', price: 3.50, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: 'REF-PAIN-SEI' },
+        { name: 'Pain de Seigle', price: 3.50, categoryId: 'boulangerie', vatId: 'vat_8_5', barcode: 'REF-PAIN-SEI' },
         // Pâtisserie (12)
-        { name: 'Éclair au Chocolat', price: 3.50, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-ECL-CHO' },
-        { name: 'Éclair au Café', price: 3.50, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-ECL-CAF' },
-        { name: 'Tartelette Citron Meringuée', price: 4.20, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-TAR-CIT' },
-        { name: 'Mille-feuille', price: 4.50, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: '3700123456819' },
-        { name: 'Paris-Brest', price: 4.80, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-PAR-BRE' },
-        { name: 'Opéra', price: 5.00, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-OPERA' },
-        { name: 'Fraisier (part)', price: 5.20, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-FRAISIER' },
-        { name: 'Tarte aux Pommes (part)', price: 3.80, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-TAR-POM' },
-        { name: 'Flan Pâtissier', price: 3.20, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-FLAN' },
-        { name: 'Canelé Bordelais', price: 2.50, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'PAT-CANELE' },
-        { name: 'Macaron Pistache', price: 1.80, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'MAC-PIST' },
-        { name: 'Macaron Framboise', price: 1.80, categoryId: 'patisserie', vatId: 'vat_5_5', barcode: 'MAC-FRAMB' },
+        { name: 'Éclair au Chocolat', price: 3.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-ECL-CHO' },
+        { name: 'Éclair au Café', price: 3.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-ECL-CAF' },
+        { name: 'Tartelette Citron Meringuée', price: 4.20, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-TAR-CIT' },
+        { name: 'Mille-feuille', price: 4.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: '3700123456819' },
+        { name: 'Paris-Brest', price: 4.80, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-PAR-BRE' },
+        { name: 'Opéra', price: 5.00, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-OPERA' },
+        { name: 'Fraisier (part)', price: 5.20, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-FRAISIER' },
+        { name: 'Tarte aux Pommes (part)', price: 3.80, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-TAR-POM' },
+        { name: 'Flan Pâtissier', price: 3.20, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-FLAN' },
+        { name: 'Canelé Bordelais', price: 2.50, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'PAT-CANELE' },
+        { name: 'Macaron Pistache', price: 1.80, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'MAC-PIST' },
+        { name: 'Macaron Framboise', price: 1.80, categoryId: 'patisserie', vatId: 'vat_8_5', barcode: 'MAC-FRAMB' },
         // Épicerie Sucrée (10)
-        { name: 'Confiture de Fraises 350g', price: 4.80, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'CONF-FRA-350G' },
-        { name: 'Miel de Lavande 250g', price: 6.50, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'MIEL-LAV-250G' },
+        { name: 'Confiture de Fraises 350g', price: 4.80, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'CONF-FRA-350G' },
+        { name: 'Miel de Lavande 250g', price: 6.50, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'MIEL-LAV-250G' },
         { name: 'Tablette Chocolat Noir 70%', price: 3.90, categoryId: 'epicerie_sucree', vatId: 'vat_20', barcode: 'CHOC-NOIR-70' },
-        { name: 'Pâte à Tartiner Noisette', price: 5.90, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'PATE-TART-NOI' },
-        { name: 'Sablés Bretons', price: 4.10, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'SABLES-BRET' },
-        { name: 'Caramels au Beurre Salé', price: 6.00, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'CARAM-BS' },
-        { name: 'Nougat de Montélimar', price: 5.20, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'NOUGAT-MONT' },
-        { name: 'Sucre de Canne Bio 1kg', price: 3.50, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'SUCRE-CAN-BIO' },
-        { name: 'Sirop d\'Érable 250ml', price: 7.20, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'SIROP-ERABLE' },
-        { name: 'Cacao en Poudre non sucré', price: 4.90, categoryId: 'epicerie_sucree', vatId: 'vat_5_5', barcode: 'CACAO-POUDRE' },
+        { name: 'Pâte à Tartiner Noisette', price: 5.90, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'PATE-TART-NOI' },
+        { name: 'Sablés Bretons', price: 4.10, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'SABLES-BRET' },
+        { name: 'Caramels au Beurre Salé', price: 6.00, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'CARAM-BS' },
+        { name: 'Nougat de Montélimar', price: 5.20, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'NOUGAT-MONT' },
+        { name: 'Sucre de Canne Bio 1kg', price: 3.50, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'SUCRE-CAN-BIO' },
+        { name: 'Sirop d\'Érable 250ml', price: 7.20, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'SIROP-ERABLE' },
+        { name: 'Cacao en Poudre non sucré', price: 4.90, categoryId: 'epicerie_sucree', vatId: 'vat_8_5', barcode: 'CACAO-POUDRE' },
         // Épicerie Salée (10)
-        { name: 'Huile d\'Olive Vierge Extra 50cl', price: 9.50, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'HUILE-OLI-50CL' },
-        { name: 'Pâtes artisanales Tagliatelle 500g', price: 3.20, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'PATES-TAGLIA' },
-        { name: 'Sel de Guérande 250g', price: 2.50, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'SEL-GUER-250G' },
-        { name: 'Vinaigre Balsamique de Modène', price: 6.80, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'VINAIGRE-BALS' },
-        { name: 'Moutarde de Dijon à l\'Ancienne', price: 3.10, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'MOUTARDE-DIJ' },
-        { name: 'Tapenade Noire 100g', price: 4.50, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'TAPENADE-NOIRE' },
-        { name: 'Rillettes de Canard 180g', price: 7.90, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'RILLET-CANARD' },
-        { name: 'Chips Artisanales Paprika', price: 2.90, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'CHIPS-PAPRIKA' },
-        { name: 'Soupe de Poisson 500ml', price: 6.20, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'SOUPE-POISSON' },
-        { name: 'Poivre Noir de Kampot', price: 8.50, categoryId: 'epicerie_salee', vatId: 'vat_5_5', barcode: 'POIVRE-KAMPOT' },
+        { name: 'Huile d\'Olive Vierge Extra 50cl', price: 9.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'HUILE-OLI-50CL' },
+        { name: 'Pâtes artisanales Tagliatelle 500g', price: 3.20, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'PATES-TAGLIA' },
+        { name: 'Sel de Guérande 250g', price: 2.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'SEL-GUER-250G' },
+        { name: 'Vinaigre Balsamique de Modène', price: 6.80, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'VINAIGRE-BALS' },
+        { name: 'Moutarde de Dijon à l\'Ancienne', price: 3.10, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'MOUTARDE-DIJ' },
+        { name: 'Tapenade Noire 100g', price: 4.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'TAPENADE-NOIRE' },
+        { name: 'Rillettes de Canard 180g', price: 7.90, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'RILLET-CANARD' },
+        { name: 'Chips Artisanales Paprika', price: 2.90, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'CHIPS-PAPRIKA' },
+        { name: 'Soupe de Poisson 500ml', price: 6.20, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'SOUPE-POISSON' },
+        { name: 'Poivre Noir de Kampot', price: 8.50, categoryId: 'epicerie_salee', vatId: 'vat_8_5', barcode: 'POIVRE-KAMPOT' },
         // Boissons Fraîches (10)
         { name: 'Jus de Pomme Artisanal 1L', price: 3.80, categoryId: 'boissons_fraiches', vatId: 'vat_20', barcode: 'JUS-POM-1L' },
         { name: 'Limonade Bio 33cl', price: 2.90, categoryId: 'boissons_fraiches', vatId: 'vat_20', barcode: 'LIMO-BIO-33CL' },
@@ -883,27 +866,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Rhum Arrangé Maison', price: 8.00, categoryId: 'vins_spiritueux', vatId: 'vat_20', barcode: 'RHUM-ARRANGE' },
         { name: 'Pastis', price: 4.00, categoryId: 'vins_spiritueux', vatId: 'vat_20', barcode: 'PASTIS-51' },
         // Crémerie (10)
-        { name: 'Yaourt Nature Bio', price: 1.20, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'YAOURT-NAT-BIO' },
-        { name: 'Beurre Doux AOP 250g', price: 3.80, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'BEURRE-DOUX' },
-        { name: 'Fromage de Chèvre Frais', price: 4.50, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'CHEVRE-FRAIS' },
-        { name: 'Camembert au Lait Cru', price: 5.20, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'CAMEM-LAITCRU' },
-        { name: 'Comté 18 mois (100g)', price: 4.00, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'COMTE-18MOIS' },
-        { name: 'Lait Entier Frais 1L', price: 1.80, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'LAIT-ENTIER' },
-        { name: 'Crème Fraîche Épaisse 20cl', price: 2.10, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'CREME-FRAICHE' },
-        { name: 'Fromage Blanc 500g', price: 3.30, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'FROM-BLANC' },
-        { name: 'Part de Roquefort', price: 4.80, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'ROQUEFORT-PART' },
-        { name: 'Tomme de Savoie (100g)', price: 3.50, categoryId: 'cremerie', vatId: 'vat_5_5', barcode: 'TOMME-SAVOIE' },
+        { name: 'Yaourt Nature Bio', price: 1.20, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'YAOURT-NAT-BIO' },
+        { name: 'Beurre Doux AOP 250g', price: 3.80, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'BEURRE-DOUX' },
+        { name: 'Fromage de Chèvre Frais', price: 4.50, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'CHEVRE-FRAIS' },
+        { name: 'Camembert au Lait Cru', price: 5.20, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'CAMEM-LAITCRU' },
+        { name: 'Comté 18 mois (100g)', price: 4.00, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'COMTE-18MOIS' },
+        { name: 'Lait Entier Frais 1L', price: 1.80, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'LAIT-ENTIER' },
+        { name: 'Crème Fraîche Épaisse 20cl', price: 2.10, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'CREME-FRAICHE' },
+        { name: 'Fromage Blanc 500g', price: 3.30, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'FROM-BLANC' },
+        { name: 'Part de Roquefort', price: 4.80, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'ROQUEFORT-PART' },
+        { name: 'Tomme de Savoie (100g)', price: 3.50, categoryId: 'cremerie', vatId: 'vat_8_5', barcode: 'TOMME-SAVOIE' },
         // Fruits & Légumes (10)
-        { name: 'Pommes Golden (kg)', price: 3.50, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'FRU-POM-GOL' },
-        { name: 'Bananes (kg)', price: 2.80, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'FRU-BAN' },
-        { name: 'Salade Laitue', price: 1.50, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'LEG-LAITUE' },
-        { name: 'Tomates Grappe (kg)', price: 4.20, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'LEG-TOM-GR' },
-        { name: 'Courgettes (kg)', price: 3.80, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'LEG-COURG' },
-        { name: 'Avocat', price: 1.90, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'FRU-AVOCAT' },
-        { name: 'Oignons Jaunes (filet)', price: 2.20, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'LEG-OIGNON-J' },
-        { name: 'Pommes de Terre (kg)', price: 2.50, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'LEG-PDT' },
-        { name: 'Fraises Gariguette (barquette)', price: 5.50, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'FRU-FRAISE-G' },
-        { name: 'Citrons Jaunes (pièce)', price: 0.80, categoryId: 'fruits_legumes', vatId: 'vat_5_5', barcode: 'FRU-CITRON-J' },
+        { name: 'Pommes Golden (kg)', price: 3.50, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'FRU-POM-GOL' },
+        { name: 'Bananes (kg)', price: 2.80, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'FRU-BAN' },
+        { name: 'Salade Laitue', price: 1.50, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'LEG-LAITUE' },
+        { name: 'Tomates Grappe (kg)', price: 4.20, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'LEG-TOM-GR' },
+        { name: 'Courgettes (kg)', price: 3.80, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'LEG-COURG' },
+        { name: 'Avocat', price: 1.90, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'FRU-AVOCAT' },
+        { name: 'Oignons Jaunes (filet)', price: 2.20, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'LEG-OIGNON-J' },
+        { name: 'Pommes de Terre (kg)', price: 2.50, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'LEG-PDT' },
+        { name: 'Fraises Gariguette (barquette)', price: 5.50, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'FRU-FRAISE-G' },
+        { name: 'Citrons Jaunes (pièce)', price: 0.80, categoryId: 'fruits_legumes', vatId: 'vat_8_5', barcode: 'FRU-CITRON-J' },
         // Boucherie (5, restaurant)
         { name: 'Entrecôte de Boeuf (300g)', price: 24.00, categoryId: 'boucherie', vatId: 'vat_10', barcode: 'BOU-ENTREC', isRestaurantOnly: true },
         { name: 'Côte de Veau', price: 22.00, categoryId: 'boucherie', vatId: 'vat_10', barcode: 'BOU-COTE-VEAU', isRestaurantOnly: true },
@@ -994,15 +977,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Order Management
-  const clearOrder = useCallback(async () => {
+  const clearOrder = useCallback(async (options = {}) => {
+    const { clearCustomer = false } = options as { clearCustomer?: boolean };
+
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
     }
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    setSelectedTable(null);
+    if (clearCustomer) {
+      setCurrentSaleContext(null);
+      setSelectedTable(null);
+    } else {
+      setCurrentSaleContext(prev => ({
+        ...prev,
+        originalTotal: undefined,
+        originalPayments: undefined,
+        change: undefined,
+        ticketNumber: undefined,
+        date: undefined,
+        modifiedAt: undefined,
+      }));
+    }
   }, [readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
