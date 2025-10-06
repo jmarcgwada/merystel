@@ -74,6 +74,7 @@ export default function PaymentsReportPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterMethodName, setFilterMethodName] = useState('all');
+    const [filterDocType, setFilterDocType] = useState('all');
     const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [generalFilter, setGeneralFilter] = useState('');
@@ -128,7 +129,7 @@ export default function PaymentsReportPage() {
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
-            const toJsDate = (d: Date | Timestamp | undefined): Date => {
+             const toJsDate = (d: Date | Timestamp | undefined): Date => {
                 if (!d) return new Date(0); // Return a very old date if undefined
                 return d instanceof Date ? d : (d as Timestamp).toDate();
             };
@@ -149,6 +150,17 @@ export default function PaymentsReportPage() {
             } else if (filterPaymentType === 'immediate') {
                 paymentTypeMatch = isSameDay(paymentJsDate, saleJsDate);
             }
+            
+            let docTypeMatch = true;
+            if (filterDocType !== 'all') {
+                const prefixes = {
+                    ticket: 'Tick-',
+                    invoice: 'Fact-',
+                    quote: 'Devis-',
+                    delivery_note: 'BL-',
+                };
+                docTypeMatch = payment.saleTicketNumber?.startsWith(prefixes[filterDocType as keyof typeof prefixes]) || false;
+            }
 
             const generalMatch = !generalFilter || (
                 (payment.saleTicketNumber && payment.saleTicketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
@@ -157,7 +169,7 @@ export default function PaymentsReportPage() {
                 (payment.method.name.toLowerCase().includes(generalFilter.toLowerCase()))
             );
 
-            return customerMatch && methodMatch && dateMatch && sellerMatch && generalMatch && paymentTypeMatch;
+            return customerMatch && methodMatch && dateMatch && sellerMatch && generalMatch && paymentTypeMatch && docTypeMatch;
         });
 
         if (sortConfig !== null) {
@@ -189,7 +201,7 @@ export default function PaymentsReportPage() {
             });
         }
         return filtered;
-    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, getCustomerName, getUserName]);
+    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocType, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedPayments.length / ITEMS_PER_PAGE);
 
@@ -222,6 +234,7 @@ export default function PaymentsReportPage() {
         setFilterCustomerName('');
         setFilterMethodName('all');
         setFilterPaymentType('all');
+        setFilterDocType('all');
         setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
@@ -283,6 +296,18 @@ export default function PaymentsReportPage() {
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
                         <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
                         <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
+                        <Select value={filterDocType} onValueChange={setFilterDocType}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Type de pièce" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Toutes les pièces</SelectItem>
+                                <SelectItem value="ticket">Ticket</SelectItem>
+                                <SelectItem value="invoice">Facture</SelectItem>
+                                <SelectItem value="quote">Devis</SelectItem>
+                                <SelectItem value="delivery_note">Bon de livraison</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
