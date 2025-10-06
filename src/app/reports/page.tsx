@@ -628,7 +628,7 @@ export default function ReportsPage() {
                                 <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                                 <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
                         {!isLoading && paginatedSales && paginatedSales.map(sale => {
@@ -688,4 +688,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
