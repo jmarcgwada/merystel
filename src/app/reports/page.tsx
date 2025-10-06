@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -189,15 +190,15 @@ export default function ReportsPage() {
         // Apply sorting
         if (sortConfig !== null) {
             filteredSales.sort((a, b) => {
+                if (sortConfig.key === 'date') {
+                    const dateA = a.date instanceof Date ? a.date.getTime() : (a.date as Timestamp).toDate().getTime();
+                    const dateB = b.date instanceof Date ? b.date.getTime() : (b.date as Timestamp).toDate().getTime();
+                    return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+                }
+
                 let aValue: string | number, bValue: string | number;
                 
                 switch (sortConfig.key) {
-                    case 'date':
-                        const aDate = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
-                        const bDate = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-                        aValue = bDate.getTime(); // Invert for descending by default
-                        bValue = aDate.getTime();
-                        break;
                     case 'tableName':
                         aValue = a.tableName || '';
                         bValue = b.tableName || '';
@@ -219,9 +220,13 @@ export default function ReportsPage() {
                         bValue = b.ticketNumber?.startsWith('Fact-') ? 1 : 0;
                         break;
                     default:
-                        aValue = a[sortConfig.key as keyof Sale] || 0;
-                        bValue = b[sortConfig.key as keyof Sale] || 0;
+                        aValue = a[sortConfig.key as keyof Sale] as number || 0;
+                        bValue = b[sortConfig.key as keyof Sale] as number || 0;
                         break;
+                }
+                
+                if(typeof aValue === 'string' && typeof bValue === 'string') {
+                    return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
                 }
 
                 if (aValue < bValue) {
@@ -680,4 +685,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
 
