@@ -272,7 +272,6 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
-  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -1342,12 +1341,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
 
     const docTypeInfo = {
-      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré' },
-      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré' },
+      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré', docType: 'quote' },
+      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré', docType: 'delivery_note' },
     };
-    const { prefix, counterField, toastTitle } = docTypeInfo[type];
-    const today = new Date();
-
+    const { prefix, counterField, toastTitle, docType } = docTypeInfo[type];
+    
     try {
       await runTransaction(firestore, async (transaction) => {
         const companyRef = doc(firestore, 'companies', companyId);
@@ -1373,7 +1371,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           
           transaction.update(companyRef, { [counterField]: newCount });
           
-          const dayMonth = format(today, 'ddMM');
+          const dayMonth = format(new Date(), 'ddMM');
           pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
         }
 
@@ -1381,12 +1379,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...existingData,
           ...docData,
           id: pieceRef.id,
-          date: existingData.date || Timestamp.fromDate(today),
-          modifiedAt: docIdToUpdate ? Timestamp.fromDate(today) : undefined,
+          date: existingData.date || Timestamp.fromDate(new Date()),
+          modifiedAt: docIdToUpdate ? Timestamp.fromDate(new Date()) : undefined,
           userId: user.uid,
           userName: `${user.firstName} ${user.lastName}`,
           ticketNumber: pieceNumber,
-          documentType: type,
+          documentType: docType as Sale['documentType'],
         };
         
         transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
@@ -1412,8 +1410,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
         return;
       }
-
-      const today = new Date();
       
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
@@ -1424,7 +1420,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let existingData: Partial<Sale> = {};
           const isNewPiece = !saleIdToUpdate;
           
-          let saleDate: any = Timestamp.fromDate(today);
+          let saleDate: any = Timestamp.fromDate(new Date());
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
@@ -1452,7 +1448,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             transaction.update(companyRef, { [counterField]: newCount });
             
-            const dayMonth = format(today, 'ddMM');
+            const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
@@ -1461,7 +1457,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...saleData,
             id: pieceRef.id,
             date: saleDate, // Use original date on update, new date on create
-            modifiedAt: isNewPiece ? undefined : Timestamp.fromDate(today),
+            modifiedAt: isNewPiece ? undefined : Timestamp.fromDate(new Date()),
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
@@ -2123,7 +2119,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      holdOrder,
     }),
     [
       order,
@@ -2258,7 +2253,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      holdOrder,
       setReadOnlyOrder
     ]
   );

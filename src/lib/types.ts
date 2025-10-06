@@ -132,7 +132,7 @@ export interface Sale {
   customerId?: string;
   tableId?: string;
   tableName?: string;
-  status: 'paid' | 'pending';
+  status: 'paid' | 'pending' | 'quote' | 'delivery_note';
   documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket';
   userId?: string;
   userName?: string;
