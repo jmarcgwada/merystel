@@ -453,14 +453,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
                 </div>
             )}
-             <div className="space-y-1">
-                 <Label className="text-xs text-muted-foreground">Date du paiement</Label>
+            <div className="flex flex-col items-end">
+                <Label className="text-xs text-muted-foreground text-right mb-1">Date du paiement</Label>
                 <Popover>
                     <PopoverTrigger asChild>
                     <Button
                         variant={"outline"}
                         className={cn(
-                        "w-full sm:w-[240px] justify-start text-left font-normal text-xs h-9",
+                        "w-[240px] justify-start text-left font-normal text-xs h-9",
                         !paymentDate && "text-muted-foreground"
                         )}
                     >
@@ -668,5 +668,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    
