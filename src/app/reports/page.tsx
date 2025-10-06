@@ -576,7 +576,7 @@ export default function ReportsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>
+                            <TableHead className="w-[100px]">
                                 <Button variant="ghost" onClick={() => requestSort('ticketNumber')}>
                                     Type {getSortIcon('ticketNumber')}
                                 </Button>
@@ -602,15 +602,15 @@ export default function ReportsPage() {
                                     Client {getSortIcon('customerName')}
                                 </Button>
                             </TableHead>
-                            <TableHead>
+                            <TableHead className="w-[80px] text-center">
                                 <Button variant="ghost" onClick={() => requestSort('itemCount')}>
                                     Articles {getSortIcon('itemCount')}
                                 </Button>
                             </TableHead>
                             <TableHead>Paiement</TableHead>
-                            <TableHead className="text-right">
+                            <TableHead className="text-right w-[120px]">
                                 <Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">
-                                    Total (TTC) {getSortIcon('total')}
+                                    Total {getSortIcon('total')}
                                 </Button>
                             </TableHead>
                             <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -642,7 +642,7 @@ export default function ReportsPage() {
                                      <TableCell className="font-mono text-muted-foreground text-xs">
                                         {sale.ticketNumber}
                                     </TableCell>
-                                    <TableCell className="font-medium whitespace-nowrap">
+                                    <TableCell className="font-medium">
                                         <ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} />
                                     </TableCell>
                                     <TableCell>
@@ -654,7 +654,7 @@ export default function ReportsPage() {
                                     <TableCell>
                                         {getCustomerName(sale.customerId)}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="text-center">
                                         {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
                                     </TableCell>
                                     <TableCell>
@@ -662,7 +662,7 @@ export default function ReportsPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex items-center justify-end whitespace-nowrap">
+                                        <div className="flex items-center justify-end">
                                             {sale.status === 'pending' && (
                                                 <Button asChild variant="ghost" size="icon">
                                                     <Link href={`/commercial?edit=${sale.id}`}>
