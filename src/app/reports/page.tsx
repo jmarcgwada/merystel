@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -95,6 +94,7 @@ export default function ReportsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialFilter = searchParams.get('filter');
+    const initialStatusFilter = searchParams.get('filterStatus');
     const dateFilterParam = searchParams.get('date');
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
@@ -115,7 +115,7 @@ export default function ReportsPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterStatus, setFilterStatus] = useState(initialStatusFilter || 'all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
         if (dateFilterParam) {
             const date = parseISO(dateFilterParam);
@@ -126,7 +126,7 @@ export default function ReportsPage() {
     const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
     const [isSummaryOpen, setSummaryOpen] = useState(false);
-    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam);
+    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -685,7 +685,7 @@ export default function ReportsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isClient && isLoading && Array.from({length: 10}).map((_, i) => (
+                        {(isClient && isLoading) && Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>

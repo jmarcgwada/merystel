@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -147,6 +147,18 @@ export default function DashboardPage() {
         };
     }, [sales, users]);
 
+    const outstandingBalance = useMemo(() => {
+        if (!sales) return 0;
+        return sales.reduce((acc, sale) => {
+            if (sale.status === 'pending') {
+                const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                const balance = sale.total - totalPaid;
+                return acc + balance;
+            }
+            return acc;
+        }, 0);
+    }, [sales]);
+
     const popularItems = useMemo(() => {
         if (!sales || !items) return [];
         const itemCounts: { [key: string]: { item: Item, count: number } } = {};
@@ -213,7 +225,8 @@ export default function DashboardPage() {
                     title="Tableau de bord"
                     subtitle={`Chargement des données...`}
                 />
-                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-32" />
                     <Skeleton className="h-32" />
                     <Skeleton className="h-32" />
                     <Skeleton className="h-32" />
@@ -241,7 +254,7 @@ export default function DashboardPage() {
         />
         
         {isMounted && showDashboardStats && (
-            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
@@ -286,6 +299,22 @@ export default function DashboardPage() {
                       </p>
                   </CardContent>
               </Card>
+              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
+                        <Link href={`/reports?filterStatus=pending`} className="text-primary hover:underline">
+                            Soldes Clients
+                        </Link>
+                    </CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{outstandingBalance.toFixed(2)}€</div>
+                    <p className="text-xs text-muted-foreground">
+                        Total des paiements en attente
+                    </p>
+                </CardContent>
+             </Card>
             </div>
         )}
 
@@ -415,5 +444,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
