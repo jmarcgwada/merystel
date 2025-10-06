@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -39,13 +40,6 @@ const allQuickLinks = [
         icon: ShoppingCart,
         roles: ['admin', 'manager', 'cashier'],
         id: 'sales-mode',
-    },
-    {
-        href: '/commercial',
-        title: "Commercial",
-        description: "Créer des commandes et des factures.",
-        icon: FileText,
-        roles: ['admin', 'manager', 'cashier'],
     },
     {
         href: '/management/items',
@@ -328,7 +322,31 @@ export default function DashboardPage() {
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
               <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                      <CardContent className="pt-6">
+                          <div className="flex items-start justify-between">
+                              <div>
+                                  <FileText className="h-8 w-8 text-primary mb-2" />
+                                  <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Gestion Commerciale</h3>
+                                  <p className="text-sm text-muted-foreground mt-1">Gérer les factures, devis, etc.</p>
+                              </div>
+                          </div>
+                           <div className="mt-4 flex flex-wrap gap-2">
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/commercial/invoices">Factures</Link>
+                                </Button>
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/commercial/quotes">Devis</Link>
+                                </Button>
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/commercial/delivery-notes">Bons de livraison</Link>
+                                </Button>
+                                <Button variant="secondary" size="sm" disabled>Cdes Client</Button>
+                                <Button variant="secondary" size="sm" disabled>Cdes Fournisseur</Button>
+                           </div>
+                      </CardContent>
+                  </Card>
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
@@ -376,3 +394,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
