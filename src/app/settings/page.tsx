@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog, Users } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog, Users, History } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -27,8 +25,9 @@ import { Separator } from '@/components/ui/separator';
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers } = usePos();
+  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, deleteAllSales } = usePos();
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
   
@@ -64,6 +63,11 @@ export default function SettingsPage() {
     resetAllData();
     setResetDialogOpen(false);
   }
+
+  const handleDeleteSales = () => {
+    deleteAllSales();
+    setDeleteSalesDialogOpen(false);
+  };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -339,24 +343,47 @@ export default function SettingsPage() {
                     <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
                     <Card className="border-destructive">
                         <CardHeader>
-                            <CardTitle>Réinitialiser l'application</CardTitle>
+                            <CardTitle>Opérations Irréversibles</CardTitle>
                             <CardDescription>
-                                Cette action est irréversible. Toutes les données, y compris les ventes, les articles, et les configurations seront supprimées définitivement.
+                                Ces actions suppriment définitivement des données. Soyez certain avant de continuer.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+                        <CardContent className="flex flex-col sm:flex-row gap-4">
+                            <AlertDialog open={isDeleteSalesDialogOpen} onOpenChange={setDeleteSalesDialogOpen}>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Réinitialiser toutes les données
+                                    <Button variant="destructive" className="bg-orange-600 hover:bg-orange-700">
+                                        <History className="mr-2 h-4 w-4" />
+                                        Supprimer toutes les ventes
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Cette action est irréversible. Toutes vos données seront supprimées de la base de données.
+                                            Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteSales} className="bg-destructive hover:bg-destructive/90">
+                                            Oui, supprimer les ventes
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+
+                            <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Réinitialiser l'application
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action est irréversible. Toutes vos données (ventes, articles, clients, etc.) seront supprimées de la base de données.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
