@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, Suspense } from 'react';
@@ -51,7 +50,7 @@ function UserForm() {
 
   const userId = searchParams.get('id');
   const isEditMode = Boolean(userId);
-  const userToEdit = isEditMode ? users.find(u => u.id === userId) : null;
+  const userToEdit = isEditMode && users ? users.find(u => u.id === userId) : null;
   
   const isForbidden = currentUser?.role === 'cashier' || currentUser?.role === 'manager';
 
@@ -281,5 +280,3 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
-
-    
