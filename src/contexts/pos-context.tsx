@@ -23,7 +23,7 @@ import type {
   User,
   SelectedVariant,
 } from '@/lib/types';
-import { useToast as useShadcnToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -318,7 +318,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useShadcnToast();
+  const { toast: originalToast } = useToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -382,14 +382,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof originalToast>[0]) => {
     if (showNotifications) {
-      shadcnToast({
+      originalToast({
         ...props,
         duration: props?.duration || notificationDuration,
       });
     }
-  }, [showNotifications, notificationDuration, shadcnToast]);
+  }, [showNotifications, notificationDuration, originalToast]);
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -465,7 +465,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   // #region Base Callbacks
   const getCollectionRef = useCallback(
-    (name: string, global: boolean = false): CollectionReference<DocumentData> | null => {
+    (name: string, global: boolean = false): CollectionReference | null => {
       if (!firestore) return null;
       if (global) {
         return collection(firestore, name);
@@ -1424,21 +1424,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const today = new Date();
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
         
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
           let pieceRef;
           let existingData: Partial<Sale> = {};
-          let isNewPiece = !saleIdToUpdate;
+          const isNewPiece = !saleIdToUpdate;
+          
+          const today = new Date();
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
               existingData = existingDoc.data() as Sale;
-              isNewPiece = false;
             }
           } else {
             const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
@@ -1459,14 +1459,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             transaction.update(companyRef, { [counterField]: increment(1) });
             
-            const dayMonth = format(new Date(), 'ddMM');
+            const dayMonth = format(today, 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
           const finalSaleData = {
             ...existingData,
             ...saleData,
-            date: isNewPiece ? today : existingData.date,
+            date: existingData.date || today,
             ...(isNewPiece ? {} : { modifiedAt: today }),
             userId: user.uid,
             userName: sellerName,
@@ -1494,7 +1494,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               occupiedByUserId: deleteField(),
               occupiedAt: deleteField(),
               closedByUserId: user.uid,
-              closedAt: serverTimestamp(),
+              closedAt: new Date(),
             });
           }
         });
@@ -1860,7 +1860,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const sortedSales = [...sales].sort((a, b) => {
         const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
         const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
-        return dateB.getTime() - a.getTime();
+        return dateB.getTime() - dateA.getTime();
     });
 
     const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
