@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -41,7 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
 const ITEMS_PER_PAGE = 20;
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
@@ -213,6 +212,10 @@ export default function ReportsPage() {
                         aValue = getUserName(a.userId, a.userName);
                         bValue = getUserName(b.userId, b.userName);
                         break;
+                    case 'ticketNumber':
+                        aValue = a.ticketNumber?.startsWith('Fact-') ? 1 : 0;
+                        bValue = b.ticketNumber?.startsWith('Fact-') ? 1 : 0;
+                        break;
                     default:
                         aValue = a[sortConfig.key as keyof Sale] || 0;
                         bValue = b[sortConfig.key as keyof Sale] || 0;
@@ -326,28 +329,6 @@ export default function ReportsPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="h-4 w-4" />
         </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Supprimer toutes les ventes
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">
-                Oui, supprimer les ventes
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
         {!isCashier && (
             <Button asChild>
                 <Link href="/reports/popular-items">
@@ -530,20 +511,51 @@ export default function ReportsPage() {
                 </Collapsible>
              </CardHeader>
             <CardContent>
-                <div className="flex items-center justify-end gap-2 mb-4">
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-medium">
-                        Page {currentPage} / {totalPages}
-                    </span>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </div>
+                 <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer toutes les ventes
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">
+                                Oui, supprimer les ventes
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-medium">
+                            Page {currentPage} / {totalPages}
+                        </span>
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+              </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => requestSort('ticketNumber')}>
+                                    Type {getSortIcon('ticketNumber')}
+                                </Button>
+                            </TableHead>
                             <TableHead>Numéro</TableHead>
                             <TableHead>
                                <Button variant="ghost" onClick={() => requestSort('date')}>
@@ -582,6 +594,7 @@ export default function ReportsPage() {
                     <TableBody>
                         {isLoading && Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-28" /></TableCell>
@@ -598,8 +611,11 @@ export default function ReportsPage() {
                             const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture' : 'Ticket';
                             return (
                                 <TableRow key={sale.id}>
+                                     <TableCell>
+                                        <Badge variant={pieceType === 'Facture' ? 'outline' : 'secondary'}>{pieceType}</Badge>
+                                    </TableCell>
                                      <TableCell className="font-mono text-muted-foreground text-xs">
-                                        <Badge variant={pieceType === 'Facture' ? 'outline' : 'secondary'}>{sale.ticketNumber}</Badge>
+                                        {sale.ticketNumber}
                                     </TableCell>
                                     <TableCell className="font-medium whitespace-nowrap">
                                         <ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} />
