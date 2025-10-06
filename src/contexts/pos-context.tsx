@@ -112,7 +112,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
-  loadSaleForEditing: (saleId: string) => void;
+  loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note') => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
@@ -162,6 +162,11 @@ interface PosContextType {
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
     saleIdToUpdate?: string
   ) => void;
+   recordCommercialDocument: (
+    doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+    type: 'quote' | 'delivery_note',
+    docIdToUpdate?: string,
+  ) => void,
   deleteAllSales: () => Promise<void>;
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
@@ -1130,7 +1135,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedTableById = useCallback(
     (tableId: string | null) => {
-      if (tableId && tableId === 'takeaway') {
+      if (tableId === 'takeaway') {
           setCameFromRestaurant(true);
           clearOrder();
           routerRef.current.push('/pos?from=restaurant');
@@ -1325,6 +1330,77 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
+    const recordCommercialDocument = useCallback(async (
+    docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+    type: 'quote' | 'delivery_note',
+    docIdToUpdate?: string
+  ) => {
+    if (!firestore || !companyId || !user) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
+      return;
+    }
+
+    const docTypeInfo = {
+      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré' },
+      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré' },
+    };
+    const { prefix, counterField, toastTitle } = docTypeInfo[type];
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const companyRef = doc(firestore, 'companies', companyId);
+        let pieceRef;
+        let existingData: Partial<Sale> = {};
+
+        if (docIdToUpdate) {
+          pieceRef = doc(firestore, 'companies', companyId, 'sales', docIdToUpdate);
+          const existingDoc = await transaction.get(pieceRef);
+          if (existingDoc.exists()) {
+            existingData = existingDoc.data() as Sale;
+          }
+        } else {
+          const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
+          pieceRef = doc(salesCollRef);
+        }
+        
+        let pieceNumber = existingData.ticketNumber || '';
+        if (!docIdToUpdate) {
+          const companyDoc = await transaction.get(companyRef);
+          const currentCounter = companyDoc.data()?.[counterField] || 0;
+          const newCount = currentCounter + 1;
+          
+          transaction.update(companyRef, { [counterField]: newCount });
+          
+          const dayMonth = format(new Date(), 'ddMM');
+          pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
+        }
+
+        const finalDocData: Sale = {
+          ...existingData,
+          ...docData,
+          id: pieceRef.id,
+          date: existingData.date || serverTimestamp(),
+          modifiedAt: docIdToUpdate ? serverTimestamp() : undefined,
+          userId: user.uid,
+          userName: `${user.firstName} ${user.lastName}`,
+          ticketNumber: pieceNumber,
+          documentType: type,
+        };
+        
+        transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
+      });
+
+      toast({ title: toastTitle });
+      clearOrder({ clearCustomer: true });
+      router.push(`/reports?filter=${prefix}-`);
+
+    } catch (error) {
+      console.error(`Transaction failed for ${type}:`, error);
+      toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || `Le document n'a pas pu être enregistré.` });
+    }
+  }, [companyId, firestore, user, toast, clearOrder, router]);
+
+
   const recordSale = useCallback(
     async (
       saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
@@ -1337,7 +1413,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-        const today = Timestamp.now();
+        const today = serverTimestamp();
         
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
@@ -1345,7 +1421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let existingData: Partial<Sale> = {};
           const isNewPiece = !saleIdToUpdate;
           
-          let saleDate = today;
+          let saleDate: any = today;
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
@@ -1386,6 +1462,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
+            documentType: currentSaleContext?.isInvoice ? 'invoice' : 'ticket',
           };
           
           transaction.set(pieceRef, cleanDataForFirebase(finalSaleData), { merge: true });
@@ -1824,18 +1901,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const loadSaleForEditing = useCallback((saleId: string) => {
+  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' = 'invoice') => {
     if (!sales) return;
     const sale = sales.find(s => s.id === saleId);
     if (!sale) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Facture non trouvée.' });
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Document non trouvé.' });
       return;
     }
     
     setOrder(sale.items);
     setCurrentSaleId(sale.id);
     setCurrentSaleContext({
-      isInvoice: true,
+      isInvoice: type === 'invoice',
       ticketNumber: sale.ticketNumber,
       date: sale.date,
       userName: sale.userName,
@@ -1942,6 +2019,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       promoteTableToTicket,
       sales,
       recordSale,
+      recordCommercialDocument,
       deleteAllSales,
       paymentMethods,
       addPaymentMethod,
@@ -2113,6 +2191,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       promoteTableToTicket,
       sales,
       recordSale,
+      recordCommercialDocument,
       deleteAllSales,
       paymentMethods,
       addPaymentMethod,
