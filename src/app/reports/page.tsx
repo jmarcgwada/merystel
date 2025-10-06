@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -190,15 +189,13 @@ export default function ReportsPage() {
         // Apply sorting
         if (sortConfig !== null) {
             filteredSales.sort((a, b) => {
-                if (sortConfig.key === 'date') {
-                    const dateA = a.date instanceof Date ? a.date.getTime() : (a.date as Timestamp).toDate().getTime();
-                    const dateB = b.date instanceof Date ? b.date.getTime() : (b.date as Timestamp).toDate().getTime();
-                    return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
-                }
-
-                let aValue: string | number, bValue: string | number;
+                let aValue: string | number | Date, bValue: string | number | Date;
                 
                 switch (sortConfig.key) {
+                    case 'date':
+                        aValue = a.date instanceof Date ? a.date : (a.date as Timestamp).toDate();
+                        bValue = b.date instanceof Date ? b.date : (b.date as Timestamp).toDate();
+                        break;
                     case 'tableName':
                         aValue = a.tableName || '';
                         bValue = b.tableName || '';
@@ -216,8 +213,9 @@ export default function ReportsPage() {
                         bValue = getUserName(b.userId, b.userName);
                         break;
                     case 'ticketNumber':
-                        aValue = a.ticketNumber?.startsWith('Fact-') ? 1 : 0;
-                        bValue = b.ticketNumber?.startsWith('Fact-') ? 1 : 0;
+                        // Simple sort for now, can be improved for numeric parts
+                        aValue = a.ticketNumber || '';
+                        bValue = b.ticketNumber || '';
                         break;
                     default:
                         aValue = a[sortConfig.key as keyof Sale] as number || 0;
@@ -225,6 +223,10 @@ export default function ReportsPage() {
                         break;
                 }
                 
+                if (aValue instanceof Date && bValue instanceof Date) {
+                    return sortConfig.direction === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
+                }
+
                 if(typeof aValue === 'string' && typeof bValue === 'string') {
                     return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
                 }
@@ -267,8 +269,6 @@ export default function ReportsPage() {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
-        } else if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
-            return setSortConfig({ key: 'date', direction: 'desc' }); // Default sort
         }
         setSortConfig({ key, direction });
     };
@@ -337,21 +337,22 @@ export default function ReportsPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
             </Button>
-            {!isCashier && !isInvoiceView && (
-                <Button asChild>
-                    <Link href="/reports/popular-items">
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Voir les articles populaires
-                    </Link>
-                </Button>
-            )}
-             {isInvoiceView && (
-                <Button asChild>
-                    <Link href="/commercial">
-                        <FilePlus className="mr-2 h-4 w-4" />
-                        Nouvelle facture
-                    </Link>
-                </Button>
+            {isInvoiceView ? (
+              <Button asChild>
+                <Link href="/commercial">
+                  <FilePlus className="mr-2 h-4 w-4" />
+                  Nouvelle facture
+                </Link>
+              </Button>
+            ) : (
+                !isCashier && (
+                    <Button asChild>
+                        <Link href="/reports/popular-items">
+                            <TrendingUp className="mr-2 h-4 w-4" />
+                            Voir les articles populaires
+                        </Link>
+                    </Button>
+                )
             )}
         </div>
       </PageHeader>
@@ -661,18 +662,20 @@ export default function ReportsPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
-                                        {sale.status === 'pending' && (
+                                        <div className="flex items-center justify-end whitespace-nowrap">
+                                            {sale.status === 'pending' && (
+                                                <Button asChild variant="ghost" size="icon">
+                                                    <Link href={`/commercial?edit=${sale.id}`}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            )}
                                             <Button asChild variant="ghost" size="icon">
-                                                <Link href={`/commercial?edit=${sale.id}`}>
-                                                    <Pencil className="h-4 w-4" />
+                                                <Link href={`/reports/${sale.id}`}>
+                                                    <Eye className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                        )}
-                                        <Button asChild variant="ghost" size="icon">
-                                            <Link href={`/reports/${sale.id}`}>
-                                                <Eye className="h-4 w-4" />
-                                            </Link>
-                                        </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             )
@@ -685,5 +688,4 @@ export default function ReportsPage() {
     </div>
   );
 }
-
 
