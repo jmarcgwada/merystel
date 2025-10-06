@@ -79,7 +79,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, setCurrentSaleContext } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -338,7 +338,7 @@ export default function ReportsPage() {
                 <RefreshCw className="h-4 w-4" />
             </Button>
             {isInvoiceView ? (
-              <Button asChild>
+              <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
                 <Link href="/commercial">
                   <FilePlus className="mr-2 h-4 w-4" />
                   Nouvelle facture
