@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -116,6 +116,8 @@ export default function ReportsPage() {
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
     const originFilterRef = useRef<HTMLInputElement>(null);
     const articleRefFilterRef = useRef<HTMLInputElement>(null);
+    
+    const isInvoiceView = searchParams.get('filter') === 'Fact-';
 
      useEffect(() => {
         setIsClient(true);
@@ -326,28 +328,38 @@ export default function ReportsPage() {
         title="Rapports des pièces"
         subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
       >
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-            <RefreshCw className="h-4 w-4" />
-        </Button>
-        {!isCashier && (
-            <Button asChild>
-                <Link href="/reports/popular-items">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Voir les articles populaires
-                </Link>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+                <RefreshCw className="h-4 w-4" />
             </Button>
-        )}
+            {!isCashier && !isInvoiceView && (
+                <Button asChild>
+                    <Link href="/reports/popular-items">
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Voir les articles populaires
+                    </Link>
+                </Button>
+            )}
+             {isInvoiceView && (
+                <Button asChild>
+                    <Link href="/commercial">
+                        <FilePlus className="mr-2 h-4 w-4" />
+                        Nouvelle facture
+                    </Link>
+                </Button>
+            )}
+        </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
-        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen}>
+        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
             <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-2 mb-2 -ml-2 text-lg font-semibold">
+                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
                     <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
                     Résumé de la sélection
                 </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Chiffre d'affaires</CardTitle>
@@ -388,9 +400,9 @@ export default function ReportsPage() {
             </CollapsibleContent>
         </Collapsible>
         
-        <Card>
-             <CardHeader>
-                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
+        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+            <Card>
+                <CardHeader>
                     <div className="relative">
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
@@ -413,8 +425,10 @@ export default function ReportsPage() {
                             </TooltipProvider>
                         </div>
                     </div>
-                    <CollapsibleContent>
-                        <div className="pt-4 pb-2 flex items-center gap-2 flex-wrap">
+                </CardHeader>
+                <CollapsibleContent asChild>
+                    <CardContent>
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Input
                                 ref={generalFilterRef}
                                 placeholder="Rechercher (N°, article, note...)"
@@ -507,10 +521,13 @@ export default function ReportsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                    </CollapsibleContent>
-                </Collapsible>
-             </CardHeader>
-            <CardContent>
+                    </CardContent>
+                </CollapsibleContent>
+            </Card>
+        </Collapsible>
+
+        <Card>
+            <CardContent className="pt-6">
                  <div className="flex items-center justify-between mb-4">
                     <div>
                         <AlertDialog>
@@ -541,9 +558,9 @@ export default function ReportsPage() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <span className="text-sm font-medium">
-                            Page {currentPage} / {totalPages}
+                            Page {currentPage} / {totalPages || 1}
                         </span>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}>
                             <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -654,3 +671,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
