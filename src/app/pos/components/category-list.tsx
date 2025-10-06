@@ -10,6 +10,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { Badge } from '@/components/ui/badge';
 
 interface CategoryListProps {
   selectedCategory: Category | SpecialCategory | null;
@@ -36,7 +37,7 @@ export function CategoryList({
   onScrollDown,
   onStopScroll,
 }: CategoryListProps) {
-  const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
+  const { items, categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
@@ -178,7 +179,8 @@ export function CategoryList({
                 onClick={() => onSelectCategory('all')}
               >
                 <LayoutGrid className="mr-3 h-5 w-5" />
-                <span className="text-base">Tout</span>
+                <span className="text-base flex-1">Tout</span>
+                {isClient && items && <Badge variant="secondary">{items.length}</Badge>}
               </Button>
               <Button
                 variant={isSpecialCategorySelected('popular') ? 'default' : 'ghost'}
