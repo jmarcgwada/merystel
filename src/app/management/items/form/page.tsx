@@ -69,6 +69,8 @@ function ItemForm() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [defaultImage, setDefaultImage] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
+
 
   const itemId = searchParams.get('id');
   const isEditMode = Boolean(itemId);
@@ -110,7 +112,41 @@ function ItemForm() {
   const watchedImage = watch('image');
   const watchedName = watch('name');
   const watchedPrice = watch('price');
+  const watchedPurchasePrice = watch('purchasePrice');
+  const watchedMarginCoefficient = watch('marginCoefficient');
+  const watchedVatId = watch('vatId');
   const watchedManageStock = watch('manageStock');
+  
+  // Logic for automatic price calculation
+  useEffect(() => {
+    if (isManualPriceEdit || !vatRates) return;
+    
+    const purchasePrice = watchedPurchasePrice || 0;
+    const marginCoefficient = watchedMarginCoefficient || 0;
+    const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
+    
+    if (purchasePrice > 0 && marginCoefficient > 0 && vatRateInfo) {
+        const priceHT = purchasePrice * marginCoefficient;
+        const priceTTC = priceHT * (1 + vatRateInfo.rate / 100);
+        setValue('price', parseFloat(priceTTC.toFixed(2)));
+    }
+  }, [watchedPurchasePrice, watchedMarginCoefficient, watchedVatId, setValue, vatRates, isManualPriceEdit]);
+
+  // Logic for inverse calculation: from price to coefficient
+  useEffect(() => {
+    if (!isManualPriceEdit || !vatRates) return;
+
+    const price = watchedPrice || 0;
+    const purchasePrice = watchedPurchasePrice || 0;
+    const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
+
+    if (price > 0 && purchasePrice > 0 && vatRateInfo) {
+      const priceHT = price / (1 + vatRateInfo.rate / 100);
+      const newCoeff = priceHT / purchasePrice;
+      setValue('marginCoefficient', parseFloat(newCoeff.toFixed(2)));
+    }
+  }, [watchedPrice, watchedPurchasePrice, watchedVatId, setValue, vatRates, isManualPriceEdit]);
+
 
   useEffect(() => {
     if(isCashier && !isEditMode) {
@@ -508,7 +544,14 @@ function ItemForm() {
                                     <FormItem>
                                     <FormLabel>Prix de vente (€)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" step="0.01" placeholder="ex: 4.50" {...field} />
+                                        <Input 
+                                          type="number" 
+                                          step="0.01" 
+                                          placeholder="ex: 4.50" 
+                                          {...field} 
+                                          onFocus={() => setIsManualPriceEdit(true)}
+                                          onBlur={() => setIsManualPriceEdit(false)}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                     </FormItem>
