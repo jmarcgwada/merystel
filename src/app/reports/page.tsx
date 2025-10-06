@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -145,6 +146,17 @@ export default function ReportsPage() {
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
+    
+    const getDateFromSale = (sale: Sale): Date => {
+        if (!sale.date) return new Date(0); // Should not happen
+        if (sale.date instanceof Date) return sale.date;
+        if (typeof (sale.date as Timestamp)?.toDate === 'function') {
+            return (sale.date as Timestamp).toDate();
+        }
+        // Fallback for string or number dates, though this should be avoided
+        const d = new Date(sale.date as any);
+        return isNaN(d.getTime()) ? new Date(0) : d;
+    };
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -163,11 +175,11 @@ export default function ReportsPage() {
             
             let dateMatch = true;
             if (dateRange?.from) {
-                const saleDate = (sale.date as Timestamp)?.toDate ? (sale.date as Timestamp).toDate() : new Date(sale.date);
+                const saleDate = getDateFromSale(sale);
                 dateMatch = saleDate >= startOfDay(dateRange.from);
             }
             if (dateRange?.to) {
-                 const saleDate = (sale.date as Timestamp)?.toDate ? (sale.date as Timestamp).toDate() : new Date(sale.date);
+                 const saleDate = getDateFromSale(sale);
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
@@ -193,8 +205,8 @@ export default function ReportsPage() {
                 
                 switch (sortConfig.key) {
                     case 'date':
-                        aValue = a.date instanceof Date ? a.date : (a.date as Timestamp).toDate();
-                        bValue = b.date instanceof Date ? b.date : (b.date as Timestamp).toDate();
+                        aValue = getDateFromSale(a);
+                        bValue = getDateFromSale(b);
                         break;
                     case 'tableName':
                         aValue = a.tableName || '';
@@ -339,7 +351,7 @@ export default function ReportsPage() {
             </Button>
             {isInvoiceView ? (
               <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
-                <Link href="/commercial">
+                <Link href="/commercial/invoices">
                   <FilePlus className="mr-2 h-4 w-4" />
                   Nouvelle facture
                 </Link>
@@ -576,7 +588,7 @@ export default function ReportsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[100px]">
+                            <TableHead className="w-[120px]">
                                 <Button variant="ghost" onClick={() => requestSort('ticketNumber')}>
                                     Type {getSortIcon('ticketNumber')}
                                 </Button>
@@ -633,11 +645,14 @@ export default function ReportsPage() {
                         ))}
                         {!isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
-                            const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture' : 'Ticket';
+                            const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture'
+                                            : sale.ticketNumber?.startsWith('Devis-') ? 'Devis'
+                                            : sale.ticketNumber?.startsWith('BL-') ? 'Bon de livraison'
+                                            : 'Ticket';
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell>
-                                        <Badge variant={pieceType === 'Facture' ? 'outline' : 'secondary'}>{pieceType}</Badge>
+                                        <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
                                     </TableCell>
                                      <TableCell className="font-mono text-muted-foreground text-xs">
                                         {sale.ticketNumber}
@@ -665,7 +680,7 @@ export default function ReportsPage() {
                                         <div className="flex items-center justify-end">
                                             {sale.status === 'pending' && (
                                                 <Button asChild variant="ghost" size="icon">
-                                                    <Link href={`/commercial?edit=${sale.id}`}>
+                                                    <Link href={`/commercial/invoices?edit=${sale.id}`}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>

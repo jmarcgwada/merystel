@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -1379,8 +1380,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...existingData,
           ...docData,
           id: pieceRef.id,
-          date: existingData.date || serverTimestamp(),
-          modifiedAt: docIdToUpdate ? serverTimestamp() : undefined,
+          date: existingData.date || new Date(),
+          modifiedAt: docIdToUpdate ? new Date() : undefined,
           userId: user.uid,
           userName: `${user.firstName} ${user.lastName}`,
           ticketNumber: pieceNumber,
@@ -1413,7 +1414,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-        const today = serverTimestamp();
+        const today = new Date();
         
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
