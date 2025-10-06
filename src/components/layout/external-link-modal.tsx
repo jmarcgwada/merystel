@@ -146,6 +146,21 @@ export function ExternalLinkModal() {
     setIsOpen(false);
     setIsVisible(false);
   };
+  
+   const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        setIsVisible(false);
+    }
+   }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, handleClickOutside]);
 
   useEffect(() => {
     if (isDragging || isResizing) {
@@ -193,19 +208,11 @@ export function ExternalLinkModal() {
   };
 
   return (
-    <Dialog open={isOpen}>
-      <DialogContent 
-        ref={modalRef}
-        className="p-0 border overflow-hidden flex flex-col shadow-2xl"
-        style={dynamicStyle}
-        onPointerDownOutside={(e) => {
-            // Only hide, don't close/unmount
-            setIsVisible(false);
-            e.preventDefault();
-        }}
-        // The default close button is removed to use our custom one
-        hideCloseButton
-      >
+    <div
+      ref={modalRef}
+      style={dynamicStyle}
+      className="z-50 flex-col rounded-lg border bg-background shadow-2xl p-0 overflow-hidden"
+    >
         <div 
           data-drag-handle
           onMouseDown={handleDragStart}
@@ -214,10 +221,10 @@ export function ExternalLinkModal() {
             isDragging ? "cursor-grabbing" : "cursor-grab"
           )}
         >
-          <DialogTitle>{externalLinkTitle || 'Contenu externe'}</DialogTitle>
+          <h2 className="font-semibold leading-none tracking-tight">{externalLinkTitle || 'Contenu externe'}</h2>
            <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
              <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Fermer</span>
           </button>
         </div>
         <div className="relative w-full flex-1">
@@ -243,7 +250,6 @@ export function ExternalLinkModal() {
                 className={cn('absolute z-10', getResizeHandleClass(dir))}
             />
         ))}
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }
