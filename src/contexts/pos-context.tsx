@@ -1417,12 +1417,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
       saleIdToUpdate?: string
     ) => {
-      const salesCollRef = getCollectionRef('sales');
-      if (!firestore || !companyId || !user || !salesCollRef) {
+      if (!firestore || !companyId || !user) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
         return;
       }
-      
+
       try {
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
@@ -1436,9 +1435,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               existingData = existingDoc.data() as Sale;
             }
           } else {
+            const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
             pieceRef = doc(salesCollRef);
           }
-
+          
           const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
           const needsNumber = isFinalizing && !existingData.ticketNumber;
           let pieceNumber = existingData.ticketNumber || '';
@@ -1496,7 +1496,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
       }
     },
-    [companyId, firestore, user, items, currentSaleContext, toast, getCollectionRef]
+    [companyId, firestore, user, items, currentSaleContext, toast]
   );
   // #endregion
 
