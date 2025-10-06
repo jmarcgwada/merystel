@@ -60,7 +60,6 @@ function QuotesPageContent() {
         
         <div className="flex-1">
             <CommercialOrderForm
-                documentType="quote"
                 order={order} 
                 setOrder={setOrder}
                 addToOrder={addToOrder}

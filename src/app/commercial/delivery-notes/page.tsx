@@ -60,7 +60,6 @@ function DeliveryNotesPageContent() {
         
         <div className="flex-1">
             <CommercialOrderForm
-                documentType="delivery-note"
                 order={order} 
                 setOrder={setOrder}
                 addToOrder={addToOrder}

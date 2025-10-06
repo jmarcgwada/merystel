@@ -51,13 +51,13 @@ interface CommercialOrderFormProps {
   removeFromOrder: (itemId: string) => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
   updateItemNote: (itemId: string, note: string) => void;
-  setIsInvoiceReady: (isReady: boolean) => void;
+  setIsReady: (isReady: boolean) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -98,8 +98,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   useEffect(() => {
     const isReady = !!selectedCustomer && watchItems.length > 0;
-    setIsInvoiceReady(isReady);
-  }, [selectedCustomer, watchItems, setIsInvoiceReady]);
+    setIsReady(isReady);
+  }, [selectedCustomer, watchItems, setIsReady]);
 
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);

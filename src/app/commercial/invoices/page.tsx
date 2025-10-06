@@ -129,7 +129,6 @@ function InvoicesPageContent() {
         
         <div className="flex-1">
             <CommercialOrderForm 
-                documentType="invoice"
                 order={order} 
                 setOrder={setOrder}
                 addToOrder={addToOrder}
