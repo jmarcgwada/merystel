@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -22,7 +23,7 @@ import type {
   User,
   SelectedVariant,
 } from '@/lib/types';
-import { useToast as useShadcnToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -318,7 +319,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useShadcnToast();
+  const { toast: shadcnToast } = useToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -783,6 +784,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const defaultCustomers = [
         { name: 'Client au comptoir', isDefault: true },
+      ];
+
+      const defaultTables = [
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
+      ];
+
+      const seedCategories = [
+        { id: 'boulangerie', name: 'Boulangerie', color: '#f59e0b' },
+        { id: 'patisserie', name: 'Pâtisserie', color: '#ec4899' },
+        { id: 'epicerie_sucree', name: 'Épicerie Sucrée', color: '#8b5cf6' },
+        { id: 'epicerie_salee', name: 'Épicerie Salée', color: '#10b981' },
+        { id: 'boissons_fraiches', name: 'Boissons Fraîches', color: '#3b82f6' },
+        { id: 'boissons_chaudes', name: 'Boissons Chaudes', color: '#a16207' },
+        { id: 'vins_spiritueux', name: 'Vins & Spiritueux', color: '#dc2626' },
+        { id: 'fruits_legumes', name: 'Fruits & Légumes', color: '#84cc16' },
+        { id: 'cremerie', name: 'Crémerie', color: '#fde047' },
+        { id: 'boucherie', name: 'Boucherie', color: '#ef4444', isRestaurantOnly: true },
+        { id: 'plats_cuisines', name: 'Plats Cuisinés', color: '#f97316', isRestaurantOnly: true },
+        { id: 'sandwichs', name: 'Sandwichs', color: '#64748b' },
       ];
 
       const seedItems = [
@@ -1290,7 +1311,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           order: orderData.map(cleanDataForFirebase),
           status: 'paying',
           occupiedByUserId: table.status === 'available' ? user?.uid : table.occupiedByUserId,
-          occupiedAt: table.status === 'available' ? serverTimestamp() : table.occupiedAt,
+          occupiedAt: table.status === 'available' ? Timestamp.fromDate(new Date()) : table.occupiedAt,
         });
         setCurrentSaleId(`table-${tableId}`);
         setCurrentSaleContext({
@@ -1316,7 +1337,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || serverTimestamp()) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
             closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
         });
@@ -1338,7 +1359,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || serverTimestamp()) : deleteField(),
+            occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
             closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
           });
@@ -1435,7 +1456,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
               existingData = existingDoc.data() as Sale;
-              saleDate = existingData.date || saleDate;
+              saleDate = existingData.date || new Date();
             }
           } else {
             const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
@@ -1456,7 +1477,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             transaction.update(companyRef, { [counterField]: increment(1) });
             
-            const dayMonth = format(saleDate, 'ddMM');
+            const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
@@ -1464,8 +1485,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...existingData,
             ...saleData,
             id: pieceRef.id,
-            date: saleDate,
-            modifiedAt: isNewPiece ? undefined : new Date(),
+            date: saleDate, // Use original date on update, new date on create
+            modifiedAt: isNewPiece ? undefined : serverTimestamp(),
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
@@ -2101,10 +2122,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       order,
       setOrder,
       systemDate,
-      readOnlyOrder,
       dynamicBgImage,
       enableDynamicBg, setEnableDynamicBg,
       dynamicBgOpacity, setDynamicBgOpacity,
+      readOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2226,6 +2247,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       holdOrder,
+      setReadOnlyOrder
     ]
   );
 
@@ -2239,3 +2261,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
