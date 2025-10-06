@@ -40,11 +40,11 @@ const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | unde
             return;
         }
         
-        const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : d.toDate();
+        const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : (d as Timestamp)?.toDate();
         const paymentJsDate = toJsDate(date);
         const saleJsDate = toJsDate(saleDate);
 
-        if (!isNaN(paymentJsDate.getTime())) {
+        if (paymentJsDate && !isNaN(paymentJsDate.getTime())) {
             setFormattedDate(format(paymentJsDate, "d MMM yyyy, HH:mm", { locale: fr }));
             setIsDeferred(!isSameDay(paymentJsDate, saleJsDate));
         } else {
@@ -128,7 +128,10 @@ export default function PaymentsReportPage() {
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
-            const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : d.toDate();
+            const toJsDate = (d: Date | Timestamp | undefined): Date => {
+                if (!d) return new Date(0); // Return a very old date if undefined
+                return d instanceof Date ? d : (d as Timestamp).toDate();
+            };
             const paymentJsDate = toJsDate(payment.date);
             const saleJsDate = toJsDate(payment.saleDate);
 
@@ -160,8 +163,12 @@ export default function PaymentsReportPage() {
         if (sortConfig !== null) {
             filtered.sort((a, b) => {
                  let aValue: string | number | Date, bValue: string | number | Date;
+                const toJsDateSafe = (d: Date | Timestamp | undefined): Date => {
+                    if (!d) return new Date(0);
+                    return d instanceof Date ? d : (d as Timestamp).toDate();
+                };
                 switch (sortConfig.key) {
-                    case 'date': aValue = a.date instanceof Date ? a.date : a.date.toDate(); bValue = b.date instanceof Date ? b.date : b.date.toDate(); break;
+                    case 'date': aValue = toJsDateSafe(a.date); bValue = toJsDateSafe(b.date); break;
                     case 'amount': aValue = a.amount; bValue = b.amount; break;
                     case 'customerName': aValue = getCustomerName(a.customerId); bValue = getCustomerName(b.customerId); break;
                     case 'ticketNumber': aValue = a.saleTicketNumber || ''; bValue = b.saleTicketNumber || ''; break;
