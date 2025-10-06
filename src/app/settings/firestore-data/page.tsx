@@ -141,7 +141,7 @@ export default function FirestoreDataPage() {
   
   if(isPinDialogOpen) {
       return (
-        <AlertDialog open={isPinDialogOpen} onOpenChange={(open) => !open && router.push('/settings')}>
+        <AlertDialog open={isPinDialogOpen} onOpenChange={(open) => { if(!open) router.push('/settings')}}>
             <AlertDialogContent>
                 <form onSubmit={handlePinSubmit}>
                     <AlertDialogHeader>
@@ -163,7 +163,7 @@ export default function FirestoreDataPage() {
                         />
                     </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel type="button" onClick={() => router.push('/settings')}>Annuler</AlertDialogCancel>
+                        <AlertDialogCancel type="button">Annuler</AlertDialogCancel>
                         <AlertDialogAction type="submit">
                             Valider
                         </AlertDialogAction>
