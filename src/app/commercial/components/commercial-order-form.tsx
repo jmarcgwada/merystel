@@ -347,8 +347,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </div>
                 <div className="space-y-2">
                 {watchItems.map((field, index) => {
-                  const fullItem = allItems.find(i => i.id === field.itemId);
-                  const vatInfo = vatRates.find(v => v.id === fullItem?.vatId);
+                  const fullItem = allItems?.find(i => i.id === field.itemId);
+                  const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
                   const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
                   return (
