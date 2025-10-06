@@ -427,7 +427,24 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 <Separator className="my-6"/>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                     <div className="space-y-4">
-                        <div className="space-y-2 max-w-sm">
+                        <h4 className="font-semibold">Taux de TVA</h4>
+                        <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
+                           <div className="text-sm font-medium">Code</div>
+                           <div className="text-sm font-medium text-right">Taux</div>
+                           <div className="text-sm font-medium text-right">Base HT</div>
+                           <div className="text-sm font-medium text-right">Montant</div>
+                            {Object.values(vatBreakdown).map(vat => (
+                                <React.Fragment key={vat.rate}>
+                                    <div className="text-sm font-mono">{vat.code}</div>
+                                    <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
+                                    <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
+                                    <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="space-y-2 max-w-sm ml-auto">
                             <div className="flex justify-between items-center">
                                 <Label>Total HT</Label>
                                 <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
@@ -453,23 +470,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 <span>Net à Payer</span>
                                 <span>{netAPayer.toFixed(2)}€</span>
                             </div>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Taux de TVA</h4>
-                        <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
-                           <div className="text-sm font-medium">Code</div>
-                           <div className="text-sm font-medium text-right">Taux</div>
-                           <div className="text-sm font-medium text-right">Base HT</div>
-                           <div className="text-sm font-medium text-right">Montant</div>
-                            {Object.values(vatBreakdown).map(vat => (
-                                <React.Fragment key={vat.rate}>
-                                    <div className="text-sm font-mono">{vat.code}</div>
-                                    <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
-                                    <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
-                                    <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
-                                </React.Fragment>
-                            ))}
                         </div>
                     </div>
                 </div>
