@@ -101,8 +101,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null>>;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   serialNumberItem: { item: Item; quantity: number } | null;
@@ -384,7 +384,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -900,6 +900,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         ticketNumber: undefined,
         date: undefined,
         modifiedAt: undefined,
+        acompte: undefined,
       }));
     }
   }, [readOnlyOrder]);
@@ -1920,6 +1921,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     setOrder(sale.items);
     setCurrentSaleId(sale.id);
+
+    const acompte = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+    
     setCurrentSaleContext({
       isInvoice: type === 'invoice',
       ticketNumber: sale.ticketNumber,
@@ -1930,6 +1934,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       originalTotal: sale.total,
       originalPayments: sale.payments,
       change: sale.change,
+      acompte: acompte,
     });
 
   }, [sales, toast]);
@@ -2138,6 +2143,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       enableDynamicBg, setEnableDynamicBg,
       dynamicBgOpacity, setDynamicBgOpacity,
       readOnlyOrder,
+      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2308,7 +2314,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      setReadOnlyOrder,
     ]
   );
 

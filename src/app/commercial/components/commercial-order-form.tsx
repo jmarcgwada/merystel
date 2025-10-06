@@ -83,7 +83,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   
   useEffect(() => {
     form.setValue('items', order.map(item => ({ ...item, remise: item.discountPercent || 0 })));
-  }, [order, form]);
+    if (currentSaleContext?.acompte) {
+        form.setValue('acompte', currentSaleContext.acompte);
+    }
+  }, [order, form, currentSaleContext]);
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');

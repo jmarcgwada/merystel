@@ -176,7 +176,14 @@ export default function ReportsPage() {
             const customerName = getCustomerName(sale.customerId);
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
-            const statusMatch = filterStatus === 'all' || (sale.status === filterStatus);
+            
+            const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            const isPartiallyPaid = totalPaid > 0 && totalPaid < sale.total;
+            let statusMatch = true;
+            if (filterStatus === 'paid') statusMatch = sale.status === 'paid';
+            else if (filterStatus === 'pending') statusMatch = sale.status === 'pending' && totalPaid === 0;
+            else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && isPartiallyPaid;
+
             const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
             
             const saleSellerName = getUserName(sale.userId, sale.userName);
@@ -312,26 +319,32 @@ export default function ReportsPage() {
         setCurrentPage(1);
     }
 
-    const PaymentBadges = ({ sale }: { sale: Sale }) => (
-        <div className="flex flex-wrap gap-1">
-            {!sale.payments || sale.payments.length === 0 ? (
-            <Badge variant="destructive" className="font-normal">En attente</Badge>
-            ) : (
-            <>
-                {sale.payments.map((p, index) => (
-                <Badge key={index} variant="outline" className="capitalize font-normal">
-                    {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
-                </Badge>
-                ))}
-                {sale.change && sale.change > 0 && (
-                <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
-                    Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
-                </Badge>
-                )}
-            </>
-            )}
-        </div>
-    );
+    const PaymentBadges = ({ sale }: { sale: Sale }) => {
+        const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+
+        if (sale.status === 'paid') {
+            return (
+                <div className="flex flex-wrap gap-1">
+                    {sale.payments.map((p, index) => (
+                        <Badge key={index} variant="outline" className="capitalize font-normal">
+                            {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
+                        </Badge>
+                    ))}
+                    {sale.change && sale.change > 0 && (
+                        <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
+                            Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
+                        </Badge>
+                    )}
+                </div>
+            );
+        }
+
+        if (totalPaid > 0) {
+            return <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>;
+        }
+
+        return <Badge variant="destructive" className="font-normal">En attente</Badge>;
+    };
 
     if (isCashier) {
         return (
@@ -571,6 +584,7 @@ export default function ReportsPage() {
                                 <SelectContent>
                                     <SelectItem value="all">Tous les statuts</SelectItem>
                                     <SelectItem value="paid">Payé</SelectItem>
+                                    <SelectItem value="partial">Partiellement payé</SelectItem>
                                     <SelectItem value="pending">En attente</SelectItem>
                                 </SelectContent>
                             </Select>
