@@ -23,7 +23,7 @@ import type {
   User,
   SelectedVariant,
 } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -265,6 +265,8 @@ interface PosContextType {
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
   isLoading: boolean;
   user: CombinedUser | null;
+  toast: (props: any) => void;
+  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -324,7 +326,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useToast();
+  const { toast: shadcnToast } = useShadcnToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -2039,6 +2041,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCameFromRestaurant,
       isLoading,
       user,
+      toast,
       holdOrder,
     }),
     [
@@ -2172,6 +2175,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       cameFromRestaurant, setCameFromRestaurant,
       isLoading,
       user,
+      toast,
       holdOrder,
       setReadOnlyOrder
     ]
