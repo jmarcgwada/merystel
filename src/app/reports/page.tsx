@@ -59,7 +59,6 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
-            // Attempt to parse if it's a string or number, though it shouldn't be
             jsDate = new Date(date as any);
         }
 
@@ -77,6 +76,16 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         </span>
     );
 }
+
+const getDateFromSale = (sale: Sale): Date => {
+    if (!sale.date) return new Date(0);
+    if (sale.date instanceof Date) return sale.date;
+    if (typeof (sale.date as Timestamp)?.toDate === 'function') {
+        return (sale.date as Timestamp).toDate();
+    }
+    const d = new Date(sale.date as any);
+    return isNaN(d.getTime()) ? new Date(0) : d;
+};
 
 
 export default function ReportsPage() {
@@ -147,15 +156,6 @@ export default function ReportsPage() {
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
     
-    const getDateFromSale = (sale: Sale): Date => {
-        if (!sale.date) return new Date(0);
-        if (sale.date instanceof Date) return sale.date;
-        if (typeof (sale.date as Timestamp)?.toDate === 'function') {
-            return (sale.date as Timestamp).toDate();
-        }
-        const d = new Date(sale.date as any);
-        return isNaN(d.getTime()) ? new Date(0) : d;
-    };
 
 
     const filteredAndSortedSales = useMemo(() => {
