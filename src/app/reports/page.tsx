@@ -279,10 +279,11 @@ export default function ReportsPage() {
 
 
      const summaryStats = useMemo(() => {
-        const totalRevenue = filteredAndSortedSales.reduce((acc, sale) => acc + sale.total, 0);
-        const totalSales = filteredAndSortedSales.length;
+        const relevantSales = filteredAndSortedSales.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
+        const totalRevenue = relevantSales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalSales = relevantSales.length;
         const averageBasket = totalSales > 0 ? totalRevenue / totalSales : 0;
-        const totalItemsSold = filteredAndSortedSales.reduce((acc, sale) => acc + sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0), 0);
+        const totalItemsSold = relevantSales.reduce((acc, sale) => acc + sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0), 0);
 
         return {
             totalRevenue,
@@ -433,7 +434,7 @@ export default function ReportsPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Chiffre d'affaires</CardTitle>
+                            <CardTitle className="text-sm font-medium">Chiffre d'affaires (Factures)</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -442,7 +443,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nombre de pièces</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nombre de factures</CardTitle>
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -451,7 +452,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                            <CardTitle className="text-sm font-medium">Panier Moyen (Factures)</CardTitle>
                              <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -460,7 +461,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Articles vendus</CardTitle>
+                            <CardTitle className="text-sm font-medium">Articles vendus (Factures)</CardTitle>
                             <Package className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -685,7 +686,7 @@ export default function ReportsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {(isClient && isLoading) && Array.from({length: 10}).map((_, i) => (
+                        {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -698,7 +699,7 @@ export default function ReportsPage() {
                                 <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                                 <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                             </TableRow>
-                        ))}
+                        )) : null}
                         {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
                             const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture'

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -103,7 +102,8 @@ export default function PaymentsReportPage() {
 
     const allPayments = useMemo(() => {
         if (!allSales) return [];
-        return allSales.flatMap(sale => 
+        const invoiceSales = allSales.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
+        return invoiceSales.flatMap(sale => 
             (sale.payments || []).map(payment => ({
                 ...payment,
                 saleId: sale.id,
@@ -276,9 +276,9 @@ export default function PaymentsReportPage() {
       </PageHeader>
       <div className="mt-8 space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{summaryStats.totalPayments}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.averagePayment.toFixed(2)}€</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total (Factures)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements (Factures)</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{summaryStats.totalPayments}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen (Factures)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.averagePayment.toFixed(2)}€</div></CardContent></Card>
         </div>
 
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>

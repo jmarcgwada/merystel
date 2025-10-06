@@ -111,15 +111,16 @@ export default function DashboardPage() {
 
     }, [authUser, defaultSalesMode]);
 
-    const totalSales = useMemo(() => {
-        if (!sales) return 0;
-        return sales.reduce((acc, sale) => acc + sale.total, 0);
+    const onlyInvoices = useMemo(() => {
+      if (!sales) return [];
+      return sales.filter(sale => sale.ticketNumber?.startsWith('Fact-'))
     }, [sales]);
+
     
     const todaysSalesData = useMemo(() => {
-        if (!sales || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
+        if (!onlyInvoices || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
         const today = new Date();
-        const salesOfToday = sales
+        const salesOfToday = onlyInvoices
             .map(sale => ({
                 ...sale,
                 date: (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date)
@@ -145,11 +146,11 @@ export default function DashboardPage() {
             lastSale: lastSaleWithUser,
             averageBasket: salesOfToday.length > 0 ? todaysTotal / salesOfToday.length : 0,
         };
-    }, [sales, users]);
+    }, [onlyInvoices, users]);
 
     const outstandingBalance = useMemo(() => {
-        if (!sales) return 0;
-        return sales.reduce((acc, sale) => {
+        if (!onlyInvoices) return 0;
+        return onlyInvoices.reduce((acc, sale) => {
             if (sale.status === 'pending') {
                 const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
                 const balance = sale.total - totalPaid;
@@ -157,13 +158,13 @@ export default function DashboardPage() {
             }
             return acc;
         }, 0);
-    }, [sales]);
+    }, [onlyInvoices]);
 
     const popularItems = useMemo(() => {
-        if (!sales || !items) return [];
+        if (!onlyInvoices || !items) return [];
         const itemCounts: { [key: string]: { item: Item, count: number } } = {};
 
-        sales.forEach(sale => {
+        onlyInvoices.forEach(sale => {
             sale.items.forEach(orderItem => {
                 if(itemCounts[orderItem.id]) {
                     itemCounts[orderItem.id].count += orderItem.quantity;
@@ -180,7 +181,7 @@ export default function DashboardPage() {
             .sort((a,b) => b.count - a.count)
             .slice(0, 5);
 
-    }, [sales, items]);
+    }, [onlyInvoices, items]);
     
     const backgroundStyle = useMemo(() => {
         if (!isMounted) return {};
