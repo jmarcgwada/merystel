@@ -58,7 +58,7 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, setCurrentSaleContext } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -85,6 +85,17 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [order, form]);
   
   const watchItems = form.watch('items');
+  
+  useEffect(() => {
+    if (currentSaleContext?.customerId && customers) {
+        const customer = customers.find(c => c.id === currentSaleContext.customerId);
+        if (customer) {
+            setSelectedCustomer(customer);
+            form.setValue('customerId', customer.id);
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSaleContext?.customerId, customers]);
 
   useEffect(() => {
     const isReady = !!selectedCustomer && watchItems.length > 0;
@@ -226,7 +237,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (order.length === 0 || !selectedCustomer) return;
     
     // Set the context to indicate this is an invoice
-    setCurrentSaleContext({ isInvoice: true, customerId: selectedCustomer.id });
+    setCurrentSaleContext(prev => ({ ...prev, isInvoice: true, customerId: selectedCustomer.id }));
 
     // Open checkout modal directly. The sale will be recorded from there.
     setCheckoutOpen(true);
