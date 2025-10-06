@@ -1624,7 +1624,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         await signOut(auth);
         localStorage.removeItem('sessionToken');
-    }, [auth, user, firestore, order, clearOrder]);
+        router.push('/login');
+    }, [auth, user, firestore, order, clearOrder, router]);
+
 
     const validateSession = useCallback((userId: string, token: string) => {
         const user = users.find(u => u.id === userId);
