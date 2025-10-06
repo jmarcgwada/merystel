@@ -26,6 +26,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "L'email n'est pas valide." }),
   role: z.enum(['admin', 'manager', 'cashier']),
   password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
+  sessionDuration: z.coerce.number().min(0, { message: 'La durée doit être positive.' }).optional(),
 }).refine(data => {
     // This logic is now client-side only, so window is safe to use.
     if (typeof window === 'undefined') return true; // Pass validation on server
@@ -62,6 +63,7 @@ function UserForm() {
       email: '',
       role: 'cashier',
       password: '',
+      sessionDuration: 30,
     },
   });
 
@@ -78,6 +80,7 @@ function UserForm() {
         lastName: userToEdit.lastName,
         email: userToEdit.email,
         role: userToEdit.role,
+        sessionDuration: userToEdit.sessionDuration ?? 30,
       });
     } else {
       form.reset({
@@ -86,6 +89,7 @@ function UserForm() {
         email: '',
         role: 'cashier',
         password: '',
+        sessionDuration: 30,
       });
     }
   }, [isEditMode, userToEdit, form]);
@@ -203,28 +207,56 @@ function UserForm() {
                     )}
                 />
                 )}
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rôle</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez un rôle" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Administrateur</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="cashier">Caissier</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Rôle</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionnez un rôle" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="admin">Administrateur</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="cashier">Caissier</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="sessionDuration"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Durée de session (minutes)</FormLabel>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionnez une durée" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="15">15 minutes</SelectItem>
+                                <SelectItem value="30">30 minutes</SelectItem>
+                                <SelectItem value="60">1 heure</SelectItem>
+                                <SelectItem value="120">2 heures</SelectItem>
+                                <SelectItem value="240">4 heures</SelectItem>
+                                <SelectItem value="480">8 heures</SelectItem>
+                                <SelectItem value="0">Illimitée</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                 </div>
                 {isEditMode && (
                   <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription>
                 )}
@@ -249,3 +281,5 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
+
+    

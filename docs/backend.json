@@ -14,7 +14,8 @@
         "phone": { "type": "string", "description": "The phone number of the user." },
         "role": { "type": "string", "description": "The role of the user within the system.", "enum": ["admin", "manager", "cashier"]},
         "companyId": { "type": "string", "description": "Reference to the Company the user belongs to." },
-        "isDisabled": { "type": "boolean", "description": "Whether the user account is disabled." }
+        "isDisabled": { "type": "boolean", "description": "Whether the user account is disabled." },
+        "sessionDuration": { "type": "number", "description": "Session duration in minutes. 0 for unlimited." }
       },
       "required": ["id", "firstName", "lastName", "email", "role", "companyId"]
     },

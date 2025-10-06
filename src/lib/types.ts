@@ -177,4 +177,7 @@ export interface User {
   companyId: string;
   sessionToken?: string;
   isDisabled?: boolean;
+  sessionDuration?: number; // in minutes, 0 for unlimited
 }
+
+    

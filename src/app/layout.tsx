@@ -12,6 +12,7 @@ import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
+import { SessionManager } from '@/components/session-manager';
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
@@ -60,14 +61,16 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <PosProvider>
               <KeyboardProvider>
-                <React.Suspense fallback={<AppLoading/>}>
-                  <Header />
-                  <main className="flex-1 overflow-auto">{children}</main>
-                  <Toaster />
-                  <NavigationConfirmationDialog />
-                  <VirtualKeyboard />
-                  <ExternalLinkModal />
-                </React.Suspense>
+                <SessionManager>
+                  <React.Suspense fallback={<AppLoading/>}>
+                    <Header />
+                    <main className="flex-1 overflow-auto">{children}</main>
+                    <Toaster />
+                    <NavigationConfirmationDialog />
+                    <VirtualKeyboard />
+                    <ExternalLinkModal />
+                  </React.Suspense>
+                </SessionManager>
               </KeyboardProvider>
           </PosProvider>
         </FirebaseClientProvider>
@@ -75,3 +78,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
