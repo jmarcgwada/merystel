@@ -79,7 +79,7 @@ export default function FirestoreDataPage() {
     e.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
-      setPinDialogOpen(false);
+      setPinDialogOpen(false); // Just close the dialog, no redirect
     } else {
       toast({
         variant: 'destructive',
@@ -91,6 +91,7 @@ export default function FirestoreDataPage() {
   };
 
   const handleCancelPin = () => {
+      setPinDialogOpen(false);
       router.push('/settings');
   }
 
@@ -145,7 +146,7 @@ export default function FirestoreDataPage() {
   
   if(isPinDialogOpen) {
       return (
-        <AlertDialog open={isPinDialogOpen} onOpenChange={(open) => { if(!open) handleCancelPin()}}>
+        <AlertDialog open={isPinDialogOpen}>
             <AlertDialogContent>
                 <form onSubmit={handlePinSubmit}>
                     <AlertDialogHeader>
@@ -167,7 +168,7 @@ export default function FirestoreDataPage() {
                         />
                     </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel type="button" onClick={handleCancelPin}>Annuler</AlertDialogCancel>
+                        <Button type="button" variant="outline" onClick={handleCancelPin}>Annuler</Button>
                         <AlertDialogAction type="submit">
                             Valider
                         </AlertDialogAction>
