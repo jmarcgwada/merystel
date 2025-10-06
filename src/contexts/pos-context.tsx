@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -23,7 +22,7 @@ import type {
   User,
   SelectedVariant,
 } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -318,7 +317,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: shadcnToast } = useToast();
+  const { toast: shadcnToast } = useShadcnToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -382,7 +381,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof shadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -785,7 +784,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Client au comptoir', isDefault: true },
       ];
 
-      const defaultItems = [
+      const seedItems = [
         // Boulangerie (10)
         { name: 'Baguette Tradition', price: 1.30, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456789' },
         { name: 'Croissant au Beurre AOP', price: 1.50, categoryId: 'boulangerie', vatId: 'vat_5_5', barcode: '3700123456796' },
@@ -904,10 +903,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       ];
 
       // --- Batch Write ---
-      defaultCategories.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
-          batch.set(ref, data);
-      });
       defaultVatRates.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
           batch.set(ref, data);
@@ -920,12 +915,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
+      seedCategories.forEach(data => {
+          const { id, ...catData } = data;
+          const ref = doc(firestore, 'companies', companyId, 'categories', id);
+          batch.set(ref, catData);
+      });
       seedItems.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           const { isRestaurantOnly, ...itemData } = data;
           const category = defaultCategories.find(c => c.id === itemData.categoryId);
           const fullItemData = { ...itemData, isRestaurantOnly: category?.isRestaurantOnly || false };
-          batch.set(ref, fullItemData);
+          batch.set(ref, { ...fullItemData, image: `https://picsum.photos/seed/${ref.id}/200/150` });
       });
       defaultTables.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
@@ -976,7 +976,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
     }
-    if(selectedTable && selectedTable.lockedBy) {
+    if(selectedTable) {
         const tableRef = getDocRef('tables', selectedTable.id);
         if (tableRef) {
           await updateDoc(tableRef, { lockedBy: deleteField() });
@@ -1013,7 +1013,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       description: item.description,
       description2: item.description2,
       serialNumbers: serialNumbers,
-      barcode: item.barcode || '',
+      barcode: item.barcode,
     };
     
     setOrder(currentOrder => {
@@ -1082,7 +1082,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             discount: 0,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
-            barcode: itemToAdd.barcode || '',
+            barcode: itemToAdd.barcode,
             selectedVariants,
             serialNumbers: [],
           };
@@ -1468,7 +1468,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...existingData,
             ...saleData,
             id: pieceRef.id,
-            date: today,
+            date: isNewPiece ? today : existingData.date,
             modifiedAt: isNewPiece ? undefined : today,
             userId: user.uid,
             userName: sellerName,
