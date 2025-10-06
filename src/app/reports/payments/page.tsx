@@ -70,7 +70,7 @@ export default function PaymentsReportPage() {
     
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
-    const [filterMethodName, setFilterMethodName] = useState('');
+    const [filterMethodName, setFilterMethodName] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [generalFilter, setGeneralFilter] = useState('');
     const [isFiltersOpen, setFiltersOpen] = useState(false);
@@ -120,7 +120,7 @@ export default function PaymentsReportPage() {
         let filtered = allPayments.filter(payment => {
             const customerName = getCustomerName(payment.customerId);
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
-            const methodMatch = !filterMethodName || (payment.method.name.toLowerCase().includes(filterMethodName.toLowerCase()));
+            const methodMatch = filterMethodName === 'all' || (payment.method.name.toLowerCase().includes(filterMethodName.toLowerCase()));
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
@@ -149,7 +149,7 @@ export default function PaymentsReportPage() {
                     case 'date': aValue = a.date; bValue = b.date; break;
                     case 'amount': aValue = a.amount; bValue = b.amount; break;
                     case 'customerName': aValue = getCustomerName(a.customerId); bValue = getCustomerName(b.customerId); break;
-                    case 'ticketNumber': aValue = a.saleTicketNumber; bValue = b.saleTicketNumber; break;
+                    case 'ticketNumber': aValue = a.saleTicketNumber || ''; bValue = b.saleTicketNumber || ''; break;
                     case 'methodName': aValue = a.method.name; bValue = b.method.name; break;
                     case 'userName': aValue = getUserName(a.userId, a.userName); bValue = getUserName(b.userId, b.userName); break;
                     default: aValue = 0; bValue = 0; break;
@@ -198,7 +198,7 @@ export default function PaymentsReportPage() {
 
     const resetFilters = () => {
         setFilterCustomerName('');
-        setFilterMethodName('');
+        setFilterMethodName('all');
         setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
@@ -258,7 +258,7 @@ export default function PaymentsReportPage() {
                         </Popover>
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="">Tous les types</SelectItem>{paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
