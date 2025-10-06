@@ -244,32 +244,36 @@ export default function DashboardPage() {
         {isMounted && showDashboardStats && (
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
-                <Link href={`/reports/payments?date=${todayDateString}`} className="block h-full">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Chiffre d'affaires du jour</CardTitle>
-                        <span className="text-muted-foreground">€</span>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{todaysSalesData.total.toFixed(2)}€</div>
-                        <p className="text-xs text-muted-foreground">
-                        {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
-                        </p>
-                    </CardContent>
-                </Link>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
+                         <Link href={`/reports/payments?date=${todayDateString}`} className="hover:underline">
+                            Chiffre d'affaires du jour
+                        </Link>
+                    </CardTitle>
+                    <span className="text-muted-foreground">€</span>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{todaysSalesData.total.toFixed(2)}€</div>
+                    <p className="text-xs text-muted-foreground">
+                    {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
+                    </p>
+                </CardContent>
              </Card>
               <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
-                <Link href={`/reports?date=${todayDateString}`} className="block h-full">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>Ventes Aujourd'hui</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">+{todaysSalesData.count}</div>
-                        <p className="text-xs text-muted-foreground">
-                        Nombre total de transactions
-                        </p>
-                    </CardContent>
-                </Link>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
+                        <Link href={`/reports?date=${todayDateString}`} className="hover:underline">
+                            Ventes Aujourd'hui
+                        </Link>
+                    </CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">+{todaysSalesData.count}</div>
+                    <p className="text-xs text-muted-foreground">
+                    Nombre total de transactions
+                    </p>
+                </CardContent>
               </Card>
               <Card style={buttonStyle}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
