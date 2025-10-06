@@ -49,7 +49,7 @@ function QuotesPageContent() {
   }, [saleIdToEdit]);
   
   const handleSave = useCallback(() => {
-    if (!isReady || !currentSaleContext?.customerId) return;
+    if (!isReady) return;
 
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
@@ -58,7 +58,7 @@ function QuotesPageContent() {
       total: orderTotal + orderTax,
       status: 'pending',
       payments: [],
-      customerId: currentSaleContext.customerId,
+      customerId: currentSaleContext?.customerId,
     };
     
     recordCommercialDocument(doc, 'quote', saleIdToEdit || undefined);

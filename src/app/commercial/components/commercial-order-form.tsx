@@ -104,6 +104,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue('customerId', customer.id);
+    setCurrentSaleContext(prev => ({ ...prev, customerId: customer.id }));
     setCustomerSearchOpen(false);
   }
 
