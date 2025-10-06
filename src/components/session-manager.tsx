@@ -53,7 +53,7 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
       countdownRef.current = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
-            clearInterval(countdownRef.current!);
+            if (countdownRef.current) clearInterval(countdownRef.current);
             signOutAndClear();
             return 0;
           }
