@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -71,14 +72,11 @@ function DeliveryNotesPageContent() {
             subtitle={saleIdToEdit ? "Modifiez les articles et finalisez le bon." : "Créez un nouveau bon de livraison."}
         >
           <div className="flex items-center gap-2">
-            {isReady ? (
-                 <Button size="lg" onClick={handleSave}>{saleIdToEdit ? 'Mettre à jour le bon' : 'Sauvegarder le bon'}</Button>
-            ) : (
-                <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=BL-' : '/dashboard')}>
-                    <ArrowLeft />
-                    Retour
-                </Button>
-            )}
+            <Button size="lg" onClick={handleSave} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour le bon' : 'Sauvegarder le bon'}</Button>
+             <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=BL-' : '/dashboard')}>
+                <ArrowLeft />
+                Retour
+            </Button>
           </div>
         </PageHeader>
         
@@ -109,4 +107,3 @@ export default function DeliveryNotesPage() {
     )
 }
 
-    
