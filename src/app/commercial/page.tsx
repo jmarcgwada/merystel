@@ -6,11 +6,11 @@ import { CommercialOrderForm } from './components/commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import type { OrderItem, Payment } from '@/lib/types';
+import type { OrderItem, Payment, Item } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -27,9 +27,11 @@ function CommercialPageContent() {
       items,
       customers,
       paymentMethods,
-      recordSale,
-      generateRandomOrder,
-      setCurrentSaleContext
+      setCurrentSaleContext,
+      setPayments,
+      recordSale, 
+      orderTotal,
+      orderTax,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isInvoiceReady, setIsInvoiceReady] = useState(false);
@@ -42,8 +44,6 @@ function CommercialPageContent() {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit);
     } else {
-        // If we navigate to this page without an edit id, ensure the order is clear.
-        // This handles the case where a user manually navigates here.
         if (order.length > 0 && !location.search.includes('edit')) {
              clearOrder({ clearCustomer: true });
         }
@@ -51,7 +51,7 @@ function CommercialPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit]);
 
-  const handleGenerateRandomInvoice = () => {
+  const handleGenerateRandomInvoice = useCallback(() => {
     if (!items?.length || !customers?.length || !paymentMethods?.length) {
       toast({
         variant: 'destructive',
@@ -61,24 +61,48 @@ function CommercialPageContent() {
       return;
     }
 
+    clearOrder({ clearCustomer: true });
+
     // 1. Select a random customer
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
     setCurrentSaleContext({ customerId: randomCustomer.id, isInvoice: true });
 
     // 2. Generate a random order
-    generateRandomOrder();
-    
-    // 3. Trigger checkout
-     if (submitHandler) {
-      // The submit handler is already configured to open the checkout modal
-      submitHandler();
+    const numberOfItems = Math.floor(Math.random() * 4) + 2; // 2 to 5 items
+    const newOrder: OrderItem[] = [];
+    for (let i = 0; i < numberOfItems; i++) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const quantity = Math.floor(Math.random() * 2) + 1; // 1 or 2 quantity
+        
+        const existingInNewOrder = newOrder.find(item => item.itemId === randomItem.id);
+        if(!existingInNewOrder) {
+            newOrder.push({
+                itemId: randomItem.id,
+                id: randomItem.id,
+                name: randomItem.name,
+                price: randomItem.price,
+                vatId: randomItem.vatId,
+                quantity,
+                total: randomItem.price * quantity,
+                discount: 0,
+                barcode: randomItem.barcode,
+            });
+        }
     }
+    setOrder(newOrder);
+
+    // 3. Trigger checkout after a short delay
+    setTimeout(() => {
+      if (submitHandler) {
+        submitHandler();
+      }
+    }, 500);
 
     toast({
       title: 'Facture Aléatoire Générée',
       description: `Préparation de la facture pour ${randomCustomer.name}.`,
     });
-  };
+  }, [items, customers, paymentMethods, clearOrder, setCurrentSaleContext, setOrder, submitHandler, toast]);
   
   return (
     <div className="h-full flex flex-col">

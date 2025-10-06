@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
-import type { Category, SpecialCategory } from '@/lib/types';
+import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
@@ -55,8 +55,11 @@ export default function PosPage() {
     itemDisplayMode,
     setItemDisplayMode,
     addToOrder,
-    generateRandomOrder
-   } = usePos();
+    items,
+    setOrder,
+    clearOrder,
+    toast,
+  } = usePos();
   const [isClient, setIsClient] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | SpecialCategory | null>('all');
@@ -92,6 +95,47 @@ export default function PosPage() {
       clearInput();
     }
   };
+
+  const generateRandomOrder = useCallback(() => {
+    if (!items?.length) {
+      toast({
+        variant: 'destructive',
+        title: 'Aucun article',
+        description: 'Veuillez ajouter des articles pour générer une vente.',
+      });
+      return;
+    }
+
+    clearOrder();
+
+    const numberOfItems = Math.floor(Math.random() * 4) + 2; // 2 to 5 items
+    const newOrder: OrderItem[] = [];
+    for (let i = 0; i < numberOfItems; i++) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const quantity = Math.floor(Math.random() * 2) + 1; // 1 or 2 quantity
+        
+        const existingInNewOrder = newOrder.find(item => item.itemId === randomItem.id);
+        if(!existingInNewOrder) {
+            newOrder.push({
+                itemId: randomItem.id,
+                id: randomItem.id,
+                name: randomItem.name,
+                price: randomItem.price,
+                vatId: randomItem.vatId,
+                quantity,
+                total: randomItem.price * quantity,
+                discount: 0,
+                barcode: randomItem.barcode,
+            });
+        }
+    }
+    setOrder(newOrder);
+
+    toast({
+      title: 'Vente Aléatoire Générée',
+      description: `La commande a été remplie avec ${newOrder.length} articles.`,
+    });
+  }, [items, clearOrder, setOrder, toast]);
   
   useEffect(() => {
     // When keyboard closes, clear the search term if it was the target
@@ -108,7 +152,7 @@ export default function PosPage() {
         showFavoritesOnly={showFavoritesOnly}
         onItemClick={handleItemClick}
     />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, addToOrder, isKeyboardOpen, clearInput]);
+  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, addToOrder, isKeyboardOpen, clearInput, handleItemClick]);
 
   const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
     const [canScrollUp, setCanScrollUp] = useState(false);
