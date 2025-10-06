@@ -1238,7 +1238,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
             occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: serverTimestamp(),
+            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
         });
       } catch (error) {
         console.error('Error updating table order:', error);
@@ -1488,12 +1488,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             });
           }
         });
+
+         if (currentSaleContext?.isInvoice) {
+            router.push(`/reports?filter=Fact-`);
+        }
+
       } catch (error) {
         console.error("Transaction failed: ", error);
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
       }
     },
-    [companyId, firestore, user, items, currentSaleContext, toast]
+    [companyId, firestore, user, items, currentSaleContext, toast, router]
   );
   
   const deleteAllSales = useCallback(async () => {

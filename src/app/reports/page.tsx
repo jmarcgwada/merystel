@@ -337,6 +337,47 @@ export default function ReportsPage() {
             </div>
         );
     }
+    
+    const renderHeaderActions = () => {
+      if (initialFilter?.startsWith('Fact-')) {
+          return (
+              <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
+                  <Link href="/commercial/invoices">
+                      <FilePlus className="mr-2 h-4 w-4" />
+                      Nouvelle facture
+                  </Link>
+              </Button>
+          )
+      }
+      if (initialFilter?.startsWith('Devis-')) {
+          return (
+               <Button asChild>
+                  <Link href="/commercial/quotes">
+                      <FilePlus className="mr-2 h-4 w-4" />
+                      Nouveau devis
+                  </Link>
+              </Button>
+          )
+      }
+      if (initialFilter?.startsWith('BL-')) {
+          return (
+              <Button asChild>
+                  <Link href="/commercial/delivery-notes">
+                      <FilePlus className="mr-2 h-4 w-4" />
+                      Nouveau bon de livraison
+                  </Link>
+              </Button>
+          )
+      }
+      return (
+           <Button asChild>
+              <Link href="/reports/popular-items">
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Voir les articles populaires
+              </Link>
+          </Button>
+      )
+    }
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -348,31 +389,7 @@ export default function ReportsPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
             </Button>
-            {isContextualFilterActive ? (
-                <Button asChild onClick={() => router.push('/reports')}>
-                    <Link href="/reports">
-                        <X className="mr-2 h-4 w-4" />
-                        Effacer le filtre
-                    </Link>
-                </Button>
-            ) : (
-                <>
-                <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
-                    <Link href="/commercial/invoices">
-                        <FilePlus className="mr-2 h-4 w-4" />
-                        Nouvelle facture
-                    </Link>
-                </Button>
-                {!isCashier && (
-                    <Button asChild>
-                        <Link href="/reports/popular-items">
-                            <TrendingUp className="mr-2 h-4 w-4" />
-                            Voir les articles populaires
-                        </Link>
-                    </Button>
-                )}
-                </>
-            )}
+            {!isCashier && renderHeaderActions()}
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
@@ -711,5 +728,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
