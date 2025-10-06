@@ -90,6 +90,10 @@ export default function FirestoreDataPage() {
     }
   };
 
+  const handleCancelPin = () => {
+      router.push('/settings');
+  }
+
 
   const canSeedData = useMemo(() => {
     if (isLoading) return false;
@@ -141,7 +145,7 @@ export default function FirestoreDataPage() {
   
   if(isPinDialogOpen) {
       return (
-        <AlertDialog open={isPinDialogOpen} onOpenChange={(open) => { if(!open) router.push('/settings')}}>
+        <AlertDialog open={isPinDialogOpen} onOpenChange={(open) => { if(!open) handleCancelPin()}}>
             <AlertDialogContent>
                 <form onSubmit={handlePinSubmit}>
                     <AlertDialogHeader>
@@ -163,7 +167,7 @@ export default function FirestoreDataPage() {
                         />
                     </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel type="button">Annuler</AlertDialogCancel>
+                        <AlertDialogCancel type="button" onClick={handleCancelPin}>Annuler</AlertDialogCancel>
                         <AlertDialogAction type="submit">
                             Valider
                         </AlertDialogAction>
