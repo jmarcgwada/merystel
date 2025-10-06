@@ -19,7 +19,7 @@ import { Progress } from './ui/progress';
 
 export function SessionManager({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
-  const { handleSignOut } = usePos();
+  const { handleSignOut, order } = usePos();
   const [isWarningOpen, setWarningOpen] = useState(false);
   const [countdown, setCountdown] = useState(10);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -33,7 +33,6 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     
-    // TEMPORARY: Forcing a 15-second timeout for testing purposes.
     const testDuration = 15000;
 
     if (testDuration > 0) {
@@ -95,8 +94,10 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
             <AlertDialogTitle>Expiration de session</AlertDialogTitle>
             <AlertDialogDescription>
               Votre session va expirer pour inactivité. Souhaitez-vous la prolonger ?
-              <Progress value={countdown * 10} className="mt-4 h-2" />
             </AlertDialogDescription>
+            <div className="pt-2">
+                 <Progress value={countdown * 10} className="h-2" />
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
