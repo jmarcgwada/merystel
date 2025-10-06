@@ -129,7 +129,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: allPayments,
+      payments: allPayments.map(p => ({ ...p, date: Timestamp.fromDate(paymentDate) })),
       status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
@@ -174,7 +174,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         handleOpenChange(false);
         router.push('/reports?filter=Fact-');
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate]);
 
 
   useEffect(() => {
@@ -439,20 +439,46 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     <>
       <DialogHeader>
         <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
-        {currentSaleContext?.tableName ? (
-            <div className="text-sm text-muted-foreground pt-1">
-                <p>Table: <span className="font-semibold text-foreground">{currentSaleContext.tableName}</span></p>
-                <p className="flex items-center gap-2">
-                    <span><Calendar className="h-3 w-3"/> {format(new Date(), 'd MMMM yyyy', {locale: fr})}</span>
-                    <span><Clock className="h-3 w-3"/> {format(new Date(), 'HH:mm')}</span>
-                </p>
+        <div className="pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2">
+            {currentSaleContext?.tableName ? (
+                <div className="text-sm text-muted-foreground">
+                    <p>Table: <span className="font-semibold text-foreground">{currentSaleContext.tableName}</span></p>
+                    <p className="flex items-center gap-2">
+                        <span><Clock className="h-3 w-3"/> {format(new Date(), 'HH:mm')}</span>
+                    </p>
+                </div>
+            ) : (
+                <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Total de la commande</p>
+                    <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
+                </div>
+            )}
+             <div className="space-y-1">
+                 <Label className="text-xs text-muted-foreground">Date du paiement</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn(
+                        "w-full sm:w-[240px] justify-start text-left font-normal text-xs h-9",
+                        !paymentDate && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {paymentDate ? format(paymentDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                    <CalendarPicker
+                        mode="single"
+                        selected={paymentDate}
+                        onSelect={(date) => date && setPaymentDate(date)}
+                        initialFocus
+                    />
+                    </PopoverContent>
+                </Popover>
             </div>
-        ) : (
-            <div className="absolute top-4 right-16 text-right">
-                <p className="text-sm text-muted-foreground">Total de la commande</p>
-                <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
-            </div>
-        )}
+        </div>
       </DialogHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
@@ -465,32 +491,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     </Button>
                 </div>
             </fieldset>
-
-            <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
-              <h3 className="font-semibold text-secondary-foreground">Détails du paiement</h3>
-               <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !paymentDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {paymentDate ? format(paymentDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarPicker
-                      mode="single"
-                      selected={paymentDate}
-                      onSelect={(date) => date && setPaymentDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-            </div>
             
             <div className="space-y-2 flex-1">
                  <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
@@ -668,3 +668,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
