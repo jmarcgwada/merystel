@@ -34,74 +34,74 @@ Créer une application web réactive et performante pour la gestion des ventes, 
 - **Style :** TailwindCSS
 - **Composants :** ShadCN/UI
 - **Backend & Base de données :** Firebase (Firestore pour la base de données, Firebase Authentication pour l'authentification)
+- **Génération d'images IA :** Genkit avec le modèle 'googleai/gemini-pro-vision'.
 
 **Structure de la Base de Données (Firestore) :**
-La structure de la base de données doit suivre scrupuleusement le schéma défini dans le fichier \`docs/backend.json\`. Toutes les entités (Users, Companies, Items, Sales, etc.) et leurs chemins de collection doivent être conformes à ce document. La collection principale est \`companies\`, et toutes les données spécifiques à une entreprise (articles, ventes, etc.) sont stockées dans des sous-collections de l'document de l'entreprise. L'ID de l'entreprise est unique pour toute l'application (ex: 'main').
+La structure de la base de données doit suivre scrupuleusement le schéma défini dans le fichier \`docs/backend.json\`. Toutes les entités (Users, Companies, Items, Sales, etc.) et leurs chemins de collection doivent être conformes à ce document. La collection principale est \`companies\`, et toutes les données spécifiques à une entreprise (articles, ventes, etc.) sont stockées dans des sous-collections du document de l'entreprise. L'ID de l'entreprise est unique pour toute l'application (ex: 'main').
 
 **Fonctionnalités Principales :**
 
 1.  **Authentification et Rôles Utilisateurs :**
     *   Système de connexion par email/mot de passe.
     *   Gestion de trois rôles : \`admin\`, \`manager\`, \`cashier\`.
-    *   Les \`admin\` ont tous les droits.
-    *   Les \`manager\` peuvent gérer les articles, clients, etc., mais pas les utilisateurs ni les paramètres avancés de l'entreprise.
-    *   Les \`cashier\` ont un accès limité au POS, à la gestion des tables et à la consultation de certaines données (lecture seule).
+    *   Les \`admin\` ont tous les droits, y compris la gestion des utilisateurs et les paramètres système.
+    *   Les \`manager\` peuvent gérer les opérations quotidiennes (articles, clients, etc.) et voir les rapports, mais pas les utilisateurs ni les paramètres avancés de l'entreprise.
+    *   Les \`cashier\` ont un accès limité aux modes de vente (POS, Supermarché, Restaurant) et à la consultation de certaines données (lecture seule).
     *   Gestion de session unique : si un utilisateur se connecte sur un nouvel appareil, l'ancienne session est invalidée (avec une option de "force login" via un code PIN dynamique si une commande est en cours sur le premier appareil).
 
 2.  **Tableau de Bord (Dashboard) :**
     *   Page d'accueil après connexion.
-    *   Affiche des statistiques clés : chiffre d'affaires total, nombre de ventes du jour, panier moyen.
+    *   Affiche des statistiques clés : chiffre d'affaires total, nombre de ventes du jour, panier moyen (statistiques masquables via les paramètres).
     *   Liste des articles les plus populaires.
-    *   Section "Accès Rapide" avec des cartes de navigation vers les sections principales (POS, Restaurant, Gestion, Rapports, Paramètres).
-    *   Le fond du tableau de bord (couleur ou image) et l'apparence des boutons doivent être entièrement personnalisables via les paramètres.
+    *   Section "Accès Rapide" avec des cartes de navigation vers les sections principales (Mode Caisse, Commercial, Gestion, Rapports, Paramètres, Aide).
+    *   Le fond du tableau de bord (couleur unie ou image) et l'apparence des boutons (couleur, opacité, bordure) sont entièrement personnalisables via les paramètres d'apparence.
 
-3.  **Point de Vente (POS) - Mode Vente Directe :**
-    *   Interface principale pour l'enregistrement des ventes.
-    *   Layout en trois colonnes :
-        *   **Gauche :** Liste des catégories d'articles. Inclut des catégories spéciales comme "Tout", "Favoris", "Populaires".
-        *   **Centre :** Grille des articles filtrée par la catégorie sélectionnée. Chaque article est une carte cliquable affichant son nom, son image (optionnel) et son prix.
-        *   **Droite :** Résumé de la commande en cours.
-    *   **Gestion de la commande :**
-        *   Ajouter des articles en cliquant sur leur carte.
-        *   Modifier la quantité, appliquer des remises (en % ou en montant fixe) via un pavé numérique contextuel.
-        *   Possibilité de mettre une commande "en attente" pour la rappeler plus tard.
-        *   Finaliser la vente via une modale de paiement.
-    *   **Paiement :**
-        *   Modale de paiement affichant le total.
-        *   Permet le multi-paiement (ex: une partie en espèces, une partie en carte).
-        *   Calcul du rendu monnaie.
-        *   Association de la vente à un client existant ou création d'un nouveau client à la volée.
+3.  **Modes de Vente :**
+    *   **Mode de vente par défaut configurable** via les paramètres.
+    *   **Point de Vente (POS) :** Interface standard avec catégories à gauche, grille d'articles au centre, et résumé de commande à droite.
+    *   **Mode Supermarché :** Interface optimisée pour la rapidité avec une grande barre de recherche centrale pour la saisie de codes-barres ou de noms d'articles.
+    *   **Mode Restaurant :** Affiche un plan de salle avec des cartes représentant chaque table. Chaque table a un statut visuel ("Disponible", "Occupée", "Paiement").
+        *   Cliquer sur une table ouvre l'interface du POS pour prendre ou modifier une commande.
+        *   Une option "Clôturer" prépare la commande pour le paiement.
+        *   Une table "Vente à emporter" est toujours disponible.
+    *   **Fond d'écran dynamique** optionnel sur la colonne de commande, basé sur l'image du dernier article ajouté.
 
-4.  **Mode Restaurant :**
-    *   Une page affichant un plan de salle avec des cartes représentant chaque table.
-    *   Chaque table a un statut visuel : "Disponible", "Occupée", "En paiement".
-    *   Cliquer sur une table "Disponible" ouvre l'interface du POS pour prendre une commande pour cette table.
-    *   Cliquer sur une table "Occupée" permet de voir ou de modifier la commande en cours.
-    *   Une option "Clôturer" sur la commande de la table la prépare pour le paiement et change le statut de la table.
-    *   Une table "Vente à emporter" est toujours présente pour les commandes directes.
+4.  **Gestion Commerciale (Facturation) :**
+    *   Page dédiée (\`/commercial\`) pour la création et la modification de factures.
+    *   La sélection d'un client est obligatoire.
+    *   Ajout d'articles via une barre de recherche.
+    *   Modification des quantités et application de remises (en % ou montant fixe) sur chaque ligne d'article.
+    *   Saisie d'un acompte, avec calcul automatique du "Net à Payer".
+    *   Les factures peuvent être enregistrées en attente ou finalisées via la modale de paiement.
+    *   Bouton discret de génération de facture aléatoire pour les tests.
 
-5.  **Gestion (Management) :**
+5.  **Gestion de Commande & Paiement :**
+    *   La colonne de commande à droite affiche les articles, quantités, prix et remises.
+    *   Pavé numérique tactile contextuel pour modifier la quantité ou appliquer une remise sur un article sélectionné.
+    *   Possibilité de mettre une commande "en attente" pour la rappeler plus tard.
+    *   **Modale de paiement :**
+        *   Permet le multi-paiement.
+        *   Calcul automatique du rendu monnaie.
+        *   Association de la vente à un client (recherche ou création à la volée).
+        *   Affiche l'historique des paiements précédents pour les factures modifiées.
+        *   Calculatrice intégrée pour les montants.
+
+6.  **Gestion (Management) :**
     *   Section accessible via une navigation latérale.
-    *   CRUD complet (Créer, Lire, Mettre à jour, Supprimer) pour les entités suivantes (avec restrictions basées sur le rôle) :
-        *   **Articles :** Définir nom, prix, catégorie, TVA, image (avec option de génération par IA via Genkit), etc.
-        *   **Catégories :** Définir nom, couleur, image, et un flag "Dédié au mode restaurant".
-        *   **Clients :** Gérer les informations des clients.
-        *   **Tables :** Gérer les tables du restaurant (nom, nombre de couverts).
-        *   **Utilisateurs :** (Admin uniquement) Gérer les comptes utilisateurs et leurs rôles.
-        *   **Moyens de paiement :** Configurer les méthodes de paiement.
-        *   **Taux de TVA :** Configurer les différents taux de TVA.
+    *   CRUD complet pour : Articles, Catégories, Clients, Tables, Moyens de paiement, TVA, Utilisateurs (admin).
+    *   **Articles :** Gestion du nom, prix, catégorie, TVA, code-barres, image (génération IA possible), stock (avec seuil bas), numéros de série, et déclinaisons (ex: Taille, Couleur).
+    *   **Catégories :** Gestion du nom, couleur, image, et un flag "Dédié au mode restaurant".
 
-6.  **Rapports (Reports) :**
-    *   Liste de toutes les ventes passées, avec des filtres (par date, client, origine).
-    *   Vue détaillée pour chaque vente, montrant les articles, les paiements, et le détail de la TVA.
-    *   Page dédiée aux "Articles populaires" avec un classement des articles les plus vendus.
+7.  **Rapports (Reports) :**
+    *   Liste de toutes les ventes (tickets et factures) avec des filtres avancés (date, client, origine, article, etc.).
+    *   Vue détaillée pour chaque vente.
+    *   Page dédiée aux "Articles populaires" avec un classement par quantité et revenu.
 
-7.  **Paramètres (Settings) :**
-    *   **Apparence :** Personnalisation des couleurs de l'application, du fond du tableau de bord, et de l'apparence des boutons.
-    *   **Paramétrage :** Options fonctionnelles comme la durée des notifications, l'affichage des descriptions, etc.
-    *   **Détails de l'entreprise :** Gérer les informations légales de l'entreprise.
-    *   **Import/Export :** Fonctionnalité pour exporter et importer toute la configuration de l'application (articles, catégories, etc.) dans un fichier JSON.
-    *   **Zone de Danger :** Options pour initialiser avec des données de démo ou pour réinitialiser complètement la base de données.
+8.  **Paramètres (Settings) :**
+    *   **Personnalisation :** Modale de lien externe, visibilité des statistiques, affichage des images, apparence des cartes d'articles.
+    *   **Apparence :** Couleurs de fond pour les modes de vente, et personnalisation du tableau de bord.
+    *   **Paramétrage :** Mode de vente par défaut, mode forcé, gestion des notifications, affichage des descriptions d'articles.
+    *   **Données Firestore (Admin) :** Zone sécurisée par code PIN pour initialiser, importer/exporter la configuration, et réinitialiser les données.
 
 **Règles Techniques et de Qualité :**
 - Utiliser les Server Components de Next.js par défaut.
