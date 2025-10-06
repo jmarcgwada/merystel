@@ -341,7 +341,6 @@ function ItemForm() {
                         <CardContent className="space-y-6">
                             <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
                             <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
-                            <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
                             <p><span className="font-semibold">Description 1:</span> {itemToEdit?.description || 'N/A'}</p>
                             <p><span className="font-semibold">Description 2:</span> {itemToEdit?.description2 || 'N/A'}</p>
                         </CardContent>
@@ -353,6 +352,7 @@ function ItemForm() {
                             <CardTitle>Prix de l'article</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <p><span className="font-semibold">TVA:</span> {vatRates?.find(v => v.id === itemToEdit?.vatId)?.rate}%</p>
                             <p><span className="font-semibold">Prix de vente:</span> {itemToEdit?.price.toFixed(2)}€</p>
                             <p><span className="font-semibold">Prix d'achat:</span> {itemToEdit?.purchasePrice?.toFixed(2) || 'N/A'}€</p>
                         </CardContent>
@@ -482,8 +482,8 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
+                           
+                             <FormField
                                 control={form.control}
                                 name="categoryId"
                                 render={({ field }) => (
@@ -504,6 +504,29 @@ function ItemForm() {
                                     <FormMessage />
                                     </FormItem>
                                 )}
+                                />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="pricing">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gestion des prix</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                <FormField
+                                    control={form.control}
+                                    name="purchasePrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Prix d'achat (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
                                 <FormField
                                 control={form.control}
@@ -528,77 +551,56 @@ function ItemForm() {
                                 )}
                                 />
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="pricing">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gestion des prix</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                             <FormField
-                                control={form.control}
-                                name="price"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Prix de vente (€)</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                          type="number" 
-                                          step="0.01" 
-                                          placeholder="ex: 4.50" 
-                                          {...field} 
-                                          onFocus={() => setIsManualPriceEdit(true)}
-                                          onBlur={() => setIsManualPriceEdit(false)}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                 <FormField
+                                    control={form.control}
+                                    name="marginCoefficient"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Coeff. Marge</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="price"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Prix de vente (€)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                            type="number" 
+                                            step="0.01" 
+                                            placeholder="ex: 4.50" 
+                                            {...field} 
+                                            onFocus={() => setIsManualPriceEdit(true)}
+                                            onBlur={() => setIsManualPriceEdit(false)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <Separator />
                              {!isCashier && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                                    <FormField
-                                        control={form.control}
-                                        name="purchasePrice"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Prix d'achat (€)</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                     <FormField
-                                        control={form.control}
-                                        name="additionalCosts"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Coûts additionnels (€)</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" step="0.01" placeholder="ex: 0.25" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="marginCoefficient"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Coeff. Marge</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="additionalCosts"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Coûts additionnels (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="ex: 0.25" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             )}
                         </CardContent>
                     </Card>
