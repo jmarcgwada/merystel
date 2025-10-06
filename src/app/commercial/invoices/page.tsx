@@ -127,7 +127,7 @@ function InvoicesPageContent() {
           </div>
         </PageHeader>
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
             <CommercialOrderForm 
                 order={order} 
                 setOrder={setOrder}
@@ -137,6 +137,7 @@ function InvoicesPageContent() {
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
                 setIsReady={setIsInvoiceReady}
+                showAcompte={true}
             />
         </div>
       </div>

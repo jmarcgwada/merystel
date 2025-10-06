@@ -52,12 +52,13 @@ interface CommercialOrderFormProps {
   setSubmitHandler: (handler: (() => void) | null) => void;
   updateItemNote: (itemId: string, note: string) => void;
   setIsReady: (isReady: boolean) => void;
+  showAcompte?: boolean;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -85,6 +86,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [order, form]);
   
   const watchItems = form.watch('items');
+  const watchAcompte = form.watch('acompte');
   
   useEffect(() => {
     if (currentSaleContext?.customerId && customers) {
@@ -337,7 +339,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
               <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Détails de la facture</h3>
                   {order.length > 0 && (
@@ -471,12 +473,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 <span>Total TTC</span>
                                 <span>{totalTTC.toFixed(2)}€</span>
                             </div>
-                             <div className="flex justify-between items-center">
-                                <Label htmlFor="acompte">Acompte (€)</Label>
-                                 <Controller control={form.control} name="acompte" render={({ field }) => (
-                                    <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                                )}/>
-                            </div>
+                            {showAcompte && watchAcompte > 0 && (
+                                <div className="flex justify-between items-center">
+                                    <Label htmlFor="acompte">Acompte (€)</Label>
+                                    <Controller control={form.control} name="acompte" render={({ field }) => (
+                                        <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                    )}/>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
                                 <span>Net à Payer</span>
                                 <span>{netAPayer.toFixed(2)}€</span>

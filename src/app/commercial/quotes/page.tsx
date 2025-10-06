@@ -95,7 +95,7 @@ function QuotesPageContent() {
           {renderHeaderActions()}
         </PageHeader>
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
             <CommercialOrderForm
                 order={order} 
                 setOrder={setOrder}
@@ -105,6 +105,7 @@ function QuotesPageContent() {
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
                 setIsReady={setIsReady}
+                showAcompte={false}
             />
         </div>
       </div>
