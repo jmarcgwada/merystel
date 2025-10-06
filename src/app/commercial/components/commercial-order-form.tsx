@@ -207,7 +207,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   const vatBreakdown = useMemo(() => {
     if (!allItems || !vatRates) return {};
-    const breakdown: { [key: string]: { rate: number; total: number, base: number } } = {};
+    const breakdown: { [key: string]: { rate: number; total: number, base: number, code: number } } = {};
 
     watchItems.forEach(item => {
       const fullItem = allItems.find(i => i.id === item.itemId);
@@ -221,11 +221,12 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         const totalItemHTAvecEscompte = totalItemHT;
         const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
 
-        if (breakdown[vatInfo.rate]) {
-          breakdown[vatInfo.rate].total += taxForItem;
-          breakdown[vatInfo.rate].base += totalItemHTAvecEscompte;
+        const vatKey = vatInfo.rate.toString();
+        if (breakdown[vatKey]) {
+          breakdown[vatKey].total += taxForItem;
+          breakdown[vatKey].base += totalItemHTAvecEscompte;
         } else {
-          breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHTAvecEscompte };
+          breakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHTAvecEscompte, code: vatInfo.code };
         }
       }
     });
@@ -328,7 +329,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                             <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                         </div>
                     ) : (
-                         <div className="text-muted-foreground text-sm py-5 text-center">
+                         <div className="text-center text-muted-foreground py-1">
                             {selectedCustomer === null && <Label>Client</Label>}
                             <p>Aucun client sélectionné.</p>
                         </div>
@@ -370,17 +371,17 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                     return (
                     <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">{field.name}</span>
-                          {descriptionDisplay === 'first' && field.description && (
-                            <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>
-                          )}
-                          {descriptionDisplay === 'both' && (
-                            <>
-                              {field.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>}
-                              {field.description2 && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description2}</p>}
-                            </>
-                          )}
+                         <div className="flex flex-col">
+                            <span className="font-semibold">{field.name}</span>
+                            {descriptionDisplay === 'first' && field.description && (
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>
+                            )}
+                            {descriptionDisplay === 'both' && (
+                                <>
+                                {field.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>}
+                                {field.description2 && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description2}</p>}
+                                </>
+                            )}
                         </div>
                       <Input 
                           type="number" 
@@ -423,24 +424,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             
             <div className="mt-auto">
                 <Separator className="my-6"/>
-                <div className="pt-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                        <div className="space-y-4">
-                            <h4 className="font-semibold">Taux de TVA</h4>
-                            <div className="grid grid-cols-3 gap-4 p-2 border rounded-md">
-                               <div className="text-sm font-medium">Base HT</div>
-                               <div className="text-sm font-medium">Taux</div>
-                               <div className="text-sm font-medium">Montant TVA</div>
-                                {Object.values(vatBreakdown).map(vat => (
-                                    <React.Fragment key={vat.rate}>
-                                        <div className="text-sm">{vat.base.toFixed(2)}€</div>
-                                        <div className="text-sm">{vat.rate.toFixed(2)}%</div>
-                                        <div className="text-sm">{vat.total.toFixed(2)}€</div>
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                    <div className="space-y-4">
+                        <div className="space-y-2 max-w-sm">
                             <div className="flex justify-between items-center">
                                 <Label>Total HT</Label>
                                 <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
@@ -466,6 +452,23 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 <span>Net à Payer</span>
                                 <span>{netAPayer.toFixed(2)}€</span>
                             </div>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <h4 className="font-semibold">Taux de TVA</h4>
+                        <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
+                           <div className="text-sm font-medium">Code</div>
+                           <div className="text-sm font-medium text-right">Taux</div>
+                           <div className="text-sm font-medium text-right">Base HT</div>
+                           <div className="text-sm font-medium text-right">Montant</div>
+                            {Object.values(vatBreakdown).map(vat => (
+                                <React.Fragment key={vat.rate}>
+                                    <div className="text-sm font-mono">{vat.code}</div>
+                                    <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
+                                    <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
+                                    <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
+                                </React.Fragment>
+                            ))}
                         </div>
                     </div>
                 </div>
