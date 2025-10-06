@@ -25,7 +25,9 @@ export function ExternalLinkModal() {
     externalLinkModalHeight,
   } = usePos();
   
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Controls if the modal is fundamentally "alive"
+  const [isVisible, setIsVisible] = useState(false); // Controls CSS visibility
   const [isLoading, setIsLoading] = useState(true);
 
   // State for dragging and resizing
@@ -37,7 +39,12 @@ export function ExternalLinkModal() {
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
   const modalRef = useRef<HTMLDivElement>(null);
   
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const initializeModalState = useCallback(() => {
+    if (!isMounted) return;
     const initialWidth = window.innerWidth * (externalLinkModalWidth / 100);
     const initialHeight = window.innerHeight * (externalLinkModalHeight / 100);
     setSize({ width: initialWidth, height: initialHeight });
@@ -46,7 +53,7 @@ export function ExternalLinkModal() {
         y: (window.innerHeight - initialHeight) / 2,
     });
     setIsLoading(true);
-  }, [externalLinkModalWidth, externalLinkModalHeight]);
+  }, [isMounted, externalLinkModalWidth, externalLinkModalHeight]);
 
 
   useEffect(() => {
@@ -55,8 +62,9 @@ export function ExternalLinkModal() {
         if (!isOpen) { // If it's not open, initialize and show
           initializeModalState();
           setIsOpen(true);
-        } else { // If it's open, just bring to front (or simply do nothing, it's already visible)
-          // For now, we'll just keep it open. A future improvement could be to bring it to the front.
+          setIsVisible(true);
+        } else { // If it is open (even if invisible), just make it visible
+           setIsVisible(true);
         }
       }
     };
@@ -134,9 +142,9 @@ export function ExternalLinkModal() {
     setIsResizing(false);
   }, []);
 
-  const handleClose = () => {
+  const handleCloseAndReset = () => {
     setIsOpen(false);
-    // State (position, size, iframe content) will be reset when it's re-opened
+    setIsVisible(false);
   };
 
   useEffect(() => {
@@ -166,7 +174,8 @@ export function ExternalLinkModal() {
     transform: 'none', // Override shadcn's transform
     maxWidth: '100vw',
     maxHeight: '100vh',
-    position: 'fixed'
+    position: 'fixed',
+    display: isVisible ? 'flex' : 'none',
   };
 
   const resizeHandles: ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -184,13 +193,14 @@ export function ExternalLinkModal() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen}>
       <DialogContent 
         ref={modalRef}
         className="p-0 border overflow-hidden flex flex-col shadow-2xl"
         style={dynamicStyle}
         onPointerDownOutside={(e) => {
-            // Prevent closing on outside click
+            // Only hide, don't close/unmount
+            setIsVisible(false);
             e.preventDefault();
         }}
         // The default close button is removed to use our custom one
@@ -205,7 +215,7 @@ export function ExternalLinkModal() {
           )}
         >
           <DialogTitle>{externalLinkTitle || 'Contenu externe'}</DialogTitle>
-           <button onClick={handleClose} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+           <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
              <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
