@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -2230,14 +2229,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor,
       directSaleBgOpacity, setDirectSaleBgOpacity,
       restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-      dashboardBgType, setDashboardBgType,
-      dashboardBackgroundColor, setDashboardBackgroundColor,
-      dashboardBackgroundImage, setDashboardBackgroundImage,
-      dashboardBgOpacity, setDashboardBgOpacity,
-      dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor,
-      dashboardButtonOpacity, setDashboardButtonOpacity,
-      dashboardButtonShowBorder, setDashboardButtonShowBorder,
-      dashboardButtonBorderColor, setDashboardButtonBorderColor,
+      dashboardBgType,
+      setDashboardBgType,
+      dashboardBackgroundColor,
+      setDashboardBackgroundColor,
+      dashboardBackgroundImage,
+      setDashboardBackgroundImage,
+      dashboardBgOpacity,
+      setDashboardBgOpacity,
+      dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
+      dashboardButtonOpacity,
+      setDashboardButtonOpacity,
+      dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
+      dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo, setCompanyInfo,
       isNavConfirmOpen,
       showNavConfirm,
@@ -2253,7 +2260,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      setReadOnlyOrder
+      setReadOnlyOrder,
     ]
   );
 
@@ -2267,3 +2274,5 @@ export function usePos() {
   }
   return context;
 }
+
+    

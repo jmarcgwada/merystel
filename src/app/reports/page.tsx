@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -94,6 +93,7 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const searchParams = useSearchParams();
+    const initialFilter = searchParams.get('filter');
 
     useEffect(() => {
         if (isCashier) {
@@ -114,7 +114,7 @@ export default function ReportsPage() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterArticleRef, setFilterArticleRef] = useState('');
-    const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') || '');
+    const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
     const [isSummaryOpen, setSummaryOpen] = useState(false);
     const [isFiltersOpen, setFiltersOpen] = useState(false);
     const [filterSellerName, setFilterSellerName] = useState('');
@@ -127,7 +127,7 @@ export default function ReportsPage() {
     const originFilterRef = useRef<HTMLInputElement>(null);
     const articleRefFilterRef = useRef<HTMLInputElement>(null);
     
-    const isInvoiceView = searchParams.get('filter') === 'Fact-';
+    const isContextualFilterActive = !!initialFilter;
 
      useEffect(() => {
         setIsClient(true);
@@ -291,6 +291,7 @@ export default function ReportsPage() {
     }
 
     const resetFilters = () => {
+        if (isContextualFilterActive) return;
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
@@ -347,22 +348,30 @@ export default function ReportsPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
             </Button>
-            {isInvoiceView ? (
-              <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
-                <Link href="/commercial/invoices">
-                  <FilePlus className="mr-2 h-4 w-4" />
-                  Nouvelle facture
-                </Link>
-              </Button>
+            {isContextualFilterActive ? (
+                <Button asChild onClick={() => router.push('/reports')}>
+                    <Link href="/reports">
+                        <X className="mr-2 h-4 w-4" />
+                        Effacer le filtre
+                    </Link>
+                </Button>
             ) : (
-                !isCashier && (
+                <>
+                <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
+                    <Link href="/commercial/invoices">
+                        <FilePlus className="mr-2 h-4 w-4" />
+                        Nouvelle facture
+                    </Link>
+                </Button>
+                {!isCashier && (
                     <Button asChild>
                         <Link href="/reports/popular-items">
                             <TrendingUp className="mr-2 h-4 w-4" />
                             Voir les articles populaires
                         </Link>
                     </Button>
-                )
+                )}
+                </>
             )}
         </div>
       </PageHeader>
@@ -430,7 +439,7 @@ export default function ReportsPage() {
                              <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={resetFilters}>
+                                        <Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive}>
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
@@ -452,6 +461,7 @@ export default function ReportsPage() {
                                 onChange={(e) => setGeneralFilter(e.target.value)}
                                 className="max-w-sm"
                                 onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}
+                                disabled={isContextualFilterActive}
                             />
                             <Popover>
                                 <PopoverTrigger asChild>
@@ -701,3 +711,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
