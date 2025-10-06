@@ -324,7 +324,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         </div>
                     ) : (
                          <div className="text-muted-foreground text-sm py-5 text-center">
-                            <Label>Client</Label>
+                            {selectedCustomer === null && <Label>Client</Label>}
                             <p>Aucun client sélectionné.</p>
                         </div>
                     )}
@@ -333,107 +333,109 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         </div>
       </div>
 
-    <Card className="h-full flex flex-col mt-4">
+    <Card className="mt-4 flex-1 flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
-            <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Détails de la facture</h3>
-                {order.length > 0 && (
-                  <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Tout effacer
-                  </Button>
-                )}
-            </div>
-            <div className="flex-1 space-y-2">
-                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2">
-                  <span className="py-2">Désignation</span>
-                  <span className="text-right py-2">Qté</span>
-                  <span className="text-right py-2">P.U. HT</span>
-                  <span className="text-center py-2">Code TVA</span>
-                  <span className="text-right py-2">Remise %</span>
-                  <span className="text-right py-2">Total HT</span>
-                  <span className="py-2"></span>
-                </div>
-                <div className="space-y-2">
-                {watchItems.map((field, index) => {
-                  const fullItem = allItems?.find(i => i.id === field.itemId);
-                  const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
-                  const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
-
-                  return (
-                  <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
-                    <div className="flex flex-col h-full justify-center">
-                      <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                      {descriptionDisplay === 'first' && field.description && (
-                        <Textarea
-                          value={field.description}
-                          onChange={(e) => updateItemNote(field.id, e.target.value)}
-                          placeholder="Description/Note pour cet article..."
-                          className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
-                          rows={1}
-                        />
-                      )}
-                      {descriptionDisplay === 'both' && (
-                        <>
-                          {field.description && (
-                            <Textarea
-                              value={field.description}
-                              onChange={(e) => updateItemNote(field.id, e.target.value)}
-                              placeholder="Description 1..."
-                              className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
-                              rows={1}
-                            />
-                          )}
-                          {field.description2 && (
-                            <Textarea
-                              value={field.description2}
-                              onChange={(e) => updateItemNote(field.id, e.target.value)}
-                              placeholder="Description 2..."
-                              className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
-                              rows={1}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <Input 
-                        type="number" 
-                        value={field.quantity}
-                        onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
-                        min={1} 
-                        className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
-                    />
-                    <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                    <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                     <Controller
-                        control={form.control}
-                        name={`items.${index}.remise`}
-                        render={({ field: controllerField }) => (
-                            <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                        )}
-                    />
-                  <div className="font-medium h-full flex items-center justify-end">
-                    {(() => {
-                        const item = watchItems[index];
-                        if(!item || !item.itemId) return '0.00€';
-                        const remise = item.remise || 0;
-                        const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
-                        return `${total.toFixed(2)}€`
-                    })()}
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              )})}
+            <div className="flex-1 flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                  {order.length > 0 && (
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Tout effacer
+                    </Button>
+                  )}
               </div>
-              {watchItems.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
-                    Aucun article dans la commande.
+              <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b">
+                <span className="py-2">Désignation</span>
+                <span className="text-right py-2">Qté</span>
+                <span className="text-right py-2">P.U. HT</span>
+                <span className="text-center py-2">Code TVA</span>
+                <span className="text-right py-2">Remise %</span>
+                <span className="text-right py-2">Total HT</span>
+                <span className="py-2"></span>
+              </div>
+              <ScrollArea className="flex-1">
+                  <div className="space-y-2">
+                  {watchItems.map((field, index) => {
+                    const fullItem = allItems?.find(i => i.id === field.itemId);
+                    const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
+                    const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
+
+                    return (
+                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
+                      <div className="flex flex-col h-full justify-center">
+                        <Input readOnly value={field.name} className="bg-transparent font-semibold border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                        {descriptionDisplay === 'first' && field.description && (
+                          <Textarea
+                            value={field.description}
+                            onChange={(e) => updateItemNote(field.id, e.target.value)}
+                            placeholder="Description/Note pour cet article..."
+                            className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
+                            rows={1}
+                          />
+                        )}
+                        {descriptionDisplay === 'both' && (
+                          <>
+                            {field.description && (
+                              <Textarea
+                                value={field.description}
+                                onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                placeholder="Description 1..."
+                                className="text-xs text-muted-foreground whitespace-pre-wrap bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto mt-1"
+                                rows={1}
+                              />
+                            )}
+                            {field.description2 && (
+                              <Textarea
+                                value={field.description2}
+                                onChange={(e) => updateItemNote(field.id, e.target.value)}
+                                placeholder="Description 2..."
+                                className="text-xs text-muted-foreground whitespace-pre-wrap mt-1 bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto"
+                                rows={1}
+                              />
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <Input 
+                          type="number" 
+                          value={field.quantity}
+                          onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                          min={1} 
+                          className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
+                      />
+                      <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                      <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                       <Controller
+                          control={form.control}
+                          name={`items.${index}.remise`}
+                          render={({ field: controllerField }) => (
+                              <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                          )}
+                      />
+                    <div className="font-medium h-full flex items-center justify-end">
+                      {(() => {
+                          const item = watchItems[index];
+                          if(!item || !item.itemId) return '0.00€';
+                          const remise = item.remise || 0;
+                          const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
+                          return `${total.toFixed(2)}€`
+                      })()}
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )})}
                 </div>
-              )}
+              </ScrollArea>
+              {watchItems.length === 0 && (
+                  <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                      Aucun article dans la commande.
+                  </div>
+                )}
             </div>
             
             <div className="mt-auto">

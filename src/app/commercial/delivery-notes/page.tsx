@@ -94,7 +94,7 @@ function DeliveryNotesPageContent() {
           {renderHeaderActions()}
         </PageHeader>
         
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col">
             <CommercialOrderForm
                 order={order} 
                 setOrder={setOrder}
