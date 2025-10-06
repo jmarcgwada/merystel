@@ -214,13 +214,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      const isInvoice = currentSaleContext?.isInvoice || false;
-      if (payments.length > 0 && balanceDue > 0 && isInvoice) {
-          handleFinalizeSale(payments, false); // Finalize as pending
-      } else {
-          onClose();
-          setTimeout(handleReset, 300);
-      }
+      onClose();
+      setTimeout(handleReset, 300);
     }
   };
   
@@ -318,6 +313,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
       handleAddPayment(method);
       setView('payment');
+    };
+    
+    const handleSaveAsPending = () => {
+      if (isInvoiceMode) {
+        handleFinalizeSale([], false); // Pass empty payments, finalize as pending
+      }
     };
     
     const renderCalculator = () => (
@@ -531,9 +532,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         {showCalculator ? renderCalculator() : renderPaymentHistory()}
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
-          {isInvoiceMode && balanceDue > 0 ? 'Enregistrer comme facture en attente' : 'Annuler'}
+        <Button
+            type="button"
+            variant="outline"
+            onClick={isInvoiceMode ? handleSaveAsPending : () => handleOpenChange(false)}
+            className="w-full sm:w-auto"
+        >
+            {isInvoiceMode ? 'Enregistrer' : 'Annuler'}
         </Button>
+
         {(balanceDue < 0.009 || isInvoiceMode) && (
           <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               Finaliser
