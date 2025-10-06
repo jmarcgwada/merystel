@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -101,7 +101,7 @@ export default function ReportsPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterStatus, setFilterStatus] = useState(searchParams.get('filter') === 'Fact-' ? 'pending' : 'all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') === 'Fact-' ? 'Fact-' : '');
@@ -527,8 +527,8 @@ export default function ReportsPage() {
         </Collapsible>
 
         <Card>
-            <CardContent className="pt-6">
-                 <div className="flex items-center justify-between mb-4">
+            <CardHeader>
+                <div className="flex items-center justify-between">
                     <div>
                         <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -564,7 +564,9 @@ export default function ReportsPage() {
                             <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
-              </div>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-0">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -654,6 +656,13 @@ export default function ReportsPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
+                                        {sale.status === 'pending' && (
+                                            <Button asChild variant="ghost" size="icon">
+                                                <Link href={`/commercial?edit=${sale.id}`}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                        )}
                                         <Button asChild variant="ghost" size="icon">
                                             <Link href={`/reports/${sale.id}`}>
                                                 <Eye className="h-4 w-4" />
