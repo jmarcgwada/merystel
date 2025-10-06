@@ -310,8 +310,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                 </Card>
             )}
         </div>
-        <div className="w-full lg:w-auto grid gap-2">
-            <Label>Client</Label>
+        <div className="w-full lg:w-auto">
             <Card className="w-[350px]">
                 <CardContent className="p-4 relative">
                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
@@ -324,8 +323,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                             <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                         </div>
                     ) : (
-                        <div className="text-muted-foreground text-sm py-5 text-center">
-                            Aucun client sélectionné.
+                         <div className="text-muted-foreground text-sm py-5 text-center">
+                            <Label>Client</Label>
+                            <p>Aucun client sélectionné.</p>
                         </div>
                     )}
                 </CardContent>
