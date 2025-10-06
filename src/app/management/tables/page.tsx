@@ -40,7 +40,7 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) =>
         let jsDate: Date;
         if (date instanceof Date) {
             jsDate = date;
-        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
             jsDate = new Date(date as any);

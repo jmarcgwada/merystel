@@ -56,7 +56,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         let jsDate: Date;
         if (date instanceof Date) {
             jsDate = date;
-        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
             // Attempt to parse if it's a string or number, though it shouldn't be
@@ -148,12 +148,11 @@ export default function ReportsPage() {
     }, [users]);
     
     const getDateFromSale = (sale: Sale): Date => {
-        if (!sale.date) return new Date(0); // Should not happen
+        if (!sale.date) return new Date(0);
         if (sale.date instanceof Date) return sale.date;
         if (typeof (sale.date as Timestamp)?.toDate === 'function') {
             return (sale.date as Timestamp).toDate();
         }
-        // Fallback for string or number dates, though this should be avoided
         const d = new Date(sale.date as any);
         return isNaN(d.getTime()) ? new Date(0) : d;
     };
@@ -225,7 +224,6 @@ export default function ReportsPage() {
                         bValue = getUserName(b.userId, b.userName);
                         break;
                     case 'ticketNumber':
-                        // Simple sort for now, can be improved for numeric parts
                         aValue = a.ticketNumber || '';
                         bValue = b.ticketNumber || '';
                         break;

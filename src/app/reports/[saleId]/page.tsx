@@ -35,7 +35,7 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
         let jsDate: Date;
         if (date instanceof Date) {
             jsDate = date;
-        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
             jsDate = new Date(date as any);
@@ -160,7 +160,7 @@ function SaleDetailContent() {
     }
   }
   
-  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : 'Ticket';
+  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'Bon de livraison' : 'Ticket';
 
   if (isLoading) {
       return (
