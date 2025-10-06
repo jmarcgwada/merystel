@@ -1346,6 +1346,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré' },
     };
     const { prefix, counterField, toastTitle } = docTypeInfo[type];
+    const today = new Date();
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -1372,7 +1373,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           
           transaction.update(companyRef, { [counterField]: newCount });
           
-          const dayMonth = format(new Date(), 'ddMM');
+          const dayMonth = format(today, 'ddMM');
           pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
         }
 
@@ -1380,8 +1381,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...existingData,
           ...docData,
           id: pieceRef.id,
-          date: existingData.date || new Date(),
-          modifiedAt: docIdToUpdate ? new Date() : undefined,
+          date: existingData.date || Timestamp.fromDate(today),
+          modifiedAt: docIdToUpdate ? Timestamp.fromDate(today) : undefined,
           userId: user.uid,
           userName: `${user.firstName} ${user.lastName}`,
           ticketNumber: pieceNumber,
@@ -1412,9 +1413,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      const today = new Date();
+      
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-        const today = new Date();
         
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
@@ -1422,14 +1424,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let existingData: Partial<Sale> = {};
           const isNewPiece = !saleIdToUpdate;
           
-          let saleDate: any = today;
+          let saleDate: any = Timestamp.fromDate(today);
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
               existingData = existingDoc.data() as Sale;
-              saleDate = existingData.date || today;
+              saleDate = existingData.date || saleDate;
             }
           } else {
             const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
@@ -1450,7 +1452,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             transaction.update(companyRef, { [counterField]: newCount });
             
-            const dayMonth = format(new Date(), 'ddMM');
+            const dayMonth = format(today, 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
@@ -1459,7 +1461,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             ...saleData,
             id: pieceRef.id,
             date: saleDate, // Use original date on update, new date on create
-            modifiedAt: isNewPiece ? undefined : today,
+            modifiedAt: isNewPiece ? undefined : Timestamp.fromDate(today),
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
@@ -1487,7 +1489,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               occupiedByUserId: deleteField(),
               occupiedAt: deleteField(),
               closedByUserId: user.uid,
-              closedAt: today,
+              closedAt: serverTimestamp(),
             });
           }
         });
