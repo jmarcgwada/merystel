@@ -32,16 +32,16 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
 
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (user?.sessionDuration) { // Always reset if there's a duration set
-      // TEMPORARY: Set a short timeout for testing purposes.
-      const testDuration = user.sessionDuration > 0 ? 15000 : user.sessionDuration * 60 * 1000;
-      if (testDuration > 0) {
-        timerRef.current = setTimeout(() => {
-          setWarningOpen(true);
-        }, testDuration);
-      }
+    
+    // TEMPORARY: Forcing a 15-second timeout for testing purposes.
+    const testDuration = 15000;
+
+    if (testDuration > 0) {
+      timerRef.current = setTimeout(() => {
+        setWarningOpen(true);
+      }, testDuration);
     }
-  }, [user]);
+  }, []);
 
   const handleExtendSession = () => {
     setWarningOpen(false);
