@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils, Lock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useRef, useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 
 export default function ParametersPage() {
@@ -41,6 +42,8 @@ export default function ParametersPage() {
     setEnableSerialNumber,
     defaultSalesMode,
     setDefaultSalesMode,
+    isForcedMode,
+    setIsForcedMode,
   } = usePos();
   
   const [isClient, setIsClient] = useState(false);
@@ -106,6 +109,24 @@ export default function ParametersPage() {
                         <Skeleton className="h-24 w-full" />
                     </div>
                 )}
+                 <Separator className="my-6" />
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                    <Label htmlFor="force-mode" className="text-base flex items-center gap-2"><Lock/>Activer le mode forcé</Label>
+                    <p className="text-sm text-muted-foreground">
+                        Verrouille l'application sur le mode de vente par défaut sélectionné ci-dessus.
+                    </p>
+                    </div>
+                    {isClient ? (
+                        <Switch 
+                            id="force-mode"
+                            checked={isForcedMode}
+                            onCheckedChange={setIsForcedMode}
+                        />
+                    ) : (
+                        <Skeleton className="h-6 w-11" />
+                    )}
+                </div>
             </CardContent>
         </Card>
         <Card>

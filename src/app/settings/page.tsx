@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Settings, ArrowLeft, Palette, UserCog } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
@@ -46,13 +46,6 @@ export default function SettingsPage() {
         title: "Gestion des utilisateurs",
         description: "Gérez les comptes et les autorisations des utilisateurs.",
         icon: UserCog,
-        adminOnly: true,
-    },
-    {
-        href: '/settings/modes',
-        title: 'Modes Forcés',
-        description: "Verrouillez l'application dans un mode spécifique.",
-        icon: Lock,
         adminOnly: true,
     },
     {
