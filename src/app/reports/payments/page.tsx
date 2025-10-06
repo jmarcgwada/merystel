@@ -59,7 +59,7 @@ const ClientFormattedDate = ({ date, formatString = "d MMM yyyy 'à' HH:mm" }: {
 }
 
 export default function PaymentsReportPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, paymentMethods } = usePos();
     const { user } = useUser();
     const router = useRouter();
 
@@ -258,7 +258,7 @@ export default function PaymentsReportPage() {
                         </Popover>
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="">Tous les types</SelectItem>{usePos().paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="">Tous les types</SelectItem>{paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
