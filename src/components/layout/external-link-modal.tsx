@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,10 @@ import {
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { X, Maximize, Minimize } from 'lucide-react';
+
+type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
 
 export function ExternalLinkModal() {
   const {
@@ -25,23 +28,36 @@ export function ExternalLinkModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State for dragging
+  // State for dragging and resizing
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
+  const [hasBeenMoved, setHasBeenMoved] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-  const [hasBeenDragged, setHasBeenDragged] = useState(false);
+  
+  const initializeModalState = useCallback(() => {
+    const initialWidth = window.innerWidth * (externalLinkModalWidth / 100);
+    const initialHeight = window.innerHeight * (externalLinkModalHeight / 100);
+    setSize({ width: initialWidth, height: initialHeight });
+    setPosition({ 
+        x: (window.innerWidth - initialWidth) / 2,
+        y: (window.innerHeight - initialHeight) / 2,
+    });
+    setHasBeenMoved(false);
+    setIsLoading(true);
+  }, [externalLinkModalWidth, externalLinkModalHeight]);
+
 
   useEffect(() => {
     const handleToggle = () => {
       if (externalLinkModalEnabled && externalLinkUrl) {
-        setIsOpen(prev => !prev);
-        setIsLoading(true); // Reset loading state each time it opens
-        // Reset position when opening
         if (!isOpen) {
-            setPosition({ x: 0, y: 0 });
-            setHasBeenDragged(false);
+          initializeModalState();
         }
+        setIsOpen(prev => !prev);
       }
     };
 
@@ -49,13 +65,13 @@ export function ExternalLinkModal() {
     return () => {
       window.removeEventListener('toggleExternalLinkModal', handleToggle);
     };
-  }, [externalLinkModalEnabled, externalLinkUrl, isOpen]);
+  }, [externalLinkModalEnabled, externalLinkUrl, isOpen, initializeModalState]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
   };
   
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (modalRef.current) {
         setIsDragging(true);
         setDragStart({
@@ -65,22 +81,62 @@ export function ExternalLinkModal() {
     }
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, direction: ResizeDirection) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: size.width,
+      height: size.height,
+      direction: direction,
+    });
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
-        setHasBeenDragged(true);
+        setHasBeenMoved(true);
         setPosition({
             x: e.clientX - dragStart.x,
             y: e.clientY - dragStart.y,
         });
+    } else if(isResizing) {
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+      let newX = position.x;
+      let newY = position.y;
+
+      const dx = e.clientX - resizeStart.x;
+      const dy = e.clientY - resizeStart.y;
+      
+      if (resizeStart.direction.includes('e')) newWidth = resizeStart.width + dx;
+      if (resizeStart.direction.includes('w')) {
+          newWidth = resizeStart.width - dx;
+          newX = position.x + dx;
+      }
+      if (resizeStart.direction.includes('s')) newHeight = resizeStart.height + dy;
+      if (resizeStart.direction.includes('n')) {
+          newHeight = resizeStart.height - dy;
+          newY = position.y + dy;
+      }
+
+      if (newWidth < 300) newWidth = 300;
+      if (newHeight < 200) newHeight = 200;
+
+      setSize({ width: newWidth, height: newHeight });
+       if (resizeStart.direction.includes('w') || resizeStart.direction.includes('n')) {
+            setPosition({ x: newX, y: newY });
+        }
     }
-  };
+  }, [isDragging, isResizing, dragStart, resizeStart, position.x, position.y]);
   
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+    setIsResizing(false);
+  }, []);
 
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     } else {
@@ -91,48 +147,52 @@ export function ExternalLinkModal() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart]);
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
 
   if (!externalLinkModalEnabled) {
     return null;
   }
-
-  const modalWidth = `${externalLinkModalWidth || 80}vw`;
-  const modalHeight = `${externalLinkModalHeight || 90}vh`;
   
   const dynamicStyle: React.CSSProperties = {
-    width: modalWidth,
-    height: modalHeight,
-    maxWidth: 'none',
-    maxHeight: 'none',
+    width: `${size.width}px`,
+    height: `${size.height}px`,
+    top: `${position.y}px`,
+    left: `${position.x}px`,
+    transform: 'none', // Override shadcn's transform
+    maxWidth: '100vw',
+    maxHeight: '100vh',
   };
 
-  if (hasBeenDragged) {
-      dynamicStyle.transform = `translate(0, 0)`;
-      dynamicStyle.top = `${position.y}px`;
-      dynamicStyle.left = `${position.x}px`;
-  }
+  const resizeHandles: ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+  const getResizeHandleClass = (dir: ResizeDirection) => {
+    switch (dir) {
+      case 'n': return 'cursor-n-resize top-0 h-2 inset-x-2';
+      case 's': return 'cursor-s-resize bottom-0 h-2 inset-x-2';
+      case 'e': return 'cursor-e-resize right-0 w-2 inset-y-2';
+      case 'w': return 'cursor-w-resize left-0 w-2 inset-y-2';
+      case 'ne': return 'cursor-ne-resize top-0 right-0 h-3 w-3';
+      case 'nw': return 'cursor-nw-resize top-0 left-0 h-3 w-3';
+      case 'se': return 'cursor-se-resize bottom-0 right-0 h-3 w-3';
+      case 'sw': return 'cursor-sw-resize bottom-0 left-0 h-3 w-3';
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent 
         ref={modalRef}
-        className={cn(
-            "p-0 border overflow-hidden flex flex-col shadow-2xl",
-             !hasBeenDragged && "top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2"
-        )}
+        className="p-0 border overflow-hidden flex flex-col shadow-2xl"
         style={dynamicStyle}
         onPointerDownOutside={(e) => {
-            // This prevents the dialog from closing when starting a drag from the header.
-            if ((e.target as HTMLElement).closest('[data-drag-handle]')) {
+            if ((e.target as HTMLElement).closest('[data-drag-handle]') || (e.target as HTMLElement).closest('[data-resize-handle]')) {
                 e.preventDefault();
             }
         }}
       >
         <div 
           data-drag-handle
-          onMouseDown={handleMouseDown}
+          onMouseDown={handleDragStart}
           className={cn(
             "flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b",
             isDragging ? "cursor-grabbing" : "cursor-grab"
@@ -159,6 +219,14 @@ export function ExternalLinkModal() {
             allow="microphone"
           />
         </div>
+        {resizeHandles.map(dir => (
+            <div
+                key={dir}
+                data-resize-handle
+                onMouseDown={(e) => handleResizeStart(e, dir)}
+                className={cn('absolute z-10', getResizeHandleClass(dir))}
+            />
+        ))}
       </DialogContent>
     </Dialog>
   );
