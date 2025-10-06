@@ -112,6 +112,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
+  loadSaleForEditing: (saleId: string) => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
@@ -1466,14 +1467,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           let pieceNumber = existingData.ticketNumber || '';
 
           if (needsNumber) {
+            const companyDoc = await transaction.get(companyRef);
             const prefix = currentSaleContext?.isInvoice ? 'Fact' : 'Tick';
             const counterField = currentSaleContext?.isInvoice ? 'invoiceCounter' : 'ticketCounter';
             
-            const companyDoc = await transaction.get(companyRef);
             const currentCounter = companyDoc.data()?.[counterField] || 0;
             const newCount = currentCounter + 1;
             
-            transaction.update(companyRef, { [counterField]: increment(1) });
+            transaction.update(companyRef, { [counterField]: newCount });
             
             const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
@@ -1925,6 +1926,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         change: ticket.change
     });
   }, []);
+
+  const loadSaleForEditing = useCallback((saleId: string) => {
+    if (!sales) return;
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Facture non trouvée.' });
+      return;
+    }
+    
+    setOrder(sale.items);
+    setCurrentSaleId(sale.id);
+    setCurrentSaleContext({
+      isInvoice: true,
+      ticketNumber: sale.ticketNumber,
+      date: sale.date,
+      userName: sale.userName,
+      customerId: sale.customerId,
+      payments: sale.payments,
+      originalTotal: sale.total,
+      originalPayments: sale.payments,
+      change: sale.change,
+    });
+
+  }, [sales, toast]);
   // #endregion
   
   useEffect(() => {
@@ -1976,6 +2001,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       lastDirectSale,
       lastRestaurantSale,
       loadTicketForViewing,
+      loadSaleForEditing,
       users,
       addUser,
       updateUser,
@@ -2143,6 +2169,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       lastDirectSale,
       lastRestaurantSale,
       loadTicketForViewing,
+      loadSaleForEditing,
       users,
       addUser,
       updateUser,

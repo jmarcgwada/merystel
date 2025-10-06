@@ -26,7 +26,7 @@ function CommercialPageContent() {
     } else {
         // If we navigate to this page without an edit id, ensure the order is clear.
         // This handles the case where a user manually navigates here.
-        if (order.length > 0 && !location.search) {
+        if (order.length > 0 && !location.search.includes('edit')) {
              clearOrder({ clearCustomer: true });
         }
     }
