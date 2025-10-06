@@ -33,9 +33,11 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
   const resetTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (user?.sessionDuration && user.sessionDuration > 0) {
+      // TEMPORARY: Set a short timeout for testing purposes.
+      const testDuration = 15000; // 15 seconds
       timerRef.current = setTimeout(() => {
         setWarningOpen(true);
-      }, user.sessionDuration * 60 * 1000);
+      }, testDuration);
     }
   }, [user]);
 
@@ -109,5 +111,3 @@ export function SessionManager({ children }: { children: React.ReactNode }) {
     </>
   );
 }
-
-    
