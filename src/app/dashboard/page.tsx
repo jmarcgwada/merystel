@@ -33,25 +33,12 @@ const hexToRgba = (hex: string, opacity: number) => {
 
 const allQuickLinks = [
     {
-        href: '/pos',
-        title: "Point de Vente",
-        description: 'Accéder à l\'interface de vente principale.',
+        href: '/default-sale', // This will be dynamically replaced
+        title: "Mode Caisse",
+        description: 'Accéder à l\'interface de vente par défaut.',
         icon: ShoppingCart,
         roles: ['admin', 'manager', 'cashier'],
-    },
-    {
-        href: '/supermarket',
-        title: "Mode Supermarché",
-        description: 'Interface rapide pour scanner les articles.',
-        icon: ScanLine,
-        roles: ['admin', 'manager', 'cashier'],
-    },
-    {
-        href: '/restaurant',
-        title: "Mode Restaurant",
-        description: "Gérer les tables et les commandes.",
-        icon: Utensils,
-        roles: ['admin', 'manager', 'cashier'],
+        id: 'sales-mode',
     },
     {
         href: '/commercial',
@@ -100,6 +87,7 @@ export default function DashboardPage() {
         dashboardButtonTextColor,
         showDashboardStats,
         users,
+        defaultSalesMode,
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
@@ -112,7 +100,19 @@ export default function DashboardPage() {
     
     const quickLinks = useMemo(() => {
         if (!authUser) return [];
-        const links = allQuickLinks.filter(link => link.roles.includes(authUser.role));
+        const links = allQuickLinks
+            .map(link => {
+                if (link.id === 'sales-mode') {
+                    const modeMap = {
+                        pos: { href: '/pos', icon: ShoppingCart, description: 'Accéder au point de vente.' },
+                        supermarket: { href: '/supermarket', icon: ScanLine, description: 'Interface rapide pour scanner les articles.' },
+                        restaurant: { href: '/restaurant', icon: Utensils, description: 'Gérer les tables et les commandes.' },
+                    };
+                    return { ...link, ...modeMap[defaultSalesMode] };
+                }
+                return link;
+            })
+            .filter(link => link.roles.includes(authUser.role));
 
         if (authUser.role !== 'cashier') {
             links.push({
@@ -121,10 +121,11 @@ export default function DashboardPage() {
                 description: "Configurer l'application.",
                 icon: Settings,
                 roles: ['admin', 'manager'],
+                id: 'settings',
             });
         }
         return links;
-    }, [authUser]);
+    }, [authUser, defaultSalesMode]);
 
     const totalSales = useMemo(() => {
         if (!sales) return 0;

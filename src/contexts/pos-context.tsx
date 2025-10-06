@@ -220,6 +220,8 @@ interface PosContextType {
   setNotificationDuration: React.Dispatch<React.SetStateAction<number>>;
   enableSerialNumber: boolean;
   setEnableSerialNumber: React.Dispatch<React.SetStateAction<boolean>>;
+  defaultSalesMode: 'pos' | 'supermarket' | 'restaurant';
+  setDefaultSalesMode: React.Dispatch<React.SetStateAction<'pos' | 'supermarket' | 'restaurant'>>;
   directSaleBackgroundColor: string;
   setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   restaurantModeBackgroundColor: string;
@@ -355,6 +357,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
+  const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
   const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
@@ -753,12 +756,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     try {
       const batch = writeBatch(firestore);
 
-      const defaultVatRates = [
-        { id: 'vat_0', name: 'Exonéré', rate: 0, code: 1 },
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 2 },
-        { id: 'vat_8_5', name: 'Taux Spécifique', rate: 8.5, code: 3 },
+      // --- Define Data ---
+      const defaultCategories = [
+        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
+        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
+        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
+        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
+        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
+        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
       ];
-      
+
+      const defaultVatRates = [
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+      ];
+
       const defaultPaymentMethods = [
         { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
         { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
@@ -768,26 +781,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const defaultCustomers = [
         { name: 'Client au comptoir', isDefault: true },
-      ];
-
-      const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
-      ];
-
-      const seedCategories = [
-        { id: 'boulangerie', name: 'Boulangerie', color: '#f59e0b' },
-        { id: 'patisserie', name: 'Pâtisserie', color: '#ec4899' },
-        { id: 'epicerie_sucree', name: 'Épicerie Sucrée', color: '#8b5cf6' },
-        { id: 'epicerie_salee', name: 'Épicerie Salée', color: '#10b981' },
-        { id: 'boissons_fraiches', name: 'Boissons Fraîches', color: '#3b82f6' },
-        { id: 'boissons_chaudes', name: 'Boissons Chaudes', color: '#a16207' },
-        { id: 'vins_spiritueux', name: 'Vins & Spiritueux', color: '#dc2626' },
-        { id: 'fruits_legumes', name: 'Fruits & Légumes', color: '#84cc16' },
-        { id: 'cremerie', name: 'Crémerie', color: '#fde047' },
-        { id: 'boucherie', name: 'Boucherie', color: '#ef4444', isRestaurantOnly: true },
-        { id: 'plats_cuisines', name: 'Plats Cuisinés', color: '#f97316', isRestaurantOnly: true },
-        { id: 'sandwichs', name: 'Sandwichs', color: '#64748b' },
+        { name: 'Marie Dubois', email: 'marie.d@email.com' },
+        { name: 'Ahmed Khan', email: 'ahmed.k@email.com' },
+        { name: 'Sophie Leroy', email: 'sophie.l@email.com' },
       ];
 
       const seedItems = [
@@ -906,6 +902,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Le Nordique (Saumon fumé, crème aneth)', price: 7.50, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-NORDIQUE' },
         { name: 'L\'Italien (Jambon cru, mozza, pesto)', price: 7.20, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-ITALIEN' },
         { name: 'Le Complet (Poulet, oeuf, tomate, salade)', price: 7.00, categoryId: 'sandwichs', vatId: 'vat_10', barcode: 'SAND-COMPLET' },
+      ];
+
+      const defaultTables = [
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
       ];
 
       // --- Batch Write ---
@@ -2100,6 +2101,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setNotificationDuration,
       enableSerialNumber,
       setEnableSerialNumber,
+      defaultSalesMode,
+      setDefaultSalesMode,
       directSaleBackgroundColor,
       setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
@@ -2245,6 +2248,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       showNotifications, setShowNotifications,
       notificationDuration, setNotificationDuration,
       enableSerialNumber, setEnableSerialNumber,
+      defaultSalesMode, setDefaultSalesMode,
       directSaleBackgroundColor, setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor,
       directSaleBgOpacity, setDirectSaleBgOpacity,

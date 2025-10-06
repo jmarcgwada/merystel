@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -39,6 +39,8 @@ export default function ParametersPage() {
     importConfiguration,
     enableSerialNumber,
     setEnableSerialNumber,
+    defaultSalesMode,
+    setDefaultSalesMode,
   } = usePos();
   
   const [isClient, setIsClient] = useState(false);
@@ -61,6 +63,51 @@ export default function ParametersPage() {
         </Button>
       </PageHeader>
       <div className="mt-8 space-y-8">
+        <Card>
+            <CardHeader>
+            <CardTitle>Mode de vente par défaut</CardTitle>
+            <CardDescription>
+                Choisissez l'écran qui s'ouvrira lorsque vous cliquerez sur "Mode Caisse" depuis le tableau de bord.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {isClient ? (
+                    <RadioGroup 
+                        value={defaultSalesMode} 
+                        onValueChange={(value) => setDefaultSalesMode(value as 'pos' | 'supermarket' | 'restaurant')}
+                        className="grid sm:grid-cols-3 gap-4 pt-2"
+                    >
+                        <div className="flex items-center">
+                            <RadioGroupItem value="pos" id="mode-pos" />
+                            <Label htmlFor="mode-pos" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <p className="text-base font-semibold flex items-center gap-2"><ShoppingCart />Point de Vente</p>
+                                <p className="text-xs text-muted-foreground mt-1">Interface standard avec grille d'articles.</p>
+                            </Label>
+                        </div>
+                        <div className="flex items-center">
+                            <RadioGroupItem value="supermarket" id="mode-supermarket" />
+                            <Label htmlFor="mode-supermarket" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <p className="text-base font-semibold flex items-center gap-2"><ScanLine />Mode Supermarché</p>
+                                <p className="text-xs text-muted-foreground mt-1">Optimisé pour le scan rapide par code-barres.</p>
+                            </Label>
+                        </div>
+                        <div className="flex items-center">
+                            <RadioGroupItem value="restaurant" id="mode-restaurant" />
+                            <Label htmlFor="mode-restaurant" className="ml-2 cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <p className="text-base font-semibold flex items-center gap-2"><Utensils />Mode Restaurant</p>
+                                <p className="text-xs text-muted-foreground mt-1">Gestion des commandes par table.</p>
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                ) : (
+                    <div className="grid sm:grid-cols-3 gap-4 pt-2">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                )}
+            </CardContent>
+        </Card>
         <Card>
             <CardHeader>
             <CardTitle>Fonctionnalités</CardTitle>
