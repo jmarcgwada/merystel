@@ -1012,6 +1012,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       description: item.description,
       description2: item.description2,
       serialNumbers: serialNumbers,
+      barcode: item.barcode || '',
     };
     
     setOrder(currentOrder => {
@@ -1080,7 +1081,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             discount: 0,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
-            barcode: itemToAdd.barcode,
+            barcode: itemToAdd.barcode || '',
             selectedVariants,
             serialNumbers: [],
           };
@@ -1400,9 +1401,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateTable = useCallback(
-    (table: Table) => {
-      updateEntity('tables', table.id, table, 'Table modifiée');
-    },
+    (table: Table) =>
+      updateEntity('tables', table.id, table, 'Table modifiée'),
     [updateEntity]
   );
 
@@ -1424,16 +1424,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const today = new Date();
+        const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+        
         await runTransaction(firestore, async (transaction) => {
           const companyRef = doc(firestore, 'companies', companyId);
           let pieceRef;
           let existingData: Partial<Sale> = {};
+          let isNewPiece = !saleIdToUpdate;
 
           if (saleIdToUpdate) {
             pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
             const existingDoc = await transaction.get(pieceRef);
             if (existingDoc.exists()) {
               existingData = existingDoc.data() as Sale;
+              isNewPiece = false;
             }
           } else {
             const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
@@ -1447,29 +1452,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           if (needsNumber) {
             const prefix = currentSaleContext?.isInvoice ? 'Fact' : 'Tick';
             const counterField = currentSaleContext?.isInvoice ? 'invoiceCounter' : 'ticketCounter';
+            
             const companyDoc = await transaction.get(companyRef);
             const currentCounter = companyDoc.data()?.[counterField] || 0;
             const newCount = currentCounter + 1;
+            
             transaction.update(companyRef, { [counterField]: increment(1) });
+            
             const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
-          const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-
-          const finalSaleData = cleanDataForFirebase({
+          const finalSaleData = {
             ...existingData,
             ...saleData,
-            date: existingData.date || new Date(), // Use new Date() for reliable timestamping
+            date: isNewPiece ? today : existingData.date,
+            ...(isNewPiece ? {} : { modifiedAt: today }),
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
-            ...(saleIdToUpdate && { modifiedAt: new Date() }),
-          });
+          };
           
-          transaction.set(pieceRef, finalSaleData, { merge: true });
+          transaction.set(pieceRef, cleanDataForFirebase(finalSaleData), { merge: true });
 
-          if (finalSaleData.status === 'paid' && !saleIdToUpdate) {
+          if (finalSaleData.status === 'paid' && isNewPiece) {
             finalSaleData.items?.forEach((orderItem: OrderItem) => {
               if (!items) return;
               const itemDoc = items.find(i => i.id === orderItem.itemId);
@@ -1478,18 +1484,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 transaction.update(itemRef, { stock: increment(-orderItem.quantity) });
               }
             });
+          }
 
-            if (finalSaleData.tableId) {
-              const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
-              transaction.update(tableRef, {
-                status: 'available',
-                order: [],
-                occupiedByUserId: deleteField(),
-                occupiedAt: deleteField(),
-                closedByUserId: user.uid,
-                closedAt: serverTimestamp(),
-              });
-            }
+          if (finalSaleData.status === 'paid' && finalSaleData.tableId) {
+            const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
+            transaction.update(tableRef, {
+              status: 'available',
+              order: [],
+              occupiedByUserId: deleteField(),
+              occupiedAt: deleteField(),
+              closedByUserId: user.uid,
+              closedAt: serverTimestamp(),
+            });
           }
         });
       } catch (error) {
@@ -1854,7 +1860,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const sortedSales = [...sales].sort((a, b) => {
         const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
         const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
+        return dateB.getTime() - a.getTime();
     });
 
     const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
