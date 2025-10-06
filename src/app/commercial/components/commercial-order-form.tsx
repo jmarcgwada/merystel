@@ -58,7 +58,7 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsInvoiceReady }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -94,8 +94,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             form.setValue('customerId', customer.id);
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSaleContext?.customerId, customers]);
+  }, [currentSaleContext?.customerId, customers, form]);
 
   useEffect(() => {
     const isReady = !!selectedCustomer && watchItems.length > 0;
