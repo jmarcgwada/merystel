@@ -358,7 +358,7 @@ export default function ReportsPage() {
         )}
       </PageHeader>
       <div className="mt-8 space-y-4">
-        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="hidden">
+        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen}>
             <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start px-2 mb-2 -ml-2 text-lg font-semibold">
                     <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
@@ -404,16 +404,15 @@ export default function ReportsPage() {
                         </CardContent>
                     </Card>
                 </div>
-                 <Separator className="mb-4" />
             </CollapsibleContent>
         </Collapsible>
         
         <Card>
-            <CardHeader>
-                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} className="hidden">
+             <CardHeader>
+                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
                     <div className="relative">
                         <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start px-0 mb-2 -ml-2 text-lg font-semibold">
+                            <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
                                 <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
                                Filtres
                             </Button>
@@ -434,7 +433,7 @@ export default function ReportsPage() {
                         </div>
                     </div>
                     <CollapsibleContent>
-                        <div className="pt-2 pb-4 flex items-center gap-2 flex-wrap">
+                        <div className="pt-4 pb-2 flex items-center gap-2 flex-wrap">
                             <Input
                                 ref={generalFilterRef}
                                 placeholder="Rechercher (N°, article, note...)"
@@ -529,7 +528,7 @@ export default function ReportsPage() {
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
-            </CardHeader>
+             </CardHeader>
             <CardContent>
                  <div className="flex items-center justify-end gap-2 mb-4">
                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
@@ -639,4 +638,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
