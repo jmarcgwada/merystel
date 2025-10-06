@@ -10,7 +10,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FilePlus } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 
 
@@ -34,6 +34,7 @@ function DeliveryNotesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const saleIdToEdit = searchParams.get('edit');
+  const initialFilter = searchParams.get('filter');
 
   useEffect(() => {
     if (saleIdToEdit) {
@@ -47,7 +48,7 @@ function DeliveryNotesPageContent() {
   }, [saleIdToEdit]);
   
   const handleSave = useCallback(() => {
-    if (!isReady) return;
+    if (!isReady || !currentSaleContext?.customerId) return;
 
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
@@ -56,13 +57,32 @@ function DeliveryNotesPageContent() {
       total: orderTotal + orderTax,
       status: 'pending',
       payments: [],
-      customerId: currentSaleContext?.customerId,
+      customerId: currentSaleContext.customerId,
     };
     
     recordCommercialDocument(doc, 'delivery_note', saleIdToEdit || undefined);
     
   }, [isReady, order, orderTotal, orderTax, currentSaleContext, recordCommercialDocument, saleIdToEdit]);
 
+  const renderHeaderActions = () => {
+    if (initialFilter?.startsWith('BL-')) {
+        return (
+            <Button onClick={() => router.push('/commercial/delivery-notes')}>
+                <FilePlus className="mr-2 h-4 w-4" />
+                Nouveau bon
+            </Button>
+        )
+    }
+    return (
+        <div className="flex items-center gap-2">
+            <Button size="lg" onClick={handleSave} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour le bon' : 'Sauvegarder le bon'}</Button>
+             <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=BL-' : '/dashboard')}>
+                <ArrowLeft />
+                Retour
+            </Button>
+        </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -71,13 +91,7 @@ function DeliveryNotesPageContent() {
             title={saleIdToEdit ? "Modifier le bon de livraison" : "Gestion des Bons de Livraison"}
             subtitle={saleIdToEdit ? "Modifiez les articles et finalisez le bon." : "Créez un nouveau bon de livraison."}
         >
-          <div className="flex items-center gap-2">
-            <Button size="lg" onClick={handleSave} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour le bon' : 'Sauvegarder le bon'}</Button>
-             <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=BL-' : '/dashboard')}>
-                <ArrowLeft />
-                Retour
-            </Button>
-          </div>
+          {renderHeaderActions()}
         </PageHeader>
         
         <div className="flex-1">
@@ -106,4 +120,3 @@ export default function DeliveryNotesPage() {
         </Suspense>
     )
 }
-
