@@ -1,91 +1,16 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Lock, Database, Sparkles, AlertTriangle, Trash2, Settings, ArrowLeft, Palette, FileCode, Upload, Download, FileJson, UserCog, Users, History } from 'lucide-react';
+import { ArrowRight, Brush, Building, Lock, Database, Settings, ArrowLeft, Palette, UserCog } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { usePos } from '@/contexts/pos-context';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { useMemo, useState, useRef } from 'react';
-import { PromptViewer } from './components/prompt-viewer';
-import { Separator } from '@/components/ui/separator';
-
 
 export default function SettingsPage() {
   const { user, loading: isUserLoading } = useUser();
-  const { seedInitialData, resetAllData, categories, vatRates, paymentMethods, isLoading, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, deleteAllSales } = usePos();
-  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
-  const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
-  const [titleClickCount, setTitleClickCount] = useState(0);
-  const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
-
-
-  const handleTitleClick = () => {
-    const newCount = titleClickCount + 1;
-    setTitleClickCount(newCount);
-  };
-  
-  const showHiddenButtons = titleClickCount >= 5;
-
-  const canSeedData = useMemo(() => {
-    if (isLoading) return false;
-    return !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
-  }, [categories, vatRates, paymentMethods, isLoading]);
-
-  const handleSeedData = () => {
-    seedInitialData();
-  }
-
-  const handleImportDemoData = () => {
-    importDemoData();
-  };
-  
-  const handleImportDemoCustomers = () => {
-    importDemoCustomers();
-  };
-
-  const handleResetData = () => {
-    resetAllData();
-    setResetDialogOpen(false);
-  }
-
-  const handleDeleteSales = () => {
-    deleteAllSales();
-    setDeleteSalesDialogOpen(false);
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    await importConfiguration(file);
-    setIsImporting(false);
-    
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-  };
-
+  const showAdminSections = !isUserLoading && user?.role === 'admin';
 
   const settingsLinks = [
     {
@@ -131,19 +56,18 @@ export default function SettingsPage() {
         adminOnly: true,
     },
     {
-        href: 'https://console.firebase.google.com/project/studio-2563067287-258f7/firestore/data/~2Fusers',
+        href: '/settings/firestore-data',
         title: 'Données Firestore',
-        description: "Gérer les données brutes dans la console Firebase.",
+        description: "Gérez les données brutes de l'application (import, export, réinitialisation).",
         icon: Database,
         adminOnly: true,
     }
   ]
 
-  const showAdminSections = !isUserLoading && user?.role === 'admin';
 
   return (
     <>
-      <div onClick={handleTitleClick}>
+      <div>
         <PageHeader
             title="Paramètres"
             subtitle="Configurez et personnalisez l'application selon vos besoins."
@@ -155,12 +79,6 @@ export default function SettingsPage() {
                         Retour au tableau de bord
                     </Link>
                 </Button>
-                {showHiddenButtons && showAdminSections && (
-                    <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
-                        <FileCode className="mr-2 h-4 w-4" />
-                        Générer le Prompt Projet
-                    </Button>
-                )}
             </div>
         </PageHeader>
       </div>
@@ -183,224 +101,6 @@ export default function SettingsPage() {
             </Link>
         ))}
       </div>
-      
-       {showHiddenButtons && showAdminSections && (
-        <>
-            <Separator className="my-8"/>
-            <div className="space-y-8">
-                <div>
-                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Initialiser l'application</CardTitle>
-                                <CardDescription>
-                                    Créez un jeu de données de base (catégories, TVA...). N'est possible que si l'application est vide.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button disabled={!canSeedData}>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Initialiser avec données de base
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Initialiser les données ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action va créer un jeu de données de base.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleSeedData}>
-                                                Confirmer et initialiser
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                {!canSeedData && (
-                                    <p className="text-sm text-destructive mt-2 flex items-center gap-2">
-                                        <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données.
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Importer les articles de démo</CardTitle>
-                                <CardDescription>
-                                    Importe les catégories et articles depuis le fichier `demodata.json`.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="secondary">
-                                            <FileJson className="mr-2 h-4 w-4" />
-                                            Importer articles (JSON)
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les articles de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera les articles et catégories du fichier `demodata.json` à vos données actuelles.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleImportDemoData}>
-                                                Oui, importer
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Importer des clients de démo</CardTitle>
-                                <CardDescription>
-                                    Ajoute 10 clients fictifs à votre base de données.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="secondary">
-                                            <Users className="mr-2 h-4 w-4" />
-                                            Importer clients (Démo)
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les clients de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera 10 clients fictifs à votre liste.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleImportDemoCustomers}>
-                                                Oui, importer
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <Card className="mt-4">
-                        <CardHeader>
-                            <CardTitle>Gestion de la configuration</CardTitle>
-                            <CardDescription>
-                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, TVA, etc.).
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col sm:flex-row gap-4">
-                            <Button onClick={exportConfiguration} variant="outline">
-                                <Download className="mr-2" />
-                                Exporter la configuration
-                            </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Upload className="mr-2" />
-                                        Importer la configuration
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Cette action est irréversible. L'importation d'un nouveau fichier de configuration écrasera et remplacera TOUTES les données actuelles (articles, catégories, paramètres, etc.).
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleImportClick} disabled={isImporting}>
-                                        {isImporting ? "Importation en cours..." : "Continuer et importer"}
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            <input 
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept=".json"
-                                onChange={handleFileChange}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-                
-                <div>
-                    <h2 className="text-xl font-bold tracking-tight text-destructive mb-4">Zone de danger</h2>
-                    <Card className="border-destructive">
-                        <CardHeader>
-                            <CardTitle>Opérations Irréversibles</CardTitle>
-                            <CardDescription>
-                                Ces actions suppriment définitivement des données. Soyez certain avant de continuer.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col sm:flex-row gap-4">
-                            <AlertDialog open={isDeleteSalesDialogOpen} onOpenChange={setDeleteSalesDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="bg-orange-600 hover:bg-orange-700">
-                                        <History className="mr-2 h-4 w-4" />
-                                        Supprimer toutes les ventes
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteSales} className="bg-destructive hover:bg-destructive/90">
-                                            Oui, supprimer les ventes
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-
-                            <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Réinitialiser l'application
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible. Toutes vos données (ventes, articles, clients, etc.) seront supprimées de la base de données.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
-                                            Oui, tout supprimer
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        </>
-       )}
-       <PromptViewer isOpen={isPromptViewerOpen} onClose={() => setPromptViewerOpen(false)} />
     </>
   );
 }
