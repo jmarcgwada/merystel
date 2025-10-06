@@ -95,8 +95,8 @@ export default function ReportsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(searchParams.get('filter') === 'invoice' ? 'Fact-' : '');
-    const [isSummaryOpen, setSummaryOpen] = useState(true);
-    const [isFiltersOpen, setFiltersOpen] = useState(true);
+    const [isSummaryOpen, setSummaryOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(false);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
