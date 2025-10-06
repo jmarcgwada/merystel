@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -464,7 +465,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   // #region Base Callbacks
   const getCollectionRef = useCallback(
-    (name: string, global: boolean = false) => {
+    (name: string, global: boolean = false): CollectionReference<DocumentData> | null => {
       if (!firestore) return null;
       if (global) {
         return collection(firestore, name);
@@ -1459,11 +1460,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const finalSaleData = cleanDataForFirebase({
             ...existingData,
             ...saleData,
+            date: existingData.date || new Date(), // Use new Date() for reliable timestamping
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
-            date: existingData.date || serverTimestamp(),
-            ...(saleIdToUpdate && { modifiedAt: serverTimestamp() }),
+            ...(saleIdToUpdate && { modifiedAt: new Date() }),
           });
           
           transaction.set(pieceRef, finalSaleData, { merge: true });
