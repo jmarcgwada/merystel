@@ -10,7 +10,7 @@ import type { Category, SpecialCategory } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon, LayoutGrid, List } from 'lucide-react';
+import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon, LayoutGrid, List, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -55,6 +55,7 @@ export default function PosPage() {
     itemDisplayMode,
     setItemDisplayMode,
     addToOrder,
+    generateRandomOrder
    } = usePos();
   const [isClient, setIsClient] = useState(false);
 
@@ -323,7 +324,10 @@ export default function PosPage() {
                         )}
                       </div>
                     </div>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-2">
+                       <Button variant="outline" size="icon" onClick={generateRandomOrder} title="Générer une vente aléatoire">
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
                       <Button 
                           variant="outline" 
                           onClick={() => setHeldOpen(true)}

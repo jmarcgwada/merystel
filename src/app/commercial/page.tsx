@@ -27,7 +27,9 @@ function CommercialPageContent() {
       items,
       customers,
       paymentMethods,
-      recordSale
+      recordSale,
+      generateRandomOrder,
+      setCurrentSaleContext
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isInvoiceReady, setIsInvoiceReady] = useState(false);
@@ -61,56 +63,20 @@ function CommercialPageContent() {
 
     // 1. Select a random customer
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+    setCurrentSaleContext({ customerId: randomCustomer.id, isInvoice: true });
 
-    // 2. Select 2 to 5 random items
-    const numberOfItems = Math.floor(Math.random() * 4) + 2;
-    const shuffledItems = [...items].sort(() => 0.5 - Math.random());
-    const selectedItems = shuffledItems.slice(0, numberOfItems);
-
-    // 3. Create order items with random quantities
-    const newOrder: OrderItem[] = selectedItems.map((item, index) => {
-      const quantity = Math.floor(Math.random() * 3) + 1;
-      return {
-        id: `${item.id}-${index}`,
-        itemId: item.id,
-        name: item.name,
-        price: item.price,
-        vatId: item.vatId,
-        image: item.image,
-        quantity: quantity,
-        total: item.price * quantity,
-        discount: 0,
-        barcode: item.barcode,
-      };
-    });
-
-    // 4. Calculate total
-    const subtotal = newOrder.reduce((acc, item) => acc + item.total, 0);
-    // Note: This is a simplified tax calculation for demo purposes.
-    const tax = subtotal * 0.2;
-    const total = subtotal + tax;
-
-    // 5. Create random payment
-    const randomPaymentMethod = paymentMethods.filter(p => p.type === 'direct' && p.isActive)[Math.floor(Math.random() * paymentMethods.filter(p => p.type === 'direct' && p.isActive).length)];
-    const payment: Payment = {
-      method: randomPaymentMethod,
-      amount: total,
-    };
-
-    // 6. Record the sale
-    recordSale({
-      items: newOrder,
-      subtotal: subtotal,
-      tax: tax,
-      total: total,
-      payments: [payment],
-      customerId: randomCustomer.id,
-      status: 'paid',
-    }, undefined, true); // The `true` flag marks it as an invoice
+    // 2. Generate a random order
+    generateRandomOrder();
+    
+    // 3. Trigger checkout
+     if (submitHandler) {
+      // The submit handler is already configured to open the checkout modal
+      submitHandler();
+    }
 
     toast({
       title: 'Facture Aléatoire Générée',
-      description: `Facture de ${total.toFixed(2)}€ créée pour ${randomCustomer.name}.`,
+      description: `Préparation de la facture pour ${randomCustomer.name}.`,
     });
   };
   
