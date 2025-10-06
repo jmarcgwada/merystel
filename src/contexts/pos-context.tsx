@@ -318,7 +318,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast: originalToast } = useToast();
+  const { toast: shadcnToast } = useToast();
 
   const companyId = SHARED_COMPANY_ID;
 
@@ -382,14 +382,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // Custom toast function that respects the user setting
-  const toast = useCallback((props: Parameters<typeof originalToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof useToast>[0]) => {
     if (showNotifications) {
-      originalToast({
+      shadcnToast({
         ...props,
         duration: props?.duration || notificationDuration,
       });
     }
-  }, [showNotifications, notificationDuration, originalToast]);
+  }, [showNotifications, notificationDuration, shadcnToast]);
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -981,12 +981,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
     }
+    if(selectedTable && selectedTable.lockedBy) {
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+          await updateDoc(tableRef, { lockedBy: deleteField() });
+        }
+    }
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [readOnlyOrder]);
+  }, [selectedTable, getDocRef, readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1463,11 +1469,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
 
-          const finalSaleData = {
+          const finalSaleData: Sale = {
             ...existingData,
             ...saleData,
-            date: existingData.date || today,
-            ...(isNewPiece ? {} : { modifiedAt: today }),
+            id: pieceRef.id,
+            date: today,
+            modifiedAt: isNewPiece ? undefined : today,
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
@@ -1494,7 +1501,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               occupiedByUserId: deleteField(),
               occupiedAt: deleteField(),
               closedByUserId: user.uid,
-              closedAt: new Date(),
+              closedAt: serverTimestamp(),
             });
           }
         });

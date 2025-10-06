@@ -69,6 +69,7 @@ export interface OrderItem {
   sourceSale?: Sale; // Used for viewing old sales, not stored in DB
   description?: string;
   description2?: string;
+  barcode: string;
 }
 
 export interface Table {
