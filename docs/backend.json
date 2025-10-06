@@ -39,7 +39,9 @@
         "bic": { "type": "string" },
         "notes": { "type": "string" },
         "ticketCounter": { "type": "number", "description": "Counter for ticket numbers." },
-        "invoiceCounter": { "type": "number", "description": "Counter for invoice numbers." }
+        "invoiceCounter": { "type": "number", "description": "Counter for invoice numbers." },
+        "quoteCounter": { "type": "number", "description": "Counter for quote numbers." },
+        "deliveryNoteCounter": { "type": "number", "description": "Counter for delivery note numbers." }
       },
       "required": ["name", "address", "postalCode", "city", "country", "email"]
     },
@@ -126,7 +128,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Sale",
       "type": "object",
-      "description": "Represents a completed sale transaction.",
+      "description": "Represents a completed sale transaction, which can be a ticket or an invoice.",
       "properties": {
         "ticketNumber": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
@@ -138,9 +140,9 @@
         "customerId": { "type": "string" },
         "tableId": { "type": "string" },
         "tableName": { "type": "string" },
-        "status": { "type": "string", "enum": ["paid", "pending"] }
+        "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note"] }
       },
-      "required": ["ticketNumber", "date", "items", "subtotal", "tax", "total", "payments", "status"]
+      "required": ["ticketNumber", "date", "items", "subtotal", "tax", "total", "status"]
     },
     "PaymentMethod": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -212,7 +214,7 @@
     },
     "/companies/{companyId}/sales/{saleId}": {
       "schema": { "$ref": "#/entities/Sale" },
-      "description": "Record of all completed sales for a company."
+      "description": "Record of all completed sales, invoices, quotes, and delivery notes."
     },
     "/companies/{companyId}/paymentMethods/{methodId}": {
       "schema": { "$ref": "#/entities/PaymentMethod" },
@@ -228,3 +230,5 @@
     }
   }
 }
+
+    
