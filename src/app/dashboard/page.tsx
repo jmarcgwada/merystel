@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -246,7 +245,7 @@ export default function DashboardPage() {
              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
-                         <Link href={`/reports/payments?date=${todayDateString}`} className="hover:underline">
+                        <Link href={`/reports/payments?date=${todayDateString}`} className="text-primary hover:underline">
                             Chiffre d'affaires du jour
                         </Link>
                     </CardTitle>
@@ -262,7 +261,7 @@ export default function DashboardPage() {
               <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
-                        <Link href={`/reports?date=${todayDateString}`} className="hover:underline">
+                        <Link href={`/reports?date=${todayDateString}`} className="text-primary hover:underline">
                             Ventes Aujourd'hui
                         </Link>
                     </CardTitle>
@@ -416,3 +415,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
