@@ -358,7 +358,7 @@ export default function ReportsPage() {
         )}
       </PageHeader>
       <div className="mt-8 space-y-4">
-        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen}>
+        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="hidden">
             <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start px-2 mb-2 -ml-2 text-lg font-semibold">
                     <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
@@ -407,9 +407,10 @@ export default function ReportsPage() {
                  <Separator className="mb-4" />
             </CollapsibleContent>
         </Collapsible>
+        
         <Card>
             <CardHeader>
-                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
+                 <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} className="hidden">
                     <div className="relative">
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-start px-0 mb-2 -ml-2 text-lg font-semibold">
@@ -528,7 +529,6 @@ export default function ReportsPage() {
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
-                <Separator />
             </CardHeader>
             <CardContent>
                  <div className="flex items-center justify-end gap-2 mb-4">
@@ -639,3 +639,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
