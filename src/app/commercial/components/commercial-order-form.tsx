@@ -371,17 +371,18 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
                     return (
                     <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
-                         <div className="flex flex-col">
+                        <div className="flex flex-col">
                             <span className="font-semibold">{field.name}</span>
-                            {descriptionDisplay === 'first' && field.description && (
-                                <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>
-                            )}
-                            {descriptionDisplay === 'both' && (
-                                <>
-                                {field.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description}</p>}
-                                {field.description2 && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{field.description2}</p>}
-                                </>
-                            )}
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                                {descriptionDisplay === 'first' && field.description}
+                                {descriptionDisplay === 'both' && (
+                                    <>
+                                        {field.description}
+                                        {field.description && field.description2 && <br />}
+                                        {field.description2}
+                                    </>
+                                )}
+                            </div>
                         </div>
                       <Input 
                           type="number" 
