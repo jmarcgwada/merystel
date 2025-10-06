@@ -111,16 +111,16 @@ export default function DashboardPage() {
 
     }, [authUser, defaultSalesMode]);
 
-    const onlyInvoices = useMemo(() => {
+    const relevantSales = useMemo(() => {
       if (!sales) return [];
-      return sales.filter(sale => sale.ticketNumber?.startsWith('Fact-'))
+      return sales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'))
     }, [sales]);
 
     
     const todaysSalesData = useMemo(() => {
-        if (!onlyInvoices || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
+        if (!relevantSales || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
         const today = new Date();
-        const salesOfToday = onlyInvoices
+        const salesOfToday = relevantSales
             .map(sale => ({
                 ...sale,
                 date: (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date)
@@ -146,11 +146,13 @@ export default function DashboardPage() {
             lastSale: lastSaleWithUser,
             averageBasket: salesOfToday.length > 0 ? todaysTotal / salesOfToday.length : 0,
         };
-    }, [onlyInvoices, users]);
+    }, [relevantSales, users]);
 
     const outstandingBalance = useMemo(() => {
-        if (!onlyInvoices) return 0;
-        return onlyInvoices.reduce((acc, sale) => {
+        if (!sales) return 0;
+        // Outstanding balance should only be calculated from invoices
+        const invoiceSales = sales.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
+        return invoiceSales.reduce((acc, sale) => {
             if (sale.status === 'pending') {
                 const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
                 const balance = sale.total - totalPaid;
@@ -158,13 +160,13 @@ export default function DashboardPage() {
             }
             return acc;
         }, 0);
-    }, [onlyInvoices]);
+    }, [sales]);
 
     const popularItems = useMemo(() => {
-        if (!onlyInvoices || !items) return [];
+        if (!relevantSales || !items) return [];
         const itemCounts: { [key: string]: { item: Item, count: number } } = {};
 
-        onlyInvoices.forEach(sale => {
+        relevantSales.forEach(sale => {
             sale.items.forEach(orderItem => {
                 if(itemCounts[orderItem.id]) {
                     itemCounts[orderItem.id].count += orderItem.quantity;
@@ -181,7 +183,7 @@ export default function DashboardPage() {
             .sort((a,b) => b.count - a.count)
             .slice(0, 5);
 
-    }, [onlyInvoices, items]);
+    }, [relevantSales, items]);
     
     const backgroundStyle = useMemo(() => {
         if (!isMounted) return {};
@@ -256,7 +258,7 @@ export default function DashboardPage() {
         
         {isMounted && showDashboardStats && (
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-             <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
+             <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
                         <Link href={`/reports/payments?date=${todayDateString}`} className="text-primary hover:underline">
@@ -272,7 +274,7 @@ export default function DashboardPage() {
                     </p>
                 </CardContent>
              </Card>
-              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
+              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
                         <Link href={`/reports?date=${todayDateString}`} className="text-primary hover:underline">
@@ -300,7 +302,7 @@ export default function DashboardPage() {
                       </p>
                   </CardContent>
               </Card>
-              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md hover:border-primary">
+              <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
                         <Link href={`/reports?filterStatus=pending`} className="text-primary hover:underline">

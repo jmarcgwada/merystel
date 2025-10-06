@@ -29,12 +29,12 @@ export default function PopularItemsPage() {
     const isLoading = isPosLoading || isSalesLoading;
 
     const popularItems = useMemo(() => {
-        const invoiceSales = sales?.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
-        if (!invoiceSales || !items) return [];
+        const relevantSales = sales?.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
+        if (!relevantSales || !items) return [];
 
         const itemCounts: { [key: string]: { item: Item, count: number, revenue: number } } = {};
 
-        invoiceSales.forEach(sale => {
+        relevantSales.forEach(sale => {
             sale.items.forEach(orderItem => {
                 if(itemCounts[orderItem.id]) {
                     itemCounts[orderItem.id].count += orderItem.quantity;
@@ -75,7 +75,7 @@ export default function PopularItemsPage() {
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Articles populaires"
-        subtitle="Classement des articles les plus vendus sur la base des factures."
+        subtitle="Classement des articles les plus vendus sur la base des factures et tickets."
       >
         {!isCashier && (
             <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>

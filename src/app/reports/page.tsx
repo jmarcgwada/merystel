@@ -279,7 +279,7 @@ export default function ReportsPage() {
 
 
      const summaryStats = useMemo(() => {
-        const relevantSales = filteredAndSortedSales.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
+        const relevantSales = filteredAndSortedSales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
         const totalRevenue = relevantSales.reduce((acc, sale) => acc + sale.total, 0);
         const totalSales = relevantSales.length;
         const averageBasket = totalSales > 0 ? totalRevenue / totalSales : 0;
@@ -434,7 +434,7 @@ export default function ReportsPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Chiffre d'affaires (Factures)</CardTitle>
+                            <CardTitle className="text-sm font-medium">Chiffre d'affaires (Factures/Tickets)</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -443,7 +443,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nombre de factures</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nombre de pièces</CardTitle>
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -452,7 +452,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Panier Moyen (Factures)</CardTitle>
+                            <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
                              <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -461,7 +461,7 @@ export default function ReportsPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Articles vendus (Factures)</CardTitle>
+                            <CardTitle className="text-sm font-medium">Articles vendus</CardTitle>
                             <Package className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
