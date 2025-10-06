@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,6 +65,10 @@ export default function PaymentsReportPage() {
     const { sales: allSales, customers, users, isLoading: isPosLoading, paymentMethods } = usePos();
     const { user } = useUser();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const dateFilterParam = searchParams.get('date');
+    const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
+
 
     const [isClient, setIsClient] = useState(false);
     
@@ -76,9 +80,15 @@ export default function PaymentsReportPage() {
     const [filterMethodName, setFilterMethodName] = useState('all');
     const [filterDocType, setFilterDocType] = useState('all');
     const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        if (dateFilterParam) {
+            const date = parseISO(dateFilterParam);
+            return { from: date, to: date };
+        }
+        return undefined;
+    });
     const [generalFilter, setGeneralFilter] = useState('');
-    const [isFiltersOpen, setFiltersOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -129,7 +139,7 @@ export default function PaymentsReportPage() {
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
-             const toJsDate = (d: Date | Timestamp | undefined): Date => {
+            const toJsDate = (d: Date | Timestamp | undefined): Date => {
                 if (!d) return new Date(0); // Return a very old date if undefined
                 return d instanceof Date ? d : (d as Timestamp).toDate();
             };
@@ -231,6 +241,7 @@ export default function PaymentsReportPage() {
     }
 
     const resetFilters = () => {
+        if (isDateFilterLocked) return;
         setFilterCustomerName('');
         setFilterMethodName('all');
         setFilterPaymentType('all');
@@ -278,15 +289,16 @@ export default function PaymentsReportPage() {
                             <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />Filtres
                         </Button>
                     </CollapsibleTrigger>
-                    <Button variant="ghost" size="sm" onClick={resetFilters}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                    <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                 </CardHeader>
                 <CollapsibleContent asChild>
                     <CardContent className="flex items-center gap-2 flex-wrap">
                         <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
                         <Popover>
-                            <PopoverTrigger asChild>
+                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
                                 <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                     {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                                 </Button>
                             </PopoverTrigger>

@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -95,6 +95,9 @@ export default function ReportsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialFilter = searchParams.get('filter');
+    const dateFilterParam = searchParams.get('date');
+
+    const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
 
     useEffect(() => {
         if (isCashier) {
@@ -113,11 +116,17 @@ export default function ReportsPage() {
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        if (dateFilterParam) {
+            const date = parseISO(dateFilterParam);
+            return { from: date, to: date };
+        }
+        return undefined;
+    });
     const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
     const [isSummaryOpen, setSummaryOpen] = useState(false);
-    const [isFiltersOpen, setFiltersOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -292,7 +301,7 @@ export default function ReportsPage() {
     }
 
     const resetFilters = () => {
-        if (isContextualFilterActive) return;
+        if (isContextualFilterActive || isDateFilterLocked) return;
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
@@ -457,7 +466,7 @@ export default function ReportsPage() {
                              <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive}>
+                                        <Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
@@ -482,7 +491,7 @@ export default function ReportsPage() {
                                 disabled={isContextualFilterActive}
                             />
                             <Popover>
-                                <PopoverTrigger asChild>
+                                <PopoverTrigger asChild disabled={isDateFilterLocked}>
                                     <Button
                                         id="date"
                                         variant={"outline"}
@@ -492,6 +501,7 @@ export default function ReportsPage() {
                                         )}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
                                         {dateRange?.from ? (
                                         dateRange.to ? (
                                             <>
