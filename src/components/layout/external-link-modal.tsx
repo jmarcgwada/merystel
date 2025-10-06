@@ -11,7 +11,7 @@ import {
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { X, Maximize, Minimize } from 'lucide-react';
+import { X } from 'lucide-react';
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
@@ -35,7 +35,6 @@ export function ExternalLinkModal() {
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
-  const [hasBeenMoved, setHasBeenMoved] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   
   const initializeModalState = useCallback(() => {
@@ -46,7 +45,6 @@ export function ExternalLinkModal() {
         x: (window.innerWidth - initialWidth) / 2,
         y: (window.innerHeight - initialHeight) / 2,
     });
-    setHasBeenMoved(false);
     setIsLoading(true);
   }, [externalLinkModalWidth, externalLinkModalHeight]);
 
@@ -54,10 +52,12 @@ export function ExternalLinkModal() {
   useEffect(() => {
     const handleToggle = () => {
       if (externalLinkModalEnabled && externalLinkUrl) {
-        if (!isOpen) {
+        if (!isOpen) { // If it's not open, initialize and show
           initializeModalState();
+          setIsOpen(true);
+        } else { // If it's open, just bring to front (or simply do nothing, it's already visible)
+          // For now, we'll just keep it open. A future improvement could be to bring it to the front.
         }
-        setIsOpen(prev => !prev);
       }
     };
 
@@ -95,7 +95,6 @@ export function ExternalLinkModal() {
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
-        setHasBeenMoved(true);
         setPosition({
             x: e.clientX - dragStart.x,
             y: e.clientY - dragStart.y,
@@ -135,6 +134,11 @@ export function ExternalLinkModal() {
     setIsResizing(false);
   }, []);
 
+  const handleClose = () => {
+    setIsOpen(false);
+    // State (position, size, iframe content) will be reset when it's re-opened
+  };
+
   useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -150,7 +154,7 @@ export function ExternalLinkModal() {
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
 
-  if (!externalLinkModalEnabled) {
+  if (!externalLinkModalEnabled || !isOpen) {
     return null;
   }
   
@@ -162,6 +166,7 @@ export function ExternalLinkModal() {
     transform: 'none', // Override shadcn's transform
     maxWidth: '100vw',
     maxHeight: '100vh',
+    position: 'fixed'
   };
 
   const resizeHandles: ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -185,10 +190,11 @@ export function ExternalLinkModal() {
         className="p-0 border overflow-hidden flex flex-col shadow-2xl"
         style={dynamicStyle}
         onPointerDownOutside={(e) => {
-            if ((e.target as HTMLElement).closest('[data-drag-handle]') || (e.target as HTMLElement).closest('[data-resize-handle]')) {
-                e.preventDefault();
-            }
+            // Prevent closing on outside click
+            e.preventDefault();
         }}
+        // The default close button is removed to use our custom one
+        hideCloseButton
       >
         <div 
           data-drag-handle
@@ -199,7 +205,7 @@ export function ExternalLinkModal() {
           )}
         >
           <DialogTitle>{externalLinkTitle || 'Contenu externe'}</DialogTitle>
-           <button onClick={() => setIsOpen(false)} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+           <button onClick={handleClose} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
              <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
