@@ -1,4 +1,7 @@
 
+
+import type { Timestamp } from "firebase/firestore";
+
 export type SpecialCategory = 'all' | 'popular';
 
 export interface Category {
@@ -113,14 +116,14 @@ export interface PaymentMethod {
 export interface Payment {
   method: PaymentMethod;
   amount: number;
-  date: Date;
+  date: Date | Timestamp;
 }
 
 export interface Sale {
   id: string;
   ticketNumber: string;
-  date: Date;
-  modifiedAt?: Date;
+  date: Date | Timestamp;
+  modifiedAt?: Date | Timestamp;
   originalTotal?: number;
   items: OrderItem[];
   subtotal: number;

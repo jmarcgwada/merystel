@@ -37,6 +37,7 @@ import { CustomerSelectionDialog } from '@/components/shared/customer-selection-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { Timestamp } from 'firebase/firestore';
 
 
 interface CheckoutModalProps {
@@ -248,7 +249,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       return;
     }
   
-    const newPayment: Payment = { method, amount: amountToAdd, date: paymentDate };
+    const newPayment: Payment = { method, amount: amountToAdd, date: Timestamp.fromDate(paymentDate) };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
     

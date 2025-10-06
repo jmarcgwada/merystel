@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -30,32 +30,35 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName' | 'userName';
 const ITEMS_PER_PAGE = 20;
 
-const ClientFormattedDate = ({ date, formatString = "d MMM yyyy 'à' HH:mm" }: { date: Date | Timestamp | undefined, formatString?: string }) => {
+const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | undefined, saleDate: Date | Timestamp | undefined }) => {
     const [formattedDate, setFormattedDate] = useState('');
+    const [isDeferred, setIsDeferred] = useState(false);
 
     useEffect(() => {
-        if (!date) {
+        if (!date || !saleDate) {
             setFormattedDate('Date non disponible');
             return;
         }
         
-        let jsDate: Date;
-        if (date instanceof Date) {
-            jsDate = date;
-        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
-            jsDate = (date as Timestamp).toDate();
-        } else {
-            jsDate = new Date(date as any);
-        }
+        const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : d.toDate();
+        const paymentJsDate = toJsDate(date);
+        const saleJsDate = toJsDate(saleDate);
 
-        if (!isNaN(jsDate.getTime())) {
-            setFormattedDate(format(jsDate, formatString, { locale: fr }));
+        if (!isNaN(paymentJsDate.getTime())) {
+            setFormattedDate(format(paymentJsDate, "d MMM yyyy, HH:mm", { locale: fr }));
+            setIsDeferred(!isSameDay(paymentJsDate, saleJsDate));
         } else {
             setFormattedDate('Date invalide');
+            setIsDeferred(false);
         }
-    }, [date, formatString]);
+    }, [date, saleDate]);
 
-    return <>{formattedDate}</>;
+    return (
+      <span className="flex items-center gap-1.5">
+          {isDeferred && <CalendarIcon className="h-3 w-3 text-amber-600" />}
+          {formattedDate}
+      </span>
+    );
 }
 
 export default function PaymentsReportPage() {
@@ -71,6 +74,7 @@ export default function PaymentsReportPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterMethodName, setFilterMethodName] = useState('all');
+    const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [generalFilter, setGeneralFilter] = useState('');
     const [isFiltersOpen, setFiltersOpen] = useState(false);
@@ -124,12 +128,23 @@ export default function PaymentsReportPage() {
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
+            const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : d.toDate();
+            const paymentJsDate = toJsDate(payment.date);
+            const saleJsDate = toJsDate(payment.saleDate);
+
             let dateMatch = true;
             if (dateRange?.from) {
-                dateMatch = payment.date >= startOfDay(dateRange.from);
+                dateMatch = paymentJsDate >= startOfDay(dateRange.from);
             }
             if (dateRange?.to) {
-                dateMatch = dateMatch && payment.date <= endOfDay(dateRange.to);
+                dateMatch = dateMatch && paymentJsDate <= endOfDay(dateRange.to);
+            }
+            
+            let paymentTypeMatch = true;
+            if (filterPaymentType === 'deferred') {
+                paymentTypeMatch = !isSameDay(paymentJsDate, saleJsDate);
+            } else if (filterPaymentType === 'immediate') {
+                paymentTypeMatch = isSameDay(paymentJsDate, saleJsDate);
             }
 
             const generalMatch = !generalFilter || (
@@ -139,14 +154,14 @@ export default function PaymentsReportPage() {
                 (payment.method.name.toLowerCase().includes(generalFilter.toLowerCase()))
             );
 
-            return customerMatch && methodMatch && dateMatch && sellerMatch && generalMatch;
+            return customerMatch && methodMatch && dateMatch && sellerMatch && generalMatch && paymentTypeMatch;
         });
 
         if (sortConfig !== null) {
             filtered.sort((a, b) => {
                  let aValue: string | number | Date, bValue: string | number | Date;
                 switch (sortConfig.key) {
-                    case 'date': aValue = a.date; bValue = b.date; break;
+                    case 'date': aValue = a.date instanceof Date ? a.date : a.date.toDate(); bValue = b.date instanceof Date ? b.date : b.date.toDate(); break;
                     case 'amount': aValue = a.amount; bValue = b.amount; break;
                     case 'customerName': aValue = getCustomerName(a.customerId); bValue = getCustomerName(b.customerId); break;
                     case 'ticketNumber': aValue = a.saleTicketNumber || ''; bValue = b.saleTicketNumber || ''; break;
@@ -167,7 +182,7 @@ export default function PaymentsReportPage() {
             });
         }
         return filtered;
-    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, dateRange, filterSellerName, generalFilter, getCustomerName, getUserName]);
+    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedPayments.length / ITEMS_PER_PAGE);
 
@@ -199,6 +214,7 @@ export default function PaymentsReportPage() {
     const resetFilters = () => {
         setFilterCustomerName('');
         setFilterMethodName('all');
+        setFilterPaymentType('all');
         setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
@@ -259,6 +275,7 @@ export default function PaymentsReportPage() {
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
                         <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
@@ -276,7 +293,7 @@ export default function PaymentsReportPage() {
                             const sellerName = getUserName(payment.userId, payment.userName);
                             return (
                                 <TableRow key={`${payment.saleId}-${index}`}>
-                                    <TableCell className="font-medium"><ClientFormattedDate date={payment.date} formatString='d MMM yyyy, HH:mm' /></TableCell>
+                                    <TableCell className="font-medium"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                     <TableCell><Badge variant="secondary">{payment.saleTicketNumber}</Badge></TableCell>
                                     <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                     <TableCell>{customerName}</TableCell>
