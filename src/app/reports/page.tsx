@@ -530,7 +530,7 @@ export default function ReportsPage() {
                 </Collapsible>
              </CardHeader>
             <CardContent>
-                 <div className="flex items-center justify-end gap-2 mb-4">
+                <div className="flex items-center justify-end gap-2 mb-4">
                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
