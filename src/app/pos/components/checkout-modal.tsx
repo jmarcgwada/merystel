@@ -153,7 +153,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               router.push('/restaurant');
           } else if (isInvoice) {
               clearOrder({ clearCustomer: true });
-              router.push('/reports?filter=invoice');
+              router.push('/reports?filter=Fact-');
           } else {
             clearOrder();
           }
@@ -167,7 +167,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         })
         clearOrder({ clearCustomer: true });
         handleOpenChange(false);
-        router.push('/reports?filter=invoice');
+        router.push('/reports?filter=Fact-');
     }
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId]);
 
@@ -447,7 +447,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       </DialogHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
-            <fieldset disabled={isOverpaid || isInvoiceMode} className={cn(isInvoiceMode && "opacity-70")}>
+            <fieldset disabled={isInvoiceMode} className={cn(isInvoiceMode && "opacity-70 pointer-events-none")}>
                 <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                     <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
