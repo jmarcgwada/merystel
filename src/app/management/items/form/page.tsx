@@ -42,7 +42,7 @@ const formSchema = z.object({
   image: z.string().optional(),
   showImage: z.boolean().default(true),
   barcode: z.string().min(1, { message: 'Le code-barres est obligatoire.' }),
-  marginCoefficient: z.coerce.number().optional(),
+  marginPercentage: z.coerce.number().optional(),
   requiresSerialNumber: z.boolean().default(false),
   additionalCosts: z.coerce.number().optional(),
   manageStock: z.boolean().default(false),
@@ -90,7 +90,7 @@ function ItemForm() {
       image: '',
       showImage: true,
       barcode: '',
-      marginCoefficient: 0,
+      marginPercentage: 0,
       requiresSerialNumber: false,
       additionalCosts: 0,
       manageStock: false,
@@ -113,7 +113,7 @@ function ItemForm() {
   const watchedName = watch('name');
   const watchedPrice = watch('price');
   const watchedPurchasePrice = watch('purchasePrice');
-  const watchedMarginCoefficient = watch('marginCoefficient');
+  const watchedMarginPercentage = watch('marginPercentage');
   const watchedVatId = watch('vatId');
   const watchedManageStock = watch('manageStock');
   
@@ -122,17 +122,17 @@ function ItemForm() {
     if (isManualPriceEdit || !vatRates) return;
     
     const purchasePrice = watchedPurchasePrice || 0;
-    const marginCoefficient = watchedMarginCoefficient || 0;
+    const marginPercentage = watchedMarginPercentage || 0;
     const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
     
-    if (purchasePrice > 0 && marginCoefficient > 0 && vatRateInfo) {
-        const priceHT = purchasePrice * marginCoefficient;
+    if (purchasePrice > 0 && marginPercentage > 0 && vatRateInfo) {
+        const priceHT = purchasePrice * (1 + marginPercentage / 100);
         const priceTTC = priceHT * (1 + vatRateInfo.rate / 100);
         setValue('price', parseFloat(priceTTC.toFixed(2)));
     }
-  }, [watchedPurchasePrice, watchedMarginCoefficient, watchedVatId, setValue, vatRates, isManualPriceEdit]);
+  }, [watchedPurchasePrice, watchedMarginPercentage, watchedVatId, setValue, vatRates, isManualPriceEdit]);
 
-  // Logic for inverse calculation: from price to coefficient
+  // Logic for inverse calculation: from price to margin percentage
   useEffect(() => {
     if (!isManualPriceEdit || !vatRates) return;
 
@@ -142,8 +142,8 @@ function ItemForm() {
 
     if (price > 0 && purchasePrice > 0 && vatRateInfo) {
       const priceHT = price / (1 + vatRateInfo.rate / 100);
-      const newCoeff = priceHT / purchasePrice;
-      setValue('marginCoefficient', parseFloat(newCoeff.toFixed(2)));
+      const newMarginPercentage = ((priceHT / purchasePrice) - 1) * 100;
+      setValue('marginPercentage', parseFloat(newMarginPercentage.toFixed(2)));
     }
   }, [watchedPrice, watchedPurchasePrice, watchedVatId, setValue, vatRates, isManualPriceEdit]);
 
@@ -176,7 +176,7 @@ function ItemForm() {
         image: itemToEdit.image,
         showImage: itemToEdit.showImage ?? true,
         barcode: itemToEdit.barcode || '',
-        marginCoefficient: itemToEdit.marginCoefficient || 0,
+        marginPercentage: itemToEdit.marginPercentage || 0,
         requiresSerialNumber: itemToEdit.requiresSerialNumber || false,
         additionalCosts: itemToEdit.additionalCosts || 0,
         manageStock: itemToEdit.manageStock || false,
@@ -201,7 +201,7 @@ function ItemForm() {
           image: '', // Leave empty initially
           showImage: true,
           barcode: '',
-          marginCoefficient: 0,
+          marginPercentage: 0,
           requiresSerialNumber: false,
           additionalCosts: 0,
           manageStock: false,
@@ -554,12 +554,12 @@ function ItemForm() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                                  <FormField
                                     control={form.control}
-                                    name="marginCoefficient"
+                                    name="marginPercentage"
                                     render={({ field }) => (
                                         <FormItem>
-                                        <FormLabel>Coeff. Marge</FormLabel>
+                                        <FormLabel>Marge %</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.1" placeholder="ex: 2.5" {...field} />
+                                            <Input type="number" step="0.1" placeholder="ex: 50" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>

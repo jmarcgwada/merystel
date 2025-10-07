@@ -96,7 +96,7 @@
         "description2": { "type": "string" },
         "showImage": { "type": "boolean" },
         "barcode": { "type": "string" },
-        "marginCoefficient": { "type": "number" },
+        "marginPercentage": { "type": "number" },
         "requiresSerialNumber": { "type": "boolean" },
         "additionalCosts": { "type": "number" },
         "manageStock": { "type": "boolean" },
@@ -231,5 +231,3 @@
     }
   }
 }
-
-    

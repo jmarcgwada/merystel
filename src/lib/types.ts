@@ -43,7 +43,7 @@ export interface Item {
   description2?: string;
   showImage?: boolean;
   barcode: string;
-  marginCoefficient?: number;
+  marginPercentage?: number;
   requiresSerialNumber?: boolean;
   additionalCosts?: number;
   manageStock?: boolean;
@@ -179,5 +179,3 @@ export interface User {
   isDisabled?: boolean;
   sessionDuration?: number; // in minutes, 0 for unlimited
 }
-
-    
