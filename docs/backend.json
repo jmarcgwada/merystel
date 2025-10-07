@@ -98,7 +98,7 @@
         "barcode": { "type": "string" },
         "marginPercentage": { "type": "number" },
         "requiresSerialNumber": { "type": "boolean" },
-        "additionalCosts": { "type": "number" },
+        "additionalCosts": { "type": "number", "description": "Additional costs as a percentage of the purchase price." },
         "manageStock": { "type": "boolean" },
         "stock": { "type": "number" },
         "lowStockThreshold": { "type": "number" }

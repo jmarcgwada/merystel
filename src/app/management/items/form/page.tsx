@@ -123,14 +123,14 @@ function ItemForm() {
     if (isManualPriceEdit || !vatRates) return;
 
     const purchasePrice = watchedPurchasePrice || 0;
-    const additionalCosts = watchedAdditionalCosts || 0;
+    const additionalCostsPercent = watchedAdditionalCosts || 0;
     const marginPercentage = watchedMarginPercentage || 0;
     const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
 
-    const basePrice = purchasePrice + additionalCosts;
+    const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
 
-    if (basePrice > 0 && marginPercentage > 0 && vatRateInfo) {
-      const priceHT = basePrice * (1 + marginPercentage / 100);
+    if (purchasePrice > 0 && vatRateInfo) {
+      const priceHT = priceWithCosts * (1 + marginPercentage / 100);
       const priceTTC = priceHT * (1 + vatRateInfo.rate / 100);
       setValue('price', parseFloat(priceTTC.toFixed(2)));
     }
@@ -142,17 +142,17 @@ function ItemForm() {
 
     const price = watchedPrice || 0;
     const purchasePrice = watchedPurchasePrice || 0;
-    const additionalCosts = watchedAdditionalCosts || 0;
+    const additionalCostsPercent = watchedAdditionalCosts || 0;
     const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
+    
+    const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
 
-    const basePrice = purchasePrice + additionalCosts;
-
-    if (price > 0 && basePrice > 0 && vatRateInfo) {
+    if (price > 0 && priceWithCosts > 0 && vatRateInfo) {
       const priceHT = price / (1 + vatRateInfo.rate / 100);
-      if (priceHT < basePrice) {
+      if (priceHT < priceWithCosts) {
         setValue('marginPercentage', 0);
       } else {
-        const newMarginPercentage = ((priceHT / basePrice) - 1) * 100;
+        const newMarginPercentage = ((priceHT / priceWithCosts) - 1) * 100;
         setValue('marginPercentage', parseFloat(newMarginPercentage.toFixed(2)));
       }
     }
@@ -539,34 +539,6 @@ function ItemForm() {
                                         </FormItem>
                                     )}
                                 />
-                                 <FormField
-                                    control={form.control}
-                                    name="additionalCosts"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Coûts additionnels (€)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" placeholder="ex: 0.25" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                <FormField
-                                    control={form.control}
-                                    name="marginPercentage"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Marge %</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.1" placeholder="ex: 50" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 <FormField
                                 control={form.control}
                                 name="vatId"
@@ -590,6 +562,34 @@ function ItemForm() {
                                     <FormMessage />
                                     </FormItem>
                                 )}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                 <FormField
+                                    control={form.control}
+                                    name="additionalCosts"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Coûts additionnels (%)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.1" placeholder="ex: 5" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="marginPercentage"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Marge %</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.1" placeholder="ex: 50" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
                             </div>
                             <Separator />

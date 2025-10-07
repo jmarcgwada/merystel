@@ -45,7 +45,7 @@ export interface Item {
   barcode: string;
   marginPercentage?: number;
   requiresSerialNumber?: boolean;
-  additionalCosts?: number;
+  additionalCosts?: number; // As a percentage
   manageStock?: boolean;
   stock?: number;
   lowStockThreshold?: number;
