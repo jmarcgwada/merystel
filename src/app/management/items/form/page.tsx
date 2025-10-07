@@ -70,6 +70,7 @@ function ItemForm() {
   const [defaultImage, setDefaultImage] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
+  const [priceHT, setPriceHT] = useState(0);
 
 
   const itemId = searchParams.get('id');
@@ -120,7 +121,7 @@ function ItemForm() {
   
   // Logic for automatic price calculation
   useEffect(() => {
-    if (isManualPriceEdit || !vatRates) return;
+    if (!vatRates) return;
 
     const purchasePrice = watchedPurchasePrice || 0;
     const additionalCostsPercent = watchedAdditionalCosts || 0;
@@ -128,10 +129,13 @@ function ItemForm() {
     const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
 
     const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
+    const calculatedPriceHT = priceWithCosts * (1 + marginPercentage / 100);
+    setPriceHT(calculatedPriceHT);
+
+    if (isManualPriceEdit) return;
 
     if (purchasePrice > 0 && vatRateInfo) {
-      const priceHT = priceWithCosts * (1 + marginPercentage / 100);
-      const priceTTC = priceHT * (1 + vatRateInfo.rate / 100);
+      const priceTTC = calculatedPriceHT * (1 + vatRateInfo.rate / 100);
       setValue('price', parseFloat(priceTTC.toFixed(2)));
     }
   }, [watchedPurchasePrice, watchedAdditionalCosts, watchedMarginPercentage, watchedVatId, setValue, vatRates, isManualPriceEdit]);
@@ -148,11 +152,13 @@ function ItemForm() {
     const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
 
     if (price > 0 && priceWithCosts > 0 && vatRateInfo) {
-      const priceHT = price / (1 + vatRateInfo.rate / 100);
-      if (priceHT < priceWithCosts) {
+      const calculatedPriceHT = price / (1 + vatRateInfo.rate / 100);
+      setPriceHT(calculatedPriceHT);
+      
+      if (calculatedPriceHT < priceWithCosts) {
         setValue('marginPercentage', 0);
       } else {
-        const newMarginPercentage = ((priceHT / priceWithCosts) - 1) * 100;
+        const newMarginPercentage = ((calculatedPriceHT / priceWithCosts) - 1) * 100;
         setValue('marginPercentage', parseFloat(newMarginPercentage.toFixed(2)));
       }
     }
@@ -593,26 +599,37 @@ function ItemForm() {
                                 />
                             </div>
                             <Separator />
-                             <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Prix de vente (€)</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                            type="number" 
-                                            step="0.01" 
-                                            placeholder="ex: 4.50" 
-                                            {...field} 
-                                            onFocus={() => setIsManualPriceEdit(true)}
-                                            onBlur={() => setIsManualPriceEdit(false)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                <FormItem>
+                                    <FormLabel>Prix de vente HT (€)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" value={priceHT.toFixed(2)} readOnly className="bg-muted" />
+                                    </FormControl>
+                                </FormItem>
+                                 <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+                                    <FormField
+                                        control={form.control}
+                                        name="price"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Prix de vente TTC (€)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="ex: 4.50" 
+                                                {...field} 
+                                                onFocus={() => setIsManualPriceEdit(true)}
+                                                onBlur={() => setIsManualPriceEdit(false)}
+                                                className="bg-background text-base font-bold"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
