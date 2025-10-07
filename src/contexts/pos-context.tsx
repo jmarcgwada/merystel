@@ -778,7 +778,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const defaultVatRates = [
         { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
         { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+        { id: 'vat_5_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
       ];
 
       const defaultPaymentMethods = [
@@ -794,15 +794,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { name: 'Ahmed Khan', email: 'ahmed.k@email.com' },
         { name: 'Sophie Leroy', email: 'sophie.l@email.com' },
       ];
+      
+      const defaultMarginPercentage = 30;
 
       const defaultItems = [
-          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO001' },
-          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO002' },
-          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5', image: 'https://picsum.photos/seed/thevert/200/150', barcode: 'DEMO003' },
+          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO001' },
+          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO002' },
+          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/thevert/200/150', barcode: 'DEMO003' },
           { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO004' },
           { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150', barcode: 'DEMO005' },
-          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO006' },
-          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5', image: 'https://picsum.photos/seed/painchoc/200/150', barcode: 'DEMO007' },
+          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO006' },
+          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/painchoc/200/150', barcode: 'DEMO007' },
           { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true, barcode: 'DEMO008' },
           { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true, barcode: 'DEMO009' },
           { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150', barcode: 'DEMO010' },
@@ -830,7 +832,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
           batch.set(ref, data);
       });
-      defaultItems.forEach(data => {
+      defaultItems.forEach(item => {
+          const vatRate = defaultVatRates.find(v => v.id === item.vatId)?.rate || 0;
+          const priceHT = item.price / (1 + vatRate / 100);
+          const purchasePrice = priceHT / (1 + defaultMarginPercentage / 100);
+
+          const data = {
+              ...item,
+              purchasePrice: purchasePrice,
+              marginPercentage: defaultMarginPercentage
+          };
           const ref = doc(collection(firestore, 'companies', companyId, 'items'));
           batch.set(ref, data);
       });
