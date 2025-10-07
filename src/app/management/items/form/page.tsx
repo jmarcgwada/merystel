@@ -542,7 +542,9 @@ function ItemForm() {
                                         </FormControl>
                                         <SelectContent>
                                         {vatRates && vatRates.map((vat) => (
-                                            <SelectItem key={vat.id} value={vat.id}>{vat.name} ({vat.rate}%)</SelectItem>
+                                            <SelectItem key={vat.id} value={vat.id}>
+                                              [{vat.code}] {vat.name} ({vat.rate}%)
+                                            </SelectItem>
                                         ))}
                                         </SelectContent>
                                     </Select>
