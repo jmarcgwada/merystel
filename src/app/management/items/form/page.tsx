@@ -91,7 +91,7 @@ function ItemForm() {
       image: '',
       showImage: true,
       barcode: '',
-      marginPercentage: 0,
+      marginPercentage: 30,
       requiresSerialNumber: false,
       additionalCosts: 0,
       manageStock: false,
@@ -218,7 +218,7 @@ function ItemForm() {
           image: '', // Leave empty initially
           showImage: true,
           barcode: '',
-          marginPercentage: 0,
+          marginPercentage: 30,
           requiresSerialNumber: false,
           additionalCosts: 0,
           manageStock: false,
@@ -531,21 +531,7 @@ function ItemForm() {
                             <CardTitle>Gestion des prix</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                <FormField
-                                    control={form.control}
-                                    name="purchasePrice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Prix d'achat (€)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
+                             <FormField
                                 control={form.control}
                                 name="vatId"
                                 render={({ field }) => (
@@ -569,9 +555,21 @@ function ItemForm() {
                                     </FormItem>
                                 )}
                                 />
-                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                 <FormField
+                                <FormField
+                                    control={form.control}
+                                    name="purchasePrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Prix d'achat (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="ex: 1.20" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
                                     control={form.control}
                                     name="additionalCosts"
                                     render={({ field }) => (
@@ -584,20 +582,20 @@ function ItemForm() {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="marginPercentage"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Marge %</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.1" placeholder="ex: 50" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                             </div>
+                             <FormField
+                                control={form.control}
+                                name="marginPercentage"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Marge %</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.1" placeholder="ex: 30" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <Separator />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                                 <FormItem>

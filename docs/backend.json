@@ -87,7 +87,7 @@
       "properties": {
         "name": { "type": "string" },
         "price": { "type": "number" },
-        "purchasePrice": { "type": "number" },
+        "purchasePrice": { "type": "number", "description": "The cost of acquiring the item." },
         "categoryId": { "type": "string" },
         "vatId": { "type": "string" },
         "image": { "type": "string" },
@@ -96,7 +96,7 @@
         "description2": { "type": "string" },
         "showImage": { "type": "boolean" },
         "barcode": { "type": "string" },
-        "marginPercentage": { "type": "number" },
+        "marginPercentage": { "type": "number", "description": "The profit margin as a percentage of the purchase price." },
         "requiresSerialNumber": { "type": "boolean" },
         "additionalCosts": { "type": "number", "description": "Additional costs as a percentage of the purchase price." },
         "manageStock": { "type": "boolean" },
