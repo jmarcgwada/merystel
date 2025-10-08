@@ -112,8 +112,8 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
                 <TabsTrigger value="address">Adresse</TabsTrigger>
                 <TabsTrigger value="other">Autre</TabsTrigger>
             </TabsList>
-            <ScrollArea className="max-h-[60vh]">
-              <div className="py-4 px-1">
+            <ScrollArea className="max-h-[60vh] p-1">
+              <div className="py-4">
                 <TabsContent value="info" className="space-y-4 mt-0">
                     <div className="space-y-2">
                         <Label htmlFor="edit-supplierId">Code Fournisseur</Label>

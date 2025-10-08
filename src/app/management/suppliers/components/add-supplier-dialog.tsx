@@ -28,7 +28,7 @@ interface AddSupplierDialogProps {
 
 export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSupplierDialogProps) {
     const { toast } = useToast();
-    const { addSupplier } = usePos();
+    const { addSupplier, suppliers } = usePos();
     const [supplierId, setSupplierId] = useState('');
     const [name, setName] = useState('');
     const [contactName, setContactName] = useState('');
@@ -65,6 +65,11 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 title: 'Champs requis',
                 description: 'Le nom et le code fournisseur sont obligatoires.',
             });
+            return;
+        }
+
+        if (suppliers.some(s => s.id === supplierId)) {
+            setError(`Le code fournisseur "${supplierId}" existe déjà.`);
             return;
         }
 
@@ -132,8 +137,8 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 <TabsTrigger value="address">Adresse</TabsTrigger>
                 <TabsTrigger value="other">Autre</TabsTrigger>
             </TabsList>
-            <ScrollArea className="max-h-[60vh]">
-              <div className="py-4 px-1">
+            <ScrollArea className="max-h-[60vh] p-1">
+              <div className="py-4">
                 <TabsContent value="info" className="space-y-4 mt-0">
                     <div className="space-y-2">
                         <Label htmlFor="supplierId">Code Fournisseur *</Label>
