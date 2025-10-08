@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckoutModal } from '@/app/pos/components/checkout-modal';
+import { useRouter } from 'next/navigation';
 
 
 const orderItemSchema = z.object({
@@ -64,6 +65,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const router = useRouter();
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,15 +150,25 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+      setHighlightedIndex(prev => (prev > 0 ? prev : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (listContent.length > 0 && highlightedIndex >= 0 && listContent[highlightedIndex]) {
         handleAddItem(listContent[highlightedIndex]);
         setSearchTerm('');
         setListContent([]);
-      } else {
-        performSearch(searchTerm, searchType);
+      } else if (searchTerm.trim() !== '') {
+        // If no item is found, and there's a search term, redirect to create a new item.
+        const filtered = allItems?.filter(item => 
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          (item.barcode && item.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
+        ) || [];
+
+        if(filtered.length === 0) {
+          router.push(`/management/items/form?barcode=${searchTerm}`);
+        } else {
+          performSearch(searchTerm, searchType);
+        }
       }
     }
   };

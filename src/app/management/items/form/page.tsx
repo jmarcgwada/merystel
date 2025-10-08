@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -74,6 +75,7 @@ function ItemForm() {
 
 
   const itemId = searchParams.get('id');
+  const barcodeParam = searchParams.get('barcode');
   const isEditMode = Boolean(itemId);
   const itemToEdit = isEditMode && items ? items.find(i => i.id === itemId) : null;
 
@@ -206,7 +208,7 @@ function ItemForm() {
         })) || [],
       });
     } else if (!isEditMode) {
-        form.reset({
+        const defaultValues: Partial<ItemFormValues> = {
           name: '',
           price: 0,
           purchasePrice: 0,
@@ -226,9 +228,13 @@ function ItemForm() {
           lowStockThreshold: 0,
           hasVariants: false,
           variantOptions: [],
-        });
+        };
+        if(barcodeParam) {
+            defaultValues.barcode = barcodeParam;
+        }
+        form.reset(defaultValues);
     }
-  }, [isEditMode, itemToEdit, form]);
+  }, [isEditMode, itemToEdit, form, barcodeParam]);
 
   useEffect(() => {
     if (!isEditMode && !form.getValues('image')) {
