@@ -10,16 +10,16 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, List, Search, Pencil, Truck } from 'lucide-react';
+import { Trash2, List, Search, Pencil, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Supplier, Item, OrderItem } from '@/lib/types';
+import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SupplierSelectionDialog } from '@/components/shared/supplier-selection-dialog';
+import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import { useRouter } from 'next/navigation';
 
 const orderItemSchema = z.object({
@@ -31,7 +31,7 @@ const orderItemSchema = z.object({
 });
 
 const FormSchema = z.object({
-  supplierId: z.string().optional(),
+  customerId: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Ajoutez au moins un article.'),
 });
 
@@ -51,10 +51,10 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
-  const { items: allItems, suppliers, isLoading, vatRates } = usePos();
+  const { items: allItems, customers, isLoading, vatRates } = usePos();
   const { toast } = useToast();
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [isSupplierSearchOpen, setSupplierSearchOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const router = useRouter();
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
@@ -79,14 +79,14 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const watchItems = form.watch('items');
   
   useEffect(() => {
-    const isReady = !!selectedSupplier && watchItems.length > 0;
+    const isReady = !!selectedCustomer && watchItems.length > 0;
     setIsReady(isReady);
-  }, [selectedSupplier, watchItems, setIsReady]);
+  }, [selectedCustomer, watchItems, setIsReady]);
 
-  const onSupplierSelected = (supplier: Supplier) => {
-    setSelectedSupplier(supplier);
-    form.setValue('supplierId', supplier.id);
-    setSupplierSearchOpen(false);
+  const onCustomerSelected = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    form.setValue('customerId', customer.id);
+    setCustomerSearchOpen(false);
   }
 
   const handleAddItem = (item: Item) => {
@@ -204,19 +204,17 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const totalTTC = subTotalHT + totalTVA;
 
   const onSubmit = useCallback(() => {
-    if (order.length === 0 || !selectedSupplier) return;
+    if (order.length === 0 || !selectedCustomer) return;
     
-    // Here you would implement the logic to save the supplier order
     toast({
         title: "Commande Fournisseur Enregistrée",
-        description: `La commande pour ${selectedSupplier.name} a été sauvegardée.`,
+        description: `La commande pour le fournisseur (client) ${selectedCustomer.name} a été sauvegardée.`,
     });
-    // For now, just clear the order
     setOrder([]);
-    setSelectedSupplier(null);
+    setSelectedCustomer(null);
     form.reset();
 
-  }, [order, selectedSupplier, toast, setOrder, form]);
+  }, [order, selectedCustomer, toast, setOrder, form]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
@@ -288,18 +286,18 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
         <div className="w-full lg:w-auto">
             <Card className="w-[350px]">
                 <CardContent className="p-4 relative">
-                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setSupplierSearchOpen(true)}>
+                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                    {selectedSupplier ? (
+                    {selectedCustomer ? (
                         <div className="space-y-1 text-sm">
-                            <p className="font-semibold text-base">{selectedSupplier.name}</p>
-                            <p className="text-muted-foreground">{selectedSupplier.address}</p>
-                            <p className="text-muted-foreground">{selectedSupplier.postalCode} {selectedSupplier.city}</p>
+                            <p className="font-semibold text-base">{selectedCustomer.name}</p>
+                            <p className="text-muted-foreground">{selectedCustomer.address}</p>
+                            <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                         </div>
                     ) : (
                          <div className="text-center text-muted-foreground py-1">
-                            {selectedSupplier === null && <Label>Fournisseur</Label>}
+                            {selectedCustomer === null && <Label>Fournisseur (Client)</Label>}
                             <p>Aucun fournisseur sélectionné.</p>
                         </div>
                     )}
@@ -411,7 +409,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
       </CardContent>
     </Card>
     
-    <SupplierSelectionDialog isOpen={isSupplierSearchOpen} onClose={() => setSupplierSearchOpen(false)} onSupplierSelected={onSupplierSelected} />
+    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
     </>
   );
 }

@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -421,32 +422,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user && user.role === 'admin' ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => user?.role === 'admin' ? collection(firestore, 'users') : null, [firestore, user?.role]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+  const users = useMemo(() => usersData, [usersData]);
 
   const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
-  const { data: itemsData = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
+  const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
   const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
-  const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
+  const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
   const customersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user, isManagerOrAdmin]);
-  const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
+  const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
   const suppliersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user, isManagerOrAdmin]);
-  const { data: suppliersData = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
+  const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
   const tablesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
-  const users = useMemo(() => usersData, [usersData]);
-  const items = useMemo(() => itemsData, [itemsData]);
-  const categories = useMemo(() => categoriesData, [categoriesData]);
-  const customers = useMemo(() => customersData, [customersData]);
-  const suppliers = useMemo(() => suppliersData, [suppliersData]);
   
   const salesCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, isManagerOrAdmin]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
@@ -466,6 +463,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     userLoading ||
+    (!!user && (user.role === 'admin' && usersLoading)) ||
     (!!user && itemsLoading) ||
     (!!user && categoriesLoading) ||
     (!!user && (isManagerOrAdmin && customersLoading)) ||

@@ -26,7 +26,7 @@ export default function ManagementSideNav() {
     { href: '/management/items', label: 'Articles', icon: Box, cashierVisible: true },
     { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, cashierVisible: true },
     { href: '/management/tables', label: 'Tables', icon: Utensils, cashierVisible: !isCashier },
-    { href: '/management/customers', label: 'Clients', icon: Users, cashierVisible: !isCashier },
+    { href: '/management/customers', label: 'Clients', icon: Users, cashierVisible: true },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, cashierVisible: !isCashier },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, cashierVisible: !isCashier },
     { href: '/management/vat', label: 'TVA', icon: Percent, cashierVisible: !isCashier },

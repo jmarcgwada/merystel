@@ -24,7 +24,7 @@ function SupplierOrdersPageContent() {
       removeFromOrder, 
       clearOrder,
       items,
-      suppliers,
+      customers,
       setCurrentSaleContext,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
@@ -53,19 +53,19 @@ function SupplierOrdersPageContent() {
   }, [saleIdToEdit]);
 
   const handleGenerateRandomOrder = useCallback(() => {
-    if (!items?.length || !suppliers?.length) {
+    if (!items?.length || !customers?.length) {
       toast({
         variant: 'destructive',
         title: 'Données insuffisantes',
-        description: 'Veuillez ajouter des articles et des fournisseurs pour générer une commande.',
+        description: 'Veuillez ajouter des articles et des clients/fournisseurs pour générer une commande.',
       });
       return;
     }
 
     clearOrder({ clearCustomer: true, clearSupplier: true });
 
-    // 1. Select a random supplier
-    const randomSupplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+    // 1. Select a random supplier (using customer list)
+    const randomSupplier = customers[Math.floor(Math.random() * customers.length)];
     setCurrentSaleContext({ customerId: randomSupplier.id }); // Using customerId for now, to be adapted
 
     // 2. Generate a random order
@@ -96,7 +96,7 @@ function SupplierOrdersPageContent() {
       title: 'Commande Fournisseur Aléatoire Générée',
       description: `Préparation de la commande pour ${randomSupplier.name}.`,
     });
-  }, [items, suppliers, clearOrder, setCurrentSaleContext, setOrder, toast]);
+  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast]);
   
   return (
     <div className="h-full flex flex-col">
