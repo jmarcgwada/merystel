@@ -32,6 +32,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [phone2, setPhone2] = useState('');
     const [address, setAddress] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [city, setCity] = useState('');
@@ -45,6 +46,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
             setName(customer.name || '');
             setEmail(customer.email || '');
             setPhone(customer.phone || '');
+            setPhone2(customer.phone2 || '');
             setAddress(customer.address || '');
             setPostalCode(customer.postalCode || '');
             setCity(customer.city || '');
@@ -70,6 +72,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
                 name,
                 email,
                 phone,
+                phone2,
                 address,
                 postalCode,
                 city,
@@ -114,9 +117,15 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
                         <Label htmlFor="edit-email">Email</Label>
                         <Input id="edit-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean.dupont@example.com" onFocus={(e) => e.target.select()} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-phone">Téléphone</Label>
-                        <Input id="edit-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="06 12 34 56 78" onFocus={(e) => e.target.select()} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-phone">Téléphone</Label>
+                            <Input id="edit-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="06 12 34 56 78" onFocus={(e) => e.target.select()} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="edit-phone2">Téléphone 2</Label>
+                            <Input id="edit-phone2" type="tel" value={phone2} onChange={e => setPhone2(e.target.value)} placeholder="07 87 65 43 21" onFocus={(e) => e.target.select()} />
+                        </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="address" className="space-y-4">

@@ -93,6 +93,7 @@ export interface Customer {
     name: string;
     email?: string;
     phone?: string;
+    phone2?: string;
     isDefault?: boolean;
     address?: string;
     postalCode?: string;

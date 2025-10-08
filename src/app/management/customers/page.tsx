@@ -186,6 +186,9 @@ export default function CustomersPage() {
                                      <div className="space-y-4">
                                         <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
                                         <DetailItem icon={Fingerprint} label="Code Client" value={customer.id} />
+                                        <DetailItem icon={Mail} label="Email" value={customer.email} />
+                                        <DetailItem icon={Phone} label="Téléphone" value={customer.phone} />
+                                        <DetailItem icon={Phone} label="Téléphone 2" value={customer.phone2} />
                                         <DetailItem icon={MapPin} label="Adresse" value={customer.address} />
                                         <DetailItem icon={MapPin} label="Ville / CP" value={customer.city && customer.postalCode ? `${customer.city}, ${customer.postalCode}` : customer.city || customer.postalCode} />
                                         <DetailItem icon={MapPin} label="Pays" value={customer.country} />

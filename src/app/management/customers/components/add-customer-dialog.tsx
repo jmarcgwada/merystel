@@ -33,6 +33,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [phone2, setPhone2] = useState('');
     const [address, setAddress] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [city, setCity] = useState('');
@@ -62,6 +63,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
             name,
             email,
             phone,
+            phone2,
             address,
             postalCode,
             city,
@@ -84,6 +86,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
             setName('');
             setEmail('');
             setPhone('');
+            setPhone2('');
             setAddress('');
             setPostalCode('');
             setCity('');
@@ -114,7 +117,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                 <TabsContent value="info" className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="code">Code Client</Label>
-                        <Input id="code" value={customerId.slice(0,8) + '...'} readOnly disabled />
+                        <Input id="code" value={customerId} readOnly disabled />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="name">Nom complet *</Label>
@@ -124,9 +127,15 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                         <Label htmlFor="email">Email</Label>
                         <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean.dupont@example.com" onFocus={(e) => e.target.select()} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Téléphone</Label>
-                        <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="06 12 34 56 78" onFocus={(e) => e.target.select()} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Téléphone</Label>
+                            <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="06 12 34 56 78" onFocus={(e) => e.target.select()} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone2">Téléphone 2</Label>
+                            <Input id="phone2" type="tel" value={phone2} onChange={e => setPhone2(e.target.value)} placeholder="07 87 65 43 21" onFocus={(e) => e.target.select()} />
+                        </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="address" className="space-y-4">
