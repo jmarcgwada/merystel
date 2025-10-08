@@ -19,7 +19,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Customer } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import { AlertCircle } from 'lucide-react';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
@@ -41,60 +41,73 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
     const [customerId, setCustomerId] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+
+    const generateRandomId = () => {
+        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `C${randomPart}`;
+    };
 
     useEffect(() => {
         if (isOpen) {
-            setCustomerId(uuidv4());
+            setCustomerId(generateRandomId());
+            setError(null);
         }
     }, [isOpen]);
 
     const handleAddCustomer = async () => {
-        if (!name) {
+        setError(null);
+        if (!name || !customerId) {
              toast({
                 variant: 'destructive',
-                title: 'Nom requis',
-                description: 'Le nom du client est obligatoire.',
+                title: 'Champs requis',
+                description: 'Le nom et le code client sont obligatoires.',
             });
             return;
         }
 
-        const newCustomer = await addCustomer({
-            id: customerId,
-            name,
-            email,
-            phone,
-            phone2,
-            address,
-            postalCode,
-            city,
-            country,
-            iban,
-            notes,
-        });
-
-        if (newCustomer) {
-            toast({
-                title: 'Client ajouté',
-                description: 'Le nouveau client a été créé avec succès.',
+        try {
+            const newCustomer = await addCustomer({
+                id: customerId,
+                name,
+                email,
+                phone,
+                phone2,
+                address,
+                postalCode,
+                city,
+                country,
+                iban,
+                notes,
             });
 
-            if(onCustomerAdded) {
-                onCustomerAdded(newCustomer);
+            if (newCustomer) {
+                toast({
+                    title: 'Client ajouté',
+                    description: 'Le nouveau client a été créé avec succès.',
+                });
+
+                if(onCustomerAdded) {
+                    onCustomerAdded(newCustomer);
+                }
+                
+                // Reset form
+                setName('');
+                setEmail('');
+                setPhone('');
+                setPhone2('');
+                setAddress('');
+                setPostalCode('');
+                setCity('');
+                setCountry('');
+                setIban('');
+                setNotes('');
+                setCustomerId('');
+                onClose();
             }
-            
-            // Reset form
-            setName('');
-            setEmail('');
-            setPhone('');
-            setPhone2('');
-            setAddress('');
-            setPostalCode('');
-            setCity('');
-            setCountry('');
-            setIban('');
-            setNotes('');
-            setCustomerId('');
-            onClose();
+        } catch (e: any) {
+            setError(e.message);
         }
     }
 
@@ -104,7 +117,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau client</DialogTitle>
           <DialogDescription>
-            Saisissez les informations du client. Seul le nom est obligatoire.
+            Saisissez les informations du client. Un code client unique est suggéré mais peut être modifié.
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="info">
@@ -116,8 +129,8 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
             <div className="py-4 max-h-[60vh] overflow-y-auto px-1">
                 <TabsContent value="info" className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="code">Code Client</Label>
-                        <Input id="code" value={customerId} readOnly disabled />
+                        <Label htmlFor="customerId">Code Client *</Label>
+                        <Input id="customerId" value={customerId} onChange={e => setCustomerId(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="name">Nom complet *</Label>
@@ -170,6 +183,12 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                 </TabsContent>
             </div>
         </Tabs>
+        {error && (
+            <div className="text-sm text-destructive font-medium flex items-center gap-2 p-2 bg-destructive/10 rounded-md">
+                <AlertCircle className="h-4 w-4"/>
+                {error}
+            </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={handleAddCustomer}>Ajouter client</Button>

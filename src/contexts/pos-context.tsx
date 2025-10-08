@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -127,7 +128,7 @@ interface PosContextType {
   sessionInvalidated: boolean;
   setSessionInvalidated: React.Dispatch<React.SetStateAction<boolean>>;
   items: Item[];
-  addItem: (item: Omit<Item, 'id'>) => void;
+  addItem: (item: Omit<Item, 'id'>) => Promise<Item | null>;
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
@@ -140,7 +141,7 @@ interface PosContextType {
   toggleCategoryFavorite: (categoryId: string) => void;
   getCategoryColor: (categoryId: string) => string | undefined;
   customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
+  addCustomer: (customer: Omit<Customer, 'isDefault'>) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
@@ -738,7 +739,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       demoCustomers.forEach(customer => {
         const newCustomerRef = doc(customersRef);
-        batch.set(newCustomerRef, customer);
+        batch.set(newCustomerRef, { ...customer, id: newCustomerRef.id });
       });
 
       await batch.commit();
@@ -830,7 +831,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
       defaultCustomers.forEach(data => {
           const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
-          batch.set(ref, data);
+          batch.set(ref, { ...data, id: ref.id });
       });
       defaultItems.forEach(item => {
           const vatRate = defaultVatRates.find(v => v.id === item.vatId)?.rate || 0;
@@ -1748,16 +1749,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addCustomer = useCallback(
-    async (customer: Omit<Customer, 'id' | 'isDefault'>): Promise<Customer | null> => {
+    async (customer: Omit<Customer, 'isDefault'>): Promise<Customer | null> => {
+        if (!firestore) { throw new Error("Firestore not initialized"); }
+        if (customers.some(c => c.id === customer.id)) {
+            throw new Error(`Le code client "${customer.id}" existe déjà.`);
+        }
+        
+        const customersRef = collection(firestore, 'companies', companyId, 'customers');
+        const newCustomerRef = doc(customersRef, customer.id);
+
         const newCustomerData = {
             ...customer,
             isDefault: !customers || !customers.some((c) => c.isDefault),
         };
-        const newCustomer = await addEntity('customers', newCustomerData, 'Client ajouté');
-        return newCustomer ? newCustomer as Customer : null;
+        await setDoc(newCustomerRef, newCustomerData);
+
+        return newCustomerData as Customer;
     },
-    [addEntity, customers]
+    [firestore, customers, companyId]
   );
+
   const updateCustomer = useCallback(
     (customer: Customer) =>
       updateEntity('customers', customer.id, customer, 'Client modifié'),
