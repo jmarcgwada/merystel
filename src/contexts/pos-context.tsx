@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -423,11 +422,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  // Only fetch all users if the current user is an admin
-  const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(
-    user?.role === 'admin' ? usersCollectionRef : null
-  );
-  const users = useMemo(() => usersData, [usersData]);
+  const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
@@ -448,7 +443,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
   const salesCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, isManagerOrAdmin]);
-  const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
+  const { data: rawSales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
+  
+  const sales = useMemo(() => {
+      if (!rawSales) return [];
+      return rawSales.map(sale => {
+          const toDate = (ts: any) => ts instanceof Timestamp ? ts.toDate() : ts;
+          return {
+              ...sale,
+              date: toDate(sale.date),
+              ...(sale.modifiedAt && { modifiedAt: toDate(sale.modifiedAt) }),
+              payments: (sale.payments || []).map(p => ({...p, date: toDate(p.date)})),
+              ...(sale.originalPayments && { originalPayments: sale.originalPayments.map(p => ({...p, date: toDate(p.date)})) })
+          };
+      });
+  }, [rawSales]);
 
   const paymentMethodsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user]);
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
@@ -1437,7 +1446,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const currentCounter = companyDoc.data()?.[counterField] ?? 0;
           const newCount = currentCounter + 1;
           
-          transaction.update(companyRef, { [counterField]: increment(1) });
+          transaction.update(companyRef, { [counterField]: newCount });
           
           const dayMonth = format(new Date(), 'ddMM');
           pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
@@ -1742,6 +1751,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
     const validateSession = useCallback((userId: string, token: string) => {
+        if (!users) return false;
         const user = users.find(u => u.id === userId);
         return user?.sessionToken === token;
     }, [users]);
@@ -2208,8 +2218,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       showTicketImages,
       setShowTicketImages,
-      showItemImagesInGrid,
-      setShowItemImagesInGrid,
       descriptionDisplay,
       setDescriptionDisplay,
       popularItemsCount,
@@ -2394,8 +2402,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       showTicketImages,
       setShowTicketImages,
-      showItemImagesInGrid,
-      setShowItemImagesInGrid,
       descriptionDisplay,
       setDescriptionDisplay,
       popularItemsCount,
