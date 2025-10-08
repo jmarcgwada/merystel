@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -10,16 +9,16 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, List, Search, Pencil, User as UserIcon } from 'lucide-react';
+import { Trash2, List, Search, Pencil, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Customer, Item, OrderItem } from '@/lib/types';
+import type { Supplier, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
+import { SupplierSelectionDialog } from '@/components/shared/supplier-selection-dialog';
 import { useRouter } from 'next/navigation';
 
 const orderItemSchema = z.object({
@@ -31,7 +30,7 @@ const orderItemSchema = z.object({
 });
 
 const FormSchema = z.object({
-  customerId: z.string().optional(),
+  supplierId: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Ajoutez au moins un article.'),
 });
 
@@ -51,10 +50,10 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates } = usePos();
+  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, orderTotal, orderTax } = usePos();
   const { toast } = useToast();
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [isSupplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const router = useRouter();
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
@@ -79,14 +78,15 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const watchItems = form.watch('items');
   
   useEffect(() => {
-    const isReady = !!selectedCustomer && watchItems.length > 0;
+    const isReady = !!selectedSupplier && watchItems.length > 0;
     setIsReady(isReady);
-  }, [selectedCustomer, watchItems, setIsReady]);
+  }, [selectedSupplier, watchItems, setIsReady]);
 
-  const onCustomerSelected = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    form.setValue('customerId', customer.id);
-    setCustomerSearchOpen(false);
+  const onSupplierSelected = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    form.setValue('supplierId', supplier.id);
+    setCurrentSaleContext(prev => ({...prev, supplierId: supplier.id }));
+    setSupplierSearchOpen(false);
   }
 
   const handleAddItem = (item: Item) => {
@@ -204,17 +204,25 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const totalTTC = subTotalHT + totalTVA;
 
   const onSubmit = useCallback(() => {
-    if (order.length === 0 || !selectedCustomer) return;
+    if (order.length === 0 || !selectedSupplier) return;
     
-    toast({
-        title: "Commande Fournisseur Enregistrée",
-        description: `La commande pour le fournisseur (client) ${selectedCustomer.name} a été sauvegardée.`,
-    });
+     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+      items: order,
+      subtotal: orderTotal,
+      tax: orderTax,
+      total: orderTotal + orderTax,
+      status: 'pending', 
+      payments: [],
+      supplierId: selectedSupplier.id,
+    };
+    
+    recordCommercialDocument(doc, 'supplier_order');
+    
     setOrder([]);
-    setSelectedCustomer(null);
+    setSelectedSupplier(null);
     form.reset();
 
-  }, [order, selectedCustomer, toast, setOrder, form]);
+  }, [order, selectedSupplier, toast, setOrder, form, recordCommercialDocument, orderTotal, orderTax]);
   
   useEffect(() => {
     setSubmitHandler(() => form.handleSubmit(onSubmit));
@@ -286,18 +294,18 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
         <div className="w-full lg:w-auto">
             <Card className="w-[350px]">
                 <CardContent className="p-4 relative">
-                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
+                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setSupplierSearchOpen(true)}>
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                    {selectedCustomer ? (
+                    {selectedSupplier ? (
                         <div className="space-y-1 text-sm">
-                            <p className="font-semibold text-base">{selectedCustomer.name}</p>
-                            <p className="text-muted-foreground">{selectedCustomer.address}</p>
-                            <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                            <p className="font-semibold text-base flex items-center gap-2"><Truck className="h-4 w-4 text-muted-foreground" />{selectedSupplier.name}</p>
+                            <p className="text-muted-foreground pl-6">{selectedSupplier.address}</p>
+                            <p className="text-muted-foreground pl-6">{selectedSupplier.postalCode} {selectedSupplier.city}</p>
                         </div>
                     ) : (
                          <div className="text-center text-muted-foreground py-1">
-                            {selectedCustomer === null && <Label>Fournisseur</Label>}
+                            <Label>Fournisseur</Label>
                             <p>Aucun fournisseur sélectionné.</p>
                         </div>
                     )}
@@ -409,7 +417,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
       </CardContent>
     </Card>
     
-    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
+    <SupplierSelectionDialog isOpen={isSupplierSearchOpen} onClose={() => setSupplierSearchOpen(false)} onSupplierSelected={onSupplierSelected} />
     </>
   );
 }

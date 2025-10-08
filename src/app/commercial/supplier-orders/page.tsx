@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -24,7 +23,7 @@ function SupplierOrdersPageContent() {
       removeFromOrder, 
       clearOrder,
       items,
-      customers,
+      suppliers,
       setCurrentSaleContext,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
@@ -45,6 +44,7 @@ function SupplierOrdersPageContent() {
   }, [newItemId, addToOrder, router]);
 
   useEffect(() => {
+    setCurrentSaleContext({ documentType: 'supplier_order' });
     // For now, editing supplier orders is not implemented
     if (order.length > 0 && !location.search.includes('edit')) {
          clearOrder({ clearCustomer: true, clearSupplier: true });
@@ -53,30 +53,28 @@ function SupplierOrdersPageContent() {
   }, [saleIdToEdit]);
 
   const handleGenerateRandomOrder = useCallback(() => {
-    if (!items?.length || !customers?.length) {
+    if (!items?.length || !suppliers?.length) {
       toast({
         variant: 'destructive',
         title: 'Données insuffisantes',
-        description: 'Veuillez ajouter des articles et des clients/fournisseurs pour générer une commande.',
+        description: 'Veuillez ajouter des articles et des fournisseurs pour générer une commande.',
       });
       return;
     }
 
     clearOrder({ clearCustomer: true, clearSupplier: true });
 
-    // 1. Select a random supplier (using customer list)
-    const randomSupplier = customers[Math.floor(Math.random() * customers.length)];
-    setCurrentSaleContext({ customerId: randomSupplier.id }); // Using customerId for now, to be adapted
+    const randomSupplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+    setCurrentSaleContext({ supplierId: randomSupplier.id, documentType: 'supplier_order' });
 
-    // 2. Generate a random order
-    const numberOfItems = Math.floor(Math.random() * 4) + 2; // 2 to 5 items
     const newOrder: OrderItem[] = [];
-    for (let i = 0; i < numberOfItems; i++) {
+    let addedItems = 0;
+    while(addedItems < 5 && newOrder.length < items.length) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
-        const quantity = Math.floor(Math.random() * 5) + 1; // 1 to 5 quantity
+        const quantity = Math.floor(Math.random() * 5) + 1;
         
         const existingInNewOrder = newOrder.find(item => item.itemId === randomItem.id);
-        if(!existingInNewOrder) {
+        if(!existingInNewOrder && typeof randomItem.purchasePrice === 'number') {
             newOrder.push({
                 itemId: randomItem.id,
                 id: randomItem.id,
@@ -88,6 +86,7 @@ function SupplierOrdersPageContent() {
                 discount: 0,
                 barcode: randomItem.barcode,
             });
+            addedItems++;
         }
     }
     setOrder(newOrder);
@@ -96,7 +95,7 @@ function SupplierOrdersPageContent() {
       title: 'Commande Fournisseur Aléatoire Générée',
       description: `Préparation de la commande pour ${randomSupplier.name}.`,
     });
-  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast]);
+  }, [items, suppliers, clearOrder, setCurrentSaleContext, setOrder, toast]);
   
   return (
     <div className="h-full flex flex-col">

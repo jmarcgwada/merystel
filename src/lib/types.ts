@@ -151,6 +151,7 @@ export interface Sale {
   originalPayments?: Payment[];
   change?: number;
   customerId?: string;
+  supplierId?: string;
   tableId?: string;
   tableName?: string;
   status: 'paid' | 'pending' | 'quote' | 'delivery_note';
