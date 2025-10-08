@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -129,9 +130,9 @@ export default function SuppliersPage() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm font-medium">
-                        Page {currentPage} / {totalPages}
+                        Page {currentPage} / {totalPages || 1}
                     </span>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -148,68 +149,74 @@ export default function SuppliersPage() {
                       </TableRow>
                   </TableHeader>
                   
-                  {(isLoading || !isClient) && (
-                    <TableBody>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                  )}
-                  {isClient && !isLoading && paginatedSuppliers && paginatedSuppliers.map(supplier => (
-                      <TableBody key={supplier.id} className="border-b">
-                          <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(supplier.id)}>
-                              <TableCell className="w-[50px]">
-                                  <Button variant="ghost" size="icon">
-                                      {openCollapsibles[supplier.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                  </Button>
-                              </TableCell>
-                              <TableCell className="font-medium">{supplier.name} <span className="font-mono text-xs text-muted-foreground ml-2">({supplier.id.slice(0,8)}...)</span></TableCell>
-                              <TableCell>{supplier.contactName}</TableCell>
-                              <TableCell>{supplier.email}</TableCell>
-                              <TableCell>{supplier.phone}</TableCell>
-                              <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); !isCashier && handleOpenEditDialog(supplier)}} disabled={isCashier}>
-                                      <Edit className="h-4 w-4"/>
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); !isCashier && setSupplierToDelete(supplier)}} disabled={isCashier}>
-                                      <Trash2 className="h-4 w-4"/>
-                                  </Button>
-                              </TableCell>
-                          </TableRow>
-                          {openCollapsibles[supplier.id] && (
-                             <TableRow>
-                                <TableCell colSpan={6} className="p-0">
-                                  <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                     <div className="space-y-4">
-                                        <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
-                                        <DetailItem icon={Fingerprint} label="Code Fournisseur" value={supplier.id} />
-                                        <DetailItem icon={Mail} label="Email" value={supplier.email} />
-                                        <DetailItem icon={Phone} label="Téléphone" value={supplier.phone} />
-                                        <DetailItem icon={MapPin} label="Adresse" value={supplier.address} />
-                                        <DetailItem icon={MapPin} label="Ville / CP" value={supplier.city && supplier.postalCode ? `${supplier.city}, ${supplier.postalCode}` : supplier.city || supplier.postalCode} />
-                                        <DetailItem icon={MapPin} label="Pays" value={supplier.country} />
+                  <TableBody>
+                      {isLoading && (
+                        <>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                              <TableRow key={i}>
+                                  <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
+                              </TableRow>
+                          ))}
+                        </>
+                      )}
+                      {!isLoading && paginatedSuppliers.length > 0 && paginatedSuppliers.map(supplier => (
+                          <React.Fragment key={supplier.id}>
+                              <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(supplier.id)}>
+                                  <TableCell className="w-[50px]">
+                                      <Button variant="ghost" size="icon">
+                                          {openCollapsibles[supplier.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                      </Button>
+                                  </TableCell>
+                                  <TableCell className="font-medium">{supplier.name} <span className="font-mono text-xs text-muted-foreground ml-2">({supplier.id.slice(0,8)}...)</span></TableCell>
+                                  <TableCell>{supplier.contactName}</TableCell>
+                                  <TableCell>{supplier.email}</TableCell>
+                                  <TableCell>{supplier.phone}</TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); !isCashier && handleOpenEditDialog(supplier)}} disabled={isCashier}>
+                                          <Edit className="h-4 w-4"/>
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); !isCashier && setSupplierToDelete(supplier)}} disabled={isCashier}>
+                                          <Trash2 className="h-4 w-4"/>
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                              {openCollapsibles[supplier.id] && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="p-0">
+                                    <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
+                                            <DetailItem icon={Fingerprint} label="Code Fournisseur" value={supplier.id} />
+                                            <DetailItem icon={Mail} label="Email" value={supplier.email} />
+                                            <DetailItem icon={Phone} label="Téléphone" value={supplier.phone} />
+                                            <DetailItem icon={MapPin} label="Adresse" value={supplier.address} />
+                                            <DetailItem icon={MapPin} label="Ville / CP" value={supplier.city && supplier.postalCode ? `${supplier.city}, ${supplier.postalCode}` : supplier.city || supplier.postalCode} />
+                                            <DetailItem icon={MapPin} label="Pays" value={supplier.country} />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold flex items-center gap-2"><Building className="h-4 w-4"/>Entreprise</h4>
+                                            <DetailItem icon={Fingerprint} label="SIRET" value={supplier.siret} />
+                                            <DetailItem icon={Globe} label="Site Web" value={supplier.website} />
+                                            <DetailItem icon={Banknote} label="IBAN" value={supplier.iban} />
+                                            <DetailItem icon={Banknote} label="BIC / SWIFT" value={supplier.bic} />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold flex items-center gap-2"><Notebook className="h-4 w-4"/>Notes</h4>
+                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes || 'Aucune note.'}</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <h4 className="font-semibold flex items-center gap-2"><Building className="h-4 w-4"/>Entreprise</h4>
-                                        <DetailItem icon={Fingerprint} label="SIRET" value={supplier.siret} />
-                                        <DetailItem icon={Globe} label="Site Web" value={supplier.website} />
-                                        <DetailItem icon={Banknote} label="IBAN" value={supplier.iban} />
-                                        <DetailItem icon={Banknote} label="BIC / SWIFT" value={supplier.bic} />
-                                    </div>
-                                     <div className="space-y-4">
-                                        <h4 className="font-semibold flex items-center gap-2"><Notebook className="h-4 w-4"/>Notes</h4>
-                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes || 'Aucune note.'}</p>
-                                    </div>
-                                  </div>
-                                  <Separator />
-                                </TableCell>
-                             </TableRow>
-                          )}
-                      </TableBody>
-                  ))}
-                  
+                                    <Separator />
+                                    </TableCell>
+                                </TableRow>
+                              )}
+                          </React.Fragment>
+                      ))}
+                      {!isLoading && paginatedSuppliers.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center h-24">Aucun fournisseur trouvé.</TableCell>
+                        </TableRow>
+                      )}
+                  </TableBody>
               </Table>
           </CardContent>
         </Card>
