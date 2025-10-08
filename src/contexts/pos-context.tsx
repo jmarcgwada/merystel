@@ -334,10 +334,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
 const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useFirebaseUser();
   const firestore = useFirestore();
-  const auth = useAuth();
-  const router = useRouter();
-  const { toast: shadcnToast } = useShadcnToast();
-  
+
   const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', SHARED_COMPANY_ID, 'items') : null, [firestore, user]);
@@ -346,7 +343,7 @@ const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', SHARED_COMPANY_ID, 'categories') : null, [firestore, user]);
   const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
-  const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', SHARED_COMPANY_ID, 'customers') : null, [firestore, user]);
+  const customersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', SHARED_COMPANY_ID, 'customers') : null, [firestore, user, isManagerOrAdmin]);
   const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
   const suppliersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', SHARED_COMPANY_ID, 'suppliers') : null, [firestore, user, isManagerOrAdmin]);
@@ -501,7 +498,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
   const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
-  const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
+  const customersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user, isManagerOrAdmin]);
   const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
   const suppliersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user, isManagerOrAdmin]);
@@ -538,14 +535,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     usersLoading ||
     (!!user && itemsLoading) ||
     (!!user && categoriesLoading) ||
-    (!!user && customersLoading) ||
-    (!!user && isManagerOrAdmin && suppliersLoading) ||
+    (!!user && (isManagerOrAdmin && customersLoading)) ||
+    (!!user && (isManagerOrAdmin && suppliersLoading)) ||
     (!!user && tablesLoading) ||
     (!!user && salesLoading) ||
     (!!user && paymentMethodsLoading) ||
     (!!user && vatRatesLoading) ||
     (!!user && heldOrdersLoading) ||
-    (!!user && isManagerOrAdmin && companyInfoLoading);
+    (!!user && (isManagerOrAdmin && companyInfoLoading));
 
   // #endregion
   
