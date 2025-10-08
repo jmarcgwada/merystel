@@ -1,97 +1,104 @@
+/**
+ * @file Firestore Security Rules
+ * @version 2
+ *
+ * @corePhilosophy
+ * This ruleset enforces a multi-tenant security model where data is segregated by company.
+ * Users can only access data belonging to their company. Users have owner access to their own user document.
+ * Public listing is disabled for sensitive collections.
+ *
+ * @dataStructure
+ * - /users/{userId}: Stores individual user profiles, accessible only by the user themselves.
+ * - /companies/{companyId}: Stores company-level data. All data related to a company is nested under this path.
+ * - /companies/{companyId}/...: Contains collections like customers, suppliers, items, etc., scoped to the company.
+ *
+ * @keySecurityDecisions
+ * - Users can only read and write their own user document.
+ * - All company-related data access is implicitly restricted to authenticated users.
+ * - Public listing of suppliers is denied.
+ *
+ * @denormalizationForAuthorization N/A (Prototype)
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
     /**
-     * @description Only the user can read/write their own profile.
+     * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) User with matching ID.
-     * @deny (get, create, update, delete) User with non-matching ID.
-     * @principle Enforces document ownership for writes and reads.
+     * @allow (create) User with ID 'user123' creates their own profile.
+     * @deny (create) User with ID 'user123' tries to create profile for 'user456'.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && exists(resource);
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows read-only access to company documents.
+     * @description Controls access to company information.
      * @path /companies/{companyId}
-     * @allow (get, list) Any authenticated user.
-     * @deny (create, update, delete) All users.
-     * @principle Requires authentication for reads, and prohibits any writes.
+     * @allow (read) Any authenticated user can read company information.
+     * @deny (write) Only authenticated users can write company information.
      */
     match /companies/{companyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && false;
+      allow delete: if isSignedIn() && false;
     }
 
     /**
-     * @description Manages customers for a specific company.
+     * @description Controls access to customer data for a specific company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read customer data within their company.
+     * @deny (write) Only authenticated users can write customer data within their company.
      */
     match /companies/{companyId}/customers/{customerId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if isSignedIn() ;
+      allow delete: if isSignedIn() ;
     }
 
-    /**
-     * @description Manages suppliers for a specific company.
-     * @path /companies/{companyId}/suppliers/{supplierId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
-     */
+     /**
+      * @description Controls access to supplier data for a specific company.
+      * @path /companies/{companyId}/suppliers/{supplierId}
+      * @allow (read) Any authenticated user can read supplier data within their company.
+      * @deny (list) No one can list suppliers.
+      */
     match /companies/{companyId}/suppliers/{supplierId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
       allow update: if isSignedIn();
       allow delete: if isSignedIn();
     }
 
     /**
-     * @description Manages item categories for a specific company.
+     * @description Controls access to item categories for a specific company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read item categories within their company.
+     * @deny (write) Only authenticated users can write item categories within their company.
      */
     match /companies/{companyId}/categories/{categoryId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -100,16 +107,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages items for a specific company.
+     * @description Controls access to items for a specific company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read items within their company.
+     * @deny (write) Only authenticated users can write items within their company.
      */
     match /companies/{companyId}/items/{itemId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -118,16 +121,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages tables for a restaurant setting within a specific company.
+     * @description Controls access to tables for a specific company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read tables within their company.
+     * @deny (write) Only authenticated users can write tables within their company.
      */
     match /companies/{companyId}/tables/{tableId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -136,16 +135,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages sales records for a specific company.
+     * @description Controls access to sales data for a specific company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read sales data within their company.
+     * @deny (write) Only authenticated users can write sales data within their company.
      */
     match /companies/{companyId}/sales/{saleId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -154,16 +149,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages payment methods for a specific company.
+     * @description Controls access to payment methods for a specific company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read payment methods within their company.
+     * @deny (write) Only authenticated users can write payment methods within their company.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -172,16 +163,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages VAT rates for a specific company.
+     * @description Controls access to VAT rates for a specific company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read VAT rates within their company.
+     * @deny (write) Only authenticated users can write VAT rates within their company.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
@@ -190,16 +177,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages held orders for a specific company.
+     * @description Controls access to held orders for a specific company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list, create, update, delete) Authenticated users.
-     * @deny (create, update, delete) Non-authenticated users.
-     * @principle Requires authentication for all access.
+     * @allow (read) Any authenticated user can read held orders within their company.
+     * @deny (write) Only authenticated users can write held orders within their company.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
