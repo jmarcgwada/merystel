@@ -23,6 +23,7 @@ import type {
   CompanyInfo,
   User,
   SelectedVariant,
+  Supplier,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -95,7 +96,7 @@ interface PosContextType {
     value: number,
     type: 'percentage' | 'fixed'
   ) => void;
-  clearOrder: (options?: { clearCustomer?: boolean }) => void;
+  clearOrder: (options?: { clearCustomer?: boolean, clearSupplier?: boolean }) => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
@@ -145,6 +146,10 @@ interface PosContextType {
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
+  suppliers: Supplier[];
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+  updateSupplier: (supplier: Supplier) => void;
+  deleteSupplier: (supplierId: string) => void;
   tables: Table[];
   addTable: (
     tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
@@ -426,6 +431,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const customersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId]);
   const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
+  const suppliersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId]);
+  const { data: suppliersData = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
+
   const tablesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
@@ -434,6 +442,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const items = useMemo(() => itemsData, [itemsData]);
   const categories = useMemo(() => categoriesData, [categoriesData]);
   const customers = useMemo(() => customersData, [customersData]);
+  const suppliers = useMemo(() => suppliersData, [suppliersData]);
   
   const salesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
@@ -457,6 +466,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     itemsLoading ||
     categoriesLoading ||
     customersLoading ||
+    suppliersLoading ||
     tablesLoading ||
     salesLoading ||
     paymentMethodsLoading ||
@@ -865,7 +875,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        const collectionsToDelete = ['items', 'categories', 'customers', 'tables', 'sales', 'paymentMethods', 'vatRates', 'heldOrders'];
+        const collectionsToDelete = ['items', 'categories', 'customers', 'suppliers', 'tables', 'sales', 'paymentMethods', 'vatRates', 'heldOrders'];
         
         try {
             const batch = writeBatch(firestore);
@@ -892,7 +902,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async (options = {}) => {
-    const { clearCustomer = false } = options as { clearCustomer?: boolean };
+    const { clearCustomer = false, clearSupplier = false } = options as { clearCustomer?: boolean, clearSupplier?: boolean };
 
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
@@ -900,7 +910,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
-    if (clearCustomer) {
+    if (clearCustomer || clearSupplier) {
       setCurrentSaleContext(null);
       setSelectedTable(null);
     } else {
@@ -941,7 +951,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       description: item.description,
       description2: item.description2,
       serialNumbers: serialNumbers,
-      barcode: item.barcode || '',
+      barcode: item.barcode,
     };
     
     setOrder(currentOrder => {
@@ -1010,7 +1020,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description2: itemToAdd.description2,
             selectedVariants,
             serialNumbers: [],
-            barcode: itemToAdd.barcode || '',
+            barcode: itemToAdd.barcode,
           };
           return [newItem, ...currentOrder];
         }
@@ -1798,6 +1808,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [customers, firestore, getDocRef, toast]
   );
 
+  const addSupplier = useCallback(
+    async (supplier: Omit<Supplier, 'id'>): Promise<Supplier | null> => {
+      if (!firestore) {
+        throw new Error('Firestore not initialized');
+      }
+      
+      const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
+      const newSupplierRef = doc(suppliersRef, supplier.id);
+
+      await setDoc(newSupplierRef, supplier);
+
+      return { ...supplier, id: newSupplierRef.id };
+    },
+    [firestore, companyId]
+  );
+
+  const updateSupplier = useCallback(
+    (supplier: Supplier) =>
+      updateEntity('suppliers', supplier.id, supplier, 'Fournisseur modifié'),
+    [updateEntity]
+  );
+
+  const deleteSupplier = useCallback(
+    (id: string) => deleteEntity('suppliers', id, 'Fournisseur supprimé'),
+    [deleteEntity]
+  );
+
   const addPaymentMethod = useCallback(
     (method: Omit<PaymentMethod, 'id'>) =>
       addEntity('paymentMethods', method, 'Moyen de paiement ajouté'),
@@ -2040,6 +2077,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCustomer,
       deleteCustomer,
       setDefaultCustomer,
+      suppliers,
+      addSupplier,
+      updateSupplier,
+      deleteSupplier,
       tables,
       addTable,
       updateTable,
@@ -2221,6 +2262,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateCustomer,
       deleteCustomer,
       setDefaultCustomer,
+      suppliers,
+      addSupplier,
+      updateSupplier,
+      deleteSupplier,
       tables,
       addTable,
       updateTable,
