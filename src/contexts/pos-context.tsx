@@ -113,7 +113,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
-  loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note') => void;
+  loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
@@ -146,7 +146,7 @@ interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -169,7 +169,7 @@ interface PosContextType {
   ) => void;
    recordCommercialDocument: (
     doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note',
+    type: 'quote' | 'delivery_note' | 'supplier_order',
     docIdToUpdate?: string,
   ) => void,
   deleteAllSales: () => Promise<void>;
@@ -271,6 +271,7 @@ interface PosContextType {
   importConfiguration: (file: File) => Promise<void>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
+  importDemoSuppliers: () => Promise<void>;
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
   isLoading: boolean;
@@ -337,7 +338,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast: shadcnToast } = useShadcnToast();
 
-  const companyId = SHARED_COMPANY_ID;
+  const companyId = useMemo(() => user ? SHARED_COMPANY_ID : null, [user]);
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -758,6 +759,38 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erreur d\'importation des clients' });
     }
   }, [firestore, companyId, toast]);
+  
+    const importDemoSuppliers = useCallback(async () => {
+    if (!firestore || !companyId) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
+      return;
+    }
+    toast({ title: 'Importation des fournisseurs de démo...' });
+
+    const demoSuppliers = [
+        { id: 'S-ABCDE', name: 'Fournisseur A', contactName: 'Alex Dupont', email: 'contact@fournisseura.com', phone: '0123456789', address: '10 Rue de l\'Industrie', city: 'Lyon', postalCode: '69003', country: 'France' },
+        { id: 'S-FGHIJ', name: 'Boissons & Co', contactName: 'Béatrice Martin', email: 'b.martin@boissonsco.fr', phone: '0456789123', address: '25 Avenue des Vins', city: 'Bordeaux', postalCode: '33000', country: 'France' },
+        { id: 'S-KLMNO', name: 'Le Fournil d\'Or', contactName: 'Christophe Boulanger', email: 'christophe@fournil.com', phone: '0388123456', address: '5 Rue des Pains', city: 'Strasbourg', postalCode: '67000', country: 'France' },
+        { id: 'S-PQRST', name: 'Produits Frais Express', contactName: 'David Legrand', email: 'ventes@fraisexpress.net', phone: '0299887766', address: 'Zone du Marché', city: 'Rennes', postalCode: '35000', country: 'France' },
+        { id: 'S-UVWXY', name: 'Épices du Monde', contactName: 'Émilie Petit', email: 'epices@monde.org', phone: '0491234567', address: '3 Boulevard du Port', city: 'Marseille', postalCode: '13002', country: 'France' },
+    ];
+    
+    try {
+      const batch = writeBatch(firestore);
+      const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
+      
+      demoSuppliers.forEach(supplier => {
+        const newSupplierRef = doc(suppliersRef, supplier.id);
+        batch.set(newSupplierRef, supplier);
+      });
+
+      await batch.commit();
+      toast({ title: 'Fournisseurs de démo ajoutés', description: '5 fournisseurs fictifs ont été ajoutés à votre liste.' });
+    } catch (error) {
+      console.error('Error importing demo suppliers:', error);
+      toast({ variant: 'destructive', title: 'Erreur d\'importation des fournisseurs' });
+    }
+  }, [firestore, companyId, toast]);
 
   const seedInitialData = useCallback(async () => {
     if (!firestore || !companyId) {
@@ -975,6 +1008,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
+      
+      const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
+
+      if (isSupplierOrder && typeof itemToAdd.purchasePrice !== 'number') {
+        toast({
+            variant: 'destructive',
+            title: 'Prix d\'achat manquant',
+            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat défini.`,
+        });
+        return;
+    }
 
       const existingItemIndex = order.findIndex(
         (item) => item.itemId === itemId && JSON.stringify(item.selectedVariants) === JSON.stringify(selectedVariants) && !item.serialNumbers?.length
@@ -1009,11 +1053,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             itemId: itemToAdd.id,
             id: uniqueId,
             name: itemToAdd.name,
-            price: itemToAdd.price,
+            price: isSupplierOrder ? (itemToAdd.purchasePrice ?? 0) : itemToAdd.price,
             vatId: itemToAdd.vatId,
             image: itemToAdd.image,
             quantity: 1,
-            total: itemToAdd.price,
+            total: isSupplierOrder ? (itemToAdd.purchasePrice ?? 0) : itemToAdd.price,
             discount: 0,
             description: itemToAdd.description,
             description2: itemToAdd.description2,
@@ -1028,7 +1072,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       triggerItemHighlight(order.find(i => i.itemId === itemId)?.id || '');
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, order, toast, enableSerialNumber]
+    [items, order, toast, enableSerialNumber, currentSaleContext]
   );
 
   const updateQuantity = useCallback(
@@ -1351,7 +1395,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #region Sales
     const recordCommercialDocument = useCallback(async (
     docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note',
+    type: 'quote' | 'delivery_note' | 'supplier_order',
     docIdToUpdate?: string
   ) => {
     if (!firestore || !companyId || !user) {
@@ -1362,6 +1406,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const docTypeInfo = {
       quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré', docType: 'quote' },
       delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré', docType: 'delivery_note' },
+      supplier_order: { prefix: 'CF', counterField: 'supplierOrderCounter', toastTitle: 'Commande fournisseur enregistrée', docType: 'supplier_order' },
     };
     const { prefix, counterField, toastTitle, docType } = docTypeInfo[type];
     
@@ -1410,7 +1455,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
 
       toast({ title: toastTitle });
-      clearOrder({ clearCustomer: true });
+      clearOrder({ clearCustomer: true, clearSupplier: true });
       router.push(`/reports?filter=${prefix}-`);
 
     } catch (error) {
@@ -1764,7 +1809,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             throw new Error(`Le code client "${customer.id}" existe déjà.`);
         }
         
-        const customersRef = collection(firestore, 'companies', companyId, 'customers');
+        const customersRef = collection(firestore, 'companies', companyId!, 'customers');
         const newCustomerRef = doc(customersRef, customer.id);
 
         const newCustomerData = {
@@ -1808,12 +1853,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addSupplier = useCallback(
-    async (supplier: Omit<Supplier, 'id'>): Promise<Supplier | null> => {
+    async (supplier: Omit<Supplier, 'id'> & {id: string}): Promise<Supplier | null> => {
       if (!firestore) {
         throw new Error('Firestore not initialized');
       }
       
-      const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
+      const suppliersRef = collection(firestore, 'companies', companyId!, 'suppliers');
       const newSupplierRef = doc(suppliersRef, supplier.id);
 
       await setDoc(newSupplierRef, supplier);
@@ -1967,7 +2012,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' = 'invoice') => {
+  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' = 'invoice') => {
     if (!sales) return;
     const sale = sales.find(s => s.id === saleId);
     if (!sale) {
@@ -1982,6 +2027,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     setCurrentSaleContext({
       isInvoice: type === 'invoice',
+      documentType: type,
       ticketNumber: sale.ticketNumber,
       date: sale.date,
       userName: sale.userName,
@@ -2189,6 +2235,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importConfiguration,
       importDemoData,
       importDemoCustomers,
+      importDemoSuppliers,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -2374,6 +2421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importConfiguration,
       importDemoData,
       importDemoCustomers,
+      importDemoSuppliers,
       cameFromRestaurant,
       setCameFromRestaurant,
       isLoading,
@@ -2393,3 +2441,4 @@ export function usePos() {
   }
   return context;
 }
+
