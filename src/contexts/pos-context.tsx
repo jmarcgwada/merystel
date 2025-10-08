@@ -422,11 +422,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user?.role === 'admin' ? collection(firestore, 'users') : null, [firestore, user?.role]);
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
   const users = useMemo(() => usersData, [usersData]);
-
-  const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
@@ -445,6 +443,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   
+  const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
   const salesCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, isManagerOrAdmin]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
 
@@ -463,16 +462,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading =
     userLoading ||
-    (!!user && (user.role === 'admin' && usersLoading)) ||
-    (!!user && itemsLoading) ||
-    (!!user && categoriesLoading) ||
-    (!!user && customersLoading) ||
-    (!!user && suppliersLoading) ||
-    (!!user && tablesLoading) ||
+    usersLoading ||
+    itemsLoading ||
+    categoriesLoading ||
+    customersLoading ||
+    suppliersLoading ||
+    tablesLoading ||
     (!!user && (isManagerOrAdmin && salesLoading)) ||
-    (!!user && paymentMethodsLoading) ||
-    (!!user && vatRatesLoading) ||
-    (!!user && heldOrdersLoading) ||
+    paymentMethodsLoading ||
+    vatRatesLoading ||
+    heldOrdersLoading ||
     (!!user && (isManagerOrAdmin && companyInfoLoading));
 
   // #endregion
@@ -1432,7 +1431,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         let pieceNumber = existingData.ticketNumber || '';
         if (!docIdToUpdate) {
           const companyDoc = await transaction.get(companyRef);
-          const currentCounter = companyDoc.data()?.[counterField] || 0;
+          const currentCounter = companyDoc.data()?.[counterField] ?? 0;
           const newCount = currentCounter + 1;
           
           transaction.update(companyRef, { [counterField]: newCount });
@@ -2292,6 +2291,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
+      holdOrder,
     }),
     [
       order,
@@ -2477,6 +2477,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
+      holdOrder,
     ]
   );
 
