@@ -5,7 +5,6 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
-import { PosProvider } from '@/contexts/pos-context';
 import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
 import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
@@ -13,6 +12,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 import { SessionManager } from '@/components/session-manager';
+import { PosProvider } from '@/contexts/pos-context';
+
 
 export const metadata: Metadata = {
   title: 'Zenith POS',
@@ -78,5 +79,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

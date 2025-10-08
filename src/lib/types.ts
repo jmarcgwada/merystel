@@ -84,9 +84,9 @@ export interface Table {
   covers?: number;
   verrou?: boolean;
   occupiedByUserId?: string;
-  occupiedAt?: Date;
+  occupiedAt?: Date | Timestamp;
   closedByUserId?: string;
-  closedAt?: Date;
+  closedAt?: Date | Timestamp;
 }
 
 export interface Customer {
@@ -154,7 +154,7 @@ export interface Sale {
   tableId?: string;
   tableName?: string;
   status: 'paid' | 'pending' | 'quote' | 'delivery_note';
-  documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket';
+  documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order';
   userId?: string;
   userName?: string;
 }

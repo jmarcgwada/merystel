@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PosProvider } from '@/contexts/pos-context';
 
 function AppLoading() {
   return (
@@ -30,58 +31,56 @@ function AppLoading() {
   )
 }
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function SessionValidation({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order } = usePos();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-
   useEffect(() => {
     if (loading) {
-      return; // Attendre la fin du chargement initial de l'état d'authentification
+      return;
     }
-
     if (!user) {
       redirect('/login');
       return;
     }
-
-    // À partir d'ici, nous savons que l'utilisateur est authentifié via Firebase.
-    // Maintenant, nous vérifions notre logique de session personnalisée.
     const sessionToken = localStorage.getItem('sessionToken');
     if (!sessionToken || !validateSession(user.uid, sessionToken)) {
         if (order && order.length > 0) {
-            // S'il y a une commande en cours, ne pas déconnecter immédiatement.
-            // Marquer la session comme invalide et laisser l'utilisateur terminer.
             setSessionInvalidated(true);
         } else {
-            // Pas de commande en cours, forcer la déconnexion.
             forceSignOut("Une nouvelle session a été démarrée sur un autre appareil.");
-            return; // Stopper l'exécution pour éviter d'afficher le contenu.
+            return;
         }
     } else if (sessionInvalidated && order && order.length === 0) {
-        // Si la session était invalide et que la commande est maintenant terminée, forcer la déconnexion.
         forceSignOut("Session terminée après la fin de la transaction.");
         return;
     }
-
     setIsCheckingSession(false);
-
   }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated]);
 
-  // Affiche un écran de chargement tant que la session n'est pas validée, ou que Firebase charge.
   if (isCheckingSession || loading) {
     return <AppLoading />;
   }
 
-  // Si l'utilisateur est déconnecté (ce qui peut arriver entre les rendus), ne rien afficher en attendant la redirection.
   if (!user) {
     return null;
   }
 
   return <>{children}</>;
+}
+
+
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <PosProvider>
+      <SessionValidation>
+        {children}
+      </SessionValidation>
+    </PosProvider>
+  )
 }
