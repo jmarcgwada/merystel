@@ -19,8 +19,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import type { Item } from '@/lib/types';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus } from 'lucide-react';
+import type { Item, Category } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +30,7 @@ import { Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { AddCategoryDialog } from '@/app/management/categories/components/add-category-dialog';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -72,6 +73,7 @@ function ItemForm() {
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
   const [priceHT, setPriceHT] = useState(0);
+  const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
 
 
   const itemId = searchParams.get('id');
@@ -274,15 +276,24 @@ function ItemForm() {
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
+      
+      if (redirectUrlParam) {
+        router.push(decodeURIComponent(redirectUrlParam));
+      } else {
+        router.push('/management/items');
+      }
+
     } else {
-      addItem({ ...submissionData, image: data.image || defaultImage });
+      const newItem = await addItem({ ...submissionData, image: data.image || defaultImage });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
-    }
-    
-    if (redirectUrlParam) {
-      router.push(decodeURIComponent(redirectUrlParam));
-    } else {
-      router.push('/management/items');
+
+      if (redirectUrlParam && newItem?.id) {
+          const redirectURL = decodeURIComponent(redirectUrlParam);
+          const separator = redirectURL.includes('?') ? '&' : '?';
+          router.push(`${redirectURL}${separator}newItemId=${newItem.id}`);
+      } else {
+        router.push('/management/items');
+      }
     }
   }
 
@@ -518,18 +529,23 @@ function ItemForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Catégorie</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionnez une catégorie" />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                        {categories && categories.map((cat) => (
-                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                        ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-2">
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionnez une catégorie" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                            {categories && categories.map((cat) => (
+                                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                            ))}
+                                            </SelectContent>
+                                        </Select>
+                                         <Button variant="outline" size="icon" type="button" onClick={() => setAddCategoryOpen(true)}>
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                     <FormMessage />
                                     </FormItem>
                                 )}
@@ -897,6 +913,15 @@ function ItemForm() {
 
         </form>
       </Form>
+      <AddCategoryDialog 
+        isOpen={isAddCategoryOpen} 
+        onClose={() => setAddCategoryOpen(false)} 
+        onCategoryAdded={(newCategory) => {
+            if(newCategory?.id) {
+                setValue('categoryId', newCategory.id);
+            }
+        }}
+    />
     </>
   );
 }

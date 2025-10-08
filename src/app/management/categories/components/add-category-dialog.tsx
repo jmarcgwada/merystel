@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -16,21 +17,22 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
-import { FormDescription } from '@/components/ui/form';
+import type { Category } from '@/lib/types';
 
 interface AddCategoryDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onCategoryAdded?: (category: Category) => void;
 }
 
-export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
+export function AddCategoryDialog({ isOpen, onClose, onCategoryAdded }: AddCategoryDialogProps) {
   const { toast } = useToast();
   const { addCategory } = usePos();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#e2e8f0');
   const [isRestaurantOnly, setIsRestaurantOnly] = useState(false);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!name) {
         toast({
             variant: 'destructive',
@@ -39,20 +41,26 @@ export function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
         });
         return;
     }
-    addCategory({
+    const newCategory = await addCategory({
         name,
         image: `https://picsum.photos/seed/${new Date().getTime()}/100/100`,
         color: color,
         isRestaurantOnly,
     });
-    toast({
-      title: 'Catégorie ajoutée',
-      description: 'La nouvelle catégorie a été créée avec succès.',
-    });
-    setName('');
-    setColor('#e2e8f0');
-    setIsRestaurantOnly(false);
-    onClose();
+    
+    if (newCategory) {
+        toast({
+          title: 'Catégorie ajoutée',
+          description: 'La nouvelle catégorie a été créée avec succès.',
+        });
+        if (onCategoryAdded) {
+            onCategoryAdded(newCategory);
+        }
+        setName('');
+        setColor('#e2e8f0');
+        setIsRestaurantOnly(false);
+        onClose();
+    }
   };
 
   return (

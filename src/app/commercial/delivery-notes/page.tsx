@@ -35,6 +35,16 @@ function DeliveryNotesPageContent() {
   const searchParams = useSearchParams();
   const saleIdToEdit = searchParams.get('edit');
   const initialFilter = searchParams.get('filter');
+  const newItemId = searchParams.get('newItemId');
+
+  useEffect(() => {
+    if (newItemId) {
+      addToOrder(newItemId);
+      // Clean the URL
+      const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [newItemId, addToOrder, router]);
 
   useEffect(() => {
     if (saleIdToEdit) {
