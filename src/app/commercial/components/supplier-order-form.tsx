@@ -297,7 +297,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                         </div>
                     ) : (
                          <div className="text-center text-muted-foreground py-1">
-                            {selectedCustomer === null && <Label>Fournisseur (Client)</Label>}
+                            {selectedCustomer === null && <Label>Fournisseur</Label>}
                             <p>Aucun fournisseur sélectionné.</p>
                         </div>
                     )}

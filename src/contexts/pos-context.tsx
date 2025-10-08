@@ -393,7 +393,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
