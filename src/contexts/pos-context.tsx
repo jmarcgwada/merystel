@@ -423,7 +423,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+  // Only fetch all users if the current user is an admin
+  const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(
+    user?.role === 'admin' ? usersCollectionRef : null
+  );
   const users = useMemo(() => usersData, [usersData]);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
@@ -1434,7 +1437,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const currentCounter = companyDoc.data()?.[counterField] ?? 0;
           const newCount = currentCounter + 1;
           
-          transaction.update(companyRef, { [counterField]: newCount });
+          transaction.update(companyRef, { [counterField]: increment(1) });
           
           const dayMonth = format(new Date(), 'ddMM');
           pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
