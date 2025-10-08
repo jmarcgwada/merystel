@@ -421,7 +421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => user && user.role === 'admin' ? collection(firestore, 'users') : null, [firestore, user]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
