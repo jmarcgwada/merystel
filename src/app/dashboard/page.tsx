@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -377,7 +376,9 @@ export default function DashboardPage() {
                                     <Link href="/commercial/delivery-notes">Bons de livraison</Link>
                                 </Button>
                                 <Button variant="secondary" size="sm" disabled>Cdes Client</Button>
-                                <Button variant="secondary" size="sm" disabled>Cdes Fournisseur</Button>
+                                <Button asChild variant="secondary" size="sm">
+                                    <Link href="/commercial/supplier-orders">Cdes Fournisseur</Link>
+                                </Button>
                            </div>
                       </CardContent>
                   </Card>
