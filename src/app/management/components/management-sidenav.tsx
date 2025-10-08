@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3 } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +27,7 @@ export default function ManagementSideNav() {
     { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, cashierVisible: true },
     { href: '/management/tables', label: 'Tables', icon: Utensils, cashierVisible: !isCashier },
     { href: '/management/customers', label: 'Clients', icon: Users, cashierVisible: !isCashier },
+    { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, cashierVisible: !isCashier },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, cashierVisible: !isCashier },
     { href: '/management/vat', label: 'TVA', icon: Percent, cashierVisible: !isCashier },
   ];

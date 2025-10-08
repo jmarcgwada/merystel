@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -101,6 +102,21 @@ export interface Customer {
     country?: string;
     iban?: string;
     notes?: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  siret?: string;
+  notes?: string;
+  website?: string;
 }
 
 export interface PaymentMethod {

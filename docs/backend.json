@@ -67,6 +67,27 @@
       },
       "required": ["id", "name"]
     },
+    "Supplier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Supplier",
+      "type": "object",
+      "description": "Represents a supplier for the company.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the supplier." },
+        "name": { "type": "string", "description": "The name of the supplier." },
+        "contactName": { "type": "string", "description": "The name of the contact person." },
+        "email": { "type": "string", "description": "The email address of the supplier.", "format": "email" },
+        "phone": { "type": "string", "description": "The phone number of the supplier." },
+        "address": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "siret": { "type": "string" },
+        "notes": { "type": "string" },
+        "website": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
@@ -202,6 +223,10 @@
     "/companies/{companyId}/customers/{customerId}": {
       "schema": { "$ref": "#/entities/Customer" },
       "description": "Stores customer data for a specific company."
+    },
+    "/companies/{companyId}/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Stores supplier data for a specific company."
     },
     "/companies/{companyId}/categories/{categoryId}": {
       "schema": { "$ref": "#/entities/Category" },
