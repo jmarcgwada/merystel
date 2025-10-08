@@ -10,8 +10,9 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, FilePlus } from 'lucide-react';
+import { ArrowLeft, FilePlus, Sparkles } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 
 function QuotesPageContent() {
@@ -28,11 +29,15 @@ function QuotesPageContent() {
       orderTotal,
       orderTax,
       currentSaleContext,
+      items,
+      customers,
+      setCurrentSaleContext,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const saleIdToEdit = searchParams.get('edit');
   const initialFilter = searchParams.get('filter');
   const newItemId = searchParams.get('newItemId');
@@ -59,7 +64,7 @@ function QuotesPageContent() {
   }, [saleIdToEdit]);
   
   const handleSave = useCallback(() => {
-    if (!isReady) return;
+    if (!isReady || !currentSaleContext?.customerId) return;
 
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
@@ -68,12 +73,56 @@ function QuotesPageContent() {
       total: orderTotal + orderTax,
       status: 'pending',
       payments: [],
-      customerId: currentSaleContext?.customerId,
+      customerId: currentSaleContext.customerId,
     };
     
     recordCommercialDocument(doc, 'quote', saleIdToEdit || undefined);
     
   }, [isReady, order, orderTotal, orderTax, currentSaleContext, recordCommercialDocument, saleIdToEdit]);
+  
+  const handleGenerateRandom = useCallback(() => {
+    if (!items?.length || !customers?.length) {
+      toast({
+        variant: 'destructive',
+        title: 'Données insuffisantes',
+        description: 'Veuillez ajouter des articles et des clients pour générer un document.',
+      });
+      return;
+    }
+
+    clearOrder({ clearCustomer: true });
+
+    const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+    setCurrentSaleContext({ customerId: randomCustomer.id });
+
+    const numberOfItems = Math.floor(Math.random() * 4) + 2;
+    const newOrder: OrderItem[] = [];
+    for (let i = 0; i < numberOfItems; i++) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const quantity = Math.floor(Math.random() * 2) + 1;
+        
+        const existingInNewOrder = newOrder.find(item => item.itemId === randomItem.id);
+        if(!existingInNewOrder) {
+            newOrder.push({
+                itemId: randomItem.id,
+                id: randomItem.id,
+                name: randomItem.name,
+                price: randomItem.price,
+                vatId: randomItem.vatId,
+                quantity,
+                total: randomItem.price * quantity,
+                discount: 0,
+                barcode: randomItem.barcode,
+            });
+        }
+    }
+    setOrder(newOrder);
+
+    toast({
+      title: 'Document Aléatoire Généré',
+      description: `Préparation du document pour ${randomCustomer.name}.`,
+    });
+  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast]);
 
   const renderHeaderActions = () => {
     if (initialFilter?.startsWith('Devis-')) {
@@ -86,6 +135,9 @@ function QuotesPageContent() {
     }
     return (
         <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title="Générer un devis aléatoire">
+              <Sparkles className="h-4 w-4" />
+            </Button>
             <Button size="lg" onClick={handleSave} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour le devis' : 'Sauvegarder le devis'}</Button>
              <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=Devis-' : '/dashboard')}>
                 <ArrowLeft />
