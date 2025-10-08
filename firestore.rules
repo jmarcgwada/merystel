@@ -1,209 +1,205 @@
-/**
- * @fileoverview Firestore Security Rules for Zenith POS.
- *
- * Core Philosophy:
- * This ruleset enforces a strict company-based access control model. All data
- * is scoped to a specific company, and access is generally restricted to
- * authenticated users. Data validation is relaxed to allow for rapid
- * prototyping.
- *
- * Data Structure:
- * - /users/{userId}: User profiles.
- * - /companies/{companyId}: Company information. This is the root for all company data.
- * - /companies/{companyId}/{collections}: All company-specific data is stored
- *   under the company document.
- *
- * Key Security Decisions:
- * - Users can only read and write their own user profile.
- * - All other data requires the user to be authenticated.
- *
- * Authorization Denormalization:
- *  - It is assumed that each document nested under a company collection will contain the `companyId`
- *    as a field to allow for simpler, more performant rules.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Manages user profile data.
      * @path /users/{userId}
-     * @allow (create) User with matching ID can create their profile.
-     * @allow (get, update, delete) User can access their own profile.
-     * @deny (create) User cannot create a profile with a mismatched ID.
-     * @deny (get, update, delete) User cannot access another user's profile.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) - Authenticated user creates their own profile (userId matches auth.uid).
+     * @allow (get, update, delete) - Authenticated user accesses their own profile (userId matches auth.uid).
+     * @deny (create) - User attempts to create a profile with a mismatched userId.
+     * @deny (get, update, delete) - User attempts to access another user's profile.
+     * @principle Enforces user-ownership for user profile data.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, update, delete: if isSignedIn() && isOwner(userId) && resource != null;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+          return isOwner(userId) && exists(resource);
+      }
+
+      allow get: if isOwner(userId);
       allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to company information.
+     * @description Manages company data.
      * @path /companies/{companyId}
-     * @allow (get, list) Anyone can read company information.
-     * @allow (create, update, delete) Only authenticated users can modify company information.
-     * @deny (create, update, delete) Non-authenticated users cannot modify company information.
-     * @principle Requires authentication for company modifications.
+     * @allow (get, list) - Any authenticated user can read company data.
+     * @allow (create) - No one can create company data through client.
+     * @allow (update) - No one can update company data through client.
+     * @allow (delete) - No one can delete company data through client.
+     * @principle Restricts read access of companies to authenticated users.
      */
     match /companies/{companyId} {
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get, list: if true;
-      allow create, update, delete: if isSignedIn();
+
+      allow get, list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to customer data for a specific company.
+     * @description Manages customer data for a specific company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list) Authenticated users can read customer data.
-     * @allow (create, update, delete) Only authenticated users can modify customer data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify customer data.
-     * @principle Requires authentication for customer data access within a company.
+     * @allow (get, list) - Any authenticated user can read customer data.
+     * @allow (create, update, delete) - Any authenticated user can modify customer data.
+     * @principle Requires authentication for all customer data access.
      */
     match /companies/{companyId}/customers/{customerId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to supplier data for a specific company.
+     * @description Manages supplier data for a specific company.
      * @path /companies/{companyId}/suppliers/{supplierId}
-     * @allow (get, list) Authenticated users can read supplier data.
-     * @allow (create, update, delete) Only authenticated users can modify supplier data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify supplier data.
-     * @principle Requires authentication for supplier data access within a company.
+     * @allow (get, list) - Any authenticated user can read supplier data.
+     * @allow (create, update, delete) - Any authenticated user can modify supplier data.
+     * @principle Requires authentication for all supplier data access.
      */
     match /companies/{companyId}/suppliers/{supplierId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to item categories for a specific company.
+     * @description Manages item categories for a specific company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list) Authenticated users can read category data.
-     * @allow (create, update, delete) Only authenticated users can modify category data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify category data.
-     * @principle Requires authentication for category data access within a company.
+     * @allow (get, list) - Any authenticated user can read category data.
+     * @allow (create, update, delete) - Any authenticated user can modify category data.
+     * @principle Requires authentication for all category data access.
      */
     match /companies/{companyId}/categories/{categoryId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to items for a specific company.
+     * @description Manages items for a specific company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list) Authenticated users can read item data.
-     * @allow (create, update, delete) Only authenticated users can modify item data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify item data.
-     * @principle Requires authentication for item data access within a company.
+     * @allow (get, list) - Any authenticated user can read item data.
+     * @allow (create, update, delete) - Any authenticated user can modify item data.
+     * @principle Requires authentication for all item data access.
      */
     match /companies/{companyId}/items/{itemId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to tables for a specific company.
+     * @description Manages tables for a specific company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list) Authenticated users can read table data.
-     * @allow (create, update, delete) Only authenticated users can modify table data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify table data.
-     * @principle Requires authentication for table data access within a company.
+     * @allow (get, list) - Any authenticated user can read table data.
+     * @allow (create, update, delete) - Any authenticated user can modify table data.
+     * @principle Requires authentication for all table data access.
      */
     match /companies/{companyId}/tables/{tableId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to sales data for a specific company.
+     * @description Manages sales data for a specific company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list) Authenticated users can read sales data.
-     * @allow (create, update, delete) Only authenticated users can modify sales data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify sales data.
-     * @principle Requires authentication for sales data access within a company.
+     * @allow (get, list) - Any authenticated user can read sales data.
+     * @allow (create, update, delete) - Any authenticated user can modify sales data.
+     * @principle Requires authentication for all sales data access.
      */
     match /companies/{companyId}/sales/{saleId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to payment methods for a specific company.
+     * @description Manages payment methods for a specific company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list) Authenticated users can read payment method data.
-     * @allow (create, update, delete) Only authenticated users can modify payment method data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify payment method data.
-     * @principle Requires authentication for payment method data access within a company.
+     * @allow (get, list) - Any authenticated user can read payment method data.
+     * @allow (create, update, delete) - Any authenticated user can modify payment method data.
+     * @principle Requires authentication for all payment method data access.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to VAT rates for a specific company.
+     * @description Manages VAT rates for a specific company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list) Authenticated users can read VAT rate data.
-     * @allow (create, update, delete) Only authenticated users can modify VAT rate data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify VAT rate data.
-     * @principle Requires authentication for VAT rate data access within a company.
+     * @allow (get, list) - Any authenticated user can read VAT rate data.
+     * @allow (create, update, delete) - Any authenticated user can modify VAT rate data.
+     * @principle Requires authentication for all VAT rate data access.
      */
     match /companies/{companyId}/vatRates/{vatId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to held orders for a specific company.
+     * @description Manages held orders for a specific company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list) Authenticated users can read held order data.
-     * @allow (create, update, delete) Only authenticated users can modify held order data.
-     * @deny (create, update, delete) Non-authenticated users cannot modify held order data.
-     * @principle Requires authentication for held order data access within a company.
+     * @allow (get, list) - Any authenticated user can read held order data.
+     * @allow (create, update, delete) - Any authenticated user can modify held order data.
+     * @principle Requires authentication for all held order data access.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
       function isSignedIn() {
         return request.auth != null;
       }
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
