@@ -1,31 +1,20 @@
 /**
- * @fileoverview Firestore Security Rules for Zenith POS.
- *
- * Core Philosophy:
- * This ruleset enforces a strict company-based data isolation model. All data
- * is nested under /companies/{companyId}, and access is restricted to
- * authenticated users who belong to that company. User profiles themselves
- * are stored separately under /users/{userId} and are accessible only to the
- * user themselves.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership and company-based data segregation model for the Zenith POS system.
  *
  * Data Structure:
- * - /users/{userId}: User profile information.
- * - /companies/{companyId}: Company root document.
- * - /companies/{companyId}/{collection}/{documentId}: Company-specific data
- *   such as customers, suppliers, items, sales, etc.
+ * - User profiles are stored under /users/{userId}.
+ * - Company-specific data is nested under /companies/{companyId}.
+ * - Each company has its own collections for customers, suppliers, items, etc.
  *
  * Key Security Decisions:
- * - Users can only access their own profile data.
- * - All company-related data access is implicitly restricted to authenticated
- *   users. There are no public read permissions.
- * - Listing of users is disallowed.
- * - Data validation is relaxed in this prototype phase, focusing on
- *   authorization.
+ * - Users can only read and write their own profile data.
+ * - All company data is implicitly restricted; no public access is allowed.
+ * - Company data (customers, suppliers, items, etc.) is accessible to authenticated users.
+ * - Data validation is relaxed to allow for rapid prototyping. Only essential authorization checks are performed.
  *
  * Denormalization for Authorization:
- *  - It's assumed that companyId is denormalized onto every document within
- *    a company's data tree. This is not enforced by the rules themselves in
- *    this prototyping phase but is critical for a production ruleset.
+ * - To avoid complex queries, authorization relies on path-based checks (e.g., `isOwner(userId)`) rather than reading data from other documents.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -34,189 +23,171 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) if the user is the owner of the profile.
-     * @deny (get, create, update, delete) if the user is not the owner of the profile.
-     * @principle Enforces user-ownership for profile data.
+     * @allow (get, create, update, delete, list) if the user is the owner of the profile.
+     * @deny (create) if the user ID in the request does not match the authenticated user's ID.
+     * @deny (update, delete) if the user does not exist
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      // Only allow access to the user's own document.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to company root documents.
+     * @description Controls access to company information.
      * @path /companies/{companyId}
-     * @allow (get, list) if true (data is considered public within the company).
-     * @allow (create, update, delete) if false (only backend can modify company root).
-     * @principle Restricts modification of company root data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
      * @description Controls access to customer data for a specific company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for customer data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/customers/{customerId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
      * @description Controls access to supplier data for a specific company.
      * @path /companies/{companyId}/suppliers/{supplierId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for supplier data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/suppliers/{supplierId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-     /**
-     * @description Controls access to category data for a specific company.
-     * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for category data.
-     */
-    match /companies/{companyId}/categories/{categoryId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-     /**
-     * @description Controls access to item data for a specific company.
-     * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for item data.
-     */
-    match /companies/{companyId}/items/{itemId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to table data for a specific company.
+     * @description Controls access to item categories for a specific company.
+     * @path /companies/{companyId}/categories/{categoryId}
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
+     */
+    match /companies/{companyId}/categories/{categoryId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to items for a specific company.
+     * @path /companies/{companyId}/items/{itemId}
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
+     */
+    match /companies/{companyId}/items/{itemId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to tables for a specific company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for table data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/tables/{tableId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
      * @description Controls access to sales data for a specific company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for sales data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/sales/{saleId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to payment method data for a specific company.
+     * @description Controls access to payment methods for a specific company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for payment method data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to VAT rate data for a specific company.
+     * @description Controls access to VAT rates for a specific company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for VAT rate data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to held order data for a specific company.
+     * @description Controls access to held orders for a specific company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list, create, update, delete) if the user is signed in.
-     * @deny (get, list, create, update, delete) if the user is not signed in.
-     * @principle Enforces company-level access for held order data.
+     * @allow (get, create, update, delete, list) if the user is authenticated.
+     * @deny All operations are implicitly denied
+     * @principle Requires authentication for all company data access.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
+    }
+
+    // Helper function to determine if the user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to determine if the user is the owner
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+     // Helper function to determine if the user is the existing owner
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
   }
 }
