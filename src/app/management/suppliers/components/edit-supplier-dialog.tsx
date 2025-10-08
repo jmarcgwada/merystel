@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,6 +27,7 @@ interface EditSupplierDialogProps {
 export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDialogProps) {
     const { toast } = useToast();
     const { updateSupplier } = usePos();
+    const [supplierId, setSupplierId] = useState('');
     const [name, setName] = useState('');
     const [contactName, setContactName] = useState('');
     const [email, setEmail] = useState('');
@@ -43,6 +42,7 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
 
     useEffect(() => {
         if(supplier) {
+            setSupplierId(supplier.id);
             setName(supplier.name || '');
             setContactName(supplier.contactName || '');
             setEmail(supplier.email || '');
@@ -69,6 +69,7 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
         if (supplier) {
             updateSupplier({
                 ...supplier,
+                id: supplierId,
                 name,
                 contactName,
                 email,
@@ -100,6 +101,10 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] -mx-6 px-6">
             <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-supplierId" className="text-right">Code</Label>
+                    <Input id="edit-supplierId" value={supplierId} readOnly disabled className="col-span-3" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="edit-name" className="text-right">Nom *</Label>
                     <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />

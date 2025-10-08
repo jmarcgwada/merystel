@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -58,6 +56,7 @@ export default function SuppliersPage() {
   const filteredSuppliers = useMemo(() => 
     suppliers?.filter(s => 
         s.name.toLowerCase().includes(filter.toLowerCase()) || 
+        s.id.toLowerCase().includes(filter.toLowerCase()) ||
         (s.contactName && s.contactName.toLowerCase().includes(filter.toLowerCase())) ||
         (s.email && s.email.toLowerCase().includes(filter.toLowerCase()))
     ) || [],
@@ -84,7 +83,7 @@ export default function SuppliersPage() {
           <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
                   <Input 
-                    placeholder="Rechercher par nom, contact ou email..."
+                    placeholder="Rechercher par nom, code, contact ou email..."
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                     className="max-w-sm"
@@ -107,7 +106,7 @@ export default function SuppliersPage() {
                         </TableRow>
                       )) : filteredSuppliers.map(supplier => (
                           <TableRow key={supplier.id}>
-                              <TableCell className="font-medium">{supplier.name}</TableCell>
+                              <TableCell className="font-medium">{supplier.name} <span className="font-mono text-xs text-muted-foreground ml-2">({supplier.id.slice(0,8)}...)</span></TableCell>
                               <TableCell>{supplier.contactName}</TableCell>
                               <TableCell>{supplier.email}</TableCell>
                               <TableCell>{supplier.phone}</TableCell>

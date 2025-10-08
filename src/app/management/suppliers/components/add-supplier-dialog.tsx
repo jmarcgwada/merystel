@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +17,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Textarea } from '@/components/ui/textarea';
 import type { Supplier } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertCircle } from 'lucide-react';
 
 interface AddSupplierDialogProps {
   isOpen: boolean;
@@ -29,6 +28,7 @@ interface AddSupplierDialogProps {
 export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSupplierDialogProps) {
     const { toast } = useToast();
     const { addSupplier } = usePos();
+    const [supplierId, setSupplierId] = useState('');
     const [name, setName] = useState('');
     const [contactName, setContactName] = useState('');
     const [email, setEmail] = useState('');
@@ -40,54 +40,73 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
     const [siret, setSiret] = useState('');
     const [website, setWebsite] = useState('');
     const [notes, setNotes] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+    const generateRandomId = () => {
+        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `S-${randomPart}`;
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            setSupplierId(generateRandomId());
+            setError(null);
+        }
+    }, [isOpen]);
 
     const handleAddSupplier = async () => {
-        if (!name) {
+        setError(null);
+        if (!name || !supplierId) {
              toast({
                 variant: 'destructive',
-                title: 'Nom requis',
-                description: 'Le nom du fournisseur est obligatoire.',
+                title: 'Champs requis',
+                description: 'Le nom et le code fournisseur sont obligatoires.',
             });
             return;
         }
 
-        const newSupplier = await addSupplier({
-            name,
-            contactName,
-            email,
-            phone,
-            address,
-            postalCode,
-            city,
-            country,
-            siret,
-            website,
-            notes,
-        });
-
-        if (newSupplier) {
-            toast({
-                title: 'Fournisseur ajouté',
-                description: 'Le nouveau fournisseur a été créé avec succès.',
+        try {
+            const newSupplier = await addSupplier({
+                id: supplierId,
+                name,
+                contactName,
+                email,
+                phone,
+                address,
+                postalCode,
+                city,
+                country,
+                siret,
+                website,
+                notes,
             });
 
-            if(onSupplierAdded) {
-                onSupplierAdded(newSupplier);
+            if (newSupplier) {
+                toast({
+                    title: 'Fournisseur ajouté',
+                    description: 'Le nouveau fournisseur a été créé avec succès.',
+                });
+
+                if(onSupplierAdded) {
+                    onSupplierAdded(newSupplier);
+                }
+                
+                setName('');
+                setContactName('');
+                setEmail('');
+                setPhone('');
+                setAddress('');
+                setPostalCode('');
+                setCity('');
+                setCountry('');
+                setSiret('');
+                setWebsite('');
+                setNotes('');
+                setSupplierId('');
+                onClose();
             }
-            
-            // Reset form
-            setName('');
-            setContactName('');
-            setEmail('');
-            setPhone('');
-            setAddress('');
-            setPostalCode('');
-            setCity('');
-            setCountry('');
-            setSiret('');
-            setWebsite('');
-            setNotes('');
-            onClose();
+        } catch (e: any) {
+            setError(e.message);
         }
     }
 
@@ -97,11 +116,15 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau fournisseur</DialogTitle>
           <DialogDescription>
-            Saisissez les informations du fournisseur.
+            Saisissez les informations du fournisseur. Un code unique est suggéré mais peut être modifié.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] -mx-6 px-6">
             <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="supplierId" className="text-right">Code *</Label>
+                    <Input id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} className="col-span-3" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">Nom *</Label>
                     <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
@@ -148,6 +171,12 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 </div>
             </div>
         </ScrollArea>
+         {error && (
+            <div className="text-sm text-destructive font-medium flex items-center gap-2 p-2 bg-destructive/10 rounded-md">
+                <AlertCircle className="h-4 w-4"/>
+                {error}
+            </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={handleAddSupplier}>Ajouter</Button>
