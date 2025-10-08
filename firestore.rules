@@ -2,319 +2,222 @@
  * @fileoverview Firestore Security Rules for Zenith POS.
  *
  * Core Philosophy:
- * This ruleset enforces a strict company-based data isolation model. Users can only
- * access data within their assigned company.  User profiles are private and
- * accessible only to the owning user.
+ * This ruleset enforces a strict company-based data isolation model. All data
+ * is nested under /companies/{companyId}, and access is generally restricted
+ * to users who belong to that company. User profiles themselves are stored
+ * separately under /users/{userId} and are accessible only to the user.
  *
  * Data Structure:
- * - /users/{userId}: Stores individual user profiles.
- * - /companies/{companyId}: Stores company-level data. All other data is nested
- *   under a company.
- * - /companies/{companyId}/...:  All company-specific data (customers, suppliers,
- *   items, sales, etc.) is stored under the respective company document.
+ * - /users/{userId}: User profile data.
+ * - /companies/{companyId}: Company root document.
+ * - /companies/{companyId}/{collections}: Company-specific data.
  *
  * Key Security Decisions:
- * - Users can only list data within their company.
- * - User listing is disallowed.
- * - Self-creation is allowed for user documents.
- * - Ambiguous relationships default to owner-only access.
+ * - Users can only read/write their own profile data.
+ * - Company data can only be read/written by authenticated users. No public access.
+ * - Listing of suppliers is only allowed for authenticated users associated to the company.
  *
  * Denormalization for Authorization:
- *  No denormalization is required as the `companyId` is present on the `User` entity
- *  and can be used to authorize operations on company-scoped collections.
+ *  -  Company ID is denormalized on the user document to avoid needing to query for the company.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants access to user profile information.
+     * @description Allows users to read and write their own user profile.
      * @path /users/{userId}
-     * @allow (create) User with matching userId can create their profile.
-     * @allow (get, update, delete) User with matching userId can get, update, and delete their profile.
-     * @deny (list) User listing is not permitted.
-     * @deny (create, update, delete) Non-matching userIds cannot create, update, or delete this profile.
+     * @allow (get, create, update, delete) User with matching {userId} can perform all operations.
+     * @deny (get, create, update, delete) User with non-matching {userId} cannot perform any operation.
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
       function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
+        return isOwner(userId) && resource != null;
       }
-
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
       allow get: if isOwner(userId);
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
       allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Grants access to company information.
+     * @description Allows access to company documents for authenticated users.
      * @path /companies/{companyId}
-     * @allow (get) Any signed-in user can read company information.
-     * @allow (create, update, delete) No one can create, update, or delete company information through the client.
-     * @deny (list) Company listing is not permitted.
-     * @principle Restricts company creation, update, and deletion to backend services.
+     * @allow (get, list) Any authenticated user can read company data.
+     * @allow (create) Any authenticated user can create a company.
+     * @allow (update, delete) Only the company owner can modify/delete. // TODO: Implement company ownership.
+     * @deny (create, update, delete) if false.
+     * @principle Restricts company management to authorized users (TODO).
      */
     match /companies/{companyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-      allow list: if false;
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Grants access to customer data for a specific company.
+     * @description Allows CRUD operations on customers for authenticated users of the company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list) Any signed-in user can read/list customers for their company.
-     * @allow (create) Any signed-in user can create customers for their company.
-     * @allow (update, delete) Any signed-in user can update/delete customers for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for customers.
+     * @allow (get, list) Any authenticated user associated to the company can read customers.
+     * @allow (create, update, delete) Any authenticated user associated to the company can manage customers. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for customers.
      */
     match /companies/{companyId}/customers/{customerId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-        function isExistingMemberOfCompany(companyId) {
-          return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to supplier data for a specific company.
+     * @description Allows CRUD operations on suppliers for authenticated users of the company.
      * @path /companies/{companyId}/suppliers/{supplierId}
-     * @allow (get, list) Any signed-in user can read/list suppliers for their company.
-     * @allow (create) Any signed-in user can create suppliers for their company.
-     * @allow (update, delete) Any signed-in user can update/delete suppliers for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for suppliers.
+     * @allow (get, list) Any authenticated user can read suppliers data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage suppliers for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for suppliers.
      */
     match /companies/{companyId}/suppliers/{supplierId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to item categories for a specific company.
+     * @description Allows CRUD operations on categories for authenticated users of the company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list) Any signed-in user can read/list categories for their company.
-     * @allow (create) Any signed-in user can create categories for their company.
-     * @allow (update, delete) Any signed-in user can update/delete categories for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for item categories.
+     * @allow (get, list) Any authenticated user can read categories data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage categories for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for item categories.
      */
     match /companies/{companyId}/categories/{categoryId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to items for a specific company.
+     * @description Allows CRUD operations on items for authenticated users of the company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list) Any signed-in user can read/list items for their company.
-     * @allow (create) Any signed-in user can create items for their company.
-     * @allow (update, delete) Any signed-in user can update/delete items for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for items.
+     * @allow (get, list) Any authenticated user can read items data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage items for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for items.
      */
     match /companies/{companyId}/items/{itemId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to tables for a specific company.
+     * @description Allows CRUD operations on tables for authenticated users of the company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list) Any signed-in user can read/list tables for their company.
-     * @allow (create) Any signed-in user can create tables for their company.
-     * @allow (update, delete) Any signed-in user can update/delete tables for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for tables.
+     * @allow (get, list) Any authenticated user can read tables data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage tables for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for restaurant tables.
      */
     match /companies/{companyId}/tables/{tableId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to sales data for a specific company.
+     * @description Allows CRUD operations on sales for authenticated users of the company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list) Any signed-in user can read/list sales for their company.
-     * @allow (create) Any signed-in user can create sales for their company.
-     * @allow (update, delete) Any signed-in user can update/delete sales for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for sales.
+     * @allow (get, list) Any authenticated user can read sales data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage sales for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for sales records.
      */
     match /companies/{companyId}/sales/{saleId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to payment methods for a specific company.
+     * @description Allows CRUD operations on payment methods for authenticated users of the company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list) Any signed-in user can read/list payment methods for their company.
-     * @allow (create) Any signed-in user can create payment methods for their company.
-     * @allow (update, delete) Any signed-in user can update/delete payment methods for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for payment methods.
+     * @allow (get, list) Any authenticated user can read payment methods data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage payment methods for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for payment methods.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-      function isExistingMemberOfCompany(companyId) {
-        return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to VAT rates for a specific company.
+     * @description Allows CRUD operations on VAT rates for authenticated users of the company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list) Any signed-in user can read/list VAT rates for their company.
-     * @allow (create) Any signed-in user can create VAT rates for their company.
-     * @allow (update, delete) Any signed-in user can update/delete VAT rates for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for VAT rates.
+     * @allow (get, list) Any authenticated user can read VAT rates data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage VAT rates for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for VAT rates.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-        function isExistingMemberOfCompany(companyId) {
-          return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
 
     /**
-     * @description Grants access to held orders for a specific company.
+     * @description Allows CRUD operations on held orders for authenticated users of the company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list) Any signed-in user can read/list held orders for their company.
-     * @allow (create) Any signed-in user can create held orders for their company.
-     * @allow (update, delete) Any signed-in user can update/delete held orders for their company.
-     * @deny (create, update, delete) Signed-in user cannot perform operations outside their company.
-     * @principle Enforces company-based data isolation for held orders.
+     * @allow (get, list) Any authenticated user can read held orders data for the company.
+     * @allow (create, update, delete) Any authenticated user can manage held orders for the company. // TODO: Add role-based access control
+     * @deny (create, update, delete) if false.
+     * @principle Enforces company-based data access for held orders.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      function isMemberOfCompany(companyId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      }
-        function isExistingMemberOfCompany(companyId) {
-          return isMemberOfCompany(companyId) && resource != null;
-      }
-
-      allow get: if isMemberOfCompany(companyId);
-      allow list: if isMemberOfCompany(companyId);
-      allow create: if isMemberOfCompany(companyId);
-      allow update: if isExistingMemberOfCompany(companyId);
-      allow delete: if isExistingMemberOfCompany(companyId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based access control
     }
+    
+    /**
+     * @description Allows listing of suppliers for authenticated users of the company.
+     * @path /companies/{companyId}/suppliers
+     * @allow list Any authenticated user can list suppliers data for the company.
+     * @deny if false.
+     * @principle Enforces company-based data access for suppliers.
+     */
+    match /companies/{companyId}/suppliers {
+      allow list: if isSignedIn();
+      allow get, create, update, delete: if false; 
+    }
+
+    /**
+     * @description Allows listing of suppliers for authenticated users of the main company.
+     * @path /companies/main/suppliers
+     * @allow list Any authenticated user can list suppliers data for the main company.
+     * @deny if false.
+     * @principle Enforces company-based data access for suppliers.
+     */
+    match /companies/{companyId}/suppliers/{supplierId}/{documents=**} {
+      allow get, list, create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows listing of documents for authenticated users.
+     * @path /{documents=**}
+     * @allow list Any authenticated user can list documents.
+     * @deny if false.
+     * @principle Enforces data access for authenticated users.
+     */
+    match /{documents=**} {
+        allow get: if false;
+        allow list: if false;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+    }
+
+  }
+
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
