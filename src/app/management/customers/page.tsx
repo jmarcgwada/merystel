@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -185,7 +185,7 @@ export default function CustomersPage() {
                                   <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                      <div className="space-y-4">
                                         <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
-                                        <DetailItem icon={Building} label="Code Client" value={customer.id} />
+                                        <DetailItem icon={Fingerprint} label="Code Client" value={customer.id} />
                                         <DetailItem icon={MapPin} label="Adresse" value={customer.address} />
                                         <DetailItem icon={MapPin} label="Ville / CP" value={customer.city && customer.postalCode ? `${customer.city}, ${customer.postalCode}` : customer.city || customer.postalCode} />
                                         <DetailItem icon={MapPin} label="Pays" value={customer.country} />

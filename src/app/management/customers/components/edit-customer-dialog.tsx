@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,6 +38,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
     const [country, setCountry] = useState('');
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
+    const [customerId, setCustomerId] = useState('');
 
     useEffect(() => {
         if(customer) {
@@ -49,6 +51,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
             setCountry(customer.country || '');
             setIban(customer.iban || '');
             setNotes(customer.notes || '');
+            setCustomerId(customer.id);
         }
     }, [customer]);
 
@@ -99,6 +102,10 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
             </TabsList>
             <div className="py-4 max-h-[60vh] overflow-y-auto px-1">
                 <TabsContent value="info" className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-code">Code Client</Label>
+                        <Input id="edit-code" value={customerId} readOnly disabled />
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Nom complet *</Label>
                         <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} placeholder="Jean Dupont" onFocus={(e) => e.target.select()} />

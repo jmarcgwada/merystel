@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,13 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
     const [country, setCountry] = useState('');
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
+    const [customerId, setCustomerId] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setCustomerId(uuidv4());
+        }
+    }, [isOpen]);
 
     const handleAddCustomer = async () => {
         if (!name) {
@@ -51,7 +58,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
         }
 
         const newCustomer = await addCustomer({
-            id: uuidv4(),
+            id: customerId,
             name,
             email,
             phone,
@@ -83,6 +90,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
             setCountry('');
             setIban('');
             setNotes('');
+            setCustomerId('');
             onClose();
         }
     }
@@ -104,6 +112,10 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
             </TabsList>
             <div className="py-4 max-h-[60vh] overflow-y-auto px-1">
                 <TabsContent value="info" className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="code">Code Client</Label>
+                        <Input id="code" value={customerId.slice(0,8) + '...'} readOnly disabled />
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="name">Nom complet *</Label>
                         <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Jean Dupont" onFocus={(e) => e.target.select()} />
