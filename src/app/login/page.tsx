@@ -76,11 +76,12 @@ export default function LoginPage() {
   
   useEffect(() => {
     // Set email from localStorage on initial client-side render
-    const lastLoginEmail = localStorage.getItem('lastLoginEmail');
-    if (lastLoginEmail) {
-      setEmail(lastLoginEmail);
+    const adminUser = users?.find(u => u.role === 'admin');
+    if (adminUser) {
+      setEmail(adminUser.email);
+      setPassword("password"); // Default password, user might need to change it
     }
-  }, []);
+  }, [users]);
 
 
   useEffect(() => {
