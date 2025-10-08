@@ -117,6 +117,8 @@ export interface Supplier {
   siret?: string;
   notes?: string;
   website?: string;
+  iban?: string;
+  bic?: string;
 }
 
 export interface PaymentMethod {

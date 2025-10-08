@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Supplier } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AddSupplierDialogProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
     const [siret, setSiret] = useState('');
     const [website, setWebsite] = useState('');
     const [notes, setNotes] = useState('');
+    const [iban, setIban] = useState('');
+    const [bic, setBic] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const generateRandomId = () => {
@@ -79,6 +82,8 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 siret,
                 website,
                 notes,
+                iban,
+                bic,
             });
 
             if (newSupplier) {
@@ -102,6 +107,8 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 setSiret('');
                 setWebsite('');
                 setNotes('');
+                setIban('');
+                setBic('');
                 setSupplierId('');
                 onClose();
             }
@@ -119,58 +126,82 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
             Saisissez les informations du fournisseur. Un code unique est suggéré mais peut être modifié.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[70vh] -mx-6 px-6">
-            <div className="grid gap-4 py-4">
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="supplierId" className="text-right">Code *</Label>
-                    <Input id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Nom *</Label>
-                    <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="contactName" className="text-right">Contact</Label>
-                    <Input id="contactName" value={contactName} onChange={e => setContactName(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">Email</Label>
-                    <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">Téléphone</Label>
-                    <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="address" className="text-right">Adresse</Label>
-                    <Input id="address" value={address} onChange={e => setAddress(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="postalCode" className="text-right">C.P.</Label>
-                    <Input id="postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="city" className="text-right">Ville</Label>
-                    <Input id="city" value={city} onChange={e => setCity(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="country" className="text-right">Pays</Label>
-                    <Input id="country" value={country} onChange={e => setCountry(e.target.value)} className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="website" className="text-right">Site Web</Label>
-                    <Input id="website" value={website} onChange={e => setWebsite(e.target.value)} className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="siret" className="text-right">SIRET</Label>
-                    <Input id="siret" value={siret} onChange={e => setSiret(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="notes" className="text-right pt-2">Notes</Label>
-                    <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} className="col-span-3" />
-                </div>
-            </div>
-        </ScrollArea>
+        <Tabs defaultValue="info">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="info">Contact</TabsTrigger>
+                <TabsTrigger value="address">Adresse</TabsTrigger>
+                <TabsTrigger value="other">Autre</TabsTrigger>
+            </TabsList>
+            <ScrollArea className="max-h-[60vh]">
+              <div className="py-4 px-1">
+                <TabsContent value="info" className="space-y-4 mt-0">
+                    <div className="space-y-2">
+                        <Label htmlFor="supplierId">Code Fournisseur *</Label>
+                        <Input id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="name">Nom *</Label>
+                        <Input id="name" value={name} onChange={e => setName(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="contactName">Nom du contact</Label>
+                        <Input id="contactName" value={contactName} onChange={e => setContactName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="phone">Téléphone</Label>
+                        <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+                    </div>
+                </TabsContent>
+                <TabsContent value="address" className="space-y-4 mt-0">
+                    <div className="space-y-2">
+                        <Label htmlFor="address">Adresse</Label>
+                        <Input id="address" value={address} onChange={e => setAddress(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="postalCode">Code Postal</Label>
+                            <Input id="postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="city">Ville</Label>
+                            <Input id="city" value={city} onChange={e => setCity(e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="country">Pays</Label>
+                        <Input id="country" value={country} onChange={e => setCountry(e.target.value)} />
+                    </div>
+                </TabsContent>
+                 <TabsContent value="other" className="space-y-4 mt-0">
+                     <div className="space-y-2">
+                        <Label htmlFor="siret">SIRET</Label>
+                        <Input id="siret" value={siret} onChange={e => setSiret(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="website">Site Web</Label>
+                        <Input id="website" value={website} onChange={e => setWebsite(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="iban">IBAN</Label>
+                        <Input id="iban" value={iban} onChange={e => setIban(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="bic">BIC / SWIFT</Label>
+                        <Input id="bic" value={bic} onChange={e => setBic(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="notes">Notes</Label>
+                        <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} />
+                    </div>
+                </TabsContent>
+              </div>
+            </ScrollArea>
+        </Tabs>
+        
          {error && (
             <div className="text-sm text-destructive font-medium flex items-center gap-2 p-2 bg-destructive/10 rounded-md">
                 <AlertCircle className="h-4 w-4"/>

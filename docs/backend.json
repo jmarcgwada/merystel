@@ -84,7 +84,9 @@
         "country": { "type": "string" },
         "siret": { "type": "string" },
         "notes": { "type": "string" },
-        "website": { "type": "string" }
+        "website": { "type": "string" },
+        "iban": { "type": "string" },
+        "bic": { "type": "string" }
       },
       "required": ["id", "name"]
     },
