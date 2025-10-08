@@ -76,6 +76,7 @@ function ItemForm() {
 
   const itemId = searchParams.get('id');
   const barcodeParam = searchParams.get('barcode');
+  const redirectUrlParam = searchParams.get('redirectUrl');
   const isEditMode = Boolean(itemId);
   const itemToEdit = isEditMode && items ? items.find(i => i.id === itemId) : null;
 
@@ -277,7 +278,12 @@ function ItemForm() {
       addItem({ ...submissionData, image: data.image || defaultImage });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
     }
-    router.push('/management/items');
+    
+    if (redirectUrlParam) {
+      router.push(decodeURIComponent(redirectUrlParam));
+    } else {
+      router.push('/management/items');
+    }
   }
 
   const handleGenerateImage = async () => {

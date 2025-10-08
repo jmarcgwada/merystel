@@ -158,16 +158,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         setSearchTerm('');
         setListContent([]);
       } else if (searchTerm.trim() !== '') {
-        // If no item is found, and there's a search term, redirect to create a new item.
-        const filtered = allItems?.filter(item => 
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          (item.barcode && item.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
-        ) || [];
+        const trimmedSearch = searchTerm.trim();
+        const isBarcodeFormat = /^\d{11,14}$/.test(trimmedSearch);
+        const itemExists = allItems?.some(item => item.barcode === trimmedSearch);
 
-        if(filtered.length === 0) {
-          router.push(`/management/items/form?barcode=${searchTerm}`);
+        if (isBarcodeFormat && !itemExists) {
+            const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            router.push(`/management/items/form?barcode=${trimmedSearch}&redirectUrl=${redirectUrl}`);
         } else {
-          performSearch(searchTerm, searchType);
+            performSearch(searchTerm, searchType);
         }
       }
     }
