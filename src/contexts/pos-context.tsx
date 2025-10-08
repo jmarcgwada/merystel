@@ -134,7 +134,7 @@ interface PosContextType {
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
   popularItems: Item[];
   categories: Category[];
-  addCategory: (category: Omit<Category, 'id'>) => void;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<Category | null>;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
@@ -956,7 +956,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return [...currentOrder, newOrderItem];
     });
     if(item.image) setDynamicBgImage(item.image);
-    triggerItemHighlight(item.id);
+    triggerItemHighlight(newOrderItem.id);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
 
@@ -965,15 +965,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
-      
-      const uniqueId = selectedVariants ? uuidv4() : itemToAdd.id;
 
       const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && JSON.stringify(item.selectedVariants) === JSON.stringify(selectedVariants)
+        (item) => item.itemId === itemId && JSON.stringify(item.selectedVariants) === JSON.stringify(selectedVariants) && !item.serialNumbers?.length
       );
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
-          const newQuantity = (order[existingItemIndex]?.quantity || 0) + 1;
+          const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
           setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
           return;
       }
@@ -984,7 +982,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       setOrder((currentOrder) => {
-        if (existingItemIndex > -1) { // Group identical items (with same variants)
+        if (existingItemIndex > -1) {
           const newOrder = [...currentOrder];
           const newQuantity = newOrder[existingItemIndex].quantity + 1;
           newOrder[existingItemIndex] = {
@@ -993,10 +991,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             total:
               newOrder[existingItemIndex].price * newQuantity - (newOrder[existingItemIndex].discount || 0),
           };
-           // Move to top
            const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
           return [itemToMove, ...newOrder];
         } else {
+          const uniqueId = uuidv4();
           const newItem: OrderItem = {
             itemId: itemToAdd.id,
             id: uniqueId,
@@ -1017,7 +1015,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
       if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-      triggerItemHighlight(uniqueId);
+      triggerItemHighlight(order.find(i => i.itemId === itemId)?.id || '');
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber]
@@ -1674,8 +1672,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Generic Entity Management
   const addCategory = useCallback(
-    (category: Omit<Category, 'id'>) =>
-      addEntity('categories', category, 'Catégorie ajoutée'),
+    async (category: Omit<Category, 'id'>) =>
+      addEntity('categories', category, 'Catégorie ajoutée') as Promise<Category | null>,
     [addEntity]
   );
   const updateCategory = useCallback(
@@ -2145,6 +2143,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
+      holdOrder,
     }),
     [
       order,
@@ -2325,6 +2324,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
+      holdOrder,
     ]
   );
 
