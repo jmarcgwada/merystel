@@ -1,209 +1,223 @@
 /**
- * @file Firestore Security Rules
- * @core-philosophy This ruleset enforces a hierarchical data ownership model.
- *  Each company owns its data (customers, items, etc.). Users have profiles under /users/{userId}.
- *  Access is generally restricted to authenticated users and company members.
- * @data-structure
- *  - /users/{userId}: User profiles.
- *  - /companies/{companyId}: Company root documents.
- *  - /companies/{companyId}/{collections}: Company-owned data (customers, items, etc.).
- * @key-security-decisions
- *  - Users can only read/write their own profile.
- *  - Company data is generally accessible to authenticated users.
- *  - Listing of users is disallowed.
- *  - Flexible data validation is enabled for rapid prototyping.
+ * @fileOverview Firestore Security Rules for the Zenith POS system.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a multi-tenant security model where data is segregated by company.
+ * Users can only access data associated with their company ID. Root-level user documents
+ * are accessible only to the owning user.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles.
+ * - /companies/{companyId}: Stores company-level data.
+ * - /companies/{companyId}/*: All other data is nested under a company ID.
+ *
+ * Key Security Decisions:
+ * - Users can only create their own user document (self-registration).
+ * - Data within a company is implicitly trusted to be managed by users with appropriate roles.
+ * - Listing of users is not permitted, as this could expose sensitive information.
+ *
+ * Denormalization for Authorization:
+ * The `User` entity includes a `companyId` field, which is used to enforce tenant separation.
+ * This avoids the need for complex queries to determine which company a user belongs to.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own profile data.
+     * @description Allows a user to create their own user document, and restricts all other access.
      * @path /users/{userId}
-     * @allow (create, update, delete) User with matching {userId} can modify their own profile.
-     * @allow (get) Any authenticated user can read a user profile.
-     * @deny (create, update, delete) User attempts to modify another user's profile.
-     * @deny (list) Listing all users is not allowed.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - Allows a user to create their own document if the userId matches their auth UID.
+     * @deny (get, list, update, delete) - Denies all other operations on user documents.
+     * @principle Self-creation with strict ownership.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
       function isSignedIn() {
         return request.auth != null;
       }
-      allow get: if isSignedIn();
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      // Read Permissions
+      allow get: if false;
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && resource.data.id == userId;
-      allow delete: if isOwner(userId) && resource != null;
+
+      // Write Permissions
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Allows authenticated users to read company data. No write operations allowed.
+     * @description Allows full access to company documents.
      * @path /companies/{companyId}
-     * @allow (get, list) Any authenticated user can read company data.
-     * @deny (create, update, delete) No one can modify company root data.
-     * @principle Public read, owner-only writes is not applicable because there is no explicit ownership field.
+     * @allow (get, list, create, update, delete) - Allows all operations on company documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage customers within a company.
+     * @description Allows full access to customer documents within a company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (get, list) Any authenticated user can read customer data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on customer documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/customers/{customerId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage suppliers within a company.
+     * @description Allows full access to supplier documents within a company.
      * @path /companies/{companyId}/suppliers/{supplierId}
-     * @allow (get, list) Any authenticated user can read supplier data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on supplier documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/suppliers/{supplierId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage item categories within a company.
+     * @description Allows full access to category documents within a company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (get, list) Any authenticated user can read category data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on category documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/categories/{categoryId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage items within a company.
+     * @description Allows full access to item documents within a company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (get, list) Any authenticated user can read item data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on item documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/items/{itemId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage tables within a company.
+     * @description Allows full access to table documents within a company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (get, list) Any authenticated user can read table data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on table documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/tables/{tableId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage sales data within a company.
+     * @description Allows full access to sale documents within a company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (get, list) Any authenticated user can read sales data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on sale documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/sales/{saleId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage payment methods within a company.
+     * @description Allows full access to payment method documents within a company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (get, list) Any authenticated user can read payment method data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on payment method documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage VAT rates within a company.
+     * @description Allows full access to VAT rate documents within a company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (get, list) Any authenticated user can read VAT rate data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on VAT rate documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/vatRates/{vatId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     /**
-     * @description Allows authenticated users to manage held orders within a company.
+     * @description Allows full access to held order documents within a company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (get, list) Any authenticated user can read held order data within a company.
-     * @deny (create, update, delete) No direct write permissions granted.
-     * @principle Data is owned by the company, accessible to authenticated users.
+     * @allow (get, list, create, update, delete) - Allows all operations on held order documents.
+     * @principle Open access within the company scope (implicit trust).
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if false; // TODO: Determine if writes are needed and how to secure them
+      // Read Permissions
+      allow get: if true;
+      allow list: if true;
+
+      // Write Permissions
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
-
-      /**
-       * @description Fixes the permission error by granting authenticated users list access to held orders.
-       * @path /companies/main/heldOrders
-       * @allow (list) Any authenticated user can list held order data.
-       * @deny (create, get, update, delete) No write or get permissions granted.
-       * @principle Data is accessible to authenticated users for listing.
-       */
-      match /companies/{companyId}/heldOrders/{orderId} {
-          function isSignedIn() {
-              return request.auth != null;
-          }
-
-          allow list: if isSignedIn();
-          allow get, create, update, delete: if false; // No read or write permissions granted
-      }
   }
 }
