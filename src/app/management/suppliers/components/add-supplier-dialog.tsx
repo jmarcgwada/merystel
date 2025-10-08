@@ -68,7 +68,7 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
             return;
         }
 
-        if (suppliers.some(s => s.id === supplierId)) {
+        if (suppliers && suppliers.some(s => s.id === supplierId)) {
             setError(`Le code fournisseur "${supplierId}" existe déjà.`);
             return;
         }
