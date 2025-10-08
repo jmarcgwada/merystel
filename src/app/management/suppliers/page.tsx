@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -17,14 +17,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
 import type { Supplier } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/auth/use-user';
+import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from './components/add-supplier-dialog';
 import { EditSupplierDialog } from './components/edit-supplier-dialog';
+
+const ITEMS_PER_PAGE = 15;
+
+const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+    if (!value) return null;
+    const Icon = icon;
+    return (
+        <div className="flex items-start gap-3">
+            <Icon className="h-4 w-4 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-sm font-medium">{value}</p>
+            </div>
+        </div>
+    )
+}
 
 export default function SuppliersPage() {
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
@@ -36,6 +54,9 @@ export default function SuppliersPage() {
   const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [filter, setFilter] = useState('');
+  const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -63,11 +84,22 @@ export default function SuppliersPage() {
     ) || [],
   [suppliers, filter]);
 
+  const paginatedSuppliers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSuppliers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredSuppliers, currentPage]);
+  
+  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+
+  const toggleCollapsible = (id: string) => {
+    setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));
+  }
+
   return (
     <>
       <PageHeader 
         title="Gérer les fournisseurs" 
-        subtitle={isClient && suppliers ? `Vous avez ${suppliers.length} fournisseurs au total.` : "Affichez et gérez votre liste de fournisseurs."}
+        subtitle={isClient && suppliers ? `Page ${currentPage} sur ${totalPages} (${filteredSuppliers.length} fournisseurs sur ${suppliers.length} au total)` : "Affichez et gérez votre liste de fournisseurs."}
       >
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
@@ -86,13 +118,28 @@ export default function SuppliersPage() {
                   <Input 
                     placeholder="Rechercher par nom, code, contact ou email..."
                     value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
+                    onChange={(e) => {
+                      setFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="max-w-sm"
                   />
+                  <div className="flex items-center gap-2">
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} / {totalPages}
+                    </span>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
               </div>
               <Table>
                   <TableHeader>
                       <TableRow>
+                          <TableHead className="w-[50px]"></TableHead>
                           <TableHead>Nom</TableHead>
                           <TableHead>Contact</TableHead>
                           <TableHead>Email</TableHead>
@@ -100,28 +147,69 @@ export default function SuppliersPage() {
                           <TableHead className="w-[100px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
-                  <TableBody>
-                      {(isLoading || !isClient) ? Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
-                        </TableRow>
-                      )) : filteredSuppliers.map(supplier => (
-                          <TableRow key={supplier.id}>
+                  
+                  {(isLoading || !isClient) && (
+                    <TableBody>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                  )}
+                  {isClient && !isLoading && paginatedSuppliers && paginatedSuppliers.map(supplier => (
+                      <TableBody key={supplier.id} className="border-b">
+                          <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(supplier.id)}>
+                              <TableCell className="w-[50px]">
+                                  <Button variant="ghost" size="icon">
+                                      {openCollapsibles[supplier.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  </Button>
+                              </TableCell>
                               <TableCell className="font-medium">{supplier.name} <span className="font-mono text-xs text-muted-foreground ml-2">({supplier.id.slice(0,8)}...)</span></TableCell>
                               <TableCell>{supplier.contactName}</TableCell>
                               <TableCell>{supplier.email}</TableCell>
                               <TableCell>{supplier.phone}</TableCell>
                               <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(supplier)} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); !isCashier && handleOpenEditDialog(supplier)}} disabled={isCashier}>
                                       <Edit className="h-4 w-4"/>
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setSupplierToDelete(supplier)} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); !isCashier && setSupplierToDelete(supplier)}} disabled={isCashier}>
                                       <Trash2 className="h-4 w-4"/>
                                   </Button>
                               </TableCell>
                           </TableRow>
-                      ))}
-                  </TableBody>
+                          {openCollapsibles[supplier.id] && (
+                             <TableRow>
+                                <TableCell colSpan={6} className="p-0">
+                                  <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                     <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
+                                        <DetailItem icon={Fingerprint} label="Code Fournisseur" value={supplier.id} />
+                                        <DetailItem icon={Mail} label="Email" value={supplier.email} />
+                                        <DetailItem icon={Phone} label="Téléphone" value={supplier.phone} />
+                                        <DetailItem icon={MapPin} label="Adresse" value={supplier.address} />
+                                        <DetailItem icon={MapPin} label="Ville / CP" value={supplier.city && supplier.postalCode ? `${supplier.city}, ${supplier.postalCode}` : supplier.city || supplier.postalCode} />
+                                        <DetailItem icon={MapPin} label="Pays" value={supplier.country} />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><Building className="h-4 w-4"/>Entreprise</h4>
+                                        <DetailItem icon={Fingerprint} label="SIRET" value={supplier.siret} />
+                                        <DetailItem icon={Globe} label="Site Web" value={supplier.website} />
+                                        <DetailItem icon={Banknote} label="IBAN" value={supplier.iban} />
+                                        <DetailItem icon={Banknote} label="BIC / SWIFT" value={supplier.bic} />
+                                    </div>
+                                     <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><Notebook className="h-4 w-4"/>Notes</h4>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes || 'Aucune note.'}</p>
+                                    </div>
+                                  </div>
+                                  <Separator />
+                                </TableCell>
+                             </TableRow>
+                          )}
+                      </TableBody>
+                  ))}
+                  
               </Table>
           </CardContent>
         </Card>
@@ -145,3 +233,4 @@ export default function SuppliersPage() {
     </>
   );
 }
+
