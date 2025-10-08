@@ -420,7 +420,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
@@ -1069,7 +1069,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [newItem, ...currentOrder];
         }
       });
-      if(itemToAdd.image) setDynamicBgImage(item.image);
+      if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
       triggerItemHighlight(order.find(i => i.itemId === itemId)?.id || '');
       toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
