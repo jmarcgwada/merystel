@@ -421,7 +421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
   const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
@@ -441,14 +441,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   
-  const isManagerOrAdmin = useMemo(() => user?.role === 'admin' || user?.role === 'manager', [user]);
-  const salesCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, isManagerOrAdmin]);
-  const { data: rawSales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
+  const salesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user]);
+  const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
   
   const sales = useMemo(() => {
       if (!rawSales) return [];
       return rawSales.map(sale => {
-          const toDate = (ts: any) => ts instanceof Timestamp ? ts.toDate() : ts;
+          const toDate = (ts: any) => ts instanceof Timestamp ? ts.toDate() : (ts ? new Date(ts) : new Date());
           return {
               ...sale,
               date: toDate(sale.date),
@@ -468,7 +467,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const heldOrdersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
 
-  const companyDocRef = useMemoFirebase(() => user && isManagerOrAdmin ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user, isManagerOrAdmin]);
+  const companyDocRef = useMemoFirebase(() => user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user]);
   const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(companyDocRef);
 
 
@@ -480,11 +479,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     customersLoading ||
     suppliersLoading ||
     tablesLoading ||
-    (!!user && (isManagerOrAdmin && salesLoading)) ||
+    salesLoading ||
     paymentMethodsLoading ||
     vatRatesLoading ||
     heldOrdersLoading ||
-    (!!user && (isManagerOrAdmin && companyInfoLoading));
+    companyInfoLoading;
 
   // #endregion
   
@@ -1229,6 +1228,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               tableName: tableToSelect?.name,
               isTableSale: !!tableToSelect && tableToSelect.id !== 'takeaway'
           });
+          if(tableId) {
+            routerRef.current.push(`/pos?tableId=${tableId}`);
+          }
       }
     },
     [tables, clearOrder, setCameFromRestaurant]
@@ -2218,6 +2220,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       showTicketImages,
       setShowTicketImages,
+      showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
       setDescriptionDisplay,
       popularItemsCount,
@@ -2402,6 +2406,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       authRequired,
       showTicketImages,
       setShowTicketImages,
+      showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
       setDescriptionDisplay,
       popularItemsCount,
