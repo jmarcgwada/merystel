@@ -160,7 +160,7 @@ export default function FirestoreDataPage() {
                         <Input 
                             id="pin"
                             type="password"
-                            autoComplete="off"
+                            autoComplete="one-time-code"
                             value={pin}
                             onChange={(e) => setPin(e.target.value)}
                             placeholder="•••••"
@@ -425,4 +425,3 @@ export default function FirestoreDataPage() {
   );
 }
 
-    
