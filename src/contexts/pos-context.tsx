@@ -434,10 +434,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
   const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
-  const customersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user, isManagerOrAdmin]);
+  const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
   const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
-  const suppliersCollectionRef = useMemoFirebase(() => user && isManagerOrAdmin ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user, isManagerOrAdmin]);
+  const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user]);
   const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
   const tablesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user]);
@@ -466,8 +466,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     (!!user && (user.role === 'admin' && usersLoading)) ||
     (!!user && itemsLoading) ||
     (!!user && categoriesLoading) ||
-    (!!user && (isManagerOrAdmin && customersLoading)) ||
-    (!!user && (isManagerOrAdmin && suppliersLoading)) ||
+    (!!user && customersLoading) ||
+    (!!user && suppliersLoading) ||
     (!!user && tablesLoading) ||
     (!!user && (isManagerOrAdmin && salesLoading)) ||
     (!!user && paymentMethodsLoading) ||
@@ -2301,6 +2301,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       enableDynamicBg, setEnableDynamicBg,
       dynamicBgOpacity, setDynamicBgOpacity,
       readOnlyOrder,
+      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2312,10 +2313,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       orderTotal,
       orderTax,
       isKeypadOpen,
+      setIsKeypadOpen,
       currentSaleId,
+      setCurrentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       recentlyAddedItemId,
+      setRecentlyAddedItemId,
       serialNumberItem,
+      setSerialNumberItem,
       variantItem,
       setVariantItem,
       lastDirectSale,
@@ -2333,6 +2339,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -2428,8 +2435,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDefaultSalesMode,
       isForcedMode,
       setIsForcedMode,
-      setDirectSaleBackgroundColor,
       directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
       setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
@@ -2470,13 +2477,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      setReadOnlyOrder,
-      setIsKeypadOpen,
-      setRecentlyAddedItemId,
-      setCurrentSaleId,
-      setSerialNumberItem,
-      setSessionInvalidated,
-      setCurrentSaleContext
     ]
   );
 
