@@ -52,6 +52,7 @@
       "type": "object",
       "description": "Represents a customer of the company.",
       "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the customer." },
         "name": { "type": "string", "description": "The full name of the customer." },
         "email": { "type": "string", "description": "The email address of the customer.", "format": "email" },
         "phone": { "type": "string", "description": "The phone number of the customer." },
@@ -63,7 +64,7 @@
         "iban": { "type": "string" },
         "notes": { "type": "string" }
       },
-      "required": ["name"]
+      "required": ["id", "name"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",

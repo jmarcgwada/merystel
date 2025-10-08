@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -76,7 +77,11 @@ export default function CustomersPage() {
   }
 
   const filteredCustomers = useMemo(() => 
-    customers?.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.email?.toLowerCase().includes(filter.toLowerCase())) || [],
+    customers?.filter(c => 
+        c.name.toLowerCase().includes(filter.toLowerCase()) || 
+        (c.email && c.email.toLowerCase().includes(filter.toLowerCase())) ||
+        c.id.toLowerCase().includes(filter.toLowerCase())
+    ) || [],
   [customers, filter]);
 
   const paginatedCustomers = useMemo(() => {
@@ -111,7 +116,7 @@ export default function CustomersPage() {
           <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
                   <Input 
-                    placeholder="Rechercher par nom ou email..."
+                    placeholder="Rechercher par nom, email ou code client..."
                     value={filter}
                     onChange={(e) => {
                       setFilter(e.target.value);
@@ -159,7 +164,7 @@ export default function CustomersPage() {
                                       {openCollapsibles[customer.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                   </Button>
                               </TableCell>
-                              <TableCell className="font-medium">{customer.name}</TableCell>
+                              <TableCell className="font-medium">{customer.name} <span className="font-mono text-xs text-muted-foreground ml-2">({customer.id.slice(0,8)}...)</span></TableCell>
                               <TableCell>{customer.email}</TableCell>
                               <TableCell>{customer.phone}</TableCell>
                               <TableCell className="text-right">
@@ -178,9 +183,10 @@ export default function CustomersPage() {
                              <TableRow>
                                 <TableCell colSpan={5} className="p-0">
                                   <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    <div className="space-y-4">
-                                        <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Adresse</h4>
-                                        <DetailItem icon={Building} label="Adresse" value={customer.address} />
+                                     <div className="space-y-4">
+                                        <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
+                                        <DetailItem icon={Building} label="Code Client" value={customer.id} />
+                                        <DetailItem icon={MapPin} label="Adresse" value={customer.address} />
                                         <DetailItem icon={MapPin} label="Ville / CP" value={customer.city && customer.postalCode ? `${customer.city}, ${customer.postalCode}` : customer.city || customer.postalCode} />
                                         <DetailItem icon={MapPin} label="Pays" value={customer.country} />
                                     </div>

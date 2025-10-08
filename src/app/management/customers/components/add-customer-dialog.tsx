@@ -19,6 +19,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Customer } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
         }
 
         const newCustomer = await addCustomer({
+            id: uuidv4(),
             name,
             email,
             phone,
