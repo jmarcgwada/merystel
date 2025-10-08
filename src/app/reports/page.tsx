@@ -178,11 +178,14 @@ export default function ReportsPage() {
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             
             const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            const isPartiallyPaid = totalPaid > 0 && totalPaid < sale.total;
+            
             let statusMatch = true;
-            if (filterStatus === 'paid') statusMatch = sale.status === 'paid';
-            else if (filterStatus === 'pending') statusMatch = sale.status === 'pending' && totalPaid === 0;
-            else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && isPartiallyPaid;
+            if (filterStatus !== 'all') {
+                if (filterStatus === 'paid') statusMatch = sale.status === 'paid';
+                else if (filterStatus === 'pending') statusMatch = sale.status === 'pending' && totalPaid === 0;
+                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < sale.total;
+                else statusMatch = sale.status === filterStatus;
+            }
 
             const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
             
@@ -702,9 +705,10 @@ export default function ReportsPage() {
                         )) : null}
                         {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
-                            const pieceType = sale.ticketNumber?.startsWith('Fact-') ? 'Facture'
-                                            : sale.ticketNumber?.startsWith('Devis-') ? 'Devis'
-                                            : sale.ticketNumber?.startsWith('BL-') ? 'Bon de livraison'
+                            const pieceType = sale.documentType === 'invoice' ? 'Facture'
+                                            : sale.documentType === 'quote' ? 'Devis'
+                                            : sale.documentType === 'delivery_note' ? 'Bon de livraison'
+                                            : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
                                             : 'Ticket';
                             return (
                                 <TableRow key={sale.id}>
@@ -735,7 +739,7 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            {sale.status === 'pending' && (
+                                            {sale.status === 'pending' && sale.documentType === 'invoice' && (
                                                 <Button asChild variant="ghost" size="icon">
                                                     <Link href={`/commercial/invoices?edit=${sale.id}`}>
                                                         <Pencil className="h-4 w-4" />

@@ -102,8 +102,7 @@ export default function PaymentsReportPage() {
 
     const allPayments = useMemo(() => {
         if (!allSales) return [];
-        const relevantSales = allSales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
-        return relevantSales.flatMap(sale => 
+        return allSales.flatMap(sale => 
             (sale.payments || []).map(payment => ({
                 ...payment,
                 saleId: sale.id,
