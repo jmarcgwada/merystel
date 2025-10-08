@@ -102,8 +102,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; } | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null>>;
   recentlyAddedItemId: string | null;
   setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   serialNumberItem: { item: Item; quantity: number } | null;
@@ -141,7 +141,7 @@ interface PosContextType {
   toggleCategoryFavorite: (categoryId: string) => void;
   getCategoryColor: (categoryId: string) => string | undefined;
   customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'isDefault'>) => Promise<Customer | null>;
+  addCustomer: (customer: Omit<Customer, 'isDefault'> & {id: string}) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
@@ -277,6 +277,7 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
+  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -338,7 +339,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast: shadcnToast } = useShadcnToast();
 
-  const companyId = useMemo(() => user ? SHARED_COMPANY_ID : null, [user]);
+  const companyId = useMemo(() => SHARED_COMPANY_ID, []);
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -419,22 +420,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: usersData = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
-  const itemsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId]);
+  const itemsCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: itemsData = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
-  const categoriesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId]);
+  const categoriesCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
   const { data: categoriesData = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
-  const customersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId]);
+  const customersCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
   const { data: customersData = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
-  const suppliersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId]);
+  const suppliersCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user]);
   const { data: suppliersData = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
-  const tablesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId]);
+  const tablesCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
@@ -444,19 +445,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const customers = useMemo(() => customersData, [customersData]);
   const suppliers = useMemo(() => suppliersData, [suppliersData]);
   
-  const salesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId]);
+  const salesCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user]);
   const { data: sales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
 
-  const paymentMethodsCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId]);
+  const paymentMethodsCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user]);
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
 
-  const vatRatesCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId]);
+  const vatRatesCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user]);
   const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
 
-  const heldOrdersCollectionRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId]);
+  const heldOrdersCollectionRef = useMemoFirebase(() => companyId && user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
 
-  const companyDocRef = useMemoFirebase(() => companyId ? doc(firestore, 'companies', companyId) : null, [firestore, companyId]);
+  const companyDocRef = useMemoFirebase(() => companyId && user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user]);
   const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(companyDocRef);
 
 
@@ -731,16 +732,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Importation des clients de démo...' });
 
     const demoCustomers = [
-      { name: 'Alice Martin', email: 'alice.martin@example.com', phone: '0612345678', address: '12 Rue de la Paix', postalCode: '75002', city: 'Paris', country: 'France' },
-      { name: 'Bruno Petit', email: 'bruno.petit@example.com', phone: '0623456789', address: '45 Avenue des Champs-Élysées', postalCode: '75008', city: 'Paris', country: 'France' },
-      { name: 'Chloé Durand', email: 'chloe.durand@example.com', phone: '0634567890', address: '8 Rue de la République', postalCode: '69001', city: 'Lyon', country: 'France' },
-      { name: 'David Lefebvre', email: 'david.lefebvre@example.com', phone: '0645678901', address: '22 Quai de la Joliette', postalCode: '13002', city: 'Marseille', country: 'France' },
-      { name: 'Émilie Moreau', email: 'emilie.moreau@example.com', phone: '0656789012', address: '15 Place du Capitole', postalCode: '31000', city: 'Toulouse', country: 'France' },
-      { name: 'François Lambert', email: 'francois.lambert@example.com', phone: '0667890123', address: '5 Rue Nationale', postalCode: '59000', city: 'Lille', country: 'France' },
-      { name: 'Gabrielle Simon', email: 'gabrielle.simon@example.com', phone: '0678901234', address: '30 Place de la Bourse', postalCode: '33000', city: 'Bordeaux', country: 'France' },
-      { name: 'Hugo Bernard', email: 'hugo.bernard@example.com', phone: '0689012345', address: '1 Place Masséna', postalCode: '06000', city: 'Nice', country: 'France' },
-      { name: 'Inès Girard', email: 'ines.girard@example.com', phone: '0690123456', address: '10 Rue de la Krutenau', postalCode: '67000', city: 'Strasbourg', country: 'France' },
-      { name: 'Julien Laurent', email: 'julien.laurent@example.com', phone: '0601234567', address: '2 Rue du Calvaire', postalCode: '44000', city: 'Nantes', country: 'France' },
+      { id: 'C-ALICE', name: 'Alice Martin', email: 'alice.martin@example.com', phone: '0612345678', address: '12 Rue de la Paix', postalCode: '75002', city: 'Paris', country: 'France' },
+      { id: 'C-BRUNO', name: 'Bruno Petit', email: 'bruno.petit@example.com', phone: '0623456789', address: '45 Avenue des Champs-Élysées', postalCode: '75008', city: 'Paris', country: 'France' },
+      { id: 'C-CHLOE', name: 'Chloé Durand', email: 'chloe.durand@example.com', phone: '0634567890', address: '8 Rue de la République', postalCode: '69001', city: 'Lyon', country: 'France' },
+      { id: 'C-DAVID', name: 'David Lefebvre', email: 'david.lefebvre@example.com', phone: '0645678901', address: '22 Quai de la Joliette', postalCode: '13002', city: 'Marseille', country: 'France' },
+      { id: 'C-EMILI', name: 'Émilie Moreau', email: 'emilie.moreau@example.com', phone: '0656789012', address: '15 Place du Capitole', postalCode: '31000', city: 'Toulouse', country: 'France' },
+      { id: 'C-FRANC', name: 'François Lambert', email: 'francois.lambert@example.com', phone: '0667890123', address: '5 Rue Nationale', postalCode: '59000', city: 'Lille', country: 'France' },
+      { id: 'C-GABRI', name: 'Gabrielle Simon', email: 'gabrielle.simon@example.com', phone: '0678901234', address: '30 Place de la Bourse', postalCode: '33000', city: 'Bordeaux', country: 'France' },
+      { id: 'C-HUGO', name: 'Hugo Bernard', email: 'hugo.bernard@example.com', phone: '0689012345', address: '1 Place Masséna', postalCode: '06000', city: 'Nice', country: 'France' },
+      { id: 'C-INES', name: 'Inès Girard', email: 'ines.girard@example.com', phone: '0690123456', address: '10 Rue de la Krutenau', postalCode: '67000', city: 'Strasbourg', country: 'France' },
+      { id: 'C-JULIE', name: 'Julien Laurent', email: 'julien.laurent@example.com', phone: '0601234567', address: '2 Rue du Calvaire', postalCode: '44000', city: 'Nantes', country: 'France' },
     ];
     
     try {
@@ -748,8 +749,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const customersRef = collection(firestore, 'companies', companyId, 'customers');
       
       demoCustomers.forEach(customer => {
-        const newCustomerRef = doc(customersRef);
-        batch.set(newCustomerRef, { ...customer, id: newCustomerRef.id });
+        const customerRef = doc(customersRef, customer.id);
+        batch.set(customerRef, customer);
       });
 
       await batch.commit();
@@ -983,7 +984,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       description: item.description,
       description2: item.description2,
       serialNumbers: serialNumbers,
-      barcode: item.barcode,
+      barcode: item.barcode || '',
     };
     
     setOrder(currentOrder => {
@@ -1063,7 +1064,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description2: itemToAdd.description2,
             selectedVariants,
             serialNumbers: [],
-            barcode: itemToAdd.barcode,
+            barcode: itemToAdd.barcode || '',
           };
           return [newItem, ...currentOrder];
         }
@@ -1404,11 +1405,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
 
     const docTypeInfo = {
-      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré', docType: 'quote' },
-      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré', docType: 'delivery_note' },
-      supplier_order: { prefix: 'CF', counterField: 'supplierOrderCounter', toastTitle: 'Commande fournisseur enregistrée', docType: 'supplier_order' },
+      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré', docType: 'quote' as const, status: 'quote' as const },
+      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré', docType: 'delivery_note' as const, status: 'delivery_note' as const },
+      supplier_order: { prefix: 'CF', counterField: 'supplierOrderCounter', toastTitle: 'Commande fournisseur enregistrée', docType: 'supplier_order' as const, status: 'pending' as const },
     };
-    const { prefix, counterField, toastTitle, docType } = docTypeInfo[type];
+
+    const { prefix, counterField, toastTitle, docType, status } = docTypeInfo[type];
     
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -1448,7 +1450,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           userId: user.uid,
           userName: `${user.firstName} ${user.lastName}`,
           ticketNumber: pieceNumber,
-          documentType: docType as Sale['documentType'],
+          status: status,
+          documentType: docType,
         };
         
         transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
@@ -1501,11 +1504,35 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
           const needsNumber = isFinalizing && !existingData.ticketNumber;
           let pieceNumber = existingData.ticketNumber || '';
+          
+          let documentType: Sale['documentType'] = currentSaleContext?.documentType || (currentSaleContext?.isInvoice ? 'invoice' : 'ticket');
 
           if (needsNumber) {
             const companyDoc = await transaction.get(companyRef);
-            const prefix = currentSaleContext?.isInvoice ? 'Fact' : 'Tick';
-            const counterField = currentSaleContext?.isInvoice ? 'invoiceCounter' : 'ticketCounter';
+            let prefix, counterField;
+
+            switch(documentType) {
+                case 'invoice':
+                    prefix = 'Fact';
+                    counterField = 'invoiceCounter';
+                    break;
+                case 'quote':
+                    prefix = 'Devis';
+                    counterField = 'quoteCounter';
+                    break;
+                case 'delivery_note':
+                    prefix = 'BL';
+                    counterField = 'deliveryNoteCounter';
+                    break;
+                case 'supplier_order':
+                    prefix = 'CF';
+                    counterField = 'supplierOrderCounter';
+                    break;
+                default:
+                    prefix = 'Tick';
+                    counterField = 'ticketCounter';
+                    break;
+            }
             
             const currentCounter = companyDoc.data()?.[counterField] || 0;
             const newCount = currentCounter + 1;
@@ -1525,18 +1552,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             userId: user.uid,
             userName: sellerName,
             ticketNumber: pieceNumber,
-            documentType: currentSaleContext?.isInvoice ? 'invoice' : 'ticket',
+            documentType: documentType,
           };
           
           transaction.set(pieceRef, cleanDataForFirebase(finalSaleData), { merge: true });
 
-          if (finalSaleData.status === 'paid' && isNewPiece) {
+          if (finalSaleData.status === 'paid' && finalSaleData.documentType !== 'supplier_order') {
             finalSaleData.items?.forEach((orderItem: OrderItem) => {
               if (!items) return;
               const itemDoc = items.find(i => i.id === orderItem.itemId);
               if (itemDoc && itemDoc.manageStock) {
                 const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
                 transaction.update(itemRef, { stock: increment(-orderItem.quantity) });
+              }
+            });
+          } else if (finalSaleData.status === 'paid' && finalSaleData.documentType === 'supplier_order') {
+            finalSaleData.items?.forEach((orderItem: OrderItem) => {
+              if (!items) return;
+              const itemDoc = items.find(i => i.id === orderItem.itemId);
+              if (itemDoc && itemDoc.manageStock) {
+                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
+                transaction.update(itemRef, { stock: increment(orderItem.quantity) });
               }
             });
           }
@@ -1554,9 +1590,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           }
         });
 
-         if (currentSaleContext?.isInvoice) {
-            router.push(`/reports?filter=Fact-`);
+        if (currentSaleContext?.documentType !== 'ticket') {
+          router.push(`/reports?filter=${pieceNumber.split('-')[0]}-`);
         }
+
 
       } catch (error) {
         console.error("Transaction failed: ", error);
@@ -1673,6 +1710,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [auth, toast]);
 
     const findUserByEmail = useCallback((email: string) => {
+        if (!users) return undefined;
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
@@ -1761,7 +1799,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [categories]);
 
   const addItem = useCallback(
-    (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé'),
+    (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé') as Promise<Item | null>,
     [addEntity]
   );
   const updateItem = useCallback(
@@ -1803,7 +1841,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addCustomer = useCallback(
-    async (customer: Omit<Customer, 'isDefault'>): Promise<Customer | null> => {
+    async (customer: Omit<Customer, 'isDefault'> & {id: string}): Promise<Customer | null> => {
         if (!firestore) { throw new Error("Firestore not initialized"); }
         if (customers.some(c => c.id === customer.id)) {
             throw new Error(`Le code client "${customer.id}" existe déjà.`);
@@ -2026,7 +2064,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const acompte = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     
     setCurrentSaleContext({
-      isInvoice: type === 'invoice',
       documentType: type,
       ticketNumber: sale.ticketNumber,
       date: sale.date,
@@ -2084,7 +2121,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCurrentSaleContext,
       recentlyAddedItemId,
       setRecentlyAddedItemId,
-      serialNumberItem, 
+      serialNumberItem,
       setSerialNumberItem,
       variantItem,
       setVariantItem,
@@ -2441,5 +2478,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
