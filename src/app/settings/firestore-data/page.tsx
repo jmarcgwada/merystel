@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 
 export default function FirestoreDataPage() {
@@ -75,8 +76,8 @@ export default function FirestoreDataPage() {
     return `${monthStr}${dayStr}${difference}`;
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePinSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
       setPinDialogOpen(false); // Just close the dialog, no redirect
@@ -94,6 +95,16 @@ export default function FirestoreDataPage() {
       setPinDialogOpen(false);
       router.push('/settings');
   }
+
+  const handlePinKeyPress = (key: string) => {
+    if (pin.length < 6) {
+      setPin(prev => prev + key);
+    }
+  };
+  
+  const handlePinBackspace = () => {
+    setPin(prev => prev.slice(0, -1));
+  };
 
 
   const canSeedData = useMemo(() => {
@@ -145,27 +156,48 @@ export default function FirestoreDataPage() {
   }
   
   if(isPinDialogOpen) {
+      const PinKey = ({ value }: { value: string }) => (
+          <Button
+              type="button"
+              variant="outline"
+              className="h-14 w-14 text-2xl font-bold"
+              onClick={() => handlePinKeyPress(value)}
+          >
+              {value}
+          </Button>
+      );
+      
       return (
         <AlertDialog open={isPinDialogOpen}>
-            <AlertDialogContent>
+            <AlertDialogContent className="sm:max-w-sm">
                 <form onSubmit={handlePinSubmit}>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Accès Sécurisé</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette section contient des opérations sensibles. Veuillez entrer le code PIN dynamique pour continuer.
+                            Veuillez entrer le code PIN dynamique pour continuer.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="py-4 space-y-2">
-                        <Label htmlFor="pin">Code PIN</Label>
-                        <Input 
-                            id="pin"
-                            type="password"
-                            autoComplete="one-time-code"
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                            placeholder="•••••"
-                            autoFocus
-                        />
+                    <div className="py-4 space-y-4">
+                       <div className="flex justify-center items-center h-12 bg-muted rounded-md border">
+                          <p className="text-3xl font-mono tracking-[0.5em]">
+                            {pin.split('').map(() => '•').join('')}
+                          </p>
+                       </div>
+                       <div className="grid grid-cols-3 gap-2">
+                            <PinKey value="1" />
+                            <PinKey value="2" />
+                            <PinKey value="3" />
+                            <PinKey value="4" />
+                            <PinKey value="5" />
+                            <PinKey value="6" />
+                            <PinKey value="7" />
+                            <PinKey value="8" />
+                            <PinKey value="9" />
+                             <Button type="button" variant="outline" className="h-14 w-14" onClick={handlePinBackspace}>
+                                <Delete className="h-6 w-6"/>
+                             </Button>
+                            <PinKey value="0" />
+                       </div>
                     </div>
                     <AlertDialogFooter>
                         <Button type="button" variant="outline" onClick={handleCancelPin}>Annuler</Button>
@@ -424,4 +456,3 @@ export default function FirestoreDataPage() {
     </>
   );
 }
-
