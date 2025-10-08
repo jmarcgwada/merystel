@@ -150,7 +150,7 @@ export default function SuppliersPage() {
                   </TableHeader>
                   
                   <TableBody>
-                      {isLoading && (
+                      {isLoading ? (
                         <>
                           {Array.from({ length: 5 }).map((_, i) => (
                               <TableRow key={i}>
@@ -158,8 +158,8 @@ export default function SuppliersPage() {
                               </TableRow>
                           ))}
                         </>
-                      )}
-                      {!isLoading && paginatedSuppliers.length > 0 && paginatedSuppliers.map(supplier => (
+                      ) : paginatedSuppliers.length > 0 ? (
+                        paginatedSuppliers.map(supplier => (
                           <React.Fragment key={supplier.id}>
                               <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(supplier.id)}>
                                   <TableCell className="w-[50px]">
@@ -210,8 +210,8 @@ export default function SuppliersPage() {
                                 </TableRow>
                               )}
                           </React.Fragment>
-                      ))}
-                      {!isLoading && paginatedSuppliers.length === 0 && (
+                        ))
+                      ) : (
                         <TableRow>
                             <TableCell colSpan={6} className="text-center h-24">Aucun fournisseur trouvé.</TableCell>
                         </TableRow>
