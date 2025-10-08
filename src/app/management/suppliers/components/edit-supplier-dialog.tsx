@@ -99,88 +99,92 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Modifier le fournisseur</DialogTitle>
           <DialogDescription>
             Modifiez les informations du fournisseur.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="info">
-            <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="info">Contact</TabsTrigger>
-                <TabsTrigger value="address">Adresse</TabsTrigger>
-                <TabsTrigger value="other">Autre</TabsTrigger>
-            </TabsList>
-            <ScrollArea className="max-h-[60vh] p-1">
-              <div className="py-4">
-                <TabsContent value="info" className="space-y-4 mt-0">
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-supplierId">Code Fournisseur</Label>
-                        <Input id="edit-supplierId" value={supplierId} readOnly disabled />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-name">Nom *</Label>
-                        <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-contactName">Nom du contact</Label>
-                        <Input id="edit-contactName" value={contactName} onChange={e => setContactName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-email">Email</Label>
-                        <Input id="edit-email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-phone">Téléphone</Label>
-                        <Input id="edit-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
-                    </div>
-                </TabsContent>
-                <TabsContent value="address" className="space-y-4 mt-0">
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-address">Adresse</Label>
-                        <Input id="edit-address" value={address} onChange={e => setAddress(e.target.value)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+        <div className="flex-1 min-h-0">
+          <Tabs defaultValue="info" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="info">Contact</TabsTrigger>
+                  <TabsTrigger value="address">Adresse</TabsTrigger>
+                  <TabsTrigger value="other">Autre</TabsTrigger>
+              </TabsList>
+              <div className="flex-1 min-h-0">
+                <ScrollArea className="h-full p-1">
+                  <div className="py-4 px-2">
+                    <TabsContent value="info" className="space-y-4 mt-0">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-postalCode">Code Postal</Label>
-                            <Input id="edit-postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} />
+                            <Label htmlFor="edit-supplierId">Code Fournisseur</Label>
+                            <Input id="edit-supplierId" value={supplierId} readOnly disabled />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="edit-city">Ville</Label>
-                            <Input id="edit-city" value={city} onChange={e => setCity(e.target.value)} />
+                            <Label htmlFor="edit-name">Nom *</Label>
+                            <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} />
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-country">Pays</Label>
-                        <Input id="edit-country" value={country} onChange={e => setCountry(e.target.value)} />
-                    </div>
-                </TabsContent>
-                 <TabsContent value="other" className="space-y-4 mt-0">
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-siret">SIRET</Label>
-                        <Input id="edit-siret" value={siret} onChange={e => setSiret(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-website">Site Web</Label>
-                        <Input id="edit-website" value={website} onChange={e => setWebsite(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-iban">IBAN</Label>
-                        <Input id="edit-iban" value={iban} onChange={e => setIban(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="edit-bic">BIC / SWIFT</Label>
-                        <Input id="edit-bic" value={bic} onChange={e => setBic(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-notes">Notes</Label>
-                        <Textarea id="edit-notes" value={notes} onChange={e => setNotes(e.target.value)} />
-                    </div>
-                </TabsContent>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-contactName">Nom du contact</Label>
+                            <Input id="edit-contactName" value={contactName} onChange={e => setContactName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-email">Email</Label>
+                            <Input id="edit-email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-phone">Téléphone</Label>
+                            <Input id="edit-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="address" className="space-y-4 mt-0">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-address">Adresse</Label>
+                            <Input id="edit-address" value={address} onChange={e => setAddress(e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-postalCode">Code Postal</Label>
+                                <Input id="edit-postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-city">Ville</Label>
+                                <Input id="edit-city" value={city} onChange={e => setCity(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-country">Pays</Label>
+                            <Input id="edit-country" value={country} onChange={e => setCountry(e.target.value)} />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="other" className="space-y-4 mt-0">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-siret">SIRET</Label>
+                            <Input id="edit-siret" value={siret} onChange={e => setSiret(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-website">Site Web</Label>
+                            <Input id="edit-website" value={website} onChange={e => setWebsite(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-iban">IBAN</Label>
+                            <Input id="edit-iban" value={iban} onChange={e => setIban(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-bic">BIC / SWIFT</Label>
+                            <Input id="edit-bic" value={bic} onChange={e => setBic(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-notes">Notes</Label>
+                            <Textarea id="edit-notes" value={notes} onChange={e => setNotes(e.target.value)} />
+                        </div>
+                    </TabsContent>
+                  </div>
+                </ScrollArea>
               </div>
-            </ScrollArea>
-        </Tabs>
+          </Tabs>
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={handleEditSupplier}>Sauvegarder</Button>
