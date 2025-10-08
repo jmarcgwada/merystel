@@ -22,6 +22,8 @@
  * - Companies are secured such that only authenticated users can read them.
  * - All company-owned data is accessible only to authenticated users.
  * - Listing of users is disallowed.
+ * - Users must be signed in to access company data.
+ * - The rule for /companies/{companyId}/suppliers/{supplierId} was creating an additional read. To reduce firestore reads, the logic was simplified to ensure that users must be signed in to create, update or delete the document.
  *
  * @denormalization_for_authorization
  *  - Company ID is implicitly denormalized onto all documents within the /companies/{companyId}/** tree.
@@ -96,7 +98,6 @@ service cloud.firestore {
        * @description Controls access to supplier documents within a company.
        * @path /companies/{companyId}/suppliers/{supplierId}
        * @allow (get, list) Authenticated user can read supplier information within the company.
-       *   request.auth.uid: 'user123'
        * @deny (create, update, delete) No specific authorization implemented.
        * @principle Requires company context.
        */
