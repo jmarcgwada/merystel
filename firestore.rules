@@ -1,193 +1,265 @@
 /**
- * @file Firestore Security Rules
- * @version 2
+ * @fileoverview Firestore Security Rules for Zenith POS.
  *
- * @corePhilosophy
- * This ruleset enforces a multi-tenant security model where data is segregated by company.
- * Users can only access data belonging to their company. Users have owner access to their own user document.
- * Public listing is disabled for sensitive collections.
+ * Core Philosophy:
+ * This ruleset enforces a multi-tenant security model where companies have isolated data.
+ * Users can only access data within their assigned company. Access is further restricted by user roles (admin, manager, cashier).
  *
- * @dataStructure
- * - /users/{userId}: Stores individual user profiles, accessible only by the user themselves.
- * - /companies/{companyId}: Stores company-level data. All data related to a company is nested under this path.
- * - /companies/{companyId}/...: Contains collections like customers, suppliers, items, etc., scoped to the company.
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles.
+ * - /companies/{companyId}: Stores company-level data.
+ * - All other collections are nested under /companies/{companyId} to ensure data isolation.
  *
- * @keySecurityDecisions
- * - Users can only read and write their own user document.
- * - All company-related data access is implicitly restricted to authenticated users.
- * - Public listing of suppliers is denied.
+ * Key Security Decisions:
+ * - Users can only read their own profile data. Listing all users is disallowed.
+ * - Company data is accessible to all authenticated users within that company.
+ * - Most company subcollections are accessible based on the user's role within the company.
+ * - The rules do NOT validate the full schema of the data for rapid prototyping, but they DO enforce critical relationships (e.g., companyId).
  *
- * @denormalizationForAuthorization N/A (Prototype)
+ * Denormalization for Authorization:
+ * The `User` document includes a `companyId` and `role` field. These are CRITICAL for authorization
+ * and avoid the need for complex queries or additional reads.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
     /**
-     * @description Controls access to user profile information.
+     * @description Manages user profile access. Users can only read their own profile.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' creates their own profile.
-     * @deny (create) User with ID 'user123' tries to create profile for 'user456'.
-     * @principle Enforces document ownership for writes.
+     * @allow (get) User with ID 'user123' can read their own profile.
+     * @deny (get) User with ID 'user456' cannot read profile of 'user123'.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @deny (create) User with ID 'user123' cannot create profile of 'user456'.
+     * @allow (update) User with ID 'user123' can update their own profile.
+     * @deny (update) User with ID 'user123' cannot update profile of 'user456'.
+     * @allow (delete) User with ID 'user123' can delete their own profile.
+     * @deny (delete) User with ID 'user123' cannot delete profile of 'user456'.
+     * @principle Enforces user-ownership for profile data.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Controls access to company information.
+     * @description Manages company-level data. Accessible to all authenticated users.
      * @path /companies/{companyId}
-     * @allow (read) Any authenticated user can read company information.
-     * @deny (write) Only authenticated users can write company information.
+     * @allow (get) Authenticated user can read company data.
+     * @deny (create) Only admins and managers can create companies.
+     * @allow (update) Authenticated user can update company data.
+     * @allow (delete) Authenticated user can delete company data.
+     * @principle Allows company-wide access for authenticated users.
      */
     match /companies/{companyId} {
       allow get: if isSignedIn();
       allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && false;
-      allow delete: if isSignedIn() && false;
+      allow create: if isAdminOrManager();
+      allow update: if isAdminOrManager();
+      allow delete: if isAdminOrManager();
     }
 
     /**
-     * @description Controls access to customer data for a specific company.
+     * @description Manages customer data for a specific company. Accessible to users within the company.
      * @path /companies/{companyId}/customers/{customerId}
-     * @allow (read) Any authenticated user can read customer data within their company.
-     * @deny (write) Only authenticated users can write customer data within their company.
+     * @allow (get) User within the company can read customer data.
+     * @deny (create) User from another company cannot create customer data.
+     * @allow (update) User within the company can update customer data.
+     * @allow (delete) User within the company can delete customer data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/customers/{customerId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() ;
-      allow delete: if isSignedIn() ;
-    }
-
-     /**
-      * @description Controls access to supplier data for a specific company.
-      * @path /companies/{companyId}/suppliers/{supplierId}
-      * @allow (read) Any authenticated user can read supplier data within their company.
-      * @deny (list) No one can list suppliers.
-      */
-    match /companies/{companyId}/suppliers/{supplierId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to item categories for a specific company.
+     * @description Manages supplier data for a specific company. Only admins and managers can manage suppliers.
+     * @path /companies/{companyId}/suppliers/{supplierId}
+     * @allow (get) Admin or Manager can read supplier data.
+     * @deny (create) Cashier cannot create supplier data.
+     * @allow (update) Admin or Manager can update supplier data.
+     * @allow (delete) Admin or Manager can delete supplier data.
+     * @principle Restricts supplier management to admins and managers.
+     */
+    match /companies/{companyId}/suppliers/{supplierId} {
+      allow get: if isAdminOrManagerInCompany(companyId);
+      allow list: if isAdminOrManagerInCompany(companyId);
+      allow create: if isAdminOrManagerInCompany(companyId);
+      allow update: if isAdminOrManagerInCompany(companyId);
+      allow delete: if isAdminOrManagerInCompany(companyId);
+    }
+
+    /**
+     * @description Manages item categories for a company. Accessible to users within the company.
      * @path /companies/{companyId}/categories/{categoryId}
-     * @allow (read) Any authenticated user can read item categories within their company.
-     * @deny (write) Only authenticated users can write item categories within their company.
+     * @allow (get) User within the company can read category data.
+     * @deny (create) User from another company cannot create category data.
+     * @allow (update) User within the company can update category data.
+     * @allow (delete) User within the company can delete category data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/categories/{categoryId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to items for a specific company.
+     * @description Manages items for a company. Accessible to users within the company.
      * @path /companies/{companyId}/items/{itemId}
-     * @allow (read) Any authenticated user can read items within their company.
-     * @deny (write) Only authenticated users can write items within their company.
+     * @allow (get) User within the company can read item data.
+     * @deny (create) User from another company cannot create item data.
+     * @allow (update) User within the company can update item data.
+     * @allow (delete) User within the company can delete item data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/items/{itemId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to tables for a specific company.
+     * @description Manages tables for a company. Accessible to users within the company.
      * @path /companies/{companyId}/tables/{tableId}
-     * @allow (read) Any authenticated user can read tables within their company.
-     * @deny (write) Only authenticated users can write tables within their company.
+     * @allow (get) User within the company can read table data.
+     * @deny (create) User from another company cannot create table data.
+     * @allow (update) User within the company can update table data.
+     * @allow (delete) User within the company can delete table data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/tables/{tableId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to sales data for a specific company.
+     * @description Manages sales data for a company. Accessible to users within the company.
      * @path /companies/{companyId}/sales/{saleId}
-     * @allow (read) Any authenticated user can read sales data within their company.
-     * @deny (write) Only authenticated users can write sales data within their company.
+     * @allow (get) User within the company can read sale data.
+     * @deny (create) User from another company cannot create sale data.
+     * @allow (update) User within the company can update sale data.
+     * @allow (delete) User within the company can delete sale data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/sales/{saleId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to payment methods for a specific company.
+     * @description Manages payment methods for a company. Accessible to users within the company.
      * @path /companies/{companyId}/paymentMethods/{methodId}
-     * @allow (read) Any authenticated user can read payment methods within their company.
-     * @deny (write) Only authenticated users can write payment methods within their company.
+     * @allow (get) User within the company can read payment method data.
+     * @deny (create) User from another company cannot create payment method data.
+     * @allow (update) User within the company can update payment method data.
+     * @allow (delete) User within the company can delete payment method data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/paymentMethods/{methodId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to VAT rates for a specific company.
+     * @description Manages VAT rates for a company. Accessible to users within the company.
      * @path /companies/{companyId}/vatRates/{vatId}
-     * @allow (read) Any authenticated user can read VAT rates within their company.
-     * @deny (write) Only authenticated users can write VAT rates within their company.
+     * @allow (get) User within the company can read VAT rate data.
+     * @deny (create) User from another company cannot create VAT rate data.
+     * @allow (update) User within the company can update VAT rate data.
+     * @allow (delete) User within the company can delete VAT rate data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/vatRates/{vatId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
     }
 
     /**
-     * @description Controls access to held orders for a specific company.
+     * @description Manages held orders for a company. Accessible to users within the company.
      * @path /companies/{companyId}/heldOrders/{orderId}
-     * @allow (read) Any authenticated user can read held orders within their company.
-     * @deny (write) Only authenticated users can write held orders within their company.
+     * @allow (get) User within the company can read held order data.
+     * @deny (create) User from another company cannot create held order data.
+     * @allow (update) User within the company can update held order data.
+     * @allow (delete) User within the company can delete held order data.
+     * @principle Enforces company-level data isolation.
      */
     match /companies/{companyId}/heldOrders/{orderId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get: if isInCompany(companyId);
+      allow list: if isInCompany(companyId);
+      allow create: if isInCompany(companyId);
+      allow update: if isInCompany(companyId);
+      allow delete: if isInCompany(companyId);
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided user ID.
+     * @param {string} userId The user ID to compare against.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is an admin or manager in the specified company.
+     * @param {string} companyId The company ID to check against.
+     * @return {boolean} True if the user is an admin or manager, false otherwise.
+     */
+    function isAdminOrManagerInCompany(companyId) {
+        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId
+               && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+                   || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager');
+    }
+      /**
+       * @description Checks if the user is an admin or manager.
+       * @return {boolean} True if the user is an admin or manager, false otherwise.
+       */
+      function isAdminOrManager() {
+          return isSignedIn() && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+              || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager');
+      }
+
+    /**
+     * @description Checks if the user is in the specified company.
+     * @param {string} companyId The company ID to check against.
+     * @return {boolean} True if the user is in the company, false otherwise.
+     */
+    function isInCompany(companyId) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
     }
   }
 }
