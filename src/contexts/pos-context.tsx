@@ -466,16 +466,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const isLoading =
     userLoading ||
     usersLoading ||
-    itemsLoading ||
-    categoriesLoading ||
-    customersLoading ||
-    (isManagerOrAdmin && suppliersLoading) ||
-    tablesLoading ||
-    salesLoading ||
-    paymentMethodsLoading ||
-    vatRatesLoading ||
-    heldOrdersLoading ||
-    (isManagerOrAdmin && companyInfoLoading);
+    (!!user && itemsLoading) ||
+    (!!user && categoriesLoading) ||
+    (!!user && customersLoading) ||
+    (!!user && isManagerOrAdmin && suppliersLoading) ||
+    (!!user && tablesLoading) ||
+    (!!user && salesLoading) ||
+    (!!user && paymentMethodsLoading) ||
+    (!!user && vatRatesLoading) ||
+    (!!user && heldOrdersLoading) ||
+    (!!user && isManagerOrAdmin && companyInfoLoading);
 
   // #endregion
   
@@ -1065,7 +1065,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: itemToAdd.description,
             description2: itemToAdd.description2,
             selectedVariants,
-            serialNumbers: [],
             barcode: itemToAdd.barcode || '',
           };
           return [newItem, ...currentOrder];
@@ -1415,6 +1414,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const { prefix, counterField, toastTitle, docType, status } = docTypeInfo[type];
     
     try {
+      let finalPieceNumber = '';
       await runTransaction(firestore, async (transaction) => {
         const companyRef = doc(firestore, 'companies', companyId);
         let pieceRef;
@@ -1442,6 +1442,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const dayMonth = format(new Date(), 'ddMM');
           pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
         }
+        finalPieceNumber = pieceNumber;
 
         const finalDocData: Sale = {
           ...existingData,
@@ -1461,7 +1462,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       toast({ title: toastTitle });
       clearOrder({ clearCustomer: true, clearSupplier: true });
-      router.push(`/reports?filter=${prefix}-`);
+      if (finalPieceNumber) {
+        router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
+      } else {
+        router.push('/reports');
+      }
 
     } catch (error) {
       console.error(`Transaction failed for ${type}:`, error);
@@ -1480,6 +1485,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      let finalPieceNumber = '';
+
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
         
@@ -1544,6 +1551,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
+          finalPieceNumber = pieceNumber;
 
           const finalSaleData: Sale = {
             ...existingData,
@@ -1592,8 +1600,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           }
         });
 
-        if (currentSaleContext?.documentType !== 'ticket') {
-          router.push(`/reports?filter=${pieceNumber.split('-')[0]}-`);
+        if (currentSaleContext?.documentType !== 'ticket' && finalPieceNumber) {
+          router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
         }
 
 
