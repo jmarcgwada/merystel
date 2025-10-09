@@ -31,14 +31,14 @@ export function CategoryList({
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const handleScroll = (direction: 'up' | 'down') => {
-    const scrollArea = scrollRef.current;
+    const scrollArea = scrollContainerRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (scrollArea) {
       const scrollAmount = scrollArea.clientHeight * 0.8;
       scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
@@ -153,8 +153,8 @@ export function CategoryList({
           />
         </div>
       </div>
-      <div className="flex-1 relative">
-        <ScrollArea className="absolute inset-0" viewportRef={scrollRef}>
+      <div className="flex-1 relative" ref={scrollContainerRef}>
+        <ScrollArea className="absolute inset-0">
           <div className="flex flex-col gap-2 p-4">
             <Button
                 variant={isSpecialCategorySelected('all') ? 'default' : 'ghost'}

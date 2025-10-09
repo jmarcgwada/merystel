@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
-import { ItemList } from './components/item-list';
+import { ItemList } from '../../pos/components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
@@ -184,7 +183,7 @@ export default function PosPage() {
   };
   
   const handleItemScroll = (direction: 'up' | 'down') => {
-    const scrollArea = itemScrollAreaRef.current;
+    const scrollArea = itemScrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (scrollArea) {
       const scrollAmount = scrollArea.clientHeight * 0.8;
       scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
@@ -290,19 +289,21 @@ export default function PosPage() {
                     </div>
                   </div>
               </div>
-              <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
-                  <div className="p-4">
-                    {isClient ? (
-                        <ItemList 
-                            ref={null} // contentRef is not needed anymore
-                            category={selectedCategory} 
-                            searchTerm={itemSearchTerm} 
-                            showFavoritesOnly={showFavoritesOnly}
-                            onItemClick={handleItemClick}
-                        />
-                    ) : <Skeleton className="h-full w-full" />}
-                  </div>
-              </ScrollArea>
+              <div className="flex-1 relative" ref={itemScrollAreaRef}>
+                <ScrollArea className="absolute inset-0">
+                    <div className="p-4">
+                      {isClient ? (
+                          <ItemList
+                              ref={null} 
+                              category={selectedCategory} 
+                              searchTerm={itemSearchTerm} 
+                              showFavoritesOnly={showFavoritesOnly}
+                              onItemClick={handleItemClick}
+                          />
+                      ) : <Skeleton className="h-full w-full" />}
+                    </div>
+                </ScrollArea>
+              </div>
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
