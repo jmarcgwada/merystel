@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
@@ -31,19 +30,10 @@ export function CategoryList({
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const handleScroll = (direction: 'up' | 'down') => {
-    const scrollArea = scrollContainerRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollArea) {
-      const scrollAmount = scrollArea.clientHeight * 0.8;
-      scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-    }
-  };
   
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
@@ -122,24 +112,6 @@ export function CategoryList({
           <h2 className="text-xl font-bold tracking-tight font-headline">
             Catégories
           </h2>
-           <div className="flex items-center gap-1">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleScroll('up')}
-                >
-                    <ArrowUp className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleScroll('down')}
-                >
-                    <ArrowDown className="h-4 w-4" />
-                </Button>
-            </div>
         </div>
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -153,7 +125,7 @@ export function CategoryList({
           />
         </div>
       </div>
-      <div className="flex-1 relative" ref={scrollContainerRef}>
+      <div className="flex-1 relative">
         <ScrollArea className="absolute inset-0">
           <div className="flex flex-col gap-2 p-4">
             <Button
