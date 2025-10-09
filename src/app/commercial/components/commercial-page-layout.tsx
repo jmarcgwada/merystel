@@ -62,13 +62,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateItemNote, 
       clearOrder,
       loadSaleForEditing,
-      recordCommercialDocument,
+      recordSale,
       orderTotal,
       orderTax,
       currentSaleContext,
       items,
       customers,
       setCurrentSaleContext,
+      currentSaleId,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -82,6 +83,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const config = docTypeConfig[documentType];
 
   useEffect(() => {
+    // This effect now runs only once on mount to set up the context.
     setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
     if (newItemId) {
       addToOrder(newItemId);
@@ -103,7 +105,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
   
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     if (documentType === 'invoice') {
@@ -113,7 +115,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
 
-    const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+    const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
@@ -123,9 +125,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       customerId: currentSaleContext.customerId,
     };
     
-    recordCommercialDocument(doc, documentType, saleIdToEdit || undefined);
+    recordSale(doc, currentSaleId || undefined);
     
-  }, [isReady, currentSaleContext, documentType, order, orderTotal, orderTax, recordCommercialDocument, saleIdToEdit, submitHandler]);
+  };
   
   const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {
@@ -140,7 +142,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     clearOrder();
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
-    setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType, isInvoice: documentType === 'invoice' });
+    setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType });
 
     const numberOfItems = Math.floor(Math.random() * 4) + 2;
     const newOrder: OrderItem[] = [];

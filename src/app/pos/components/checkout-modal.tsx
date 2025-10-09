@@ -137,10 +137,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
       ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
+      documentType: currentSaleContext?.documentType || 'ticket',
     };
   
-    const isInvoice = currentSaleContext?.ticketNumber?.startsWith('Fact-') || currentSaleContext?.isInvoice || false;
-    
     recordSale(saleInfo, currentSaleId ?? undefined);
     
     if (isFullyPaid) {
@@ -148,7 +147,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setTimeout(() => {
           toast({
             title: 'Paiement réussi',
-            description: `${isInvoice ? 'Facture' : 'Vente'} de ${totalAmount.toFixed(2)}€ finalisée.`,
+            description: `Pièce de ${totalAmount.toFixed(2)}€ finalisée.`,
           });
           
           const isTableSale = currentSaleContext?.isTableSale;
@@ -156,7 +155,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
-          } else if (isInvoice) {
+          } else if (currentSaleContext?.documentType === 'invoice') {
               clearOrder();
               router.push('/reports?filter=Fact-');
           } else {
@@ -167,12 +166,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         }, 500);
     } else {
         toast({
-            title: 'Vente mise en attente',
-            description: `La facture est en attente.`
+            title: 'Pièce mise en attente',
+            description: `La pièce est en attente de paiement.`
         })
         clearOrder();
         handleOpenChange(false);
-        router.push('/reports?filter=Fact-');
+        if (currentSaleContext?.documentType === 'invoice') {
+          router.push('/reports?filter=Fact-');
+        }
     }
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate]);
 
@@ -310,7 +311,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }
   }
 
-  const isInvoiceMode = currentSaleContext?.isInvoice || false;
+  const isInvoiceMode = currentSaleContext?.documentType === 'invoice';
   const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
