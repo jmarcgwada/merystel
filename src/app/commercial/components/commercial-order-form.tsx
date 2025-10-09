@@ -60,7 +60,7 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -265,6 +265,16 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     return () => setSubmitHandler(null);
   }, [onSubmit, setSubmitHandler]);
 
+  const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation(); // Prevent item selection
+    const url = `/management/items/form?id=${itemId}`;
+    if (order.length > 0) {
+        showNavConfirm(url);
+    } else {
+        router.push(url);
+    }
+}
+
 
   return (
     <>
@@ -383,7 +393,17 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     return (
                     <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
                         <div className="flex flex-col">
-                            <span className="font-semibold">{field.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold">{field.name}</span>
+                              <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-muted-foreground" 
+                                  onClick={(e) => handleEditItemClick(e, field.itemId)}
+                              >
+                                  <Pencil className="h-3 w-3" />
+                              </Button>
+                            </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
                                 {descriptionDisplay === 'first' && field.description}
                                 {descriptionDisplay === 'both' && (
