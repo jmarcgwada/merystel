@@ -28,6 +28,13 @@ export default function CommercialLayout({
   const { order, showNavConfirm } = usePos();
   const router = useRouter();
 
+  const handleTabClick = (e: React.MouseEvent, href: string) => {
+    if (order.length > 0 && !pathname.startsWith(href)) {
+      e.preventDefault();
+      showNavConfirm(href);
+    }
+  };
+
   const handleBackToDashboard = (e: React.MouseEvent) => {
     e.preventDefault();
     if (order.length > 0) {
@@ -45,7 +52,7 @@ export default function CommercialLayout({
                     <TabsList className="grid w-full grid-cols-5">
                         {navLinks.map(link => (
                             <TabsTrigger value={link.value} asChild key={link.href}>
-                                <Link href={link.href} className="flex items-center gap-2">
+                                <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
                                      <link.icon className="h-4 w-4" />
                                     <span className="hidden sm:inline-block">{link.label}</span>
                                 </Link>
@@ -73,3 +80,4 @@ export default function CommercialLayout({
     </div>
   );
 }
+
