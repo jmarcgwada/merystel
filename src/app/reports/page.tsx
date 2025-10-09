@@ -736,7 +736,7 @@ export default function ReportsPage() {
                                     <TableCell>
                                          <PaymentBadges sale={sale} />
                                     </TableCell>
-                                    <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>
+                                    <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {sale.status === 'pending' && sale.documentType === 'invoice' && (
