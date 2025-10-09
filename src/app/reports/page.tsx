@@ -236,8 +236,8 @@ export default function ReportsPage() {
                         bValue = getCustomerName(b.customerId);
                         break;
                     case 'itemCount':
-                        aValue = a.items.reduce((acc, item) => acc + item.quantity, 0);
-                        bValue = b.items.reduce((acc, item) => acc + item.quantity, 0);
+                        aValue = Array.isArray(a.items) ? a.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
+                        bValue = Array.isArray(b.items) ? b.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
                         break;
                     case 'userName':
                         aValue = getUserName(a.userId, a.userName);
@@ -286,7 +286,7 @@ export default function ReportsPage() {
         const totalRevenue = relevantSales.reduce((acc, sale) => acc + sale.total, 0);
         const totalSales = relevantSales.length;
         const averageBasket = totalSales > 0 ? totalRevenue / totalSales : 0;
-        const totalItemsSold = relevantSales.reduce((acc, sale) => acc + sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0), 0);
+        const totalItemsSold = relevantSales.reduce((acc, sale) => acc + (Array.isArray(sale.items) ? sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0) : 0), 0);
 
         return {
             totalRevenue,
@@ -731,7 +731,7 @@ export default function ReportsPage() {
                                         {getCustomerName(sale.customerId)}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        {sale.items.reduce((acc, item) => acc + item.quantity, 0)}
+                                        {Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}
                                     </TableCell>
                                     <TableCell>
                                          <PaymentBadges sale={sale} />
