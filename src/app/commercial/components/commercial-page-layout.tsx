@@ -1,9 +1,7 @@
-
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { CommercialOrderForm } from '../components/commercial-order-form';
+import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
@@ -14,8 +12,46 @@ import { ArrowLeft, FilePlus, Sparkles } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
+type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
-function QuotesPageContent() {
+interface CommercialPageLayoutProps {
+  documentType: DocumentType;
+}
+
+const docTypeConfig = {
+  invoice: {
+    title: 'Gestion des Factures',
+    subtitle: 'Créez une nouvelle facture ou éditez une facture existante.',
+    editTitle: 'Modifier la facture',
+    editSubtitle: 'Modifiez les articles et finalisez la facture.',
+    saveButton: 'Sauvegarder la facture',
+    updateButton: 'Mettre à jour la facture',
+    filterPrefix: 'Fact-',
+    showAcompte: true,
+  },
+  quote: {
+    title: 'Gestion des Devis',
+    subtitle: 'Créez un nouveau devis.',
+    editTitle: 'Modifier le devis',
+    editSubtitle: 'Modifiez les articles et finalisez le devis.',
+    saveButton: 'Sauvegarder le devis',
+    updateButton: 'Mettre à jour le devis',
+    filterPrefix: 'Devis-',
+    showAcompte: false,
+  },
+  delivery_note: {
+    title: 'Gestion des Bons de Livraison',
+    subtitle: 'Créez un nouveau bon de livraison.',
+    editTitle: 'Modifier le bon de livraison',
+    editSubtitle: 'Modifiez les articles et finalisez le bon.',
+    saveButton: 'Sauvegarder le bon',
+    updateButton: 'Mettre à jour le bon',
+    filterPrefix: 'BL-',
+    showAcompte: false,
+  },
+};
+
+function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const { 
       addToOrder, 
       order, 
@@ -42,43 +78,51 @@ function QuotesPageContent() {
   const initialFilter = searchParams.get('filter');
   const newItemId = searchParams.get('newItemId');
 
+  const config = docTypeConfig[documentType];
+
   useEffect(() => {
+    setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
     if (newItemId) {
       addToOrder(newItemId);
-      // Clean the URL
       const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
       router.replace(newUrl, { scroll: false });
     }
-  }, [newItemId, addToOrder, router]);
-
+  }, [newItemId, addToOrder, router, documentType, setCurrentSaleContext]);
 
   useEffect(() => {
     if (saleIdToEdit) {
-      loadSaleForEditing(saleIdToEdit, 'quote');
+      loadSaleForEditing(saleIdToEdit, documentType);
     } else {
         if (order.length > 0 && !location.search.includes('edit')) {
              clearOrder({ clearCustomer: true });
         }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit]);
+  }, [saleIdToEdit, documentType]);
   
   const handleSave = useCallback(() => {
     if (!isReady || !currentSaleContext?.customerId) return;
+    
+    if (documentType === 'invoice') {
+      if (submitHandler) {
+        submitHandler(); // This will trigger the checkout modal from the form
+      }
+      return;
+    }
 
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: orderTotal + orderTax,
-      status: 'pending',
+      status: documentType === 'quote' ? 'quote' : 'delivery_note',
       payments: [],
       customerId: currentSaleContext.customerId,
     };
     
-    recordCommercialDocument(doc, 'quote', saleIdToEdit || undefined);
+    recordCommercialDocument(doc, documentType, saleIdToEdit || undefined);
     
-  }, [isReady, order, orderTotal, orderTax, currentSaleContext, recordCommercialDocument, saleIdToEdit]);
+  }, [isReady, order, orderTotal, orderTax, currentSaleContext, recordCommercialDocument, saleIdToEdit, documentType, submitHandler]);
   
   const handleGenerateRandom = useCallback(() => {
     if (!items?.length || !customers?.length) {
@@ -93,7 +137,7 @@ function QuotesPageContent() {
     clearOrder({ clearCustomer: true });
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
-    setCurrentSaleContext({ customerId: randomCustomer.id });
+    setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType, isInvoice: documentType === 'invoice' });
 
     const numberOfItems = Math.floor(Math.random() * 4) + 2;
     const newOrder: OrderItem[] = [];
@@ -118,31 +162,55 @@ function QuotesPageContent() {
     }
     setOrder(newOrder);
 
+    if (documentType === 'invoice') {
+      setTimeout(() => {
+        if (submitHandler) {
+          submitHandler();
+        }
+      }, 500);
+    }
+
     toast({
       title: 'Document Aléatoire Généré',
       description: `Préparation du document pour ${randomCustomer.name}.`,
     });
-  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast]);
+  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast, documentType, submitHandler]);
 
   const renderHeaderActions = () => {
-    if (initialFilter?.startsWith('Devis-')) {
+    if (initialFilter?.startsWith(config.filterPrefix)) {
         return (
-            <Button onClick={() => router.push('/commercial/quotes')}>
+            <Button onClick={() => router.push(`/commercial/${documentType}`)}>
                 <FilePlus className="mr-2 h-4 w-4" />
-                Nouveau devis
+                Nouveau
             </Button>
         )
     }
+
+    const saveButtonText = saleIdToEdit ? config.updateButton : config.saveButton;
+    
     return (
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title="Générer un devis aléatoire">
+            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            <Button size="lg" onClick={handleSave} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour le devis' : 'Sauvegarder le devis'}</Button>
-             <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? '/reports?filter=Devis-' : '/dashboard')}>
-                <ArrowLeft />
-                Retour
-            </Button>
+            {documentType === 'invoice' ? (
+                 isReady && submitHandler ? (
+                    <Button size="lg" onClick={submitHandler}>{saveButtonText}</Button>
+                 ) : (
+                    <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? `/reports?filter=${config.filterPrefix}` : '/dashboard')}>
+                        <ArrowLeft />
+                        Retour
+                    </Button>
+                )
+            ) : (
+                <>
+                <Button size="lg" onClick={handleSave} disabled={!isReady}>{saveButtonText}</Button>
+                 <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? `/reports?filter=${config.filterPrefix}` : '/dashboard')}>
+                    <ArrowLeft />
+                    Retour
+                </Button>
+                </>
+            )}
         </div>
     )
   }
@@ -151,8 +219,8 @@ function QuotesPageContent() {
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
-            title={saleIdToEdit ? "Modifier le devis" : "Gestion des Devis"}
-            subtitle={saleIdToEdit ? "Modifiez les articles et finalisez le devis." : "Créez un nouveau devis."}
+            title={saleIdToEdit ? config.editTitle : config.title}
+            subtitle={saleIdToEdit ? config.editSubtitle : config.subtitle}
         >
           {renderHeaderActions()}
         </PageHeader>
@@ -167,7 +235,7 @@ function QuotesPageContent() {
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
                 setIsReady={setIsReady}
-                showAcompte={false}
+                showAcompte={config.showAcompte}
             />
         </div>
       </div>
@@ -177,10 +245,10 @@ function QuotesPageContent() {
   );
 }
 
-export default function QuotesPage() {
+export default function CommercialPageLayout({ documentType }: CommercialPageLayoutProps) {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
-            <QuotesPageContent/>
+            <CommercialPageContent documentType={documentType}/>
         </Suspense>
     )
 }

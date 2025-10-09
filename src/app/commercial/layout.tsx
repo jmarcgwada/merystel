@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { Suspense } from 'react';
@@ -7,7 +6,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck } from 'lucide-react';
-import { PageHeader } from '@/components/page-header';
 
 const navLinks = [
     { href: '/commercial/invoices', label: 'Factures', icon: FileText },
@@ -58,4 +56,3 @@ export default function CommercialLayout({
     </div>
   );
 }
-
