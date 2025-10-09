@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -947,20 +946,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const clearOrder = useCallback(async () => {
     setOrder([]);
     setDynamicBgImage(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-
+    if (readOnlyOrder) setReadOnlyOrder(null);
+    
     if (selectedTable?.id) {
         const tableRef = getDocRef('tables', selectedTable.id);
         if (tableRef) {
           // You might not need to do anything here if table state is managed elsewhere on nav
         }
     }
-    setSelectedTable(null);
     
-    if (readOnlyOrder) {
-      setReadOnlyOrder(null);
-    }
+    setCurrentSaleId(null);
+    setCurrentSaleContext(null);
+    setSelectedTable(null);
   }, [readOnlyOrder, selectedTable, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -987,8 +984,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     
     setOrder(currentOrder => {
-        const existingItemIndex = currentOrder.findIndex(i => i.itemId === item.id);
-        if (existingItemIndex > -1 && currentOrder[existingItemIndex].serialNumbers?.length === serialNumbers.length) {
+        const existingItemIndex = currentOrder.findIndex(i => i.itemId === item.id && i.serialNumbers?.length === serialNumbers.length);
+        if (existingItemIndex > -1) {
             const newOrder = [...currentOrder];
             newOrder[existingItemIndex] = { ...newOrder[existingItemIndex], serialNumbers };
             return newOrder;
@@ -1511,11 +1508,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             pieceRef = doc(salesCollRef);
           }
           
-          const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.isInvoice && saleData.status === 'pending'));
+          const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.documentType === 'invoice' && saleData.status === 'pending'));
           const needsNumber = isFinalizing && !existingData.ticketNumber;
           let pieceNumber = existingData.ticketNumber || '';
           
-          let documentType: Sale['documentType'] = currentSaleContext?.documentType || (currentSaleContext?.isInvoice ? 'invoice' : 'ticket');
+          let documentType: Sale['documentType'] = currentSaleContext?.documentType || 'ticket';
 
           if (needsNumber) {
             const companyDoc = await transaction.get(companyRef);

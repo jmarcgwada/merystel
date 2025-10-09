@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -416,7 +414,7 @@ export function OrderSummary() {
 
     if (order.length > 0) {
       return (
-        <Button variant="ghost" size="sm" onClick={() => clearOrder({clearCustomer: true})} className="text-destructive hover:text-destructive">
+        <Button variant="ghost" size="sm" onClick={clearOrder} className="text-destructive hover:text-destructive">
           Tout effacer
         </Button>
       );
@@ -772,7 +770,7 @@ export function OrderSummary() {
                         <Printer className="mr-2" />
                         Imprimer
                     </Button>
-                    <Button size="lg" className="flex-1" onClick={() => clearOrder({clearCustomer: true})}>
+                    <Button size="lg" className="flex-1" onClick={() => clearOrder()}>
                         Nouveau
                     </Button>
                 </>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
@@ -27,10 +26,8 @@ export function CategoryList({
 }: CategoryListProps) {
   const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter, items } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
-  const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
+  
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -66,7 +63,6 @@ export function CategoryList({
 
   const getStyleForCategory = (category: Category) => {
     const isSelected = selectedCategory && typeof selectedCategory === 'object' && selectedCategory.id === category.id;
-    const isHovered = hoveredCategoryId === category.id;
 
     if (isSelected && category.color) {
       return {
@@ -74,11 +70,6 @@ export function CategoryList({
         color: 'white',
         '--hover-bg-color': `${category.color}E6`
       };
-    }
-    if (isHovered && category.color) {
-        return {
-            backgroundColor: `${category.color}33`,
-        }
     }
     return {
         '--hover-bg-color': 'hsl(var(--accent))'
@@ -101,7 +92,6 @@ export function CategoryList({
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            ref={searchInputRef}
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -146,8 +136,6 @@ export function CategoryList({
                   style={getStyleForCategory(category) as React.CSSProperties}
                   className={cn("h-12 w-full justify-start text-left", isSelected && "hover:bg-[var(--hover-bg-color)]")}
                   onClick={() => onSelectCategory(category)}
-                  onMouseEnter={() => setHoveredCategoryId(category.id)}
-                  onMouseLeave={() => setHoveredCategoryId(null)}
                   >
                   <span className="text-base ml-8">{category.name}</span>
                   </Button>
