@@ -489,8 +489,8 @@ export default function ReportsPage() {
                              <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
-                                            <X className="h-4 w-4" />
+                                        <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
+                                            <X className="mr-2 h-4 w-4"/>Réinitialiser
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -710,6 +710,13 @@ export default function ReportsPage() {
                                             : sale.documentType === 'delivery_note' ? 'Bon de livraison'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
                                             : 'Ticket';
+                            
+                            const editPath = 
+                                sale.documentType === 'invoice' ? `/commercial/invoices?edit=${sale.id}` :
+                                sale.documentType === 'quote' ? `/commercial/quotes?edit=${sale.id}` :
+                                sale.documentType === 'delivery_note' ? `/commercial/delivery-notes?edit=${sale.id}` :
+                                sale.documentType === 'supplier_order' ? `/commercial/supplier-orders?edit=${sale.id}` : '';
+
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell>
@@ -739,9 +746,9 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            {sale.status === 'pending' && sale.documentType === 'invoice' && (
+                                            {sale.status !== 'paid' && editPath && (
                                                 <Button asChild variant="ghost" size="icon">
-                                                    <Link href={`/commercial/invoices?edit=${sale.id}`}>
+                                                    <Link href={editPath}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
