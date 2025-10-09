@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { Suspense } from 'react';
@@ -5,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, ShoppingBag, Truck } from 'lucide-react';
+import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
@@ -38,6 +39,10 @@ export default function CommercialLayout({
                                 </Link>
                             </TabsTrigger>
                         ))}
+                         <TabsTrigger value="customer-orders" disabled>
+                           <UserCheck className="h-4 w-4 mr-2" />
+                           <span className="hidden sm:inline-block">Cdes Client</span>
+                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
                 <Button asChild variant="outline" size="sm" className="btn-back ml-4 flex-shrink-0">
