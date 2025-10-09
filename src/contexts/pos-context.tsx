@@ -97,7 +97,7 @@ interface PosContextType {
     value: number,
     type: 'percentage' | 'fixed'
   ) => void;
-  clearOrder: (options?: { clearCustomer?: boolean, clearSupplier?: boolean }) => void;
+  clearOrder: () => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
@@ -944,31 +944,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Order Management
-  const clearOrder = useCallback(async (options = {}) => {
-    const { clearCustomer = false, clearSupplier = false } = options as { clearCustomer?: boolean, clearSupplier?: boolean };
-
+  const clearOrder = useCallback(async () => {
     if (readOnlyOrder) {
       setReadOnlyOrder(null);
+    }
+    if(selectedTable?.id) {
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+          await updateDoc(tableRef, { lockedBy: deleteField() });
+        }
     }
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
-    if (clearCustomer || clearSupplier) {
-      setCurrentSaleContext(null);
-      setSelectedTable(null);
-    } else if (currentSaleContext) {
-      setCurrentSaleContext(prev => ({
-        ...prev,
-        originalTotal: undefined,
-        originalPayments: undefined,
-        change: undefined,
-        ticketNumber: undefined,
-        date: undefined,
-        modifiedAt: undefined,
-        acompte: undefined,
-      }));
-    }
-  }, [readOnlyOrder, currentSaleContext]);
+    setCurrentSaleContext(null);
+    setSelectedTable(null);
+  }, [readOnlyOrder, selectedTable, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1473,7 +1464,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
 
       toast({ title: toastTitle });
-      clearOrder({ clearCustomer: true, clearSupplier: true });
+      clearOrder();
       if (finalPieceNumber) {
         router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
       } else {
@@ -2396,6 +2387,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      showItemImagesInGrid,
       descriptionDisplay,
       popularItemsCount,
       itemCardOpacity,
@@ -2416,6 +2408,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       notificationDuration,
       enableSerialNumber,
       defaultSalesMode,
+      isForcedMode,
       directSaleBackgroundColor,
       restaurantModeBackgroundColor,
       directSaleBgOpacity,

@@ -121,8 +121,8 @@ export default function PosPage() {
 
   return (
     <>
-      <div className="h-full grid grid-cols-10" style={{ backgroundColor }}>
-        <div className="col-span-2 bg-card flex flex-col h-full overflow-hidden rounded-l-lg transition-opacity">
+      <div className="grid h-full grid-cols-10" style={{ backgroundColor }}>
+        <div className="col-span-2 flex h-full flex-col overflow-hidden rounded-l-lg bg-card transition-opacity">
            <CategoryList
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
@@ -135,17 +135,17 @@ export default function PosPage() {
           isKeypadOpen && 'opacity-50 pointer-events-none'
         )}>
            <div className="p-4 border-b">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-semibold tracking-tight font-headline flex-shrink-0">
+                  <h2 className="flex-shrink-0 text-2xl font-semibold tracking-tight font-headline">
                     {pageTitle}
                   </h2>
-                  {showFavoritesOnly && <Badge variant="secondary"><Star className="h-3 w-3 mr-1"/>Favoris</Badge>}
-                  {selectedCategory === 'popular' && <Badge variant="secondary"><Trophy className="h-3 w-3 mr-1"/>Populaires</Badge>}
+                  {showFavoritesOnly && <Badge variant="secondary"><Star className="mr-1 h-3 w-3"/>Favoris</Badge>}
+                  {selectedCategory === 'popular' && <Badge variant="secondary"><Trophy className="mr-1 h-3 w-3"/>Populaires</Badge>}
                 </div>
-                <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
-                  <div className="relative w-full max-w-sm flex items-center">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-grow items-center gap-2 sm:flex-grow-0">
+                  <div className="relative flex w-full max-w-sm items-center">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                           ref={searchInputRef}
                           placeholder="Rechercher un article..."
@@ -175,7 +175,7 @@ export default function PosPage() {
                       <Skeleton className="h-10 w-[74px]" />
                   )}
                 </div>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-auto">
                   <Button 
                       variant="outline" 
                       onClick={() => setHeldOpen(true)}
@@ -192,7 +192,7 @@ export default function PosPage() {
                 </div>
               </div>
           </div>
-          <div className="flex-1 relative">
+          <div className="relative flex-1">
             <ScrollArea className="absolute inset-0">
                 <div className="p-4">
                   {isClient ? (
@@ -207,7 +207,7 @@ export default function PosPage() {
             </ScrollArea>
           </div>
         </div>
-        <div className="col-span-3 flex flex-col h-full overflow-hidden rounded-r-lg">
+        <div className="col-span-3 flex h-full flex-col overflow-hidden rounded-r-lg">
           <OrderSummary />
         </div>
       </div>

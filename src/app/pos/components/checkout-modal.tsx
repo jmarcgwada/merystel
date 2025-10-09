@@ -157,7 +157,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
           } else if (isInvoice) {
-              clearOrder({ clearCustomer: true });
+              clearOrder();
               router.push('/reports?filter=Fact-');
           } else {
             clearOrder();
@@ -170,7 +170,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             title: 'Vente mise en attente',
             description: `La facture est en attente.`
         })
-        clearOrder({ clearCustomer: true });
+        clearOrder();
         handleOpenChange(false);
         router.push('/reports?filter=Fact-');
     }

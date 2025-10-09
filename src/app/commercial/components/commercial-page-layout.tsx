@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -93,8 +94,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
+        // Only clear the order if we are NOT editing, to preserve state on component remount.
         if (order.length > 0 && !location.search.includes('edit')) {
-             clearOrder({ clearCustomer: true });
+             clearOrder();
         }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,7 +136,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
 
-    clearOrder({ clearCustomer: true });
+    clearOrder();
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
     setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType, isInvoice: documentType === 'invoice' });
