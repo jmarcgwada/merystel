@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Info, UserPlus, Eye, EyeOff, Delete } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -42,6 +42,17 @@ const adminSchema = z.object({
 });
 
 type AdminFormValues = z.infer<typeof adminSchema>;
+
+const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
+    <Button
+        type="button"
+        variant="outline"
+        className="h-14 w-14 text-2xl font-bold"
+        onClick={() => onClick(value)}
+    >
+        {value}
+    </Button>
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -190,8 +201,8 @@ export default function LoginPage() {
     return `${monthStr}${dayStr}${difference}`;
   };
 
-  const handlePinSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+  const handlePinSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         const correctPin = generateDynamicPin();
         if (pin === correctPin) {
             setShowPinDialog(false);
@@ -211,6 +222,17 @@ export default function LoginPage() {
              setIsLoading(false);
         }
   }
+
+  const handlePinKeyPress = (key: string) => {
+    if (pin.length < 6) {
+      setPin(prev => prev + key);
+    }
+  };
+  
+  const handlePinBackspace = () => {
+    setPin(prev => prev.slice(0, -1));
+  };
+
 
   const handlePasswordReset = async () => {
     if (!resetEmail) {
@@ -395,17 +417,27 @@ export default function LoginPage() {
                         Cet utilisateur est déjà connecté sur un autre appareil. Pour continuer, veuillez entrer le code PIN dynamique pour forcer la connexion et déconnecter l'autre session.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="pin">Code PIN</Label>
-                    <Input 
-                        id="pin"
-                        type="password"
-                        autoComplete="one-time-code"
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        placeholder="•••••"
-                        autoFocus
-                    />
+                <div className="py-4 space-y-4">
+                    <div className="flex justify-center items-center h-12 bg-muted rounded-md border">
+                        <p className="text-3xl font-mono tracking-[0.5em]">
+                        {pin.split('').map(() => '•').join('')}
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <PinKey value="1" onClick={handlePinKeyPress} />
+                        <PinKey value="2" onClick={handlePinKeyPress} />
+                        <PinKey value="3" onClick={handlePinKeyPress} />
+                        <PinKey value="4" onClick={handlePinKeyPress} />
+                        <PinKey value="5" onClick={handlePinKeyPress} />
+                        <PinKey value="6" onClick={handlePinKeyPress} />
+                        <PinKey value="7" onClick={handlePinKeyPress} />
+                        <PinKey value="8" onClick={handlePinKeyPress} />
+                        <PinKey value="9" onClick={handlePinKeyPress} />
+                        <Button type="button" variant="outline" className="h-14 w-14" onClick={handlePinBackspace}>
+                            <Delete className="h-6 w-6"/>
+                        </Button>
+                        <PinKey value="0" onClick={handlePinKeyPress} />
+                    </div>
                 </div>
                 <AlertDialogFooter>
                     <AlertDialogCancel type="button" onClick={() => { setPin(''); setShowPinDialog(false); setIsLoading(false);}}>Annuler</AlertDialogCancel>

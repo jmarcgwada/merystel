@@ -28,6 +28,16 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
+const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
+    <Button
+        type="button"
+        variant="outline"
+        className="h-14 w-14 text-2xl font-bold"
+        onClick={() => onClick(value)}
+    >
+        {value}
+    </Button>
+);
 
 export default function FirestoreDataPage() {
   const { user, loading: isUserLoading } = useUser();
@@ -156,17 +166,6 @@ export default function FirestoreDataPage() {
   }
   
   if(isPinDialogOpen) {
-      const PinKey = ({ value }: { value: string }) => (
-          <Button
-              type="button"
-              variant="outline"
-              className="h-14 w-14 text-2xl font-bold"
-              onClick={() => handlePinKeyPress(value)}
-          >
-              {value}
-          </Button>
-      );
-      
       return (
         <AlertDialog open={isPinDialogOpen}>
             <AlertDialogContent className="sm:max-w-sm">
@@ -184,19 +183,19 @@ export default function FirestoreDataPage() {
                           </p>
                        </div>
                        <div className="grid grid-cols-3 gap-2">
-                            <PinKey value="1" />
-                            <PinKey value="2" />
-                            <PinKey value="3" />
-                            <PinKey value="4" />
-                            <PinKey value="5" />
-                            <PinKey value="6" />
-                            <PinKey value="7" />
-                            <PinKey value="8" />
-                            <PinKey value="9" />
+                            <PinKey value="1" onClick={handlePinKeyPress} />
+                            <PinKey value="2" onClick={handlePinKeyPress} />
+                            <PinKey value="3" onClick={handlePinKeyPress} />
+                            <PinKey value="4" onClick={handlePinKeyPress} />
+                            <PinKey value="5" onClick={handlePinKeyPress} />
+                            <PinKey value="6" onClick={handlePinKeyPress} />
+                            <PinKey value="7" onClick={handlePinKeyPress} />
+                            <PinKey value="8" onClick={handlePinKeyPress} />
+                            <PinKey value="9" onClick={handlePinKeyPress} />
                              <Button type="button" variant="outline" className="h-14 w-14" onClick={handlePinBackspace}>
                                 <Delete className="h-6 w-6"/>
                              </Button>
-                            <PinKey value="0" />
+                            <PinKey value="0" onClick={handlePinKeyPress} />
                        </div>
                     </div>
                     <AlertDialogFooter>
