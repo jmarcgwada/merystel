@@ -35,7 +35,7 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
         let jsDate: Date;
         if (date instanceof Date) {
             jsDate = date;
-        } else if (date && typeof (date as Timestamp).toDate === 'function') {
+        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
             jsDate = new Date(date as any);
@@ -104,8 +104,6 @@ export function OrderSummary() {
     currentSaleContext,
     setCurrentSaleId,
     setCurrentSaleContext,
-    recentlyAddedItemId,
-    setRecentlyAddedItemId,
     directSaleBackgroundColor,
     restaurantModeBackgroundColor,
     directSaleBgOpacity,
@@ -153,8 +151,8 @@ export function OrderSummary() {
 
 
   useEffect(() => {
-    if (recentlyAddedItemId && itemRefs.current[recentlyAddedItemId] && scrollAreaRef.current) {
-        const itemElement = itemRefs.current[recentlyAddedItemId];
+    if (selectedItem && itemRefs.current[selectedItem.id] && scrollAreaRef.current) {
+        const itemElement = itemRefs.current[selectedItem.id];
         if (itemElement) {
             const scrollArea = scrollAreaRef.current;
             const itemTop = itemElement.offsetTop;
@@ -169,7 +167,7 @@ export function OrderSummary() {
             }
         }
     }
-  }, [recentlyAddedItemId]);
+  }, [selectedItem]);
 
   useEffect(() => {
     setIsKeypadOpen(!!selectedItem);
@@ -418,7 +416,7 @@ export function OrderSummary() {
 
     if (order.length > 0) {
       return (
-        <Button variant="ghost" size="sm" onClick={clearOrder} className="text-destructive hover:text-destructive">
+        <Button variant="ghost" size="sm" onClick={() => clearOrder({clearCustomer: true})} className="text-destructive hover:text-destructive">
           Tout effacer
         </Button>
       );
@@ -512,11 +510,9 @@ export function OrderSummary() {
           !readOnlyOrder && "cursor-pointer",
           isSelected ? 'bg-accent/50' : 'bg-transparent',
           !readOnlyOrder && !isSelected && "hover:bg-secondary/50",
-          recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
           showTicketImages ? 'p-4' : 'p-2'
         )}
         onClick={() => handleItemSelect(item)}
-        onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
     >
         {showTicketImages && (
           <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
@@ -776,7 +772,7 @@ export function OrderSummary() {
                         <Printer className="mr-2" />
                         Imprimer
                     </Button>
-                    <Button size="lg" className="flex-1" onClick={clearOrder}>
+                    <Button size="lg" className="flex-1" onClick={() => clearOrder({clearCustomer: true})}>
                         Nouveau
                     </Button>
                 </>
