@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -69,7 +70,7 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, inputValue, targetInput, clearInput, isOpen: isKeyboardOpen } = useKeyboard();
+  const { setTargetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
@@ -80,9 +81,6 @@ export default function PosPage() {
 
   const handleItemClick = (item: any) => {
     addToOrder(item.id);
-    if (isKeyboardOpen) {
-      clearInput();
-    }
   };
 
   const generateRandomOrder = useCallback(() => {
@@ -95,7 +93,7 @@ export default function PosPage() {
       return;
     }
 
-    clearOrder();
+    clearOrder({ clearCustomer: true });
 
     const numberOfItems = Math.floor(Math.random() * 4) + 2; // 2 to 5 items
     const newOrder: OrderItem[] = [];
@@ -126,18 +124,6 @@ export default function PosPage() {
     });
   }, [items, clearOrder, setOrder, toast]);
   
-  useEffect(() => {
-    // When keyboard closes, clear the search term if it was the target
-    if (!isKeyboardOpen && targetInput?.name === 'item-search') {
-      setItemSearchTerm('');
-    }
-  }, [isKeyboardOpen, targetInput]);
-
-  useEffect(() => {
-    if (targetInput?.name === 'item-search') {
-      setItemSearchTerm(inputValue);
-    }
-  }, [inputValue, targetInput]);
 
   useEffect(() => {
     if (tableId) {
@@ -174,11 +160,13 @@ export default function PosPage() {
   }
 
   const handleSearchFocus = () => {
-    setTargetInput({
-      value: itemSearchTerm,
-      name: 'item-search',
-      ref: searchInputRef,
-    });
+    if (searchInputRef.current) {
+      setTargetInput({
+        value: itemSearchTerm,
+        name: 'item-search',
+        ref: searchInputRef,
+      });
+    }
   };
   
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
