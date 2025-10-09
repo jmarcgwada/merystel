@@ -73,7 +73,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   
   useEffect(() => {
     form.setValue('items', order.map(item => ({ ...item, price: item.price })));
-  }, [order, form]);
+  }, [order, form.setValue]);
   
   const watchItems = form.watch('items');
   
@@ -225,7 +225,8 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   }, [order, selectedSupplier, toast, setOrder, form, recordCommercialDocument, orderTotal, orderTax]);
   
   useEffect(() => {
-    setSubmitHandler(() => form.handleSubmit(onSubmit));
+    const handler = () => form.handleSubmit(onSubmit)();
+    setSubmitHandler(() => handler);
     return () => setSubmitHandler(null);
   }, [form, onSubmit, setSubmitHandler]);
 
