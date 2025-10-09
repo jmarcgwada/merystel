@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
@@ -25,8 +24,7 @@ export function CategoryList({
   showFavoritesOnly,
   onToggleFavorites,
 }: CategoryListProps) {
-  const { items, categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
-  const { setTargetInput } = useKeyboard();
+  const { categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter, items } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -91,16 +89,6 @@ export function CategoryList({
       return getVariant(id) === 'default';
   }
   
-  const handleSearchFocus = () => {
-    if (searchInputRef.current) {
-      setTargetInput({
-        value: searchTerm,
-        name: 'category-search',
-        ref: searchInputRef,
-      });
-    }
-  };
-
   return (
     <div className="flex h-full flex-col relative">
       <div className="p-4 border-b">
@@ -116,7 +104,6 @@ export function CategoryList({
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={handleSearchFocus}
             className="pl-9"
           />
         </div>

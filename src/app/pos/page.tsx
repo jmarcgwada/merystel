@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
-import { ItemList } from '../../pos/components/item-list';
+import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
@@ -255,7 +254,6 @@ export default function PosPage() {
                     <div className="p-4">
                       {isClient ? (
                           <ItemList
-                              ref={null} 
                               category={selectedCategory} 
                               searchTerm={itemSearchTerm} 
                               showFavoritesOnly={showFavoritesOnly}
