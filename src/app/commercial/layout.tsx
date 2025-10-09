@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -24,9 +24,28 @@ export default function CommercialLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
-  const { order, showNavConfirm } = usePos();
   const router = useRouter();
+  const { order, showNavConfirm } = usePos();
+  
+  const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
+  
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (order.length > 0) {
+        // This is the core of your requested solution:
+        // We push state forward to "cancel" the back navigation,
+        // then show the confirmation dialog.
+        history.forward(); 
+        showNavConfirm(document.location.pathname); // The destination is unknown, so we use the current path.
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [order, showNavConfirm]);
 
   const handleTabClick = (e: React.MouseEvent, href: string) => {
     if (order.length > 0 && !pathname.startsWith(href)) {
