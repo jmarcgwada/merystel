@@ -105,7 +105,7 @@ function SupplierOrdersPageContent() {
             subtitle={saleIdToEdit ? "Modifiez les articles et finalisez la commande." : "Créez une nouvelle commande fournisseur."}
         >
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire">
+            <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
             {isReady && submitHandler ? (

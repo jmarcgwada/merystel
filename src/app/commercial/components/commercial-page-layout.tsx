@@ -205,7 +205,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     
     return (
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`}>
+            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
             { (isReady && submitHandler) &&
