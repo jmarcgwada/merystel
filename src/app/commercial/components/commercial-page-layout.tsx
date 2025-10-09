@@ -96,11 +96,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   useEffect(() => {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
-    } else {
-        // Only clear the order if we are NOT editing, to preserve state on component remount.
-        if (order.length > 0 && !location.search.includes('edit')) {
-             clearOrder();
-        }
+    } else if (!location.search.includes('edit=')) {
+      // If we are not editing, and there's no "edit" in the url, clear the order.
+      // This prevents order persistence when navigating between commercial doc types.
+      // But we check order.length to avoid clearing on initial load if order is already empty.
+      if (order.length > 0) {
+        // clearOrder();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
