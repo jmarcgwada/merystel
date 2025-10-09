@@ -3,14 +3,14 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
-import { ItemList } from './components/item-list';
+import { ItemList } from '../../pos/components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, LayoutGrid, List, Sparkles } from 'lucide-react';
+import { Hand, Search, Star, Trophy, LayoutGrid, List, Sparkles, ScanLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,6 @@ export default function PosPage() {
   
   const { setTargetInput } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const itemScrollAreaRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     setIsClient(true);
@@ -251,7 +250,7 @@ export default function PosPage() {
                     </div>
                   </div>
               </div>
-              <div className="flex-1 relative" ref={itemScrollAreaRef}>
+              <div className="flex-1 relative">
                 <ScrollArea className="absolute inset-0">
                     <div className="p-4">
                       {isClient ? (

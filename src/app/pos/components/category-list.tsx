@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 interface CategoryListProps {
   selectedCategory: Category | SpecialCategory | null;
@@ -25,9 +26,11 @@ export function CategoryList({
   onToggleFavorites,
 }: CategoryListProps) {
   const { items, categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
+  const { setTargetInput } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -87,7 +90,16 @@ export function CategoryList({
       if (id === 'all') return getVariant('all') === 'default' && !(selectedCategory && typeof selectedCategory === 'object');
       return getVariant(id) === 'default';
   }
-
+  
+  const handleSearchFocus = () => {
+    if (searchInputRef.current) {
+      setTargetInput({
+        value: searchTerm,
+        name: 'category-search',
+        ref: searchInputRef,
+      });
+    }
+  };
 
   return (
     <div className="flex h-full flex-col relative">
@@ -100,9 +112,11 @@ export function CategoryList({
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
+            ref={searchInputRef}
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={handleSearchFocus}
             className="pl-9"
           />
         </div>
