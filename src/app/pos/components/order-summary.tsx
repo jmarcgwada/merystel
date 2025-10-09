@@ -539,12 +539,17 @@ export function OrderSummary() {
         <div className="flex-1">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-1">
-                <p className="font-semibold pr-2">{item.name}</p>
-                {!readOnlyOrder && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-20 group-hover:opacity-100 transition-opacity" onClick={(e) => handleEditItemClick(e, item.itemId)}>
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                )}
+                 <p className="font-semibold pr-2">{item.name}</p>
+                  {!readOnlyOrder && (
+                      <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-muted-foreground transition-opacity" 
+                          onClick={(e) => handleEditItemClick(e, item.itemId)}
+                      >
+                          <Pencil className="h-3 w-3" />
+                      </Button>
+                  )}
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
@@ -856,3 +861,4 @@ export function OrderSummary() {
     </>
   );
 }
+
