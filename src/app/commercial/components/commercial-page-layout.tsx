@@ -36,7 +36,7 @@ const docTypeConfig = {
     editTitle: 'Modifier le devis',
     editSubtitle: 'Modifiez les articles et finalisez le devis.',
     saveButton: 'Sauvegarder le devis',
-    updateButton: 'Mettre à jour le devis',
+    updateButton: 'Transformer en Facture',
     filterPrefix: 'Devis-',
     showAcompte: false,
   },
@@ -46,7 +46,7 @@ const docTypeConfig = {
     editTitle: 'Modifier le bon de livraison',
     editSubtitle: 'Modifiez les articles et finalisez le bon.',
     saveButton: 'Sauvegarder le bon',
-    updateButton: 'Mettre à jour le bon',
+    updateButton: 'Transformer en Facture',
     filterPrefix: 'BL-',
     showAcompte: false,
   },
@@ -99,10 +99,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     } else if (!location.search.includes('edit=')) {
       // If we are not editing, and there's no "edit" in the url, clear the order.
       // This prevents order persistence when navigating between commercial doc types.
-      // But we check order.length to avoid clearing on initial load if order is already empty.
-      if (order.length > 0) {
-        // clearOrder();
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
@@ -110,6 +106,16 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
+    // For quotes and delivery notes being edited, transform them into an invoice
+    if (saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note')) {
+      setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice' }));
+      if (submitHandler) {
+        submitHandler(); // This will open checkout modal for invoicing
+      }
+      return;
+    }
+
+    // For new invoices or editing invoices
     if (documentType === 'invoice') {
       if (submitHandler) {
         submitHandler(); // This will trigger the checkout modal from the form
@@ -117,6 +123,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
 
+    // For saving new quotes or delivery notes
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: orderTotal,
@@ -208,7 +215,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            { (isReady && submitHandler) &&
+            { (isReady && (submitHandler || documentType !== 'invoice')) &&
                 <Button size="lg" onClick={handleSave} disabled={!isReady}>{saveButtonText}</Button>
             }
         </div>
