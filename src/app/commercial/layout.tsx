@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
+import { NavigationBlocker } from '@/components/layout/navigation-blocker';
 
 
 const navLinks = [
@@ -29,23 +30,6 @@ export default function CommercialLayout({
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      if (order.length > 0) {
-        // This is the core of your requested solution:
-        // We push state forward to "cancel" the back navigation,
-        // then show the confirmation dialog.
-        history.forward(); 
-        showNavConfirm(document.location.pathname); // The destination is unknown, so we use the current path.
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [order, showNavConfirm]);
 
   const handleTabClick = (e: React.MouseEvent, href: string) => {
     if (order.length > 0 && !pathname.startsWith(href)) {
@@ -65,6 +49,7 @@ export default function CommercialLayout({
 
   return (
     <div className="h-full flex flex-col">
+        <NavigationBlocker />
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <Tabs value={activeTab} className="w-full">
@@ -99,4 +84,3 @@ export default function CommercialLayout({
     </div>
   );
 }
-
