@@ -12,11 +12,12 @@ export function NavigationGuard() {
   const { order, showNavConfirm } = usePos();
   const previousPathname = useRef(pathname);
 
-  const isLeavingSalesPage = salesPages.some(page => previousPathname.current.startsWith(page)) && !salesPages.some(page => pathname.startsWith(page));
+  const isSalesPage = salesPages.some(page => pathname.startsWith(page));
+  const wasOnSalesPage = salesPages.some(page => previousPathname.current.startsWith(page));
 
   useEffect(() => {
     // This effect handles navigation *within* the app (client-side routing)
-    if (isLeavingSalesPage && order.length > 0) {
+    if (wasOnSalesPage && !isSalesPage && order.length > 0) {
       showNavConfirm(pathname);
        // This is a trick: Next.js router doesn't have a native 'cancel navigation'.
        // We immediately push the user back to where they were.
@@ -26,14 +27,14 @@ export function NavigationGuard() {
     }
     previousPathname.current = pathname;
 
-  }, [pathname, isLeavingSalesPage, order.length, showNavConfirm]);
+  }, [pathname, wasOnSalesPage, isSalesPage, order.length, showNavConfirm]);
 
 
   useEffect(() => {
     // This effect handles leaving the entire site (refresh, close tab, etc.)
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      const isSalesPage = salesPages.some(page => window.location.pathname.startsWith(page));
-      if (isSalesPage && order.length > 0) {
+      const isOnSalesPageNow = salesPages.some(page => window.location.pathname.startsWith(page));
+      if (isOnSalesPageNow && order.length > 0) {
         event.preventDefault();
         // This message is often ignored by modern browsers, which show a generic one.
         event.returnValue = 'Vous avez une commande en cours. Êtes-vous sûr de vouloir quitter ?';

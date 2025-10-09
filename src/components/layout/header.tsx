@@ -64,14 +64,6 @@ export default function Header() {
   };
   
   const canAccessCompanySettings = user?.role === 'admin';
-  const isLoginPage = pathname.startsWith('/login');
-
-  useEffect(() => {
-    if (!isSalesPage && order.length > 0) {
-      clearOrder();
-    }
-  }, [pathname, order, clearOrder, isSalesPage]);
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
