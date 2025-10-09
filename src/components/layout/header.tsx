@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -28,6 +29,7 @@ export default function Header() {
   const { 
     showNavConfirm, 
     order, 
+    clearOrder, // <-- Import clearOrder
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
@@ -47,7 +49,13 @@ export default function Header() {
                         pathname.startsWith('/commercial');
 
     setNavDisabled(isSalesPage);
-  }, [pathname]);
+    
+    // Cleanup logic: If we are not on a sales page and the order is not empty, clear it.
+    if (!isSalesPage && order.length > 0) {
+      clearOrder();
+    }
+
+  }, [pathname, order.length, clearOrder]);
 
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
