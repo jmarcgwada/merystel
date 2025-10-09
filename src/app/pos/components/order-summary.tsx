@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -516,7 +517,7 @@ export function OrderSummary() {
     <div 
         ref={el => itemRefs.current[item.id] = el}
         className={cn(
-          "flex items-start gap-4 transition-colors duration-300",
+          "flex items-start gap-4 transition-colors duration-300 group",
           !readOnlyOrder && "cursor-pointer",
           isSelected ? 'bg-accent/50' : 'bg-transparent',
           !readOnlyOrder && !isSelected && "hover:bg-secondary/50",
@@ -540,8 +541,8 @@ export function OrderSummary() {
               <div className="flex items-center gap-1">
                 <p className="font-semibold pr-2">{item.name}</p>
                 {!readOnlyOrder && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2" onClick={(e) => handleEditItemClick(e, item.itemId)}>
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleEditItemClick(e, item.itemId)}>
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 )}
               </div>
