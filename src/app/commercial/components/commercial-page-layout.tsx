@@ -217,24 +217,32 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         )
     }
 
-    const saveButtonText = saleIdToEdit ? (documentType === 'invoice' ? config.updateButton : 'Sauvegarder les modifications') : config.saveButton;
+    const saveButtonText = saleIdToEdit ? 'Sauvegarder les modifications' : config.saveButton;
     
     return (
         <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
+            
+            {/* Case: Editing a Quote or Delivery Note */}
             {isReady && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
+                 <>
+                    <Button size="lg" variant="outline" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
+                    <Button size="lg" onClick={() => handleSave(true)} disabled={!isReady}>{config.updateButton}</Button>
+                 </>
+            )}
+
+            {/* Case: New Quote or Delivery Note */}
+            {isReady && !saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
                  <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
             )}
-            {isReady && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
-                <Button size="lg" onClick={() => handleSave(true)} disabled={!isReady}>{config.updateButton}</Button>
-            )}
-            {isReady && !saleIdToEdit && (
-                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
-            )}
-             {isReady && documentType === 'invoice' && saleIdToEdit && (
-                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
+
+            {/* Case: New or Editing an Invoice */}
+            {isReady && documentType === 'invoice' && (
+                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>
+                     {saleIdToEdit ? config.updateButton : config.saveButton}
+                 </Button>
             )}
         </div>
     )
