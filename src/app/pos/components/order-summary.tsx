@@ -291,38 +291,44 @@ export function OrderSummary() {
 
   const getTitle = () => {
     const saleForTitle = readOnlyOrder?.[0]?.sourceSale || currentSaleContext;
+    const pieceNumber = saleForTitle?.ticketNumber;
+    const pieceTypeText =
+      saleForTitle?.documentType === 'invoice'
+        ? 'Facture'
+        : saleForTitle?.documentType === 'quote'
+        ? 'Devis'
+        : saleForTitle?.documentType === 'delivery_note'
+        ? 'Bon de livraison'
+        : 'Ticket';
 
-    if (readOnlyOrder && saleForTitle?.ticketNumber) {
-        return (
-             <div className="flex flex-col gap-1">
-                <div className='flex items-center gap-2 text-blue-600'>
-                    <History />
-                    <span>Consultation Ticket</span>
-                </div>
-                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span>#{saleForTitle.ticketNumber}</span>
-                    {saleForTitle.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{saleForTitle.tableName}</span>}
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="d MMM yyyy" /></span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={saleForTitle.date} formatString="HH:mm" /></span>
-                    {saleForTitle.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{saleForTitle.userName}</span>}
-                </div>
-            </div>
-        )
+    if (readOnlyOrder && pieceNumber) {
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-blue-600">
+            <History />
+            <span>Consultation {pieceTypeText}</span>
+          </div>
+          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>#{pieceNumber}</span>
+            {saleForTitle.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3" />{saleForTitle.tableName}</span>}
+            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /><ClientFormattedDate date={saleForTitle.date} formatString="d MMM yyyy" /></span>
+            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /><ClientFormattedDate date={saleForTitle.date} formatString="HH:mm" /></span>
+            {saleForTitle.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3" />{saleForTitle.userName}</span>}
+          </div>
+        </div>
+      );
     }
 
-    if (currentSaleContext?.ticketNumber) {
+    if (currentSaleId && pieceNumber) {
         return (
             <div className="flex flex-col gap-1">
                 <div className='flex items-center gap-2 text-orange-600'>
                     <Edit />
-                    <span>Modification Ticket</span>
+                    <span>Modification {pieceTypeText}</span>
                 </div>
                 <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span>#{currentSaleContext.ticketNumber}</span>
-                    {currentSaleContext.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{currentSaleContext.tableName}</span>}
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/><ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy" /></span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/><ClientFormattedDate date={currentSaleContext.date} formatString="HH:mm" /></span>
-                    {currentSaleContext.userName && <span className="flex items-center gap-1"><UserIcon className="h-3 w-3"/>{currentSaleContext.userName}</span>}
+                    <span>#{pieceNumber}</span>
+                    {currentSaleContext?.tableName && <span className="flex items-center gap-1"><Utensils className="h-3 w-3"/>{currentSaleContext.tableName}</span>}
                 </div>
             </div>
         )
@@ -538,7 +544,19 @@ export function OrderSummary() {
         )}
         <div className="flex-1">
             <div className="flex justify-between items-start">
-              <p className="font-semibold pr-2">{item.name}</p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold pr-1">{item.name}</p>
+                 {!readOnlyOrder && (
+                     <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-muted-foreground opacity-50 group-hover:opacity-100" 
+                      onClick={(e) => handleEditItemClick(e, item.itemId)}
+                  >
+                      <Pencil className="h-3 w-3" />
+                  </Button>
+                 )}
+              </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
             {descriptionDisplay === 'first' && item.description && (
