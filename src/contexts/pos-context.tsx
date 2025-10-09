@@ -421,7 +421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => (user && user.role === 'admin') ? collection(firestore, 'users') : null, [firestore, user]);
   const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
@@ -961,7 +961,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (clearCustomer || clearSupplier) {
       setCurrentSaleContext(null);
       setSelectedTable(null);
-    } else {
+    } else if (currentSaleContext) {
       setCurrentSaleContext(prev => ({
         ...prev,
         originalTotal: undefined,
@@ -973,7 +973,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         acompte: undefined,
       }));
     }
-  }, [readOnlyOrder]);
+  }, [readOnlyOrder, currentSaleContext]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1024,6 +1024,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
+      
+      if (itemToAdd.manageStock && (!itemToAdd.stock || itemToAdd.stock <= 0)) {
+        toast({
+            variant: 'destructive',
+            title: 'Rupture de stock',
+            description: `L'article "${itemToAdd.name}" n'est plus en stock.`,
+        });
+        return;
+      }
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
