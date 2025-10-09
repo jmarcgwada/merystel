@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 import { SessionManager } from '@/components/session-manager';
 import { PosProvider } from '@/contexts/pos-context';
+import { NavigationGuard } from '@/components/layout/navigation-guard';
 
 
 export const metadata: Metadata = {
@@ -64,6 +65,7 @@ export default function RootLayout({
               <KeyboardProvider>
                 <SessionManager>
                   <React.Suspense fallback={<AppLoading/>}>
+                    <NavigationGuard />
                     <Header />
                     <main className="flex-1 overflow-auto">{children}</main>
                     <Toaster />

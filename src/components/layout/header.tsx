@@ -29,7 +29,7 @@ export default function Header() {
   const { 
     showNavConfirm, 
     order, 
-    clearOrder, // <-- Import clearOrder
+    clearOrder,
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
@@ -48,22 +48,13 @@ export default function Header() {
                         pathname.startsWith('/restaurant') || 
                         pathname.startsWith('/commercial');
 
-    setNavDisabled(isSalesPage);
-    
-    // Cleanup logic: If we are not on a sales page and the order is not empty, clear it.
-    if (!isSalesPage && order.length > 0) {
-      clearOrder();
-    }
-
-  }, [pathname, order.length, clearOrder]);
+    setNavDisabled(isSalesPage && order.length > 0);
+  }, [pathname, order.length]);
 
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (navDisabled) {
-      e.preventDefault();
-      return;
-    }
-    if (order.length > 0 && href !== pathname) {
+    // This is now the primary navigation guard.
+    if (order.length > 0) {
       e.preventDefault();
       showNavConfirm(href);
     }
@@ -83,12 +74,13 @@ export default function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className={cn(
             "flex items-center gap-4 flex-1 transition-opacity",
-             navDisabled && 'opacity-50 pointer-events-none'
+             navDisabled && 'opacity-50'
             )}>
            <Link
             href="/"
             className={cn(
-              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors"
+              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
+              navDisabled && "pointer-events-none"
             )}
             onClick={(e) => {
               if (user) handleNavClick(e, '/');
@@ -114,7 +106,7 @@ export default function Header() {
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
-                  <Link href="/settings/company" className="text-lg font-semibold text-foreground/90 hover:text-primary transition-colors" onClick={(e) => handleNavClick(e, '/settings/company')}>
+                  <Link href="/settings/company" className={cn("text-lg font-semibold text-foreground/90 hover:text-primary transition-colors", navDisabled && "pointer-events-none")} onClick={(e) => handleNavClick(e, '/settings/company')}>
                     {companyInfo.name}
                   </Link>
               ) : (
