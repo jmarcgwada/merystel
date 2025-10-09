@@ -25,7 +25,7 @@ const docTypeConfig = {
     subtitle: 'Créez une nouvelle facture ou éditez une facture existante.',
     editTitle: 'Modifier la facture',
     editSubtitle: 'Modifiez les articles et finalisez la facture.',
-    saveButton: 'Sauvegarder la facture',
+    saveButton: 'Encaisser la facture',
     updateButton: 'Mettre à jour la facture',
     filterPrefix: 'Fact-',
     showAcompte: true,
@@ -105,7 +105,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     if (documentType === 'invoice') {
@@ -120,13 +120,21 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       subtotal: orderTotal,
       tax: orderTax,
       total: orderTotal + orderTax,
-      status: documentType === 'quote' ? 'quote' : 'delivery_note',
+      status: documentType, // status is now the same as documentType for quotes/delivery_notes
       payments: [],
       customerId: currentSaleContext.customerId,
     };
     
-    recordSale(doc, currentSaleId || undefined);
-    
+    try {
+        const savedDoc = await recordSale(doc, currentSaleId || undefined);
+        if (savedDoc) {
+            clearOrder();
+            const filterPrefix = docTypeConfig[documentType].filterPrefix;
+            router.push(`/reports?filter=${filterPrefix}`);
+        }
+    } catch (error) {
+        // Error toast is already handled in recordSale
+    }
   };
   
   const handleGenerateRandom = () => {
@@ -257,3 +265,5 @@ export default function CommercialPageLayout({ documentType }: CommercialPageLay
         </Suspense>
     )
 }
+
+    
