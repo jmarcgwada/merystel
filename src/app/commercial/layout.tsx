@@ -49,7 +49,6 @@ export default function CommercialLayout({
 
   return (
     <div className="h-full flex flex-col">
-        <NavigationBlocker />
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <Tabs value={activeTab} className="w-full">

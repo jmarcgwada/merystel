@@ -2,12 +2,11 @@
 'use client';
 
 import { useUser } from '@/firebase/auth/use-user';
-import { redirect } from 'next/navigation';
+import { redirect, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PosProvider } from '@/contexts/pos-context';
-import { NavigationBlocker } from '@/components/layout/navigation-blocker';
 
 function AppLoading() {
   return (
@@ -34,8 +33,30 @@ function AppLoading() {
 
 function SessionValidation({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
-  const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order } = usePos();
+  const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order, showNavConfirm } = usePos();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (order.length === 0) {
+      return;
+    }
+
+    history.pushState(null, '', pathname);
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (order.length > 0) {
+        history.go(1);
+        showNavConfirm(pathname);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [pathname, order.length, showNavConfirm]);
 
   useEffect(() => {
     if (loading) {
@@ -70,7 +91,6 @@ function SessionValidation({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <NavigationBlocker />
       {children}
     </>
   );
