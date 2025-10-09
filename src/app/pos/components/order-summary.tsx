@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
@@ -7,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy, ArrowRight, Eye } from 'lucide-react';
+import { X, Hand, Eraser, Delete, Check, Plus, Minus, ShoppingCart, Utensils, CreditCard, Save, ArrowLeft, ScanLine, Keyboard as KeyboardIcon, History, Printer, Edit, User as UserIcon, Calendar, Clock, Copy, ArrowRight, Eye, Pencil } from 'lucide-react';
 import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -111,6 +112,7 @@ export function OrderSummary() {
     cameFromRestaurant,
     setCameFromRestaurant,
     sales,
+    showNavConfirm,
   } = usePos();
   
   const { toast } = useToast();
@@ -498,6 +500,16 @@ export function OrderSummary() {
              toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
         }
     };
+    
+    const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
+        e.stopPropagation(); // Prevent item selection
+        const url = `/management/items/form?id=${itemId}`;
+        if (order.length > 0) {
+            showNavConfirm(url);
+        } else {
+            router.push(url);
+        }
+    }
 
 
   const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
@@ -525,25 +537,30 @@ export function OrderSummary() {
         )}
         <div className="flex-1">
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex items-center gap-1">
                 <p className="font-semibold pr-2">{item.name}</p>
-                {descriptionDisplay === 'first' && item.description && (
-                  <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
-                )}
-                {descriptionDisplay === 'both' && (
-                    <>
-                        {item.description && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>}
-                        {item.description2 && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>}
-                    </>
-                )}
-                {item.selectedVariants && (
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
-                  </p>
+                {!readOnlyOrder && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2" onClick={(e) => handleEditItemClick(e, item.itemId)}>
+                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                  </Button>
                 )}
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
+            {descriptionDisplay === 'first' && item.description && (
+              <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
+            )}
+            {descriptionDisplay === 'both' && (
+                <>
+                    {item.description && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>}
+                    {item.description2 && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>}
+                </>
+            )}
+            {item.selectedVariants && (
+              <p className="text-xs text-muted-foreground capitalize">
+                {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+              </p>
+            )}
             {item.note && (
                 <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap">Note: {item.note}</p>
             )}
