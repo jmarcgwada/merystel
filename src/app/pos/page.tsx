@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
@@ -10,7 +10,7 @@ import type { Category, SpecialCategory, Item } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, LayoutGrid, List, Sparkles, ScanLine } from 'lucide-react';
+import { Hand, Search, Star, Trophy, LayoutGrid, List } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
