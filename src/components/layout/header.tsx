@@ -43,13 +43,13 @@ export default function Header() {
   const [navDisabled, setNavDisabled] = useState(false);
   
   useEffect(() => {
-    const isSalesPage = pathname.startsWith('/pos') || 
-                        pathname.startsWith('/supermarket') || 
-                        pathname.startsWith('/restaurant') || 
-                        pathname.startsWith('/commercial');
+    const salesPages = ['/pos', '/supermarket', '/restaurant', '/commercial'];
+    const isSalesPage = salesPages.some(page => pathname.startsWith(page));
 
-    setNavDisabled(isSalesPage && order.length > 0);
-  }, [pathname, order.length]);
+    if (!isSalesPage && order.length > 0) {
+      clearOrder();
+    }
+  }, [pathname, order, clearOrder]);
 
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
