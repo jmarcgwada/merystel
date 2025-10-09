@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -276,6 +277,7 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
+  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -2010,19 +2012,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
     sales.forEach((sale) => {
-      sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.itemId]) {
-          itemCounts[orderItem.itemId].count += orderItem.quantity;
-        } else {
-          const itemDetails = items.find((i) => i.id === orderItem.itemId);
-          if (itemDetails) {
-            itemCounts[orderItem.itemId] = {
-              item: itemDetails,
-              count: orderItem.quantity,
-            };
+      if (Array.isArray(sale.items)) {
+        sale.items.forEach((orderItem) => {
+          if (itemCounts[orderItem.itemId]) {
+            itemCounts[orderItem.itemId].count += orderItem.quantity;
+          } else {
+            const itemDetails = items.find((i) => i.id === orderItem.itemId);
+            if (itemDetails) {
+              itemCounts[orderItem.itemId] = {
+                item: itemDetails,
+                count: orderItem.quantity,
+              };
+            }
           }
-        }
-      });
+        });
+      }
     });
     return Object.values(itemCounts)
       .sort((a, b) => b.count - a.count)
