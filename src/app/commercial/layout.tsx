@@ -1,12 +1,14 @@
+
 'use client';
 
 import React, { Suspense } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePos } from '@/contexts/pos-context';
 
 
 const navLinks = [
@@ -23,6 +25,17 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
+  const { order, showNavConfirm } = usePos();
+  const router = useRouter();
+
+  const handleBackToDashboard = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (order.length > 0) {
+      showNavConfirm('/dashboard');
+    } else {
+      router.push('/dashboard');
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -45,11 +58,9 @@ export default function CommercialLayout({
                     </TabsList>
                 </Tabs>
                 <div className="pl-4">
-                    <Button asChild variant="outline" className="btn-back">
-                        <Link href="/dashboard">
-                            <ArrowLeft />
-                            Retour au tableau de bord
-                        </Link>
+                    <Button onClick={handleBackToDashboard} variant="outline" className="btn-back">
+                        <ArrowLeft />
+                        Retour au tableau de bord
                     </Button>
                 </div>
             </div>
