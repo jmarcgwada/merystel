@@ -9,7 +9,7 @@ import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon, LayoutGrid, List, Sparkles } from 'lucide-react';
+import { Hand, Search, Star, Trophy, LayoutGrid, List, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -181,14 +181,6 @@ export default function PosPage() {
     });
   };
   
-  const handleItemScroll = (direction: 'up' | 'down') => {
-    const scrollArea = itemScrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollArea) {
-      const scrollAmount = scrollArea.clientHeight * 0.8;
-      scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-    }
-  };
-  
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
 
   return (
@@ -251,22 +243,6 @@ export default function PosPage() {
                       ) : (
                           <Skeleton className="h-10 w-[74px]" />
                       )}
-                      <div className="flex items-center gap-1">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleItemScroll('up')}
-                          >
-                              <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleItemScroll('down')}
-                          >
-                              <ArrowDown className="h-4 w-4" />
-                          </Button>
-                      </div>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
                        <Button variant="outline" size="icon" onClick={generateRandomOrder} title="Générer une vente aléatoire">

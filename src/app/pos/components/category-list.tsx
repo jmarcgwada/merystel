@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
-import { LayoutGrid, Search, Star, Trophy, ArrowDown, ArrowUp, Keyboard as KeyboardIcon } from 'lucide-react';
+import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { Badge } from '@/components/ui/badge';
 
