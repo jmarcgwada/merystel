@@ -6,12 +6,14 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const navLinks = [
-    { href: '/commercial/invoices', label: 'Factures', icon: FileText },
-    { href: '/commercial/quotes', label: 'Devis', icon: FileText },
-    { href: '/commercial/delivery-notes', label: 'Bons de livraison', icon: Truck },
-    { href: '/commercial/supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag },
+    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText },
+    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText },
+    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'Bons de livraison', icon: Truck },
+    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag },
 ]
 
 export default function CommercialLayout({
@@ -20,27 +22,25 @@ export default function CommercialLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
 
   return (
     <div className="h-full flex flex-col">
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <nav className="flex items-center gap-2 sm:gap-4">
-                {navLinks.map(link => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className={cn(
-                            "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                            pathname.startsWith(link.href) ? 'text-primary' : 'text-muted-foreground'
-                        )}
-                    >
-                       <link.icon className="h-4 w-4" />
-                        <span className="hidden sm:inline-block">{link.label}</span>
-                    </Link>
-                ))}
-                </nav>
-                <Button asChild variant="outline" size="sm" className="btn-back">
+                <Tabs value={activeTab} className="w-full">
+                    <TabsList>
+                        {navLinks.map(link => (
+                            <TabsTrigger value={link.value} asChild key={link.href}>
+                                <Link href={link.href} className="flex items-center gap-2">
+                                     <link.icon className="h-4 w-4" />
+                                    <span className="hidden sm:inline-block">{link.label}</span>
+                                </Link>
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+                <Button asChild variant="outline" size="sm" className="btn-back ml-4 flex-shrink-0">
                     <Link href="/dashboard">
                         <ArrowLeft />
                         Retour au tableau de bord
