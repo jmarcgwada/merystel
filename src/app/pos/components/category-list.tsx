@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
@@ -8,7 +9,6 @@ import { cn } from '@/lib/utils';
 import type { Category, SpecialCategory } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { LayoutGrid, Search, Star, Trophy } from 'lucide-react';
-import { useKeyboard } from '@/contexts/keyboard-context';
 import { Badge } from '@/components/ui/badge';
 
 interface CategoryListProps {
@@ -26,28 +26,12 @@ export function CategoryList({
 }: CategoryListProps) {
   const { items, categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  useEffect(() => {
-    if (targetInput?.name === 'category-search') {
-      setSearchTerm(inputValue);
-    }
-  }, [inputValue, targetInput]);
-  
-  const handleSearchFocus = () => {
-    setTargetInput({
-      value: searchTerm,
-      name: 'category-search',
-      ref: searchInputRef,
-    });
-  };
 
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
@@ -116,12 +100,10 @@ export function CategoryList({
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            ref={searchInputRef}
             placeholder="Rechercher catégorie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
-            onFocus={handleSearchFocus}
           />
         </div>
       </div>

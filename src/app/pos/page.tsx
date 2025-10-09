@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
-import { ItemList } from '../../pos/components/item-list';
+import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import type { Category, SpecialCategory, Item, OrderItem } from '@/lib/types';
@@ -70,9 +70,8 @@ export default function PosPage() {
   const searchParams = useSearchParams();
   const tableId = searchParams.get('tableId');
   
-  const { setTargetInput, isOpen: isKeyboardOpen } = useKeyboard();
+  const { setTargetInput } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
-
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
