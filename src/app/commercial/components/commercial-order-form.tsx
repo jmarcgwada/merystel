@@ -78,7 +78,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: order.map(item => ({ ...item, remise: item.discountPercent || 0 })),
+      items: [],
       acompte: 0,
     },
   });
@@ -88,7 +88,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (currentSaleContext?.acompte) {
         form.setValue('acompte', currentSaleContext.acompte);
     }
-  }, [order, form, currentSaleContext]);
+  }, [order, form.setValue, currentSaleContext]);
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
@@ -101,7 +101,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             form.setValue('customerId', customer.id);
         }
     }
-  }, [currentSaleContext?.customerId, customers, form]);
+  }, [currentSaleContext?.customerId, customers, form.setValue]);
 
   useEffect(() => {
     const isReady = !!selectedCustomer && watchItems.length > 0;
@@ -261,7 +261,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [order, selectedCustomer, setCurrentSaleContext, acompte]);
   
   useEffect(() => {
-    setSubmitHandler(() => form.handleSubmit(onSubmit));
+    const handler = () => form.handleSubmit(onSubmit)();
+    setSubmitHandler(() => handler);
     return () => setSubmitHandler(null);
   }, [form, onSubmit, setSubmitHandler]);
 
@@ -469,7 +470,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                 <span>Total TTC</span>
                                 <span>{totalTTC.toFixed(2)}€</span>
                             </div>
-                            {showAcompte && watchAcompte > 0 && (
+                            {showAcompte && (
                                 <div className="flex justify-between items-center">
                                     <Label htmlFor="acompte">Acompte (€)</Label>
                                     <Controller control={form.control} name="acompte" render={({ field }) => (
@@ -477,7 +478,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                     )}/>
                                 </div>
                             )}
-                            <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                             <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
                                 <span>Net à Payer</span>
                                 <span>{netAPayer.toFixed(2)}€</span>
                             </div>
