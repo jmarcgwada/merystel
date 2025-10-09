@@ -103,15 +103,20 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
   
-  const handleSave = async () => {
+  const handleTransformToInvoice = () => {
+    if (!isReady || !currentSaleContext?.customerId) return;
+    setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice' }));
+    if (submitHandler) {
+      submitHandler(); // This will open checkout modal for invoicing
+    }
+  };
+
+  const handleSave = async (isTransformation: boolean = false) => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     // For quotes and delivery notes being edited, transform them into an invoice
-    if (saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note')) {
-      setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice' }));
-      if (submitHandler) {
-        submitHandler(); // This will open checkout modal for invoicing
-      }
+    if (isTransformation && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note')) {
+      handleTransformToInvoice();
       return;
     }
 
@@ -123,7 +128,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
 
-    // For saving new quotes or delivery notes
+    // For saving new or modified quotes or delivery notes
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: orderTotal,
@@ -137,8 +142,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     try {
         const savedDoc = await recordSale(doc, currentSaleId || undefined);
         if (savedDoc) {
+            toast({
+                title: `${config.title.slice(0, -1)} sauvegardé`,
+                description: `La pièce ${savedDoc.ticketNumber} a été enregistrée.`,
+            });
             clearOrder();
-            const filterPrefix = docTypeConfig[documentType].filterPrefix;
+            const filterPrefix = config.filterPrefix;
             router.push(`/reports?filter=${filterPrefix}`);
         }
     } catch (error) {
@@ -208,16 +217,25 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         )
     }
 
-    const saveButtonText = saleIdToEdit ? config.updateButton : config.saveButton;
+    const saveButtonText = saleIdToEdit ? (documentType === 'invoice' ? config.updateButton : 'Sauvegarder les modifications') : config.saveButton;
     
     return (
         <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            { (isReady && (submitHandler || documentType !== 'invoice')) &&
-                <Button size="lg" onClick={handleSave} disabled={!isReady}>{saveButtonText}</Button>
-            }
+            {isReady && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
+                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
+            )}
+            {isReady && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
+                <Button size="lg" onClick={() => handleSave(true)} disabled={!isReady}>{config.updateButton}</Button>
+            )}
+            {isReady && !saleIdToEdit && (
+                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
+            )}
+             {isReady && documentType === 'invoice' && saleIdToEdit && (
+                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
+            )}
         </div>
     )
   }
