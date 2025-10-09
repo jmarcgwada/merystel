@@ -35,9 +35,17 @@ const formatDate = (date: Date | Timestamp) => {
     let jsDate: Date;
     if (date instanceof Date) {
         jsDate = date;
+    } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
+        jsDate = (date as Timestamp).toDate();
     } else {
-        jsDate = date.toDate();
+        // Fallback for cases where it might be a string or number
+        jsDate = new Date(date as any);
     }
+    
+    if (isNaN(jsDate.getTime())) {
+        return 'Date invalide';
+    }
+    
     return format(jsDate, "d MMM, HH:mm", { locale: fr });
 }
 
