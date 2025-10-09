@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { Suspense } from 'react';
@@ -45,6 +44,14 @@ export default function CommercialLayout({
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
+                <div className="pl-4">
+                    <Button asChild variant="outline" className="btn-back">
+                        <Link href="/dashboard">
+                            <ArrowLeft />
+                            Retour au tableau de bord
+                        </Link>
+                    </Button>
+                </div>
             </div>
         </header>
         <main className="flex-1 flex flex-col">
