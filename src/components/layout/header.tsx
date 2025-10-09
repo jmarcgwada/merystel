@@ -23,6 +23,7 @@ import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Skeleton } from '../ui/skeleton';
 
 export default function Header() {
   const pathname = usePathname();
@@ -38,6 +39,12 @@ export default function Header() {
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
+
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   
@@ -58,6 +65,12 @@ export default function Header() {
   
   const canAccessCompanySettings = user?.role === 'admin';
   const isLoginPage = pathname.startsWith('/login');
+
+  useEffect(() => {
+    if (!isSalesPage && order.length > 0) {
+      clearOrder();
+    }
+  }, [pathname, order, clearOrder, isSalesPage]);
 
 
   return (
@@ -103,7 +116,11 @@ export default function Header() {
         
         {user && (
            <div className="hidden lg:block text-sm text-muted-foreground capitalize">
-             {format(systemDate, 'eeee d MMMM yyyy', { locale: fr })}
+             {isClient ? (
+                format(systemDate, 'eeee d MMMM yyyy', { locale: fr })
+             ) : (
+                <Skeleton className="h-5 w-40" />
+             )}
            </div>
         )}
 
