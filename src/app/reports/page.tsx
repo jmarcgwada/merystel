@@ -187,7 +187,7 @@ export default function ReportsPage() {
                 else statusMatch = sale.status === filterStatus;
             }
 
-            const articleRefMatch = !filterArticleRef || sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase())));
+            const articleRefMatch = !filterArticleRef || (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase()))));
             
             const saleSellerName = getUserName(sale.userId, sale.userName);
             const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
@@ -204,14 +204,14 @@ export default function ReportsPage() {
 
             const generalMatch = !generalFilter || (
                 (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                sale.items.some(item => {
+                (Array.isArray(sale.items) && sale.items.some(item => {
                     const lowerGeneralFilter = generalFilter.toLowerCase();
                     const nameMatch = item.name.toLowerCase().includes(lowerGeneralFilter);
                     const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
                     const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
                     const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
                     return nameMatch || noteMatch || serialMatch || variantMatch;
-                })
+                }))
             );
 
             return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch;
