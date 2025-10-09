@@ -6,7 +6,7 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, FilePlus, Sparkles } from 'lucide-react';
@@ -88,7 +88,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
       router.replace(newUrl, { scroll: false });
     }
-  }, [newItemId, addToOrder, router, documentType, setCurrentSaleContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (saleIdToEdit) {
@@ -102,7 +103,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
   
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     if (documentType === 'invoice') {
@@ -124,9 +125,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     
     recordCommercialDocument(doc, documentType, saleIdToEdit || undefined);
     
-  }, [isReady, order, orderTotal, orderTax, currentSaleContext, recordCommercialDocument, saleIdToEdit, documentType, submitHandler]);
+  };
   
-  const handleGenerateRandom = useCallback(() => {
+  const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {
       toast({
         variant: 'destructive',
@@ -176,7 +177,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       title: 'Document Aléatoire Généré',
       description: `Préparation du document pour ${randomCustomer.name}.`,
     });
-  }, [items, customers, clearOrder, setCurrentSaleContext, setOrder, toast, documentType, submitHandler]);
+  };
 
   const renderHeaderActions = () => {
     if (initialFilter?.startsWith(config.filterPrefix)) {
