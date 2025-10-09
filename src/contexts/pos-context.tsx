@@ -387,7 +387,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -945,20 +945,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Order Management
   const clearOrder = useCallback(async () => {
-    if (readOnlyOrder) {
-      setReadOnlyOrder(null);
-    }
-    if(selectedTable?.id) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-          await updateDoc(tableRef, { lockedBy: deleteField() });
-        }
-    }
     setOrder([]);
     setDynamicBgImage(null);
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
+
+    if (selectedTable?.id) {
+        const tableRef = getDocRef('tables', selectedTable.id);
+        if (tableRef) {
+          // You might not need to do anything here if table state is managed elsewhere on nav
+        }
+    }
     setSelectedTable(null);
+    
+    if (readOnlyOrder) {
+      setReadOnlyOrder(null);
+    }
   }, [readOnlyOrder, selectedTable, getDocRef]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -1017,11 +1019,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
-      if (isSupplierOrder && typeof itemToAdd.purchasePrice !== 'number') {
+      if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({
             variant: 'destructive',
-            title: 'Prix d\'achat manquant',
-            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat défini.`,
+            title: 'Prix d\'achat manquant ou nul',
+            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.`,
         });
         return;
     }
@@ -1465,11 +1467,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       toast({ title: toastTitle });
       clearOrder();
-      if (finalPieceNumber) {
-        router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
-      } else {
-        router.push('/reports');
-      }
+      router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
 
     } catch (error) {
       console.error(`Transaction failed for ${type}:`, error);
@@ -2422,6 +2420,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       dashboardButtonShowBorder,
       dashboardButtonBorderColor,
       companyInfo,
+      setCompanyInfo,
       isNavConfirmOpen,
       showNavConfirm,
       closeNavConfirm,

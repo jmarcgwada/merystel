@@ -47,7 +47,7 @@ function SupplierOrdersPageContent() {
     setCurrentSaleContext({ documentType: 'supplier_order' });
     // For now, editing supplier orders is not implemented
     if (order.length > 0 && !location.search.includes('edit')) {
-         clearOrder({ clearCustomer: true, clearSupplier: true });
+         clearOrder();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit]);
@@ -62,7 +62,7 @@ function SupplierOrdersPageContent() {
       return;
     }
 
-    clearOrder({ clearCustomer: true, clearSupplier: true });
+    clearOrder();
 
     const randomSupplier = suppliers[Math.floor(Math.random() * suppliers.length)];
     setCurrentSaleContext({ supplierId: randomSupplier.id, documentType: 'supplier_order' });
@@ -74,7 +74,7 @@ function SupplierOrdersPageContent() {
         const quantity = Math.floor(Math.random() * 5) + 1;
         
         const existingInNewOrder = newOrder.find(item => item.itemId === randomItem.id);
-        if(!existingInNewOrder && typeof randomItem.purchasePrice === 'number') {
+        if(!existingInNewOrder && typeof randomItem.purchasePrice === 'number' && randomItem.purchasePrice > 0) {
             newOrder.push({
                 itemId: randomItem.id,
                 id: randomItem.id,

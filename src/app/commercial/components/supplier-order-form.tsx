@@ -50,13 +50,13 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
-  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, orderTotal, orderTax } = usePos();
+  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isSupplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const router = useRouter();
 
-  const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -90,11 +90,11 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   }
 
   const handleAddItem = (item: Item) => {
-    if (typeof item.purchasePrice !== 'number') {
+    if (typeof item.purchasePrice !== 'number' || item.purchasePrice <= 0) {
         toast({
             variant: 'destructive',
-            title: 'Prix d\'achat manquant',
-            description: `L'article "${item.name}" n'a pas de prix d'achat défini.`,
+            title: 'Prix d\'achat manquant ou nul',
+            description: `L'article "${item.name}" n'a pas de prix d'achat valide.`,
         });
         return;
     }
@@ -208,9 +208,9 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     
      const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
       items: order,
-      subtotal: orderTotal,
-      tax: orderTax,
-      total: orderTotal + orderTax,
+      subtotal: subTotalHT,
+      tax: totalTVA,
+      total: totalTTC,
       status: 'pending', 
       payments: [],
       supplierId: selectedSupplier.id,
@@ -218,17 +218,12 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     
     recordCommercialDocument(doc, 'supplier_order');
     
-    setOrder([]);
-    setSelectedSupplier(null);
-    form.reset();
-
-  }, [order, selectedSupplier, toast, setOrder, form, recordCommercialDocument, orderTotal, orderTax]);
+  }, [order, selectedSupplier, recordCommercialDocument, subTotalHT, totalTVA, totalTTC]);
   
   useEffect(() => {
-    const handler = () => form.handleSubmit(onSubmit)();
-    setSubmitHandler(() => handler);
+    setSubmitHandler(() => onSubmit);
     return () => setSubmitHandler(null);
-  }, [form, onSubmit, setSubmitHandler]);
+  }, [onSubmit, setSubmitHandler]);
 
 
   return (
