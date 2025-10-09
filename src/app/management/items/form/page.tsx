@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useMemo } from 'react';
 import { useForm, Controller, useFieldArray, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -72,7 +72,6 @@ function ItemForm() {
   const [defaultImage, setDefaultImage] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
-  const [priceHT, setPriceHT] = useState(0);
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
 
 
@@ -124,50 +123,45 @@ function ItemForm() {
   const watchedVatId = watch('vatId');
   const watchedManageStock = watch('manageStock');
   
-  // Logic for automatic price calculation
-  useEffect(() => {
-    if (!vatRates) return;
-
+  const vatRateInfo = useMemo(() => vatRates?.find(v => v.id === watchedVatId), [watchedVatId, vatRates]);
+  const costPrice = useMemo(() => {
     const purchasePrice = watchedPurchasePrice || 0;
     const additionalCostsPercent = watchedAdditionalCosts || 0;
+    return purchasePrice * (1 + additionalCostsPercent / 100);
+  }, [watchedPurchasePrice, watchedAdditionalCosts]);
+
+  // Logic for automatic price calculation
+  useEffect(() => {
+    if (isManualPriceEdit || !vatRateInfo || costPrice <= 0) return;
+
     const marginPercentage = watchedMarginPercentage || 0;
-    const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
-
-    const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
-    const calculatedPriceHT = priceWithCosts * (1 + marginPercentage / 100);
-    setPriceHT(calculatedPriceHT);
-
-    if (isManualPriceEdit) return;
-
-    if (purchasePrice > 0 && vatRateInfo) {
-      const priceTTC = calculatedPriceHT * (1 + vatRateInfo.rate / 100);
+    const calculatedPriceHT = costPrice * (1 + marginPercentage / 100);
+    const priceTTC = calculatedPriceHT * (1 + vatRateInfo.rate / 100);
+    
+    if (watchedPrice.toFixed(2) !== priceTTC.toFixed(2)) {
       setValue('price', parseFloat(priceTTC.toFixed(2)));
     }
-  }, [watchedPurchasePrice, watchedAdditionalCosts, watchedMarginPercentage, watchedVatId, setValue, vatRates, isManualPriceEdit]);
+  }, [costPrice, watchedMarginPercentage, vatRateInfo, setValue, isManualPriceEdit, watchedPrice]);
 
   // Logic for inverse calculation: from price to margin percentage
   useEffect(() => {
-    if (!isManualPriceEdit || !vatRates) return;
+    if (!isManualPriceEdit || !vatRateInfo || costPrice <= 0) return;
 
     const price = watchedPrice || 0;
-    const purchasePrice = watchedPurchasePrice || 0;
-    const additionalCostsPercent = watchedAdditionalCosts || 0;
-    const vatRateInfo = vatRates.find(v => v.id === watchedVatId);
+    const calculatedPriceHT = price / (1 + vatRateInfo.rate / 100);
     
-    const priceWithCosts = purchasePrice * (1 + additionalCostsPercent / 100);
-
-    if (price > 0 && priceWithCosts > 0 && vatRateInfo) {
-      const calculatedPriceHT = price / (1 + vatRateInfo.rate / 100);
-      setPriceHT(calculatedPriceHT);
-      
-      if (calculatedPriceHT < priceWithCosts) {
-        setValue('marginPercentage', 0);
-      } else {
-        const newMarginPercentage = ((calculatedPriceHT / priceWithCosts) - 1) * 100;
-        setValue('marginPercentage', parseFloat(newMarginPercentage.toFixed(2)));
-      }
+    if (calculatedPriceHT < costPrice) {
+      setValue('marginPercentage', 0);
+    } else {
+      const newMarginPercentage = ((calculatedPriceHT / costPrice) - 1) * 100;
+      setValue('marginPercentage', parseFloat(newMarginPercentage.toFixed(2)));
     }
-  }, [watchedPrice, watchedPurchasePrice, watchedAdditionalCosts, watchedVatId, setValue, vatRates, isManualPriceEdit]);
+  }, [watchedPrice, costPrice, vatRateInfo, setValue, isManualPriceEdit]);
+
+  const priceHT = useMemo(() => {
+    if (!vatRateInfo) return 0;
+    return (watchedPrice || 0) / (1 + vatRateInfo.rate / 100);
+  }, [watchedPrice, vatRateInfo]);
 
 
   useEffect(() => {
@@ -975,3 +969,4 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
