@@ -138,19 +138,25 @@ function SaleDetailContent() {
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         if (vatInfo) {
-            const priceHT = item.total / (1 + vatInfo.rate / 100);
-            const vatAmount = item.total - priceHT;
+            const priceHT = item.price / (1 + vatInfo.rate / 100);
+            const totalHT = priceHT * item.quantity;
+            const vatAmount = totalHT * (vatInfo.rate / 100);
             
             if (breakdown[vatInfo.rate]) {
                 breakdown[vatInfo.rate].total += vatAmount;
-                breakdown[vatInfo.rate].base += priceHT;
+                breakdown[vatInfo.rate].base += totalHT;
             } else {
-                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: vatAmount, base: priceHT };
+                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: vatAmount, base: totalHT };
             }
         }
     });
     return breakdown;
   }, [sale, vatRates]);
+  
+  const subTotalHT = useMemo(() => {
+    if (!sale) return 0;
+    return sale.total - sale.tax;
+  }, [sale]);
 
   const handleBack = () => {
     if (fromPos && sale) {
@@ -265,7 +271,8 @@ function SaleDetailContent() {
                 <TableBody>
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
-                    const vatAmount = item.total - (item.total / (1 + (vatInfo?.rate || 0) / 100));
+                    const itemTotalHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
+                    const vatAmount = item.total - itemTotalHT;
                     const fullItem = getItemInfo(item);
 
                     return (
@@ -316,13 +323,13 @@ function SaleDetailContent() {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Sous-total (HT)</span>
-                <span>{sale.subtotal.toFixed(2)}€</span>
+                <span>{subTotalHT.toFixed(2)}€</span>
               </div>
               
-              {Object.values(vatBreakdown).map(vat => (
-                <div key={vat.rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA ({vat.rate}%)</span>
-                    <span>{vat.base.toFixed(2)}€</span>
+              {Object.entries(vatBreakdown).map(([rate, values]) => (
+                <div key={rate} className="flex justify-between text-muted-foreground">
+                    <span>Base TVA ({rate}%)</span>
+                    <span>{values.base.toFixed(2)}€</span>
                 </div>
               ))}
 
@@ -409,3 +416,4 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
+
