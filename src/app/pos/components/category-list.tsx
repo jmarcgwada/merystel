@@ -32,36 +32,10 @@ export function CategoryList({
   const [isClient, setIsClient] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const updateScrollability = useCallback(() => {
-    const scrollArea = scrollRef.current;
-    if (scrollArea) {
-      setCanScrollUp(scrollArea.scrollTop > 0);
-      setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight);
-    }
-  }, []);
-
-  useEffect(() => {
-    const scrollArea = scrollRef.current;
-    if (scrollArea) {
-      scrollArea.addEventListener('scroll', updateScrollability);
-      updateScrollability(); // Initial check
-    }
-    return () => {
-      if (scrollArea) {
-        scrollArea.removeEventListener('scroll', updateScrollability);
-      }
-    };
-  }, [updateScrollability]);
-
 
   const handleScroll = (direction: 'up' | 'down') => {
     const scrollArea = scrollRef.current;
@@ -71,17 +45,6 @@ export function CategoryList({
     }
   };
   
-  const startScrolling = (direction: 'up' | 'down') => {
-    stopScrolling();
-    handleScroll(direction);
-    scrollIntervalRef.current = setInterval(() => handleScroll(direction), 300);
-  };
-  
-  const stopScrolling = () => {
-    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
-  };
-
-
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
       setSearchTerm(inputValue);
@@ -160,36 +123,22 @@ export function CategoryList({
             Catégories
           </h2>
            <div className="flex items-center gap-1">
-              {(canScrollUp || canScrollDown) && (
-                  <>
-                  <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onMouseDown={() => startScrolling('up')}
-                      onMouseUp={stopScrolling}
-                      onMouseLeave={stopScrolling}
-                      onTouchStart={() => startScrolling('up')}
-                      onTouchEnd={stopScrolling}
-                      disabled={!canScrollUp}
-                  >
-                      <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onMouseDown={() => startScrolling('down')}
-                      onMouseUp={stopScrolling}
-                      onMouseLeave={stopScrolling}
-                      onTouchStart={() => startScrolling('down')}
-                      onTouchEnd={stopScrolling}
-                      disabled={!canScrollDown}
-                  >
-                      <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  </>
-              )}
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleScroll('up')}
+                >
+                    <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleScroll('down')}
+                >
+                    <ArrowDown className="h-4 w-4" />
+                </Button>
             </div>
         </div>
         <div className="relative flex items-center">

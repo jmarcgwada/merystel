@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -74,13 +75,7 @@ export default function PosPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
-  const itemContentRef = useRef<HTMLDivElement>(null);
   
-  const [canScrollItemsUp, setCanScrollItemsUp] = useState(false);
-  const [canScrollItemsDown, setCanScrollItemsDown] = useState(false);
-  
-  const itemScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -140,79 +135,6 @@ export default function PosPage() {
     }
   }, [isKeyboardOpen, targetInput]);
 
-  const filteredItems = useMemo(() => (
-    <ItemList 
-        ref={itemContentRef}
-        category={selectedCategory} 
-        searchTerm={itemSearchTerm} 
-        showFavoritesOnly={showFavoritesOnly}
-        onItemClick={handleItemClick}
-    />
-  ), [selectedCategory, itemSearchTerm, showFavoritesOnly, itemDisplayMode, addToOrder, isKeyboardOpen, clearInput, handleItemClick]);
-
-  const useScrollability = (scrollRef: React.RefObject<HTMLDivElement>, contentRef?: React.RefObject<HTMLDivElement>) => {
-    const [canScrollUp, setCanScrollUp] = useState(false);
-    const [canScrollDown, setCanScrollDown] = useState(false);
-
-    useEffect(() => {
-        const scrollArea = scrollRef.current;
-        if (!scrollArea) return;
-
-        const check = () => {
-            setCanScrollUp(scrollArea.scrollTop > 0);
-            setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight -1); // -1 for pixel rounding
-        };
-
-        check();
-        
-        let observer: ResizeObserver;
-        if (contentRef?.current) {
-            observer = new ResizeObserver(check);
-            observer.observe(contentRef.current);
-        }
-        
-        scrollArea.addEventListener('scroll', check);
-
-        return () => {
-            if (observer && contentRef?.current) {
-                observer.unobserve(contentRef.current);
-            }
-            scrollArea.removeEventListener('scroll', check);
-        };
-    }, [scrollRef, contentRef]);
-
-    return { canScrollUp, canScrollDown };
-  };
-
-  const itemScrollability = useScrollability(itemScrollAreaRef, itemContentRef);
-
-  useEffect(() => setCanScrollItemsUp(itemScrollability.canScrollUp), [itemScrollability.canScrollUp]);
-  useEffect(() => setCanScrollItemsDown(itemScrollability.canScrollDown), [itemScrollability.canScrollDown]);
-  
-  const createScroller = (scrollRef: React.RefObject<HTMLDivElement>, intervalRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
-      const handleScroll = (direction: 'up' | 'down') => {
-        const scrollArea = scrollRef.current;
-        if (scrollArea) {
-          const scrollAmount = scrollArea.clientHeight * 0.8;
-          scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-        }
-      };
-
-      const startScrolling = (direction: 'up' | 'down') => {
-        stopScrolling();
-        handleScroll(direction);
-        intervalRef.current = setInterval(() => handleScroll(direction), 300);
-      };
-
-      const stopScrolling = () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-
-      return { startScrolling, stopScrolling };
-  };
-  
-  const itemScroller = createScroller(itemScrollAreaRef, itemScrollIntervalRef);
-  
   useEffect(() => {
     if (targetInput?.name === 'item-search') {
       setItemSearchTerm(inputValue);
@@ -259,6 +181,14 @@ export default function PosPage() {
       name: 'item-search',
       ref: searchInputRef,
     });
+  };
+  
+  const handleItemScroll = (direction: 'up' | 'down') => {
+    const scrollArea = itemScrollAreaRef.current;
+    if (scrollArea) {
+      const scrollAmount = scrollArea.clientHeight * 0.8;
+      scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
   };
   
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
@@ -324,34 +254,20 @@ export default function PosPage() {
                           <Skeleton className="h-10 w-[74px]" />
                       )}
                       <div className="flex items-center gap-1">
-                        {(canScrollItemsUp || canScrollItemsDown) && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onMouseDown={() => itemScroller.startScrolling('up')} 
-                              onMouseUp={itemScroller.stopScrolling} 
-                              onMouseLeave={itemScroller.stopScrolling}
-                              onTouchStart={() => itemScroller.startScrolling('up')}
-                              onTouchEnd={itemScroller.stopScrolling}
-                              disabled={!canScrollItemsUp}
-                            >
-                                <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              onMouseDown={() => itemScroller.startScrolling('down')} 
-                              onMouseUp={itemScroller.stopScrolling} 
-                              onMouseLeave={itemScroller.stopScrolling}
-                              onTouchStart={() => itemScroller.startScrolling('down')}
-                              onTouchEnd={itemScroller.stopScrolling}
-                              disabled={!canScrollItemsDown}
-                            >
-                                <ArrowDown className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleItemScroll('up')}
+                          >
+                              <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleItemScroll('down')}
+                          >
+                              <ArrowDown className="h-4 w-4" />
+                          </Button>
                       </div>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
@@ -376,7 +292,15 @@ export default function PosPage() {
               </div>
               <ScrollArea className="flex-1" viewportRef={itemScrollAreaRef}>
                   <div className="p-4">
-                    {isClient ? filteredItems : <Skeleton className="h-full w-full" />}
+                    {isClient ? (
+                        <ItemList 
+                            ref={null} // contentRef is not needed anymore
+                            category={selectedCategory} 
+                            searchTerm={itemSearchTerm} 
+                            showFavoritesOnly={showFavoritesOnly}
+                            onItemClick={handleItemClick}
+                        />
+                    ) : <Skeleton className="h-full w-full" />}
                   </div>
               </ScrollArea>
             </div>
