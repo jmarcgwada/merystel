@@ -132,24 +132,25 @@ function SaleDetailContent() {
   }, [allItems]);
 
   const vatBreakdown = useMemo(() => {
-    if (!sale) return {};
-    const breakdown: { [key: string]: { rate: number; total: number } } = {};
+    if (!sale || !vatRates) return {};
+    const breakdown: { [key: string]: { rate: number; total: number; base: number } } = {};
 
     sale.items.forEach(item => {
-      const vatInfo = getVatInfo(item.vatId);
-      if (vatInfo) {
-        const taxForItem = item.total * ((vatInfo?.rate || 0) / 100);
-        if (breakdown[vatInfo.rate]) {
-          breakdown[vatInfo.rate].total += taxForItem;
-        } else {
-          breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: taxForItem };
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        if (vatInfo) {
+            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const vatAmount = item.total - priceHT;
+            
+            if (breakdown[vatInfo.rate]) {
+                breakdown[vatInfo.rate].total += vatAmount;
+                breakdown[vatInfo.rate].base += priceHT;
+            } else {
+                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: vatAmount, base: priceHT };
+            }
         }
-      }
     });
-
     return breakdown;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sale]);
+  }, [sale, vatRates]);
 
   const handleBack = () => {
     if (fromPos && sale) {
@@ -256,15 +257,15 @@ function SaleDetailContent() {
                     <TableHead className="w-[64px]">Image</TableHead>
                     <TableHead>Article</TableHead>
                     <TableHead className="text-center">Qté</TableHead>
-                    <TableHead className="text-right">Prix Unitaire</TableHead>
+                    <TableHead className="text-right">Prix Unitaire (TTC)</TableHead>
                     <TableHead className="text-right">TVA</TableHead>
-                    <TableHead className="text-right">Total Ligne</TableHead>
+                    <TableHead className="text-right">Total Ligne (TTC)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
-                    const vatAmount = item.total * ((vatInfo?.rate || 0) / 100);
+                    const vatAmount = item.total - (item.total / (1 + (vatInfo?.rate || 0) / 100));
                     const fullItem = getItemInfo(item);
 
                     return (
@@ -319,9 +320,9 @@ function SaleDetailContent() {
               </div>
               
               {Object.values(vatBreakdown).map(vat => (
-                <div key={vat.rate} className="flex justify-between">
-                  <span className="text-muted-foreground">TVA ({vat.rate}%)</span>
-                  <span>{vat.total.toFixed(2)}€</span>
+                <div key={vat.rate} className="flex justify-between text-muted-foreground">
+                    <span>Base TVA ({vat.rate}%)</span>
+                    <span>{vat.base.toFixed(2)}€</span>
                 </div>
               ))}
 
