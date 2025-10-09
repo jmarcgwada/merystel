@@ -6,7 +6,7 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, FilePlus, Sparkles } from 'lucide-react';
@@ -88,7 +88,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
       router.replace(newUrl, { scroll: false });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
   
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     if (documentType === 'invoice') {
@@ -125,7 +125,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     
     recordCommercialDocument(doc, documentType, saleIdToEdit || undefined);
     
-  };
+  }, [isReady, currentSaleContext, documentType, order, orderTotal, orderTax, recordCommercialDocument, saleIdToEdit, submitHandler]);
   
   const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {

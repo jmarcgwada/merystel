@@ -88,7 +88,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (currentSaleContext?.acompte) {
         form.setValue('acompte', currentSaleContext.acompte);
     }
-  }, [order, form.setValue, currentSaleContext]);
+  }, [order, currentSaleContext, form.setValue]);
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
@@ -261,10 +261,9 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [order, selectedCustomer, setCurrentSaleContext, acompte]);
   
   useEffect(() => {
-    const handler = () => form.handleSubmit(onSubmit)();
-    setSubmitHandler(() => handler);
+    setSubmitHandler(() => onSubmit);
     return () => setSubmitHandler(null);
-  }, [form, onSubmit, setSubmitHandler]);
+  }, [onSubmit, setSubmitHandler]);
 
 
   return (
