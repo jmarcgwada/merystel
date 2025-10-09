@@ -45,12 +45,6 @@ export default function CommercialLayout({
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <Button asChild variant="outline" size="sm" className="btn-back ml-4 flex-shrink-0">
-                    <Link href="/dashboard">
-                        <ArrowLeft />
-                        Retour au tableau de bord
-                    </Link>
-                </Button>
             </div>
         </header>
         <main className="flex-1 flex flex-col">

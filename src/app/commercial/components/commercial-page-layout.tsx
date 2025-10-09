@@ -206,24 +206,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            {documentType === 'invoice' ? (
-                 isReady && submitHandler ? (
-                    <Button size="lg" onClick={submitHandler}>{saveButtonText}</Button>
-                 ) : (
-                    <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? `/reports?filter=${config.filterPrefix}` : '/dashboard')}>
-                        <ArrowLeft />
-                        Retour
-                    </Button>
-                )
-            ) : (
-                <>
+            { (isReady && submitHandler) &&
                 <Button size="lg" onClick={handleSave} disabled={!isReady}>{saveButtonText}</Button>
-                 <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push(saleIdToEdit ? `/reports?filter=${config.filterPrefix}` : '/dashboard')}>
-                    <ArrowLeft />
-                    Retour
-                </Button>
-                </>
-            )}
+            }
         </div>
     )
   }
@@ -265,5 +250,3 @@ export default function CommercialPageLayout({ documentType }: CommercialPageLay
         </Suspense>
     )
 }
-
-    
