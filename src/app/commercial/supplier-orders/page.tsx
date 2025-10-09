@@ -111,7 +111,7 @@ function SupplierOrdersPageContent() {
             {isReady && submitHandler ? (
                  <Button size="lg" onClick={submitHandler}>{saleIdToEdit ? 'Mettre à jour' : 'Sauvegarder la commande'}</Button>
             ) : (
-                <Button size="lg" variant="outline" className="btn-back" onClick={() => router.push('/dashboard')}>
+                <Button size="lg" variant="outline" className="btn-back" onClick={() => router.back()}>
                     <ArrowLeft />
                     Retour
                 </Button>
