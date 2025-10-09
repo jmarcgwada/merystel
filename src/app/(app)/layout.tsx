@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { usePos } from '@/contexts/pos-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PosProvider } from '@/contexts/pos-context';
+import { NavigationBlocker } from '@/components/layout/navigation-blocker';
 
 function AppLoading() {
   return (
@@ -67,7 +68,12 @@ function SessionValidation({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <NavigationBlocker />
+      {children}
+    </>
+  );
 }
 
 
