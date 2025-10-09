@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -168,40 +167,42 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     searchInputRef.current?.focus();
   };
   
-  const subTotalHT = useMemo(() => {
-    return watchItems.reduce((acc, item) => {
-      return acc + (item.price * item.quantity); // item.price is purchasePrice here
-    }, 0);
-  }, [watchItems]);
+  const calculationResult = useMemo(() => {
+    if (!allItems || !vatRates) {
+      return { subTotalHT: 0, vatBreakdown: {}, totalTVA: 0, totalTTC: 0 };
+    }
 
-  const vatBreakdown = useMemo(() => {
-    if (!allItems || !vatRates) return {};
-    const breakdown: { [key: string]: { rate: number; total: number, base: number, code: number } } = {};
+    let subTotalHT = 0;
+    const vatBreakdown: { [key: string]: { rate: number; total: number; base: number; code: number } } = {};
 
     watchItems.forEach(item => {
       const fullItem = allItems.find(i => i.id === item.itemId);
       if (!fullItem) return;
 
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
-      if (vatInfo) {
-        const totalItemHT = item.price * item.quantity;
-        const taxForItem = totalItemHT * (vatInfo.rate / 100);
+      if (!vatInfo) return;
 
-        const vatKey = vatInfo.rate.toString();
-        if (breakdown[vatKey]) {
-          breakdown[vatKey].total += taxForItem;
-          breakdown[vatKey].base += totalItemHT;
-        } else {
-          breakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
-        }
+      const totalItemHT = item.price * item.quantity;
+      const taxForItem = totalItemHT * (vatInfo.rate / 100);
+
+      subTotalHT += totalItemHT;
+
+      const vatKey = vatInfo.rate.toString();
+      if (vatBreakdown[vatKey]) {
+        vatBreakdown[vatKey].total += taxForItem;
+        vatBreakdown[vatKey].base += totalItemHT;
+      } else {
+        vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
       }
     });
 
-    return breakdown;
+    const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
+    const totalTTC = subTotalHT + totalTVA;
+
+    return { subTotalHT, vatBreakdown, totalTVA, totalTTC };
   }, [watchItems, allItems, vatRates]);
   
-  const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
-  const totalTTC = subTotalHT + totalTVA;
+  const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
 
   const onSubmit = useCallback(() => {
     if (order.length === 0 || !selectedSupplier) return;

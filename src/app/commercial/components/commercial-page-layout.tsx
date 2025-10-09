@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -26,7 +25,7 @@ const docTypeConfig = {
     editTitle: 'Modifier la facture',
     editSubtitle: 'Modifiez les articles et finalisez la facture.',
     saveButton: 'Encaisser la facture',
-    updateButton: 'Mettre à jour la facture',
+    updateButton: 'Encaisser la facture',
     filterPrefix: 'Fact-',
     showAcompte: true,
   },
@@ -63,6 +62,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       clearOrder,
       loadSaleForEditing,
       recordSale,
+      recordCommercialDocument,
       orderTotal,
       orderTax,
       currentSaleContext,
@@ -81,6 +81,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const newItemId = searchParams.get('newItemId');
 
   const config = docTypeConfig[documentType];
+  const pageTitle = saleIdToEdit
+    ? `${config.editTitle} #${currentSaleContext?.ticketNumber || '...'}`
+    : config.title;
 
   useEffect(() => {
     // This effect now runs only once on mount to set up the context.
@@ -127,32 +130,18 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       }
       return;
     }
-
-    // For saving new or modified quotes or delivery notes
+    
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
-      subtotal: orderTotal,
-      tax: orderTax,
-      total: orderTotal + orderTax,
+      subtotal: currentSaleContext.subtotal || 0,
+      tax: currentSaleContext.tax || 0,
+      total: currentSaleContext.total || 0,
       status: documentType, // status is now the same as documentType for quotes/delivery_notes
       payments: [],
       customerId: currentSaleContext.customerId,
     };
     
-    try {
-        const savedDoc = await recordSale(doc, currentSaleId || undefined);
-        if (savedDoc) {
-            toast({
-                title: `${config.title.slice(0, -1)} sauvegardé`,
-                description: `La pièce ${savedDoc.ticketNumber} a été enregistrée.`,
-            });
-            clearOrder();
-            const filterPrefix = config.filterPrefix;
-            router.push(`/reports?filter=${filterPrefix}`);
-        }
-    } catch (error) {
-        // Error toast is already handled in recordSale
-    }
+    await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
   };
   
   const handleGenerateRandom = () => {
@@ -241,7 +230,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             {/* Case: New or Editing an Invoice */}
             {isReady && documentType === 'invoice' && (
                  <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>
-                     {saleIdToEdit ? config.updateButton : config.saveButton}
+                     {config.updateButton}
                  </Button>
             )}
         </div>
@@ -252,8 +241,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
-            title={saleIdToEdit ? config.editTitle : config.title}
-            subtitle={saleIdToEdit ? config.editSubtitle : config.subtitle}
+            title={pageTitle}
+            subtitle={config.editSubtitle}
         >
           {renderHeaderActions()}
         </PageHeader>

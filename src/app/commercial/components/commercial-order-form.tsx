@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -198,67 +196,63 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   };
   // --- End of Search Logic ---
   
-  const subTotalHT = useMemo(() => {
-    if (!allItems || !vatRates) return 0;
-    return watchItems.reduce((acc, item) => {
-      const fullItem = allItems.find(i => i.id === item.itemId);
-      if (!fullItem) return acc;
-      
-      const vatRate = vatRates.find(v => v.id === fullItem.vatId)?.rate || 0;
-      const priceHT = item.price / (1 + vatRate / 100);
-      const remise = item.remise || 0;
-      const totalHT = priceHT * item.quantity * (1 - remise / 100);
+    const calculationResult = useMemo(() => {
+    if (!allItems || !vatRates) {
+      return { subTotalHT: 0, vatBreakdown: {}, totalTVA: 0, totalTTC: 0 };
+    }
 
-      return acc + totalHT;
-    }, 0);
-  }, [watchItems, allItems, vatRates]);
-
-
-  const totalHTAvecEscompte = subTotalHT;
-
-  const vatBreakdown = useMemo(() => {
-    if (!allItems || !vatRates) return {};
-    const breakdown: { [key: string]: { rate: number; total: number, base: number, code: number } } = {};
+    let subTotalHT = 0;
+    const vatBreakdown: { [key: string]: { rate: number; total: number; base: number; code: number } } = {};
 
     watchItems.forEach(item => {
       const fullItem = allItems.find(i => i.id === item.itemId);
       if (!fullItem) return;
 
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
-      if (vatInfo) {
-        const priceHT = item.price / (1 + vatInfo.rate / 100);
-        const remise = item.remise || 0;
-        const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
-        const totalItemHTAvecEscompte = totalItemHT;
-        const taxForItem = totalItemHTAvecEscompte * (vatInfo.rate / 100);
+      if (!vatInfo) return;
 
-        const vatKey = vatInfo.rate.toString();
-        if (breakdown[vatKey]) {
-          breakdown[vatKey].total += taxForItem;
-          breakdown[vatKey].base += totalItemHTAvecEscompte;
-        } else {
-          breakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHTAvecEscompte, code: vatInfo.code };
-        }
+      const priceHT = item.price / (1 + vatInfo.rate / 100);
+      const remise = item.remise || 0;
+      const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
+      const taxForItem = totalItemHT * (vatInfo.rate / 100);
+
+      subTotalHT += totalItemHT;
+
+      const vatKey = vatInfo.rate.toString();
+      if (vatBreakdown[vatKey]) {
+        vatBreakdown[vatKey].total += taxForItem;
+        vatBreakdown[vatKey].base += totalItemHT;
+      } else {
+        vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
       }
     });
 
-    return breakdown;
+    const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
+    const totalTTC = subTotalHT + totalTVA;
+
+    return { subTotalHT, vatBreakdown, totalTVA, totalTTC };
   }, [watchItems, allItems, vatRates]);
-  
-  const totalTVA = Object.values(vatBreakdown).reduce((acc, { total }) => acc + total, 0);
-  const totalTTC = totalHTAvecEscompte + totalTVA;
+
+  const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
+
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;
 
   const onSubmit = useCallback(() => {
     if (order.length === 0 || !selectedCustomer) return;
     
-    // Set the context to indicate this is an invoice
-    setCurrentSaleContext(prev => ({ ...prev, isInvoice: true, customerId: selectedCustomer.id, acompte }));
+    setCurrentSaleContext(prev => ({ 
+      ...prev, 
+      isInvoice: true, 
+      customerId: selectedCustomer.id, 
+      acompte,
+      subtotal: subTotalHT,
+      tax: totalTVA,
+      total: totalTTC,
+    }));
 
-    // Open checkout modal directly. The sale will be recorded from there.
     setCheckoutOpen(true);
-  }, [order, selectedCustomer, setCurrentSaleContext, acompte]);
+  }, [order, selectedCustomer, setCurrentSaleContext, acompte, subTotalHT, totalTVA, totalTTC]);
   
   useEffect(() => {
     setSubmitHandler(() => onSubmit);
@@ -478,7 +472,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                         <div className="space-y-2 max-w-sm ml-auto">
                             <div className="flex justify-between items-center">
                                 <Label>Total HT</Label>
-                                <span className="font-medium">{totalHTAvecEscompte.toFixed(2)}€</span>
+                                <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <Label>Cumul TVA</Label>
