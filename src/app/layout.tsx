@@ -65,10 +65,10 @@ export default function RootLayout({
               <KeyboardProvider>
                 <SessionManager>
                   <React.Suspense fallback={<AppLoading/>}>
-                    <NavigationGuard />
                     <Header />
                     <main className="flex-1 overflow-auto">{children}</main>
                     <Toaster />
+                    <NavigationGuard />
                     <NavigationConfirmationDialog />
                     <VirtualKeyboard />
                     <ExternalLinkModal />

@@ -12,27 +12,28 @@ export function NavigationGuard() {
   const { order, showNavConfirm } = usePos();
   const previousPathname = useRef(pathname);
 
-  const isSalesPage = salesPages.some(page => pathname.startsWith(page));
-  const wasOnSalesPage = salesPages.some(page => previousPathname.current.startsWith(page));
-
   useEffect(() => {
-    // This effect handles navigation *within* the app (client-side routing)
+    const wasOnSalesPage = salesPages.some(page => previousPathname.current.startsWith(page));
+    const isSalesPage = salesPages.some(page => pathname.startsWith(page));
+
+    // Handle internal navigation away from a sales page
     if (wasOnSalesPage && !isSalesPage && order.length > 0) {
+      // Use a trick to prevent navigation: show confirm and immediately push state back.
+      // The `confirmNavigation` in the context will handle the actual route change.
       showNavConfirm(pathname);
-       // This is a trick: Next.js router doesn't have a native 'cancel navigation'.
-       // We immediately push the user back to where they were.
-       // The `showNavConfirm` will handle the actual navigation if confirmed.
-      const currentPathWithQuery = previousPathname.current + window.location.search;
-      history.pushState(null, '', currentPathWithQuery);
+      history.pushState(null, '', previousPathname.current);
     }
+    
+    // Update the ref to the current path for the next navigation event.
     previousPathname.current = pathname;
 
-  }, [pathname, wasOnSalesPage, isSalesPage, order.length, showNavConfirm]);
+  }, [pathname, order.length, showNavConfirm]);
 
 
   useEffect(() => {
     // This effect handles leaving the entire site (refresh, close tab, etc.)
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Check the path from window.location because pathname might be stale
       const isOnSalesPageNow = salesPages.some(page => window.location.pathname.startsWith(page));
       if (isOnSalesPageNow && order.length > 0) {
         event.preventDefault();
@@ -47,7 +48,7 @@ export function NavigationGuard() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [order.length]);
+  }, [order.length]); // Dependency on order.length ensures the listener is up-to-date.
 
   return null;
 }

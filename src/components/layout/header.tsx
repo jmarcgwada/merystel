@@ -30,11 +30,9 @@ export default function Header() {
   const { 
     showNavConfirm, 
     order, 
-    clearOrder,
     companyInfo, 
     handleSignOut: handlePosSignOut,
     externalLinkModalEnabled,
-    isKeypadOpen,
     systemDate,
   } = usePos();
   const { user } = useUser();
@@ -48,10 +46,8 @@ export default function Header() {
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   
-  const salesPages = ['/pos', '/supermarket', '/restaurant', '/commercial'];
-  const isSalesPage = salesPages.some(page => pathname.startsWith(page));
-
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
     if (isSalesPage && order.length > 0) {
       e.preventDefault();
       showNavConfirm(href);
