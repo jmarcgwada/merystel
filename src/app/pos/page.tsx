@@ -74,16 +74,12 @@ export default function PosPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const itemScrollAreaRef = useRef<HTMLDivElement>(null);
-  const categoryScrollAreaRef = useRef<HTMLDivElement>(null);
   const itemContentRef = useRef<HTMLDivElement>(null);
   
   const [canScrollItemsUp, setCanScrollItemsUp] = useState(false);
   const [canScrollItemsDown, setCanScrollItemsDown] = useState(false);
-  const [canScrollCategoriesUp, setCanScrollCategoriesUp] = useState(false);
-  const [canScrollCategoriesDown, setCanScrollCategoriesDown] = useState(false);
-
+  
   const itemScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const categoryScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -189,13 +185,10 @@ export default function PosPage() {
   };
 
   const itemScrollability = useScrollability(itemScrollAreaRef, itemContentRef);
-  const categoryScrollability = useScrollability(categoryScrollAreaRef);
 
   useEffect(() => setCanScrollItemsUp(itemScrollability.canScrollUp), [itemScrollability.canScrollUp]);
   useEffect(() => setCanScrollItemsDown(itemScrollability.canScrollDown), [itemScrollability.canScrollDown]);
-  useEffect(() => setCanScrollCategoriesUp(categoryScrollability.canScrollUp), [categoryScrollability.canScrollUp]);
-  useEffect(() => setCanScrollCategoriesDown(categoryScrollability.canScrollDown), [categoryScrollability.canScrollDown]);
-
+  
   const createScroller = (scrollRef: React.RefObject<HTMLDivElement>, intervalRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
       const handleScroll = (direction: 'up' | 'down') => {
         const scrollArea = scrollRef.current;
@@ -219,8 +212,7 @@ export default function PosPage() {
   };
   
   const itemScroller = createScroller(itemScrollAreaRef, itemScrollIntervalRef);
-  const categoryScroller = createScroller(categoryScrollAreaRef, categoryScrollIntervalRef);
-
+  
   useEffect(() => {
     if (targetInput?.name === 'item-search') {
       setItemSearchTerm(inputValue);
@@ -278,16 +270,10 @@ export default function PosPage() {
           <ResizablePanel defaultSize={18} minSize={15} maxSize={25}>
             <div className={cn("bg-card flex flex-col h-full overflow-hidden rounded-l-lg transition-opacity", isKeypadOpen && 'opacity-50 pointer-events-none')}>
               <CategoryList
-                scrollRef={categoryScrollAreaRef}
                 selectedCategory={selectedCategory}
                 onSelectCategory={handleSelectCategory}
                 showFavoritesOnly={showFavoritesOnly}
                 onToggleFavorites={handleToggleFavorites}
-                canScrollUp={canScrollCategoriesUp}
-                canScrollDown={canScrollCategoriesDown}
-                onScrollUp={() => categoryScroller.startScrolling('up')}
-                onScrollDown={() => categoryScroller.startScrolling('down')}
-                onStopScroll={categoryScroller.stopScrolling}
               />
             </div>
           </ResizablePanel>

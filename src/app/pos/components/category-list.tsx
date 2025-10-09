@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,6 @@ interface CategoryListProps {
   onSelectCategory: (category: Category | SpecialCategory | null) => void;
   showFavoritesOnly: boolean;
   onToggleFavorites: () => void;
-  scrollRef: React.RefObject<HTMLDivElement>;
-  canScrollUp: boolean;
-  canScrollDown: boolean;
-  onScrollUp: () => void;
-  onScrollDown: () => void;
-  onStopScroll: () => void;
 }
 
 export function CategoryList({
@@ -30,12 +24,6 @@ export function CategoryList({
   onSelectCategory,
   showFavoritesOnly,
   onToggleFavorites,
-  scrollRef,
-  canScrollUp,
-  canScrollDown,
-  onScrollUp,
-  onScrollDown,
-  onStopScroll,
 }: CategoryListProps) {
   const { items, categories, popularItemsCount, selectedTable, enableRestaurantCategoryFilter } = usePos();
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,10 +31,56 @@ export function CategoryList({
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const updateScrollability = useCallback(() => {
+    const scrollArea = scrollRef.current;
+    if (scrollArea) {
+      setCanScrollUp(scrollArea.scrollTop > 0);
+      setCanScrollDown(scrollArea.scrollTop < scrollArea.scrollHeight - scrollArea.clientHeight);
+    }
+  }, []);
+
+  useEffect(() => {
+    const scrollArea = scrollRef.current;
+    if (scrollArea) {
+      scrollArea.addEventListener('scroll', updateScrollability);
+      updateScrollability(); // Initial check
+    }
+    return () => {
+      if (scrollArea) {
+        scrollArea.removeEventListener('scroll', updateScrollability);
+      }
+    };
+  }, [updateScrollability]);
+
+
+  const handleScroll = (direction: 'up' | 'down') => {
+    const scrollArea = scrollRef.current;
+    if (scrollArea) {
+      const scrollAmount = scrollArea.clientHeight * 0.8;
+      scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
+  
+  const startScrolling = (direction: 'up' | 'down') => {
+    stopScrolling();
+    handleScroll(direction);
+    scrollIntervalRef.current = setInterval(() => handleScroll(direction), 300);
+  };
+  
+  const stopScrolling = () => {
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+  };
+
 
   useEffect(() => {
     if (targetInput?.name === 'category-search') {
@@ -132,11 +166,11 @@ export function CategoryList({
                       variant="outline"
                       size="icon"
                       className="h-8 w-8"
-                      onMouseDown={onScrollUp}
-                      onMouseUp={onStopScroll}
-                      onMouseLeave={onStopScroll}
-                      onTouchStart={onScrollUp}
-                      onTouchEnd={onStopScroll}
+                      onMouseDown={() => startScrolling('up')}
+                      onMouseUp={stopScrolling}
+                      onMouseLeave={stopScrolling}
+                      onTouchStart={() => startScrolling('up')}
+                      onTouchEnd={stopScrolling}
                       disabled={!canScrollUp}
                   >
                       <ArrowUp className="h-4 w-4" />
@@ -145,11 +179,11 @@ export function CategoryList({
                       variant="outline"
                       size="icon"
                       className="h-8 w-8"
-                      onMouseDown={onScrollDown}
-                      onMouseUp={onStopScroll}
-                      onMouseLeave={onStopScroll}
-                      onTouchStart={onScrollDown}
-                      onTouchEnd={onStopScroll}
+                      onMouseDown={() => startScrolling('down')}
+                      onMouseUp={stopScrolling}
+                      onMouseLeave={stopScrolling}
+                      onTouchStart={() => startScrolling('down')}
+                      onTouchEnd={stopScrolling}
                       disabled={!canScrollDown}
                   >
                       <ArrowDown className="h-4 w-4" />
