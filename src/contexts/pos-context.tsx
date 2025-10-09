@@ -166,7 +166,7 @@ interface PosContextType {
   recordSale: (
     sale: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
     saleIdToUpdate?: string
-  ) => void;
+  ) => Promise<Sale | null>;
    recordCommercialDocument: (
     doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
     type: 'quote' | 'delivery_note' | 'supplier_order',
@@ -1479,13 +1479,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     async (
       saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
       saleIdToUpdate?: string
-    ) => {
+    ): Promise<Sale | null> => {
       if (!firestore || !companyId || !user) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
-        return;
+        return null;
       }
       
-      let finalPieceNumber = '';
+      let finalSaleData: Sale | null = null;
 
       try {
         const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
@@ -1551,9 +1551,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const dayMonth = format(new Date(), 'ddMM');
             pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
           }
-          finalPieceNumber = pieceNumber;
-
-          const finalSaleData: Sale = {
+          
+          finalSaleData = {
             ...existingData,
             ...saleData,
             id: pieceRef.id,
@@ -1563,7 +1562,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             userName: sellerName,
             ticketNumber: pieceNumber,
             documentType: documentType,
-          };
+          } as Sale;
           
           transaction.set(pieceRef, cleanDataForFirebase(finalSaleData), { merge: true });
 
@@ -1600,17 +1599,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           }
         });
 
-        if (finalPieceNumber && currentSaleContext?.documentType && currentSaleContext?.documentType !== 'ticket') {
-          router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
-        }
-
+        return finalSaleData;
 
       } catch (error) {
         console.error("Transaction failed: ", error);
         toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
+        return null;
       }
     },
-    [companyId, firestore, user, items, currentSaleContext, toast, router]
+    [companyId, firestore, user, items, currentSaleContext, toast]
   );
   
   const deleteAllSales = useCallback(async () => {
@@ -2498,3 +2495,4 @@ export function usePos() {
   }
   return context;
 }
+
