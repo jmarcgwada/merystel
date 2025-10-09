@@ -421,7 +421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user?.role === 'admin' ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
   const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
@@ -445,17 +445,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
   
   const sales = useMemo(() => {
-      if (!rawSales) return [];
-      return rawSales.map(sale => {
-          const toDate = (ts: any) => ts instanceof Timestamp ? ts.toDate() : (ts ? new Date(ts) : new Date());
-          return {
-              ...sale,
-              date: toDate(sale.date),
-              ...(sale.modifiedAt && { modifiedAt: toDate(sale.modifiedAt) }),
-              payments: (sale.payments || []).map(p => ({...p, date: toDate(p.date)})),
-              ...(sale.originalPayments && { originalPayments: sale.originalPayments.map(p => ({...p, date: toDate(p.date)})) })
-          };
-      });
+    if (!rawSales) return [];
+    return rawSales.map(sale => {
+      const toDate = (ts: any): Date => {
+        if (!ts) return new Date();
+        if (ts instanceof Timestamp) return ts.toDate();
+        if (ts.seconds) return new Timestamp(ts.seconds, ts.nanoseconds).toDate();
+        return new Date(ts);
+      }
+      return {
+          ...sale,
+          date: toDate(sale.date),
+          ...(sale.modifiedAt && { modifiedAt: toDate(sale.modifiedAt) }),
+          payments: (sale.payments || []).map(p => ({...p, date: toDate(p.date)})),
+          ...(sale.originalPayments && { originalPayments: sale.originalPayments.map(p => ({...p, date: toDate(p.date)})) })
+      };
+    });
   }, [rawSales]);
 
   const paymentMethodsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user]);
@@ -599,7 +604,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         toast({ title: 'Exportation en cours...' });
         try {
-            const collectionsToExport = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
+            const collectionsToExport = ['categories', 'customers', 'suppliers', 'items', 'paymentMethods', 'tables', 'vatRates'];
             const config: { [key: string]: any[] } = {};
 
             for (const collectionName of collectionsToExport) {
@@ -644,7 +649,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 toast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
 
                 // 1. Delete existing data
-                const collectionsToDelete = ['categories', 'customers', 'items', 'paymentMethods', 'tables', 'vatRates'];
+                const collectionsToDelete = ['categories', 'customers', 'suppliers', 'items', 'paymentMethods', 'tables', 'vatRates'];
                 const deleteBatch = writeBatch(firestore);
                 for (const collectionName of collectionsToDelete) {
                     const collectionRef = collection(firestore, 'companies', companyId, collectionName);
@@ -1078,9 +1083,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return [newItem, ...currentOrder];
         }
       });
-      if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-      triggerItemHighlight(order.find(i => i.itemId === itemId)?.id || '');
-      toast({ title: `${itemToAdd.name} ajouté à la commande` });
+    if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
+    triggerItemHighlight(order.find(i => i.itemId === itemId)?.id || '');
+    toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext]
   );
@@ -1330,17 +1335,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = getDocRef('tables', tableId);
       const table = tables.find(t => t.id === tableId);
       if (tableRef && table) {
-          routerRef.current.push('/restaurant');
-          await updateDoc(tableRef, {
+        await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
             occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
             closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
-          });
-          toast({ title: 'Table sauvegardée' });
-          await clearOrder();
+        });
+        toast({ title: 'Table sauvegardée' });
+        await clearOrder();
+        routerRef.current.push('/restaurant');
       }
     },
     [getDocRef, clearOrder, toast, tables, user]
@@ -2048,8 +2053,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return { lastDirectSale: null, lastRestaurantSale: null };
     }
     const sortedSales = [...sales].sort((a, b) => {
-        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
-        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? (a.date as Timestamp).toDate() : new Date(a.date);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? (b.date as Timestamp).toDate() : new Date(b.date);
         return dateB.getTime() - dateA.getTime();
     });
 
