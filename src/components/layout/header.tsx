@@ -40,21 +40,12 @@ export default function Header() {
   const router = useRouter();
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
-  const [navDisabled, setNavDisabled] = useState(false);
   
-  useEffect(() => {
-    const salesPages = ['/pos', '/supermarket', '/restaurant', '/commercial'];
-    const isSalesPage = salesPages.some(page => pathname.startsWith(page));
-
-    if (!isSalesPage && order.length > 0) {
-      clearOrder();
-    }
-  }, [pathname, order, clearOrder]);
-
+  const salesPages = ['/pos', '/supermarket', '/restaurant', '/commercial'];
+  const isSalesPage = salesPages.some(page => pathname.startsWith(page));
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // This is now the primary navigation guard.
-    if (order.length > 0) {
+    if (isSalesPage && order.length > 0) {
       e.preventDefault();
       showNavConfirm(href);
     }
@@ -72,16 +63,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
       <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className={cn(
-            "flex items-center gap-4 flex-1 transition-opacity",
-             navDisabled && 'opacity-50'
-            )}>
+        <div className="flex items-center gap-4 flex-1">
            <Link
             href="/"
-            className={cn(
-              "flex items-center gap-2 rounded-md p-2 -m-2 transition-colors",
-              navDisabled && "pointer-events-none"
-            )}
+            className="flex items-center gap-2 rounded-md p-2 -m-2 transition-colors"
             onClick={(e) => {
               if (user) handleNavClick(e, '/');
             }}
@@ -106,7 +91,7 @@ export default function Header() {
             <>
               <Separator orientation="vertical" className="h-6" />
               {canAccessCompanySettings ? (
-                  <Link href="/settings/company" className={cn("text-lg font-semibold text-foreground/90 hover:text-primary transition-colors", navDisabled && "pointer-events-none")} onClick={(e) => handleNavClick(e, '/settings/company')}>
+                  <Link href="/settings/company" className="text-lg font-semibold text-foreground/90 hover:text-primary transition-colors" onClick={(e) => handleNavClick(e, '/settings/company')}>
                     {companyInfo.name}
                   </Link>
               ) : (
@@ -160,7 +145,7 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile">
+                  <Link href="/profile" onClick={(e) => handleNavClick(e, '/profile')}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Mon Profil</span>
                   </Link>
