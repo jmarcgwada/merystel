@@ -33,35 +33,37 @@ export function SerialNumberModal() {
 
   useEffect(() => {
     if (serialNumberItem) {
-      inputRefs.current = Array(quantity).fill(null);
+      const numToFill = serialNumberItem.quantity;
+      inputRefs.current = Array(numToFill).fill(null);
       const existingSerials = (serialNumberItem.item as OrderItem).serialNumbers || [];
-      const newSerials = Array(quantity).fill('');
-      for (let i = 0; i < Math.min(existingSerials.length, quantity); i++) {
+      const newSerials = Array(numToFill).fill('');
+      for (let i = 0; i < Math.min(existingSerials.length, numToFill); i++) {
         newSerials[i] = existingSerials[i];
       }
       setSerialNumbers(newSerials);
       setError(null);
 
-      // Focus on the first empty input
       setTimeout(() => {
         const firstEmptyIndex = newSerials.findIndex(sn => !sn);
-        inputRefs.current[firstEmptyIndex > -1 ? firstEmptyIndex : 0]?.focus();
-        inputRefs.current[firstEmptyIndex > -1 ? firstEmptyIndex : 0]?.select();
+        const focusIndex = firstEmptyIndex > -1 ? firstEmptyIndex : 0;
+        if (inputRefs.current[focusIndex]) {
+           inputRefs.current[focusIndex]?.focus();
+           inputRefs.current[focusIndex]?.select();
+        }
       }, 100);
 
     } else {
         setSerialNumbers([]);
         inputRefs.current = [];
     }
-  }, [serialNumberItem, quantity]);
+  }, [serialNumberItem]);
   
   const handleSerialNumberChange = (index: number, value: string) => {
     const newSerialNumbers = [...serialNumbers];
     newSerialNumbers[index] = value;
     setSerialNumbers(newSerialNumbers);
-    setError(null); // Clear error on change
+    setError(null);
 
-    // Auto-focus next input
     if (value && index < quantity - 1) {
         inputRefs.current[index + 1]?.focus();
         inputRefs.current[index + 1]?.select();
@@ -74,6 +76,17 @@ export function SerialNumberModal() {
 
   const handleConfirm = () => {
     const filledSerialNumbers = serialNumbers.filter(sn => sn && sn.trim() !== '');
+    
+    if (filledSerialNumbers.length !== quantity) {
+      setError(`Veuillez saisir les ${quantity} numéros de série.`);
+      toast({
+        variant: 'destructive',
+        title: 'Saisie incomplète',
+        description: `Il manque des numéros de série.`,
+      });
+      return;
+    }
+
     const uniqueSerialNumbers = new Set(filledSerialNumbers);
     if (filledSerialNumbers.length !== uniqueSerialNumbers.size) {
       setError('Les numéros de série doivent être uniques.');
