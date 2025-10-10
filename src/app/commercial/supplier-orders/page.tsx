@@ -25,6 +25,8 @@ function SupplierOrdersPageContent() {
       items,
       suppliers,
       setCurrentSaleContext,
+      updateItemNote,
+      updateItemQuantityInOrder,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -128,6 +130,8 @@ function SupplierOrdersPageContent() {
                 removeFromOrder={removeFromOrder}
                 setSubmitHandler={setSubmitHandler}
                 setIsReady={setIsReady}
+                updateItemNote={updateItemNote}
+                updateItemQuantityInOrder={updateItemQuantityInOrder}
             />
         </div>
       </div>

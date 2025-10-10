@@ -68,6 +68,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       customers,
       setCurrentSaleContext,
       currentSaleId,
+      updateItemQuantityInOrder,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -279,6 +280,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 setIsReady={setIsReady}
                 showAcompte={config.showAcompte}
                 onTotalsChange={setTotals}
+                updateItemQuantityInOrder={updateItemQuantityInOrder}
             />
         </div>
       </div>
