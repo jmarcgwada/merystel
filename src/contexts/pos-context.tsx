@@ -278,7 +278,6 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
-  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -1740,6 +1739,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [auth, toast]);
 
     const findUserByEmail = useCallback((email: string) => {
+        if (!users) return undefined;
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
