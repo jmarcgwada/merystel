@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -136,7 +137,7 @@ function ItemForm() {
     const calculatedPriceHT = costPrice * (1 + marginPercentage / 100);
     const priceTTC = calculatedPriceHT * (1 + vatRateInfo.rate / 100);
     
-    if (watchedPrice.toFixed(2) !== priceTTC.toFixed(2)) {
+    if (Number(watchedPrice || 0).toFixed(2) !== priceTTC.toFixed(2)) {
       setValue('price', parseFloat(priceTTC.toFixed(2)));
     }
   }, [costPrice, watchedMarginPercentage, vatRateInfo, setValue, isManualPriceEdit, watchedPrice]);
@@ -969,7 +970,3 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
-
-
-
-
