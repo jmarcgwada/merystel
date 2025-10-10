@@ -79,7 +79,7 @@ function SessionValidation({ children }: { children: React.ReactNode }) {
         return;
     }
     setIsCheckingSession(false);
-  }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated]);
+  }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated, pathname, showNavConfirm]);
 
   if (isCheckingSession || loading) {
     return <AppLoading />;
