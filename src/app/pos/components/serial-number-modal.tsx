@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,15 +34,15 @@ export function SerialNumberModal() {
   useEffect(() => {
     if (serialNumberItem) {
       const numToFill = serialNumberItem.quantity;
-      inputRefs.current = Array(numToFill).fill(null);
       const existingSerials = (serialNumberItem.item as OrderItem).serialNumbers || [];
       const newSerials = Array(numToFill).fill('');
-      for (let i = 0; i < Math.min(existingSerials.length, numToFill); i++) {
+       for (let i = 0; i < Math.min(existingSerials.length, numToFill); i++) {
         newSerials[i] = existingSerials[i];
       }
       setSerialNumbers(newSerials);
       setError(null);
-
+      inputRefs.current = Array(numToFill).fill(null);
+      
       setTimeout(() => {
         const firstEmptyIndex = newSerials.findIndex(sn => !sn);
         const focusIndex = firstEmptyIndex > -1 ? firstEmptyIndex : 0;
@@ -52,10 +52,8 @@ export function SerialNumberModal() {
         }
       }, 100);
 
-    } else {
-        setSerialNumbers([]);
-        inputRefs.current = [];
     }
+  // This dependency array is now correct. It should ONLY run when the item changes.
   }, [serialNumberItem]);
   
   const handleSerialNumberChange = (index: number, value: string) => {
@@ -63,19 +61,22 @@ export function SerialNumberModal() {
     newSerialNumbers[index] = value;
     setSerialNumbers(newSerialNumbers);
     setError(null);
-
-    if (value && index < quantity - 1) {
+  };
+  
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && index < quantity - 1) {
+        e.preventDefault();
         inputRefs.current[index + 1]?.focus();
         inputRefs.current[index + 1]?.select();
     }
-  };
+  }
 
   const handleClose = () => {
     setSerialNumberItem(null);
   };
 
   const handleConfirm = () => {
-    const filledSerialNumbers = serialNumbers.filter(sn => sn && sn.trim() !== '');
+    const filledSerialNumbers = serialNumbers.map(sn => sn ? sn.trim() : '').filter(sn => sn !== '');
     
     if (filledSerialNumbers.length !== quantity) {
       setError(`Veuillez saisir les ${quantity} numéros de série.`);
@@ -120,20 +121,25 @@ export function SerialNumberModal() {
         <div className="py-4">
           <ScrollArea className="h-64 pr-6">
             <div className="space-y-3">
-                {[...Array(quantity)].map((_, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                        <Label htmlFor={`sn-${index}`} className="w-12 text-right text-muted-foreground">
-                            S/N {index + 1}
-                        </Label>
-                        <Input
-                            id={`sn-${index}`}
-                            ref={el => inputRefs.current[index] = el}
-                            value={serialNumbers[index] || ''}
-                            onChange={(e) => handleSerialNumberChange(index, e.target.value)}
-                            className="flex-1"
-                        />
-                    </div>
-                ))}
+                {[...Array(quantity)].map((_, index) => {
+                    const isFilled = !!serialNumbers[index];
+                    return (
+                        <div key={index} className="flex items-center gap-4">
+                            <Label htmlFor={`sn-${index}`} className="w-12 text-right text-muted-foreground">
+                                S/N {index + 1}
+                            </Label>
+                            <Input
+                                id={`sn-${index}`}
+                                ref={el => inputRefs.current[index] = el}
+                                value={serialNumbers[index] || ''}
+                                onChange={(e) => handleSerialNumberChange(index, e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(index, e)}
+                                className="flex-1"
+                                disabled={isFilled}
+                            />
+                        </div>
+                    )
+                })}
             </div>
           </ScrollArea>
            {error && <p className="text-sm font-medium text-destructive mt-4">{error}</p>}
