@@ -245,7 +245,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const onSubmit = useCallback(() => {
     if (order.length === 0 || !selectedSupplier) return;
     
-     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'documentType'> = {
       items: order,
       subtotal: subTotalHT,
       tax: totalTVA,
@@ -434,7 +434,17 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                                     </>
                                 )}
                             </div>
+                            {field.selectedVariants && field.selectedVariants.length > 0 && (
+                                <p className="text-xs text-muted-foreground capitalize mt-1">
+                                    {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                </p>
+                            )}
                             {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
+                            {field.serialNumbers && field.serialNumbers.length > 0 && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
+                              </div>
+                            )}
                         </div>
                       <Input 
                           type="number" 

@@ -303,11 +303,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
-    const item = allItems.find(i => i.id === itemId);
-    if(item) {
-        setItemToEdit(item);
-        setIsEditItemOpen(true);
-    }
+    window.open(`/management/items/form?id=${itemId}`, '_blank');
   }
 
 
@@ -435,8 +431,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
-                                  onClick={(e) => handleEditItemClick(e, field.itemId)}
-                              >
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/management/items/form?id=${field.itemId}&redirectUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                                  }}
+                                >
                                   <Pencil className="h-3 w-3" />
                               </Button>
                                <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
@@ -473,7 +472,17 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                     </>
                                 )}
                             </div>
-                             {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
+                            {field.selectedVariants && field.selectedVariants.length > 0 && (
+                                <p className="text-xs text-muted-foreground capitalize mt-1">
+                                    {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                </p>
+                            )}
+                            {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
+                            {field.serialNumbers && field.serialNumbers.length > 0 && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
+                              </div>
+                            )}
                         </div>
                       <Input 
                           type="number" 
