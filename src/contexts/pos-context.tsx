@@ -1466,7 +1466,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       toast({ title: toastTitle });
       clearOrder();
-      router.push(`/reports?filter=${finalPieceNumber.split('-')[0]}-`);
+      router.push(`/reports?filter=${prefix}-`);
 
     } catch (error) {
       console.error(`Transaction failed for ${type}:`, error);
@@ -2495,4 +2495,3 @@ export function usePos() {
   }
   return context;
 }
-
