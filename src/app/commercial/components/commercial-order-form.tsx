@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -392,6 +393,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                             <div className="flex items-center gap-1">
                               <span className="font-semibold">{field.name}</span>
                               <Button 
+                                  type="button"
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
