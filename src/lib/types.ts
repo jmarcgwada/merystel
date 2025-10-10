@@ -58,7 +58,7 @@ export interface OrderItem {
   id: string; // This can be the original item ID or a unique ID for variants
   itemId: string; // Always refers to the original Item ID
   name: string;
-  price: number; // Price at the time of sale
+  price: number; // Price at the time of sale (or purchase price for supplier orders)
   quantity: number;
   total: number;
   vatId: string;

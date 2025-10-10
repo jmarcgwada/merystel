@@ -19,6 +19,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SupplierSelectionDialog } from '@/components/shared/supplier-selection-dialog';
 import { useRouter } from 'next/navigation';
+import { EditItemDialog } from './edit-item-dialog';
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -49,11 +50,14 @@ const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
 export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
-  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext } = usePos();
+  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isSupplierSearchOpen, setSupplierSearchOpen] = useState(false);
   const router = useRouter();
+
+  const [isEditItemOpen, setIsEditItemOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -226,6 +230,15 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     return () => setSubmitHandler(null);
   }, [onSubmit, setSubmitHandler]);
 
+  const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    const item = allItems.find(i => i.id === itemId);
+    if(item) {
+        setItemToEdit(item);
+        setIsEditItemOpen(true);
+    }
+  }
+
 
   return (
     <>
@@ -340,9 +353,30 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                     const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
                     
                     return (
-                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
+                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b group">
                         <div className="flex flex-col">
-                            <span className="font-semibold">{field.name}</span>
+                             <div className="flex items-center gap-1">
+                                <span className="font-semibold">{field.name}</span>
+                                <Button 
+                                    type="button"
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
+                                    onClick={(e) => handleEditItemClick(e, field.itemId)}
+                                >
+                                    <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                                {descriptionDisplay === 'first' && field.description}
+                                {descriptionDisplay === 'both' && (
+                                    <>
+                                        {field.description}
+                                        {field.description && field.description2 && <br />}
+                                        {field.description2}
+                                    </>
+                                )}
+                            </div>
                         </div>
                       <Input 
                           type="number" 
@@ -415,6 +449,32 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     </Card>
     
     <SupplierSelectionDialog isOpen={isSupplierSearchOpen} onClose={() => setSupplierSearchOpen(false)} onSupplierSelected={onSupplierSelected} />
+    {isEditItemOpen && itemToEdit && (
+        <EditItemDialog
+            item={itemToEdit}
+            isOpen={isEditItemOpen}
+            onClose={() => {
+                setIsEditItemOpen(false);
+                setItemToEdit(null);
+            }}
+            onItemUpdated={(updatedItem) => {
+                const updatedPrice = updatedItem.purchasePrice ?? 0;
+                 setOrder(currentOrder => 
+                  currentOrder.map(orderItem => 
+                    orderItem.itemId === updatedItem.id 
+                      ? { 
+                          ...orderItem, 
+                          name: updatedItem.name, 
+                          price: updatedPrice, // Use purchase price
+                          description: updatedItem.description, 
+                          description2: updatedItem.description2 
+                        }
+                      : orderItem
+                  )
+                );
+            }}
+        />
+    )}
     </>
   );
 }
