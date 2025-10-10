@@ -1092,7 +1092,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: originalItem, quantity });
+          // Pass the existing order item to preserve serials
+          setSerialNumberItem({ item: itemToUpdate as unknown as Item, quantity });
         }
         return;
       }
@@ -2495,3 +2496,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
