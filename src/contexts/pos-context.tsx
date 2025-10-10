@@ -90,6 +90,7 @@ interface PosContextType {
   addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
+  updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
   updateItemNote: (itemId: OrderItem['id'], note: string) => void;
   applyDiscount: (
@@ -277,7 +278,6 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
-  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -395,7 +395,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
-  const [serialNumberItem, setSerialNumberItem] = useState<{item: Item, quantity: number} | null>(null);
+  const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   // #endregion
 
@@ -1033,7 +1033,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
-          setSerialNumberItem({ item: itemToAdd, quantity: newQuantity });
+          const existingItem = order.find(i => i.itemId === itemId);
+          setSerialNumberItem({ item: existingItem || itemToAdd, quantity: newQuantity });
           return;
       }
       
@@ -1079,6 +1080,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [items, order, toast, enableSerialNumber, currentSaleContext]
   );
+  
+  const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
+      setOrder(currentOrder => currentOrder.map(item => 
+          item.id === itemId 
+              ? { ...item, quantity: quantity, total: item.price * quantity - (item.discount || 0) } 
+              : item
+      ));
+  }, []);
 
   const updateQuantity = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
@@ -1093,7 +1102,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           removeFromOrder(itemId);
         } else {
           // Pass the existing order item to preserve serials
-          setSerialNumberItem({ item: itemToUpdate as unknown as Item, quantity });
+          setSerialNumberItem({ item: itemToUpdate, quantity });
         }
         return;
       }
@@ -2124,6 +2133,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       addSerializedItemToOrder,
       removeFromOrder,
       updateQuantity,
+      updateItemQuantityInOrder,
       updateQuantityFromKeypad,
       updateItemNote,
       applyDiscount,
@@ -2307,6 +2317,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       addSerializedItemToOrder,
       removeFromOrder,
       updateQuantity,
+      updateItemQuantityInOrder,
       updateQuantityFromKeypad,
       updateItemNote,
       applyDiscount,
@@ -2314,9 +2325,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       orderTotal,
       orderTax,
       isKeypadOpen,
+      setIsKeypadOpen,
       currentSaleId,
+      setCurrentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       serialNumberItem,
+      setSerialNumberItem,
       variantItem,
       setVariantItem,
       lastDirectSale,
@@ -2334,6 +2349,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -2384,40 +2400,75 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      setShowTicketImages,
       showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
       paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       itemDisplayMode,
+      setItemDisplayMode,
       itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
+      setItemCardImageOverlayOpacity,
       itemCardTextColor,
+      setItemCardTextColor,
       itemCardShowPrice,
+      setItemCardShowPrice,
       externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
       externalLinkUrl,
+      setExternalLinkUrl,
       externalLinkTitle,
+      setExternalLinkTitle,
       externalLinkModalWidth,
+      setExternalLinkModalWidth,
       externalLinkModalHeight,
+      setExternalLinkModalHeight,
       showDashboardStats,
+      setShowDashboardStats,
       enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
       showNotifications,
+      setShowNotifications,
       notificationDuration,
+      setNotificationDuration,
       enableSerialNumber,
+      setEnableSerialNumber,
       defaultSalesMode,
+      setDefaultSalesMode,
       isForcedMode,
+      setIsForcedMode,
       directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
+      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       dashboardBgType,
+      setDashboardBgType,
       dashboardBackgroundColor,
+      setDashboardBackgroundColor,
       dashboardBackgroundImage,
+      setDashboardBackgroundImage,
       dashboardBgOpacity,
+      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
+      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2432,53 +2483,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoCustomers,
       importDemoSuppliers,
       cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
       toast,
       holdOrder,
-      setReadOnlyOrder,
-      setIsKeypadOpen,
-      setCurrentSaleId,
-      setSerialNumberItem,
-      setSessionInvalidated,
-      setCameFromRestaurant,
-      setShowTicketImages,
-      setShowItemImagesInGrid,
-      setDescriptionDisplay,
-      setPopularItemsCount,
-      setItemCardOpacity,
-      setPaymentMethodImageOpacity,
-      setItemDisplayMode,
-      setItemCardShowImageAsBackground,
-      setItemCardImageOverlayOpacity,
-      setItemCardTextColor,
-      setItemCardShowPrice,
-      setExternalLinkModalEnabled,
-      setExternalLinkUrl,
-      setExternalLinkTitle,
-      setExternalLinkModalWidth,
-      setExternalLinkModalHeight,
-      setShowDashboardStats,
-      setEnableRestaurantCategoryFilter,
-      setShowNotifications,
-      setNotificationDuration,
-      setEnableSerialNumber,
-      setDefaultSalesMode,
-      setIsForcedMode,
-      setDirectSaleBackgroundColor,
-      setRestaurantModeBackgroundColor,
-      setDirectSaleBgOpacity,
-      setRestaurantModeBgOpacity,
-      setDashboardBgType,
-      setDashboardBackgroundColor,
-      setDashboardBackgroundImage,
-      setDashboardBgOpacity,
-      setDashboardButtonBackgroundColor,
-      setDashboardButtonOpacity,
-      setDashboardButtonShowBorder,
-      setDashboardButtonBorderColor,
-      setCompanyInfo,
-      setCurrentSaleContext
     ]
   );
 
@@ -2496,5 +2505,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

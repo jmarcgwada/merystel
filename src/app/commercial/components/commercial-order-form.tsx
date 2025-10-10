@@ -57,6 +57,7 @@ interface CommercialOrderFormProps {
   setIsReady: (isReady: boolean) => void;
   showAcompte?: boolean;
   onTotalsChange: (totals: { subtotal: number, tax: number, total: number }) => void;
+  updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
@@ -90,7 +91,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 }
 
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange, updateItemQuantityInOrder }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -487,7 +488,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                       <Input 
                           type="number" 
                           value={field.quantity}
-                          onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                          onChange={e => updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1)}
+                          onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
                           min={1} 
                           className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
                       />

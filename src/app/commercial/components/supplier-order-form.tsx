@@ -49,6 +49,7 @@ interface SupplierOrderFormProps {
   updateItemNote: (itemId: string, note: string) => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
   setIsReady: (isReady: boolean) => void;
+  updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
@@ -81,7 +82,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
   );
 }
 
-export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
+export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, setSubmitHandler, setIsReady, updateItemQuantityInOrder }: SupplierOrderFormProps) {
   const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
@@ -449,7 +450,8 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                       <Input 
                           type="number" 
                           value={field.quantity}
-                          onChange={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                          onChange={e => updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1)}
+                          onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
                           min={1} 
                           className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
                       />
