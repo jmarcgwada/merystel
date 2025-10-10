@@ -87,7 +87,7 @@ interface PosContextType {
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
-  addSerializedItemToOrder: (item: Item, quantity: number, serialNumbers: string[]) => void;
+  addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -107,8 +107,8 @@ interface PosContextType {
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
   currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null;
   setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null>>;
-  serialNumberItem: { item: Item; quantity: number } | null;
-  setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item; quantity: number } | null>>;
+  serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
+  setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   lastDirectSale: Sale | null;
@@ -278,6 +278,7 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
+  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -968,36 +969,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
   
-  const addSerializedItemToOrder = useCallback((item: Item, quantity: number, serialNumbers: string[]) => {
-    const newOrderItem: OrderItem = {
-      itemId: item.id,
-      id: uuidv4(),
-      name: item.name,
-      price: item.price,
-      vatId: item.vatId,
-      image: item.image,
-      quantity,
-      total: item.price * quantity,
-      discount: 0,
-      description: item.description,
-      description2: item.description2,
-      serialNumbers: serialNumbers,
-      barcode: item.barcode || '',
-    };
-    
+  const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
-        const existingItemIndex = currentOrder.findIndex(i => i.itemId === item.id && i.serialNumbers?.length === serialNumbers.length);
-        if (existingItemIndex > -1) {
-            const newOrder = [...currentOrder];
-            newOrder[existingItemIndex] = { ...newOrder[existingItemIndex], serialNumbers };
-            return newOrder;
-        } else if (existingItemIndex > -1) {
-            const newOrder = [...currentOrder.filter(i => i.itemId !== item.id), newOrderItem];
-            return newOrder;
-        }
+      // Find if an item with this unique OrderItem ID already exists
+      const existingItemIndex = currentOrder.findIndex(i => 'id' in item && i.id === item.id);
+  
+      if (existingItemIndex > -1) {
+        // Update existing item
+        const updatedOrder = [...currentOrder];
+        updatedOrder[existingItemIndex] = {
+          ...updatedOrder[existingItemIndex],
+          quantity: quantity,
+          serialNumbers: serialNumbers,
+          total: updatedOrder[existingItemIndex].price * quantity - (updatedOrder[existingItemIndex].discount || 0),
+        };
+        return updatedOrder;
+      } else {
+        // Add as a new item
+        const newOrderItem: OrderItem = {
+          itemId: 'itemId' in item ? item.itemId : item.id,
+          id: uuidv4(),
+          name: item.name,
+          price: item.price,
+          vatId: item.vatId,
+          image: item.image,
+          quantity,
+          total: item.price * quantity,
+          discount: 0,
+          description: item.description,
+          description2: item.description2,
+          serialNumbers: serialNumbers,
+          barcode: 'barcode' in item ? item.barcode : '',
+        };
         return [...currentOrder, newOrderItem];
+      }
     });
-    if(item.image) setDynamicBgImage(item.image);
+  
+    if (item.image) setDynamicBgImage(item.image);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
 
@@ -1070,7 +1078,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: itemToAdd.description,
             description2: itemToAdd.description2,
             selectedVariants,
-            barcode: itemToAdd.barcode || '',
+            barcode: itemToAdd.barcode,
           };
           return [newItem, ...currentOrder];
         }
@@ -1333,17 +1341,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const tableRef = getDocRef('tables', tableId);
       const table = tables.find(t => t.id === tableId);
       if (tableRef && table) {
-        await updateDoc(tableRef, {
+          routerRef.current.push('/restaurant');
+          await updateDoc(tableRef, {
             order: orderData.map(cleanDataForFirebase),
             status: orderData.length > 0 ? 'occupied' : 'available',
             occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
             occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
             closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
             closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
-        });
-        toast({ title: 'Table sauvegardée' });
-        await clearOrder();
-        routerRef.current.push('/restaurant');
+          });
+          toast({ title: 'Table sauvegardée' });
+          await clearOrder();
       }
     },
     [getDocRef, clearOrder, toast, tables, user]
@@ -1409,83 +1417,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   // #region Sales
-    const recordCommercialDocument = useCallback(async (
-    docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note' | 'supplier_order',
-    docIdToUpdate?: string
-  ) => {
-    if (!firestore || !companyId || !user) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
-      return;
-    }
-
-    const docTypeInfo = {
-      quote: { prefix: 'Devis', counterField: 'quoteCounter', toastTitle: 'Devis enregistré', docType: 'quote' as const, status: 'quote' as const },
-      delivery_note: { prefix: 'BL', counterField: 'deliveryNoteCounter', toastTitle: 'Bon de livraison enregistré', docType: 'delivery_note' as const, status: 'delivery_note' as const },
-      supplier_order: { prefix: 'CF', counterField: 'supplierOrderCounter', toastTitle: 'Commande fournisseur enregistrée', docType: 'supplier_order' as const, status: 'pending' as const },
-    };
-
-    const { prefix, counterField, toastTitle, docType, status } = docTypeInfo[type];
-    
-    try {
-      let finalPieceNumber = '';
-      await runTransaction(firestore, async (transaction) => {
-        const companyRef = doc(firestore, 'companies', companyId);
-        let pieceRef;
-        let existingData: Partial<Sale> = {};
-
-        if (docIdToUpdate) {
-          pieceRef = doc(firestore, 'companies', companyId, 'sales', docIdToUpdate);
-          const existingDoc = await transaction.get(pieceRef);
-          if (existingDoc.exists()) {
-            existingData = existingDoc.data() as Sale;
-          }
-        } else {
-          const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
-          pieceRef = doc(salesCollRef);
-        }
-        
-        let pieceNumber = existingData.ticketNumber || '';
-        if (!docIdToUpdate) {
-          const companyDoc = await transaction.get(companyRef);
-          const currentCounter = companyDoc.data()?.[counterField] ?? 0;
-          const newCount = currentCounter + 1;
-          
-          transaction.update(companyRef, { [counterField]: newCount });
-          
-          const dayMonth = format(new Date(), 'ddMM');
-          pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
-        }
-        finalPieceNumber = pieceNumber;
-
-        const finalDocData: Sale = {
-          ...existingData,
-          ...docData,
-          id: pieceRef.id,
-          date: existingData.date || Timestamp.fromDate(new Date()),
-          modifiedAt: docIdToUpdate ? Timestamp.fromDate(new Date()) : undefined,
-          userId: user.uid,
-          userName: `${user.firstName} ${user.lastName}`,
-          ticketNumber: pieceNumber,
-          status: status,
-          documentType: docType,
-        };
-        
-        transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
-      });
-
-      toast({ title: toastTitle });
-      clearOrder();
-      router.push(`/reports?filter=${prefix}-`);
-
-    } catch (error) {
-      console.error(`Transaction failed for ${type}:`, error);
-      toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || `Le document n'a pas pu être enregistré.` });
-    }
-  }, [companyId, firestore, user, toast, clearOrder, router]);
-
-
-  const recordSale = useCallback(
+    const recordSale = useCallback(
     async (
       saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
       saleIdToUpdate?: string
@@ -1619,6 +1551,90 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [companyId, firestore, user, items, currentSaleContext, toast]
   );
+
+  const recordCommercialDocument = useCallback(
+    async (
+      docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+      type: 'quote' | 'delivery_note' | 'supplier_order',
+      docIdToUpdate?: string
+    ) => {
+      if (!firestore || !companyId || !user) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Services non initialisés.' });
+        return;
+      }
+
+      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+
+      try {
+        await runTransaction(firestore, async (transaction) => {
+          const companyRef = doc(firestore, 'companies', companyId);
+          let pieceRef;
+          const isNewDoc = !docIdToUpdate;
+          let pieceNumber = '';
+
+          let prefix = '';
+          let counterField = '';
+
+          switch (type) {
+            case 'quote':
+              prefix = 'Devis';
+              counterField = 'quoteCounter';
+              break;
+            case 'delivery_note':
+              prefix = 'BL';
+              counterField = 'deliveryNoteCounter';
+              break;
+            case 'supplier_order':
+               prefix = 'CF';
+               counterField = 'supplierOrderCounter';
+               break;
+          }
+
+          if (isNewDoc) {
+            const companyDoc = await transaction.get(companyRef);
+            const currentCounter = companyDoc.data()?.[counterField] ?? 0;
+            const newCount = currentCounter + 1;
+            transaction.update(companyRef, { [counterField]: newCount });
+            const dayMonth = format(new Date(), 'ddMM');
+            pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
+            const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
+            pieceRef = doc(salesCollRef);
+          } else {
+            pieceRef = doc(firestore, 'companies', companyId, 'sales', docIdToUpdate);
+          }
+
+          const finalDocData: Omit<Sale, 'id'> = {
+            ...docData,
+            date: isNewDoc ? Timestamp.fromDate(new Date()) : (await transaction.get(pieceRef)).data()?.date,
+            modifiedAt: isNewDoc ? undefined : Timestamp.fromDate(new Date()),
+            userId: user.uid,
+            userName: sellerName,
+            ticketNumber: isNewDoc ? pieceNumber : (await transaction.get(pieceRef)).data()?.ticketNumber,
+            documentType: type,
+            status: type === 'supplier_order' ? 'pending' : type,
+          };
+          
+          transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
+        });
+        
+        toast({ title: `${prefix} enregistré`, description: 'Le document a été sauvegardé avec succès.' });
+        
+        clearOrder();
+
+        const reportFilters = {
+          quote: 'Devis-',
+          delivery_note: 'BL-',
+          supplier_order: 'CF-',
+        }
+        router.push(`/reports?filter=${reportFilters[type]}`);
+
+      } catch (error) {
+        console.error(`Error recording ${type}:`, error);
+        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: `Le document n'a pas pu être enregistré.` });
+      }
+    },
+    [companyId, firestore, user, toast, clearOrder, router]
+  );
   
   const deleteAllSales = useCallback(async () => {
     const salesCollRef = getCollectionRef('sales');
@@ -1727,7 +1743,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [auth, toast]);
 
     const findUserByEmail = useCallback((email: string) => {
-        if (!users) return undefined;
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
@@ -1749,7 +1764,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
     const validateSession = useCallback((userId: string, token: string) => {
-        if (!users) return false;
         const user = users.find(u => u.id === userId);
         return user?.sessionToken === token;
     }, [users]);
@@ -2325,11 +2339,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       orderTotal,
       orderTax,
       isKeypadOpen,
-      setIsKeypadOpen,
       currentSaleId,
-      setCurrentSaleId,
       currentSaleContext,
-      setCurrentSaleContext,
       serialNumberItem,
       setSerialNumberItem,
       variantItem,
@@ -2349,7 +2360,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
-      setSessionInvalidated,
       items,
       addItem,
       updateItem,
