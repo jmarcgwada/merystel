@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -365,7 +366,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     <Card className="mt-4 flex-1 flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
+          <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-6 flex flex-col flex-1">
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Détails de la facture</h3>
