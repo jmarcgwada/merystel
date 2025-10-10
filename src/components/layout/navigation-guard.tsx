@@ -1,13 +1,36 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 
-// This component is now deprecated as the logic has been moved to NavigationBlocker
-// and specific layout files for better contextual control.
-// This file can be deleted. We are keeping it empty to avoid build errors if it's imported elsewhere.
-
 export function NavigationGuard() {
-  return null;
+  const pathname = usePathname();
+  const { order, showNavConfirm } = usePos();
+
+  useEffect(() => {
+    if (order.length === 0) {
+      return;
+    }
+
+    // Push a new entry into the history stack.
+    history.pushState(null, '', pathname);
+
+    const handlePopState = (event: PopStateEvent) => {
+      // If there's an order, prevent going back and show confirmation.
+      if (order.length > 0) {
+        history.go(1); // Go forward to cancel the back action.
+        showNavConfirm(pathname); // Show the confirmation dialog.
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup the event listener when the component unmounts or dependencies change.
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [pathname, order.length, showNavConfirm]);
+
+  return null; // This component doesn't render anything visible.
 }

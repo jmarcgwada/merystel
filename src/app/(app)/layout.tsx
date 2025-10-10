@@ -33,30 +33,9 @@ function AppLoading() {
 
 function SessionValidation({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
-  const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order, showNavConfirm } = usePos();
+  const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order } = usePos();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (order.length === 0) {
-      return;
-    }
-
-    history.pushState(null, '', pathname);
-
-    const handlePopState = (event: PopStateEvent) => {
-      if (order.length > 0) {
-        history.go(1);
-        showNavConfirm(pathname);
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [pathname, order.length, showNavConfirm]);
 
   useEffect(() => {
     if (loading) {
@@ -79,7 +58,7 @@ function SessionValidation({ children }: { children: React.ReactNode }) {
         return;
     }
     setIsCheckingSession(false);
-  }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated, pathname, showNavConfirm]);
+  }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated, pathname]);
 
   if (isCheckingSession || loading) {
     return <AppLoading />;
