@@ -269,7 +269,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
     const url = `/management/items/form?id=${itemId}&redirectUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-    router.push(url);
+    window.open(url, '_blank');
   }
 
 
