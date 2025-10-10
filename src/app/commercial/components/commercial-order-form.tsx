@@ -9,7 +9,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 import { useRouter } from 'next/navigation';
 import { EditItemDialog } from './edit-item-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 const orderItemSchema = z.object({
@@ -34,6 +35,7 @@ const orderItemSchema = z.object({
   remise: z.coerce.number().min(0).max(100).optional(),
   description: z.string().optional(),
   description2: z.string().optional(),
+  note: z.string().optional(),
 });
 
 const FormSchema = z.object({
@@ -60,6 +62,34 @@ interface CommercialOrderFormProps {
 const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
+function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onSave: (note: string) => void; onCancel: () => void; }) {
+  const [note, setNote] = useState(orderItem.note || '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.select();
+    }, 100)
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <Textarea
+        ref={textareaRef}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Ajouter une note pour cette ligne..."
+      />
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onCancel}>Annuler</Button>
+        <Button size="sm" onClick={() => onSave(note)}>Enregistrer</Button>
+      </div>
+    </div>
+  );
+}
+
+
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm } = usePos();
   const { toast } = useToast();
@@ -77,6 +107,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
@@ -162,7 +194,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         setListContent([]);
       } else if (searchTerm.trim() !== '') {
         const trimmedSearch = searchTerm.trim();
-        const isBarcodeFormat = /^\d{11,14}$/.test(trimmedSearch);
+        const isBarcodeFormat = /^\\d{11,14}$/.test(trimmedSearch);
         const itemExists = allItems?.some(item => item.barcode === trimmedSearch);
 
         if (isBarcodeFormat && !itemExists) {
@@ -407,6 +439,29 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                               >
                                   <Pencil className="h-3 w-3" />
                               </Button>
+                               <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => setEditingNoteId(field.id)}
+                                  >
+                                    <StickyNote className="h-3 w-3" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80" align="start">
+                                  <NoteEditor 
+                                    orderItem={field}
+                                    onSave={(note) => {
+                                      updateItemNote(field.id, note);
+                                      setEditingNoteId(null);
+                                    }}
+                                    onCancel={() => setEditingNoteId(null)}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
                                 {descriptionDisplay === 'first' && field.description}
@@ -418,6 +473,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                     </>
                                 )}
                             </div>
+                             {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
                         </div>
                       <Input 
                           type="number" 

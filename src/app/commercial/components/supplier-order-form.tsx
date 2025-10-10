@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -8,7 +9,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, List, Search, Pencil, Truck } from 'lucide-react';
+import { Trash2, List, Search, Pencil, Truck, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Supplier, Item, OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SupplierSelectionDialog } from '@/components/shared/supplier-selection-dialog';
 import { useRouter } from 'next/navigation';
 import { EditItemDialog } from './edit-item-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -27,6 +30,7 @@ const orderItemSchema = z.object({
   name: z.string(),
   quantity: z.coerce.number().min(1, 'Qté > 0.'),
   price: z.coerce.number(), // This will be purchasePrice
+  note: z.string().optional(),
 });
 
 const FormSchema = z.object({
@@ -42,6 +46,7 @@ interface SupplierOrderFormProps {
   addToOrder: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
+  updateItemNote: (itemId: string, note: string) => void;
   setSubmitHandler: (handler: (() => void) | null) => void;
   setIsReady: (isReady: boolean) => void;
 }
@@ -49,7 +54,34 @@ interface SupplierOrderFormProps {
 const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
-export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
+function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onSave: (note: string) => void; onCancel: () => void; }) {
+  const [note, setNote] = useState(orderItem.note || '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.select();
+    }, 100)
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <Textarea
+        ref={textareaRef}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Ajouter une note pour cette ligne..."
+      />
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onCancel}>Annuler</Button>
+        <Button size="sm" onClick={() => onSave(note)}>Enregistrer</Button>
+      </div>
+    </div>
+  );
+}
+
+export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, setSubmitHandler, setIsReady }: SupplierOrderFormProps) {
   const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
@@ -66,6 +98,8 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const [searchType, setSearchType] = useState<'contains' | 'startsWith'>('contains');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const form = useForm<SupplierOrderFormValues>({
     resolver: zodResolver(FormSchema),
@@ -366,6 +400,29 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                                 >
                                     <Pencil className="h-3 w-3" />
                                 </Button>
+                                <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => setEditingNoteId(field.id)}
+                                  >
+                                    <StickyNote className="h-3 w-3" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80" align="start">
+                                  <NoteEditor 
+                                    orderItem={field}
+                                    onSave={(note) => {
+                                      updateItemNote(field.id, note);
+                                      setEditingNoteId(null);
+                                    }}
+                                    onCancel={() => setEditingNoteId(null)}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                               </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
                                 {descriptionDisplay === 'first' && field.description}
@@ -377,6 +434,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
                                     </>
                                 )}
                             </div>
+                            {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
                         </div>
                       <Input 
                           type="number" 
