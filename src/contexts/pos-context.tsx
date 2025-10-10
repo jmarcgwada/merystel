@@ -971,11 +971,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
-      // Find if an item with this unique OrderItem ID already exists
       const existingItemIndex = currentOrder.findIndex(i => 'id' in item && i.id === item.id);
   
       if (existingItemIndex > -1) {
-        // Update existing item
         const updatedOrder = [...currentOrder];
         updatedOrder[existingItemIndex] = {
           ...updatedOrder[existingItemIndex],
@@ -985,7 +983,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         };
         return updatedOrder;
       } else {
-        // Add as a new item
         const newOrderItem: OrderItem = {
           itemId: 'itemId' in item ? item.itemId : item.id,
           id: uuidv4(),
@@ -1564,6 +1561,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
 
       const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
+      let prefix = '';
+      let counterField = '';
 
       try {
         await runTransaction(firestore, async (transaction) => {
@@ -1572,8 +1571,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           const isNewDoc = !docIdToUpdate;
           let pieceNumber = '';
 
-          let prefix = '';
-          let counterField = '';
 
           switch (type) {
             case 'quote':
@@ -2086,7 +2083,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         payments: ticket.payments,
         originalTotal: ticket.originalTotal,
         originalPayments: ticket.originalPayments,
-        change: ticket.change
+        change: ticket.change,
     });
   }, []);
 
