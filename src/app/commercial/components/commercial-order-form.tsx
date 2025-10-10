@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -52,12 +53,13 @@ interface CommercialOrderFormProps {
   updateItemNote: (itemId: string, note: string) => void;
   setIsReady: (isReady: boolean) => void;
   showAcompte?: boolean;
+  onTotalsChange: (totals: { subtotal: number, tax: number, total: number }) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
 const MAX_INITIAL_ITEMS = 100;
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false }: CommercialOrderFormProps) {
+export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange }: CommercialOrderFormProps) {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -234,6 +236,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [watchItems, allItems, vatRates]);
 
   const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
+
+  useEffect(() => {
+    onTotalsChange({ subtotal: subTotalHT, tax: totalTVA, total: totalTTC });
+  }, [subTotalHT, totalTVA, totalTTC, onTotalsChange]);
+
 
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;

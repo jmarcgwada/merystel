@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -61,10 +62,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateItemNote, 
       clearOrder,
       loadSaleForEditing,
-      recordSale,
       recordCommercialDocument,
-      orderTotal,
-      orderTax,
       currentSaleContext,
       items,
       customers,
@@ -79,6 +77,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const saleIdToEdit = searchParams.get('edit');
   const initialFilter = searchParams.get('filter');
   const newItemId = searchParams.get('newItemId');
+  const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
   const config = docTypeConfig[documentType];
   const pageTitle = saleIdToEdit
@@ -108,7 +107,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   const handleTransformToInvoice = () => {
     if (!isReady || !currentSaleContext?.customerId) return;
-    setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice' }));
+    setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice', subtotal: totals.subtotal, tax: totals.tax, total: totals.total }));
     if (submitHandler) {
       submitHandler(); // This will open checkout modal for invoicing
     }
@@ -133,9 +132,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
-      subtotal: currentSaleContext.subtotal || 0,
-      tax: currentSaleContext.tax || 0,
-      total: currentSaleContext.total || 0,
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      total: totals.total,
       status: documentType, // status is now the same as documentType for quotes/delivery_notes
       payments: [],
       customerId: currentSaleContext.customerId,
@@ -258,6 +257,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 updateItemNote={updateItemNote}
                 setIsReady={setIsReady}
                 showAcompte={config.showAcompte}
+                onTotalsChange={setTotals}
             />
         </div>
       </div>
