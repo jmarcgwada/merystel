@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -22,6 +21,7 @@ import { CustomerSelectionDialog } from '@/components/shared/customer-selection-
 import { Textarea } from '@/components/ui/textarea';
 import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 import { useRouter } from 'next/navigation';
+import { EditItemDialog } from './edit-item-dialog';
 
 
 const orderItemSchema = z.object({
@@ -65,6 +65,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const [isEditItemOpen, setIsEditItemOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
   const router = useRouter();
 
   const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
@@ -268,12 +270,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
-    const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
-    const url = `/management/items/form?id=${itemId}&redirectUrl=${redirectUrl}`;
-    if (order.length > 0) {
-        showNavConfirm(url);
-    } else {
-        router.push(url);
+    const item = allItems.find(i => i.id === itemId);
+    if(item) {
+        setItemToEdit(item);
+        setIsEditItemOpen(true);
     }
   }
 
@@ -515,6 +515,25 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     
     <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
     <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={totalTTC} />
+    {isEditItemOpen && itemToEdit && (
+        <EditItemDialog
+            item={itemToEdit}
+            isOpen={isEditItemOpen}
+            onClose={() => {
+                setIsEditItemOpen(false);
+                setItemToEdit(null);
+            }}
+            onItemUpdated={(updatedItem) => {
+                 setOrder(currentOrder => 
+                  currentOrder.map(orderItem => 
+                    orderItem.itemId === updatedItem.id 
+                      ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+                      : orderItem
+                  )
+                );
+            }}
+        />
+    )}
     </>
   );
 }
