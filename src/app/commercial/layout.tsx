@@ -6,17 +6,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck } from 'lucide-react';
+import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
 import { NavigationBlocker } from '@/components/layout/navigation-blocker';
 
 
 const navLinks = [
-    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText },
-    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText },
-    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'Bons de livraison', icon: Truck },
-    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag },
+    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText, reportLabel: 'Rapport Factures', reportFilter: 'Fact-' },
+    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText, reportLabel: 'Rapport Devis', reportFilter: 'Devis-' },
+    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'Bons de livraison', icon: Truck, reportLabel: 'Rapport BL', reportFilter: 'BL-' },
+    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Rapport Cdes Fournisseur', reportFilter: 'CF-' },
 ]
 
 export default function CommercialLayout({
@@ -29,6 +29,7 @@ export default function CommercialLayout({
   const { order, showNavConfirm } = usePos();
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
+  const activeReportInfo = navLinks.find(link => link.value === activeTab);
   
 
   const handleTabClick = (e: React.MouseEvent, href: string) => {
@@ -49,7 +50,7 @@ export default function CommercialLayout({
 
   return (
     <div className="h-full flex flex-col">
-        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <Tabs value={activeTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-5">
@@ -67,7 +68,15 @@ export default function CommercialLayout({
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <div className="pl-4">
+                <div className="pl-4 flex items-center gap-2">
+                    {activeReportInfo && (
+                        <Button asChild variant="outline">
+                            <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
+                                <BarChart3 />
+                                {activeReportInfo.reportLabel}
+                            </Link>
+                        </Button>
+                    )}
                     <Button onClick={handleBackToDashboard} variant="outline" className="btn-back">
                         <ArrowLeft />
                         Retour au tableau de bord
