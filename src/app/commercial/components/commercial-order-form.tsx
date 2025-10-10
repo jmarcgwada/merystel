@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -267,14 +266,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   }, [onSubmit, setSubmitHandler]);
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
-    e.stopPropagation(); // Prevent item selection
-    const url = `/management/items/form?id=${itemId}`;
-    if (order.length > 0) {
-        showNavConfirm(url);
-    } else {
-        router.push(url);
-    }
-}
+    e.stopPropagation();
+    const url = `/management/items/form?id=${itemId}&redirectUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    router.push(url);
+  }
 
 
   return (
@@ -392,14 +387,14 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                     const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
                     return (
-                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b">
+                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b group">
                         <div className="flex flex-col">
                             <div className="flex items-center gap-1">
                               <span className="font-semibold">{field.name}</span>
                               <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="h-6 w-6 text-muted-foreground" 
+                                  className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
                                   onClick={(e) => handleEditItemClick(e, field.itemId)}
                               >
                                   <Pencil className="h-3 w-3" />

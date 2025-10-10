@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -437,7 +435,7 @@ function ItemForm() {
         subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
         <Button variant="outline" asChild className="btn-back">
-          <Link href="/management/items">
+          <Link href={redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items"}>
             <ArrowLeft />
             Retour à la liste
           </Link>
@@ -969,5 +967,6 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
 
 
