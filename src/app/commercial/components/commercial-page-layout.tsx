@@ -77,6 +77,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const saleIdToEdit = searchParams.get('edit');
   const initialFilter = searchParams.get('filter');
   const newItemId = searchParams.get('newItemId');
+  const updatedItemId = searchParams.get('updatedItemId');
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
   const config = docTypeConfig[documentType];
@@ -87,11 +88,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   useEffect(() => {
     // This effect now runs only once on mount to set up the context.
     setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
-    if (newItemId) {
-      addToOrder(newItemId);
-      const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
-      router.replace(newUrl, { scroll: false });
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,6 +100,31 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
+
+  useEffect(() => {
+    if (newItemId) {
+      addToOrder(newItemId);
+      const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [newItemId, addToOrder, router]);
+  
+  useEffect(() => {
+    if (updatedItemId && items) {
+      const updatedItem = items.find(i => i.id === updatedItemId);
+      if (updatedItem) {
+        setOrder(currentOrder => 
+          currentOrder.map(orderItem => 
+            orderItem.itemId === updatedItemId 
+              ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+              : orderItem
+          )
+        );
+      }
+      const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [updatedItemId, items, setOrder, router]);
   
   const handleTransformToInvoice = () => {
     if (!isReady || !currentSaleContext?.customerId) return;

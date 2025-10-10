@@ -270,7 +270,9 @@ function ItemForm() {
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
       
       if (redirectUrlParam) {
-        router.push(decodeURIComponent(redirectUrlParam));
+        const redirectURL = decodeURIComponent(redirectUrlParam);
+        const separator = redirectURL.includes('?') ? '&' : '?';
+        router.push(`${redirectURL}${separator}updatedItemId=${itemId}`);
       } else {
         router.push('/management/items');
       }
@@ -437,7 +439,7 @@ function ItemForm() {
         <Button variant="outline" asChild className="btn-back">
           <Link href={redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items"}>
             <ArrowLeft />
-            Retour à la liste
+            Retour
           </Link>
         </Button>
       </PageHeader>
@@ -967,6 +969,7 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
 
 
 
