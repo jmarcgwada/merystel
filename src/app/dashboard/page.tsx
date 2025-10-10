@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -31,14 +32,6 @@ const hexToRgba = (hex: string, opacity: number) => {
 };
 
 const allQuickLinks = [
-    {
-        href: '/default-sale', // This will be dynamically replaced
-        title: "Mode Caisse",
-        description: 'Accéder à l\'interface de vente par défaut.',
-        icon: ShoppingCart,
-        roles: ['admin', 'manager', 'cashier'],
-        id: 'sales-mode',
-    },
     {
         href: '/management/items',
         title: 'Gestion',
@@ -92,23 +85,19 @@ export default function DashboardPage() {
     
     const todayDateString = format(new Date(), 'yyyy-MM-dd');
     
+    const salesModeLink = useMemo(() => {
+        const modeMap = {
+            pos: { href: '/pos', icon: ShoppingCart, title: 'Mode Caisse', description: 'Accéder au point de vente.' },
+            supermarket: { href: '/supermarket', icon: ScanLine, title: 'Mode Supermarché', description: 'Interface rapide pour scanner les articles.' },
+            restaurant: { href: '/restaurant', icon: Utensils, title: 'Mode Restaurant', description: 'Gérer les tables et les commandes.' },
+        };
+        return modeMap[defaultSalesMode];
+    }, [defaultSalesMode]);
+
     const quickLinks = useMemo(() => {
         if (!authUser) return [];
-        return allQuickLinks
-            .map(link => {
-                if (link.id === 'sales-mode') {
-                    const modeMap = {
-                        pos: { href: '/pos', icon: ShoppingCart, description: 'Accéder au point de vente.' },
-                        supermarket: { href: '/supermarket', icon: ScanLine, description: 'Interface rapide pour scanner les articles.' },
-                        restaurant: { href: '/restaurant', icon: Utensils, description: 'Gérer les tables et les commandes.' },
-                    };
-                    return { ...link, ...modeMap[defaultSalesMode] };
-                }
-                return link;
-            })
-            .filter(link => link.roles.includes(authUser.role));
-
-    }, [authUser, defaultSalesMode]);
+        return allQuickLinks.filter(link => link.roles.includes(authUser.role));
+    }, [authUser]);
 
     const relevantSales = useMemo(() => {
       if (!sales) return [];
@@ -382,6 +371,24 @@ export default function DashboardPage() {
                            </div>
                       </CardContent>
                   </Card>
+                  
+                  {salesModeLink && (
+                      <Link href={salesModeLink.href} className="group">
+                          <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                              <CardContent className="pt-6">
+                                  <div className="flex items-start justify-between">
+                                      <div>
+                                          <salesModeLink.icon className="h-8 w-8 text-primary mb-2" />
+                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>{salesModeLink.title}</h3>
+                                          <p className="text-sm text-muted-foreground mt-1">{salesModeLink.description}</p>
+                                      </div>
+                                      <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                  </div>
+                              </CardContent>
+                          </Card>
+                      </Link>
+                  )}
+
                    <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
                         <CardContent className="pt-6">
                             <div className="flex items-start justify-between">
@@ -401,6 +408,7 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
+
                   {quickLinks.map(link => (
                       <Link href={link.href} key={link.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
