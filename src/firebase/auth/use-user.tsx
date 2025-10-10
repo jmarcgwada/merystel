@@ -6,6 +6,8 @@ import { onAuthStateChanged, User as AuthUser } from 'firebase/auth';
 import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
 import { useAuth, useFirestore } from '@/firebase/provider';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 // This will be the new user type, combining Firebase Auth user and our Firestore user profile.
 export type CombinedUser = AuthUser & DocumentData & AppUser;
@@ -26,19 +28,32 @@ export function useUser() {
       if (authUser) {
         // User is signed in, now fetch their profile from Firestore.
         const userDocRef = doc(firestore, 'users', authUser.uid);
-        const unsubProfile = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            const profileData = doc.data() as AppUser;
-            // Combine auth data and profile data
-            setUser({ ...authUser, ...profileData, id: doc.id });
-          } else {
-            // Firestore profile doesn't exist. This can happen.
-            // You might want to handle this case, e.g., by creating a default profile.
-            // For now, we treat them as not fully logged in.
-            setUser(null); 
+        const unsubProfile = onSnapshot(
+          userDocRef, 
+          (doc) => {
+            if (doc.exists()) {
+              const profileData = doc.data() as AppUser;
+              // Combine auth data and profile data
+              setUser({ ...authUser, ...profileData, id: doc.id });
+            } else {
+              // Firestore profile doesn't exist. This can happen.
+              // You might want to handle this case, e.g., by creating a default profile.
+              // For now, we treat them as not fully logged in.
+              setUser(null); 
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error fetching user profile:", error);
+            const contextualError = new FirestorePermissionError({
+              operation: 'get',
+              path: userDocRef.path,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            setUser(null);
+            setLoading(false);
           }
-          setLoading(false);
-        });
+        );
 
         // Return a cleanup function for the profile listener
         return () => unsubProfile();
