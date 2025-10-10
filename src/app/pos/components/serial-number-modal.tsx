@@ -22,6 +22,7 @@ export function SerialNumberModal() {
   const { serialNumberItem, setSerialNumberItem, addSerializedItemToOrder } = usePos();
   const { toast } = useToast();
   const [serialNumbers, setSerialNumbers] = useState<string[]>([]);
+  const [initialSerials, setInitialSerials] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -36,10 +37,13 @@ export function SerialNumberModal() {
       const numToFill = serialNumberItem.quantity;
       const existingSerials = (serialNumberItem.item as OrderItem).serialNumbers || [];
       const newSerials = Array(numToFill).fill('');
-       for (let i = 0; i < Math.min(existingSerials.length, numToFill); i++) {
+      
+      for (let i = 0; i < Math.min(existingSerials.length, numToFill); i++) {
         newSerials[i] = existingSerials[i];
       }
+
       setSerialNumbers(newSerials);
+      setInitialSerials(existingSerials); // Store the initial state
       setError(null);
       inputRefs.current = Array(numToFill).fill(null);
       
@@ -53,7 +57,6 @@ export function SerialNumberModal() {
       }, 100);
 
     }
-  // This dependency array is now correct. It should ONLY run when the item changes.
   }, [serialNumberItem]);
   
   const handleSerialNumberChange = (index: number, value: string) => {
@@ -122,7 +125,7 @@ export function SerialNumberModal() {
           <ScrollArea className="h-64 pr-6">
             <div className="space-y-3">
                 {[...Array(quantity)].map((_, index) => {
-                    const isFilled = !!serialNumbers[index];
+                    const isPreFilled = !!initialSerials[index];
                     return (
                         <div key={index} className="flex items-center gap-4">
                             <Label htmlFor={`sn-${index}`} className="w-12 text-right text-muted-foreground">
@@ -135,7 +138,7 @@ export function SerialNumberModal() {
                                 onChange={(e) => handleSerialNumberChange(index, e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(index, e)}
                                 className="flex-1"
-                                disabled={isFilled}
+                                disabled={isPreFilled}
                             />
                         </div>
                     )
