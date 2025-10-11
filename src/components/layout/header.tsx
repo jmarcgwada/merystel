@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOff, Delete } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -227,7 +226,7 @@ export default function Header() {
                     <>
                       <DropdownMenuSeparator />
                        <DropdownMenuItem onClick={() => setPinDialogOpen(true)}>
-                         <LockOff className="mr-2 h-4 w-4" />
+                         <LockOpen className="mr-2 h-4 w-4" />
                          <span>Quitter le mode forcé</span>
                        </DropdownMenuItem>
                     </>
