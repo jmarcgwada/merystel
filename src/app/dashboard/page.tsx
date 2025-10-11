@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useRouter } from 'next/navigation';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -44,6 +45,7 @@ const allQuickLinks = [
 
 export default function DashboardPage() {
     const { user: authUser } = useUser();
+    const router = useRouter();
     const { 
         items, 
         sales, 
@@ -60,6 +62,7 @@ export default function DashboardPage() {
         showDashboardStats,
         users,
         defaultSalesMode,
+        isForcedMode,
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
@@ -69,6 +72,17 @@ export default function DashboardPage() {
         setIsMounted(true);
         setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
     }, []);
+
+    useEffect(() => {
+      if (isMounted && isForcedMode && authUser) {
+        const modeMap = {
+          pos: '/pos',
+          supermarket: '/supermarket',
+          restaurant: '/restaurant',
+        };
+        router.replace(modeMap[defaultSalesMode]);
+      }
+    }, [isMounted, isForcedMode, defaultSalesMode, router, authUser]);
     
     const todayDateString = format(new Date(), 'yyyy-MM-dd');
     
@@ -196,7 +210,7 @@ export default function DashboardPage() {
     }, [isMounted, dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
 
 
-    if (!isMounted || isLoading) {
+    if (!isMounted || isLoading || (isForcedMode && authUser)) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
                  <PageHeader
