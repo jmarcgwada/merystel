@@ -16,6 +16,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -37,13 +38,6 @@ const allQuickLinks = [
         title: 'Gestion',
         description: "Gérer articles, catégories, clients, etc.",
         icon: Package,
-        roles: ['admin', 'manager', 'cashier'],
-    },
-    {
-        href: '/help',
-        title: "Assistance et Aide",
-        description: "Obtenir de l'aide et des conseils.",
-        icon: LifeBuoy,
         roles: ['admin', 'manager', 'cashier'],
     },
 ]
@@ -236,13 +230,36 @@ export default function DashboardPage() {
           title="Tableau de bord"
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         >
-          {authUser && authUser.role !== 'cashier' && (
-            <Button asChild variant="ghost" size="icon">
-              <Link href="/settings">
-                <Settings />
-              </Link>
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {authUser && authUser.role !== 'cashier' && (
+              <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button asChild variant="ghost" size="icon">
+                              <Link href="/settings">
+                                  <Settings />
+                              </Link>
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                          <p>Paramètres</p>
+                      </TooltipContent>
+                  </Tooltip>
+                   <Tooltip>
+                      <TooltipTrigger asChild>
+                           <Button asChild variant="ghost" size="icon">
+                              <Link href="/help">
+                                  <LifeBuoy />
+                              </Link>
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                          <p>Assistance et Aide</p>
+                      </TooltipContent>
+                  </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </PageHeader>
         
         {isMounted && showDashboardStats && (
