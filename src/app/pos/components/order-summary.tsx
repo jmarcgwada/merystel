@@ -516,9 +516,10 @@ export function OrderSummary() {
         }
     };
     
-    const handleEditItemClick = (e: React.MouseEvent, item: OrderItem) => {
-        e.stopPropagation(); // Prevent item selection
-        const fullItem = allItems.find(i => i.id === item.itemId);
+    const handleEditItemClick = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if(!selectedItem) return;
+        const fullItem = allItems.find(i => i.id === selectedItem.itemId);
         if (fullItem) {
             setItemToEdit(fullItem);
             setIsEditItemOpen(true);
@@ -555,16 +556,6 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-1">
                 <p className="font-semibold pr-1">{item.name}</p>
-                 {!readOnlyOrder && user?.role === 'admin' && (
-                     <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 text-muted-foreground" 
-                      onClick={(e) => handleEditItemClick(e, item)}
-                  >
-                      <Pencil className="h-3 w-3" />
-                  </Button>
-                 )}
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
@@ -683,6 +674,7 @@ export function OrderSummary() {
                         </Button>
                        </div>
                     ) : (
+                      <>
                         <Input 
                             ref={keypadInputRef}
                             type="text"
@@ -691,6 +683,16 @@ export function OrderSummary() {
                             onFocus={(e) => e.target.select()}
                             className="h-12 flex-1 text-right px-4 text-3xl font-mono bg-background/50"
                         />
+                        {user?.role === 'admin' && (
+                            <Button 
+                                variant="outline" 
+                                className="h-12"
+                                onClick={handleEditItemClick}
+                            >
+                                <Pencil className="h-5 w-5" />
+                            </Button>
+                        )}
+                      </>
                     )}
                   </div>
 
