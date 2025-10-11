@@ -647,7 +647,7 @@ export function OrderSummary() {
                       <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
                       {user?.role === 'admin' && (
                         <Button variant="outline" onClick={(e) => handleEditItemClick(e)}>
-                          <Pencil className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                         </Button>
                       )}
                   </div>
