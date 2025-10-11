@@ -304,7 +304,11 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
-    window.open(`/management/items/form?id=${itemId}`, '_blank');
+    const item = allItems.find(i => i.id === itemId);
+    if (item) {
+        setItemToEdit(item);
+        setIsEditItemOpen(true);
+    }
   }
 
 
@@ -432,10 +436,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      router.push(`/management/items/form?id=${field.itemId}&redirectUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-                                  }}
+                                  onClick={(e) => handleEditItemClick(e, field.itemId)}
                                 >
                                   <Pencil className="h-3 w-3" />
                               </Button>
