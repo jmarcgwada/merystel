@@ -559,7 +559,7 @@ export function OrderSummary() {
                      <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-muted-foreground opacity-50 group-hover:opacity-100" 
+                      className="h-6 w-6 text-muted-foreground opacity-70 hover:opacity-100" 
                       onClick={(e) => handleEditItemClick(e, item)}
                   >
                       <Pencil className="h-3 w-3" />
@@ -889,3 +889,5 @@ export function OrderSummary() {
     </>
   );
 }
+
+    
