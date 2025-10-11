@@ -40,13 +40,6 @@ const allQuickLinks = [
         roles: ['admin', 'manager', 'cashier'],
     },
     {
-        href: '/settings',
-        title: 'Paramètres',
-        description: "Configurer l'application.",
-        icon: Settings,
-        roles: ['admin', 'manager'],
-    },
-    {
         href: '/help',
         title: "Assistance et Aide",
         description: "Obtenir de l'aide et des conseils.",
@@ -242,7 +235,15 @@ export default function DashboardPage() {
         <PageHeader
           title="Tableau de bord"
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
-        />
+        >
+          {authUser && authUser.role !== 'cashier' && (
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/settings">
+                <Settings />
+              </Link>
+            </Button>
+          )}
+        </PageHeader>
         
         {isMounted && showDashboardStats && (
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
