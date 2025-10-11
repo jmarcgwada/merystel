@@ -561,7 +561,7 @@ export function OrderSummary() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-muted-foreground opacity-50 group-hover:opacity-100" 
+                      className="h-6 w-6 text-muted-foreground" 
                       onClick={(e) => handleEditItemClick(e, item)}
                     >
                         <Pencil className="h-3 w-3" />
@@ -648,11 +648,16 @@ export function OrderSummary() {
                 {renderOrderItem(selectedItem, true)}
               </div>
               <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-4 gap-2">
+                   <div className="grid grid-cols-5 gap-2">
                       <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
                       <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
                       <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                       <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
+                      {user?.role === 'admin' && (
+                          <Button variant="outline" onClick={(e) => handleEditItemClick(e)}>
+                              <Pencil />
+                          </Button>
+                      )}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -723,15 +728,6 @@ export function OrderSummary() {
                       >
                           <ScanLine />
                       </Button>
-                       {user?.role === 'admin' && (
-                          <Button 
-                              variant="outline" 
-                              className="h-12 text-lg"
-                              onClick={() => handleEditItemClick()}
-                          >
-                              <Pencil />
-                          </Button>
-                      )}
                       <Button className="h-12 text-lg col-span-2" onClick={handleApply}>
                         <Check className="mr-2" /> Valider
                       </Button>
@@ -895,3 +891,4 @@ export function OrderSummary() {
     </>
   );
 }
+
