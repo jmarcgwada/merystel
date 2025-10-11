@@ -559,7 +559,7 @@ export function OrderSummary() {
                      <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-muted-foreground opacity-70 hover:opacity-100" 
+                      className="h-6 w-6 text-muted-foreground" 
                       onClick={(e) => handleEditItemClick(e, item)}
                   >
                       <Pencil className="h-3 w-3" />
