@@ -1704,6 +1704,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           email: userData.email,
           role: userData.role,
           companyId: SHARED_COMPANY_ID,
+          accessMode: userData.accessMode,
+          defaultSalesMode: userData.defaultSalesMode,
+          isForcedMode: userData.isForcedMode,
         };
 
         await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
@@ -1779,6 +1782,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
     const validateSession = useCallback((userId: string, token: string) => {
+        if (!users) {
+            return false; // Users not loaded yet, can't validate.
+        }
         const user = users.find(u => u.id === userId);
         return user?.sessionToken === token;
     }, [users]);
