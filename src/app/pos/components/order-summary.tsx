@@ -118,6 +118,7 @@ export function OrderSummary() {
     user,
     items: allItems,
     updateOrderItem,
+    updateItemQuantityInOrder,
   } = usePos();
   
   const { toast } = useToast();
@@ -557,16 +558,7 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-1">
                 <p className="font-semibold pr-1">{item.name}</p>
-                {!readOnlyOrder && user?.role === 'admin' && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 text-muted-foreground" 
-                      onClick={(e) => handleEditItemClick(e, item)}
-                    >
-                        <Pencil className="h-3 w-3" />
-                    </Button>
-                )}
+                
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
@@ -654,9 +646,9 @@ export function OrderSummary() {
                       <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
                       <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
                       {user?.role === 'admin' && (
-                          <Button variant="outline" onClick={(e) => handleEditItemClick(e)}>
-                              <Pencil />
-                          </Button>
+                        <Button variant="outline" onClick={(e) => handleEditItemClick(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       )}
                   </div>
                   
@@ -891,4 +883,3 @@ export function OrderSummary() {
     </>
   );
 }
-
