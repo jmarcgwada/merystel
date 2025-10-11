@@ -637,25 +637,11 @@ export function OrderSummary() {
                 {renderOrderItem(selectedItem, true)}
               </div>
               <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-8">
-                      <div className="grid grid-cols-4 gap-2">
-                          <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
-                          <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
-                          <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
-                          <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
-                      </div>
-                    </div>
-                    <div className="col-span-4">
-                      <Button
-                          variant="outline"
-                          className="h-full w-full"
-                          onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
-                      >
-                          <ScanLine className="mr-2 h-4 w-4" />
-                          N° Série
-                      </Button>
-                    </div>
+                  <div className="grid grid-cols-4 gap-2">
+                      <Button variant={mode === 'quantity' ? 'default' : 'outline'} onClick={() => handleModeChange('quantity')}>Qté</Button>
+                      <Button variant={mode === 'discountPercent' ? 'default' : 'outline'} onClick={() => handleModeChange('discountPercent')}>Remise %</Button>
+                      <Button variant={mode === 'discountFixed' ? 'default' : 'outline'} onClick={() => handleModeChange('discountFixed')}>Remise €</Button>
+                      <Button variant={mode === 'note' ? 'default' : 'outline'} onClick={() => handleModeChange('note')}>Note</Button>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -683,15 +669,6 @@ export function OrderSummary() {
                             onFocus={(e) => e.target.select()}
                             className="h-12 flex-1 text-right px-4 text-3xl font-mono bg-background/50"
                         />
-                        {user?.role === 'admin' && (
-                            <Button 
-                                variant="outline" 
-                                className="h-12"
-                                onClick={handleEditItemClick}
-                            >
-                                <Pencil className="h-5 w-5" />
-                            </Button>
-                        )}
                       </>
                     )}
                   </div>
@@ -728,7 +705,23 @@ export function OrderSummary() {
                   )}
 
                   <div className="grid grid-cols-4 gap-2">
-                     <Button className="h-12 text-lg col-span-3" onClick={handleApply}>
+                      <Button
+                          variant="outline"
+                          className="h-12 text-lg"
+                          onClick={() => setSerialNumberItem({ item: selectedItem, quantity: selectedItem.quantity })}
+                      >
+                          <ScanLine />
+                      </Button>
+                      {user?.role === 'admin' && (
+                          <Button 
+                              variant="outline" 
+                              className="h-12 text-lg"
+                              onClick={handleEditItemClick}
+                          >
+                              <Pencil />
+                          </Button>
+                      )}
+                      <Button className="h-12 text-lg col-span-2" onClick={handleApply}>
                         <Check className="mr-2" /> Valider
                       </Button>
                       <Button variant="ghost" className="h-12" onClick={handleCloseKeypad}>
@@ -895,3 +888,4 @@ export function OrderSummary() {
     
 
     
+
