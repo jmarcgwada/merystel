@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +56,7 @@ export default function Header() {
     externalLinkModalEnabled,
     systemDate,
     isForcedMode,
-    setIsForcedMode,
+    setIsForcedMode: setGlobalForcedMode,
     toast,
   } = usePos();
   const { user } = useUser();
@@ -102,10 +103,14 @@ export default function Header() {
     e?.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
-        setIsForcedMode(false);
+        if(user?.isForcedMode) {
+          toast({ title: 'Non autorisé', description: "Le mode forcé est activé pour votre compte et ne peut être déverrouillé que par un administrateur."})
+        } else {
+          setGlobalForcedMode(false);
+          toast({ title: 'Mode forcé désactivé', description: 'Vous pouvez à nouveau naviguer librement.' });
+        }
         setPinDialogOpen(false);
         setPin('');
-        toast({ title: 'Mode forcé désactivé', description: 'Vous pouvez à nouveau naviguer librement.' });
         router.push('/dashboard');
     } else {
       toast({
@@ -126,6 +131,7 @@ export default function Header() {
     setPin(prev => prev.slice(0, -1));
   };
 
+  const isUserInForcedMode = user?.isForcedMode || isForcedMode;
 
   return (
     <>
@@ -169,17 +175,23 @@ export default function Header() {
             )}
           </div>
           
-          {user && (
-            <div className="hidden lg:block text-sm text-muted-foreground capitalize">
-              {isClient ? (
-                  format(systemDate, 'eeee d MMMM yyyy', { locale: fr })
-              ) : (
-                  <Skeleton className="h-5 w-40" />
-              )}
-            </div>
-          )}
+          <nav className="hidden md:flex items-center gap-2">
+            {user && user.accessMode === 'both' && (
+                <>
+                    <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
+                        <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
+                    </Button>
+                     <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
+                        <Link href={user.defaultSalesMode ? `/${user.defaultSalesMode}` : '/pos'} onClick={e => handleNavClick(e, user.defaultSalesMode ? `/${user.defaultSalesMode}` : '/pos')}><ShoppingCart />Caisse</Link>
+                    </Button>
+                    <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
+                        <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
+                    </Button>
+                </>
+            )}
+          </nav>
 
-          <div className="flex items-center justify-end gap-2 pl-4">
+          <div className="flex items-center justify-end gap-2 pl-4 flex-1">
             {user && isKeyboardVisibleInHeader && (
                 <Button 
                   variant="outline"
@@ -222,7 +234,7 @@ export default function Header() {
                       <span>Mon Profil</span>
                     </Link>
                   </DropdownMenuItem>
-                  {isForcedMode && user.role === 'admin' && (
+                  {isUserInForcedMode && user.role === 'admin' && (
                     <>
                       <DropdownMenuSeparator />
                        <DropdownMenuItem onClick={() => setPinDialogOpen(true)}>

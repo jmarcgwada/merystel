@@ -197,4 +197,7 @@ export interface User {
   sessionToken?: string;
   isDisabled?: boolean;
   sessionDuration?: number; // in minutes, 0 for unlimited
+  accessMode?: 'caisse' | 'commercial' | 'both';
+  defaultSalesMode?: 'pos' | 'supermarket' | 'restaurant';
+  isForcedMode?: boolean;
 }

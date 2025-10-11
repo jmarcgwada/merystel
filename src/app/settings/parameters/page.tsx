@@ -70,7 +70,7 @@ export default function ParametersPage() {
             <CardHeader>
             <CardTitle>Mode de vente par défaut</CardTitle>
             <CardDescription>
-                Choisissez l'écran qui s'ouvrira lorsque vous cliquerez sur "Mode Caisse" depuis le tableau de bord.
+                Choisissez l'écran qui s'ouvrira lorsque vous cliquerez sur "Mode Caisse" depuis le tableau de bord (non applicable si un mode de vente est forcé pour un utilisateur).
             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,24 +109,6 @@ export default function ParametersPage() {
                         <Skeleton className="h-24 w-full" />
                     </div>
                 )}
-                 <Separator className="my-6" />
-                 <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                    <Label htmlFor="force-mode" className="text-base flex items-center gap-2"><Lock/>Activer le mode forcé</Label>
-                    <p className="text-sm text-muted-foreground">
-                        Verrouille l'application sur le mode de vente par défaut sélectionné ci-dessus.
-                    </p>
-                    </div>
-                    {isClient ? (
-                        <Switch 
-                            id="force-mode"
-                            checked={isForcedMode}
-                            onCheckedChange={setIsForcedMode}
-                        />
-                    ) : (
-                        <Skeleton className="h-6 w-11" />
-                    )}
-                </div>
             </CardContent>
         </Card>
         <Card>

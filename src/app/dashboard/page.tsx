@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -33,16 +33,6 @@ const hexToRgba = (hex: string, opacity: number) => {
     return `hsla(var(--card), ${opacity / 100})`;
 };
 
-const allQuickLinks = [
-    {
-        href: '/management/items',
-        title: 'Gestion',
-        description: "Gérer articles, catégories, clients, etc.",
-        icon: Package,
-        roles: ['admin', 'manager', 'cashier'],
-    },
-]
-
 export default function DashboardPage() {
     const { user: authUser } = useUser();
     const router = useRouter();
@@ -62,7 +52,7 @@ export default function DashboardPage() {
         showDashboardStats,
         users,
         defaultSalesMode,
-        isForcedMode,
+        isForcedMode: isGlobalForcedMode,
     } = usePos();
 
     const [formattedDate, setFormattedDate] = useState('');
@@ -73,6 +63,9 @@ export default function DashboardPage() {
         setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
     }, []);
 
+    const isForcedMode = authUser?.isForcedMode || isGlobalForcedMode;
+    const userDefaultSalesMode = authUser?.defaultSalesMode || defaultSalesMode;
+
     useEffect(() => {
       if (isMounted && isForcedMode && authUser) {
         const modeMap = {
@@ -80,24 +73,34 @@ export default function DashboardPage() {
           supermarket: '/supermarket',
           restaurant: '/restaurant',
         };
-        router.replace(modeMap[defaultSalesMode]);
+        router.replace(modeMap[userDefaultSalesMode]);
       }
-    }, [isMounted, isForcedMode, defaultSalesMode, router, authUser]);
+    }, [isMounted, isForcedMode, userDefaultSalesMode, router, authUser]);
     
     const todayDateString = format(new Date(), 'yyyy-MM-dd');
     
     const salesModeLink = useMemo(() => {
+        const mode = authUser?.defaultSalesMode || defaultSalesMode;
         const modeMap = {
             pos: { href: '/pos', icon: ShoppingCart, title: 'Mode Caisse', description: 'Accéder au point de vente.' },
             supermarket: { href: '/supermarket', icon: ScanLine, title: 'Mode Supermarché', description: 'Interface rapide pour scanner les articles.' },
             restaurant: { href: '/restaurant', icon: Utensils, title: 'Mode Restaurant', description: 'Gérer les tables et les commandes.' },
         };
-        return modeMap[defaultSalesMode];
-    }, [defaultSalesMode]);
+        return modeMap[mode];
+    }, [defaultSalesMode, authUser]);
 
     const quickLinks = useMemo(() => {
         if (!authUser) return [];
-        return allQuickLinks.filter(link => link.roles.includes(authUser.role));
+        
+        const allLinks = [
+            { href: '/management/items', title: 'Gestion', description: "Gérer articles, catégories, clients, etc.", icon: Package, access: ['admin', 'manager', 'cashier'], accessMode: ['commercial', 'both'] },
+            { href: '/commercial/invoices', title: 'Gestion Commerciale', description: "Gérer les factures, devis, etc.", icon: FileText, access: ['admin', 'manager'], accessMode: ['commercial', 'both'] },
+        ];
+
+        return allLinks.filter(link => 
+            link.access.includes(authUser.role) && 
+            (link.accessMode.includes(authUser.accessMode || 'both'))
+        );
     }, [authUser]);
 
     const relevantSales = useMemo(() => {
@@ -377,34 +380,27 @@ export default function DashboardPage() {
           <div className="lg:col-span-2">
               <h2 className="text-xl font-semibold tracking-tight text-foreground mb-4">Accès Rapide</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
-                      <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
-                              <div>
-                                  <FileText className="h-8 w-8 text-primary mb-2" />
-                                  <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Gestion Commerciale</h3>
-                                  <p className="text-sm text-muted-foreground mt-1">Gérer les factures, devis, etc.</p>
-                              </div>
-                          </div>
-                           <div className="mt-4 flex flex-wrap gap-2">
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/commercial/invoices">Factures</Link>
-                                </Button>
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/commercial/quotes">Devis</Link>
-                                </Button>
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/commercial/delivery-notes">Bons de livraison</Link>
-                                </Button>
-                                <Button variant="secondary" size="sm" disabled>Cdes Client</Button>
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/commercial/supplier-orders">Cdes Fournisseur</Link>
-                                </Button>
-                           </div>
-                      </CardContent>
-                  </Card>
+                   {(authUser?.accessMode === 'commercial' || authUser?.accessMode === 'both') && (
+                        <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <FileText className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Gestion Commerciale</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Gérer les factures, devis, etc.</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                        <Button asChild variant="secondary" size="sm"><Link href="/commercial/invoices">Factures</Link></Button>
+                                        <Button asChild variant="secondary" size="sm"><Link href="/commercial/quotes">Devis</Link></Button>
+                                        <Button asChild variant="secondary" size="sm"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
+                                        <Button asChild variant="secondary" size="sm"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                   )}
                   
-                  {salesModeLink && (
+                  {(authUser?.accessMode === 'caisse' || authUser?.accessMode === 'both') && salesModeLink && (
                       <Link href={salesModeLink.href} className="group">
                           <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
                               <CardContent className="pt-6">
@@ -421,42 +417,42 @@ export default function DashboardPage() {
                       </Link>
                   )}
 
-                   <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
-                        <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <BarChart3 className="h-8 w-8 text-primary mb-2" />
-                                    <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Rapports</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">Analyser les performances et les données.</p>
+                   {(authUser?.role === 'admin' || authUser?.role === 'manager') && (
+                    <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Blocks className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Gestion</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Gérer articles, clients, etc.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/reports">Pièces de vente</Link>
-                                </Button>
-                                <Button asChild variant="secondary" size="sm">
-                                    <Link href="/reports/payments">Paiements</Link>
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                  {quickLinks.map(link => (
-                      <Link href={link.href} key={link.href} className="group">
-                          <Card style={buttonStyle} className={cn("h-full transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
-                              <CardContent className="pt-6">
-                                  <div className="flex items-start justify-between">
-                                      <div>
-                                          <link.icon className="h-8 w-8 text-primary mb-2" />
-                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>{link.title}</h3>
-                                          <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
-                                      </div>
-                                      <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                                  </div>
-                              </CardContent>
-                          </Card>
-                      </Link>
-                  ))}
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <Button asChild variant="secondary" size="sm"><Link href="/management/items">Articles</Link></Button>
+                                    <Button asChild variant="secondary" size="sm"><Link href="/management/categories">Catégories</Link></Button>
+                                    <Button asChild variant="secondary" size="sm"><Link href="/management/customers">Clients</Link></Button>
+                                    <Button asChild variant="secondary" size="sm"><Link href="/management/tables">Tables</Link></Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                   )}
+                   {(authUser?.role === 'admin' || authUser?.role === 'manager') && (
+                        <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <BarChart3 className="h-8 w-8 text-primary mb-2" />
+                                        <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Rapports</h3>
+                                        <p className="text-sm text-muted-foreground mt-1">Analyser les performances.</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <Button asChild variant="secondary" size="sm"><Link href="/reports">Pièces de vente</Link></Button>
+                                    <Button asChild variant="secondary" size="sm"><Link href="/reports/payments">Paiements</Link></Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                   )}
               </div>
           </div>
           <div className="lg:col-span-1">

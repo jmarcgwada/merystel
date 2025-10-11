@@ -13,11 +13,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, ShoppingCart, ScanLine, Utensils, FileText, Blocks } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
@@ -26,12 +28,13 @@ const formSchema = z.object({
   role: z.enum(['admin', 'manager', 'cashier']),
   password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
   sessionDuration: z.coerce.number().min(0, { message: 'La durée doit être positive.' }).optional(),
+  accessMode: z.enum(['caisse', 'commercial', 'both']).default('both'),
+  defaultSalesMode: z.enum(['pos', 'supermarket', 'restaurant']).default('pos'),
+  isForcedMode: z.boolean().default(false),
 }).refine(data => {
-    // This logic is now client-side only, so window is safe to use.
-    if (typeof window === 'undefined') return true; // Pass validation on server
+    if (typeof window === 'undefined') return true;
     const searchParams = new URLSearchParams(window.location.search);
     const isEditMode = Boolean(searchParams.get('id'));
-    // Password is required only if it's not edit mode.
     return isEditMode || (data.password && data.password.length > 0);
 }, {
     message: "Le mot de passe est requis pour un nouvel utilisateur.",
@@ -63,8 +66,13 @@ function UserForm() {
       role: 'cashier',
       password: '',
       sessionDuration: 30,
+      accessMode: 'both',
+      defaultSalesMode: 'pos',
+      isForcedMode: false,
     },
   });
+  
+  const watchedAccessMode = form.watch('accessMode');
 
   useEffect(() => {
     if (isForbidden) {
@@ -80,6 +88,9 @@ function UserForm() {
         email: userToEdit.email,
         role: userToEdit.role,
         sessionDuration: userToEdit.sessionDuration ?? 30,
+        accessMode: userToEdit.accessMode || 'both',
+        defaultSalesMode: userToEdit.defaultSalesMode || 'pos',
+        isForcedMode: userToEdit.isForcedMode || false,
       });
     } else {
       form.reset({
@@ -89,6 +100,9 @@ function UserForm() {
         role: 'cashier',
         password: '',
         sessionDuration: 30,
+        accessMode: 'both',
+        defaultSalesMode: 'pos',
+        isForcedMode: false,
       });
     }
   }, [isEditMode, userToEdit, form]);
@@ -147,117 +161,80 @@ function UserForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-2xl space-y-8">
             <Card>
               <CardHeader>
-                <CardTitle>Détails de l'utilisateur</CardTitle>
+                <CardTitle>Informations principales</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Prénom</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Jean" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nom</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Dupont" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>Prénom</FormLabel> <FormControl> <Input placeholder="Jean" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+                  <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Nom</FormLabel> <FormControl> <Input placeholder="Dupont" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
                 </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adresse e-mail</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {!isEditMode && (
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mot de passe</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                />
-                )}
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem> <FormLabel>Adresse e-mail</FormLabel> <FormControl> <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} /> </FormControl> <FormMessage /> </FormItem> )}/>
+                {!isEditMode && ( <FormField control={form.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>Mot de passe</FormLabel> <FormControl> <Input type="password" placeholder="••••••••" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/> )}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Rôle</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez un rôle" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="admin">Administrateur</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="cashier">Caissier</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="sessionDuration"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Durée de session (minutes)</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez une durée" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="15">15 minutes</SelectItem>
-                                <SelectItem value="30">30 minutes</SelectItem>
-                                <SelectItem value="60">1 heure</SelectItem>
-                                <SelectItem value="120">2 heures</SelectItem>
-                                <SelectItem value="240">4 heures</SelectItem>
-                                <SelectItem value="480">8 heures</SelectItem>
-                                <SelectItem value="0">Illimitée</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                    <FormField control={form.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Rôle</FormLabel> <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez un rôle" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="admin">Administrateur</SelectItem> <SelectItem value="manager">Manager</SelectItem> <SelectItem value="cashier">Caissier</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
+                    <FormField control={form.control} name="sessionDuration" render={({ field }) => ( <FormItem> <FormLabel>Durée de session (minutes)</FormLabel> <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez une durée" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="15">15 minutes</SelectItem> <SelectItem value="30">30 minutes</SelectItem> <SelectItem value="60">1 heure</SelectItem> <SelectItem value="120">2 heures</SelectItem> <SelectItem value="240">4 heures</SelectItem> <SelectItem value="480">8 heures</SelectItem> <SelectItem value="0">Illimitée</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                  </div>
-                {isEditMode && (
-                  <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription>
+                {isEditMode && ( <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription> )}
+              </CardContent>
+            </Card>
+
+             <Card>
+              <CardHeader>
+                <CardTitle>Modes & Accès</CardTitle>
+                <CardDescription>Définissez les droits d'accès et le mode d'affichage par défaut de l'utilisateur.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField control={form.control} name="accessMode" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Mode d'Accès</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="both"><Blocks className="inline-block mr-2"/>Accès Complet</SelectItem>
+                                <SelectItem value="caisse"><ShoppingCart className="inline-block mr-2"/>Caisse Uniquement</SelectItem>
+                                <SelectItem value="commercial"><FileText className="inline-block mr-2"/>Commercial Uniquement</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+                {(watchedAccessMode === 'caisse' || watchedAccessMode === 'both') && (
+                    <>
+                        <Separator />
+                        <div className="space-y-4">
+                            <h4 className="font-medium text-sm">Paramètres du mode Caisse</h4>
+                             <FormField control={form.control} name="defaultSalesMode" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Mode d'exploitation par défaut</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="pos"><ShoppingCart className="inline-block mr-2"/>Point de Vente</SelectItem>
+                                            <SelectItem value="supermarket"><ScanLine className="inline-block mr-2"/>Supermarché</SelectItem>
+                                            <SelectItem value="restaurant"><Utensils className="inline-block mr-2"/>Restaurant</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                             <FormField
+                                control={form.control}
+                                name="isForcedMode"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-base">Mode Caisse Forcé</FormLabel>
+                                            <p className="text-sm text-muted-foreground">
+                                                Si activé, l'utilisateur est redirigé et verrouillé sur son mode de vente par défaut après connexion.
+                                            </p>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    </>
                 )}
               </CardContent>
             </Card>

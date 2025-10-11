@@ -15,7 +15,10 @@
         "role": { "type": "string", "description": "The role of the user within the system.", "enum": ["admin", "manager", "cashier"]},
         "companyId": { "type": "string", "description": "Reference to the Company the user belongs to." },
         "isDisabled": { "type": "boolean", "description": "Whether the user account is disabled." },
-        "sessionDuration": { "type": "number", "description": "Session duration in minutes. 0 for unlimited." }
+        "sessionDuration": { "type": "number", "description": "Session duration in minutes. 0 for unlimited." },
+        "accessMode": { "type": "string", "description": "Determines which part of the application the user can access.", "enum": ["caisse", "commercial", "both"]},
+        "defaultSalesMode": { "type": "string", "description": "The default sales mode for a cashier.", "enum": ["pos", "supermarket", "restaurant"]},
+        "isForcedMode": { "type": "boolean", "description": "If true, the user is locked into their default sales mode." }
       },
       "required": ["id", "firstName", "lastName", "email", "role", "companyId"]
     },
