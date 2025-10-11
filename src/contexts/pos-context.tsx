@@ -2515,6 +2515,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       user,
       toast,
       holdOrder,
+      setIsKeypadOpen,
+      setCurrentSaleId,
+      setSessionInvalidated,
+      setCurrentSaleContext
     ]
   );
 
