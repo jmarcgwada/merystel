@@ -14,13 +14,14 @@ import { CheckoutModal } from './checkout-modal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import type { OrderItem, Sale } from '@/lib/types';
+import type { OrderItem, Sale, Item } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
+import { EditItemDialog } from '@/app/commercial/components/edit-item-dialog';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -114,6 +115,9 @@ export function OrderSummary() {
     setCameFromRestaurant,
     sales,
     showNavConfirm,
+    user,
+    items: allItems,
+    updateOrderItem,
   } = usePos();
   
   const { toast } = useToast();
@@ -132,6 +136,10 @@ export function OrderSummary() {
   const itemRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   const [isClient, setIsClient] = useState(false);
+
+  // State for EditItemDialog
+  const [isEditItemOpen, setIsEditItemOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -508,13 +516,14 @@ export function OrderSummary() {
         }
     };
     
-    const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
+    const handleEditItemClick = (e: React.MouseEvent, item: OrderItem) => {
         e.stopPropagation(); // Prevent item selection
-        const url = `/management/items/form?id=${itemId}`;
-        if (order.length > 0) {
-            showNavConfirm(url);
+        const fullItem = allItems.find(i => i.id === item.itemId);
+        if (fullItem) {
+            setItemToEdit(fullItem);
+            setIsEditItemOpen(true);
         } else {
-            router.push(url);
+            toast({ variant: 'destructive', title: 'Erreur', description: "Détails de l'article introuvables." });
         }
     }
 
@@ -546,12 +555,12 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-1">
                 <p className="font-semibold pr-1">{item.name}</p>
-                 {!readOnlyOrder && (
+                 {!readOnlyOrder && user?.role === 'admin' && (
                      <Button 
                       variant="ghost" 
                       size="icon" 
                       className="h-6 w-6 text-muted-foreground opacity-50 group-hover:opacity-100" 
-                      onClick={(e) => handleEditItemClick(e, item.itemId)}
+                      onClick={(e) => handleEditItemClick(e, item)}
                   >
                       <Pencil className="h-3 w-3" />
                   </Button>
@@ -864,6 +873,20 @@ export function OrderSummary() {
         onClose={() => setCheckoutOpen(false)}
         totalAmount={orderTotal + orderTax}
       />
+      {isEditItemOpen && itemToEdit && (
+        <EditItemDialog
+            item={itemToEdit}
+            isOpen={isEditItemOpen}
+            onClose={() => {
+                setIsEditItemOpen(false);
+                setItemToEdit(null);
+            }}
+            onItemUpdated={(updatedItem) => {
+                updateOrderItem(updatedItem);
+            }}
+        />
+    )}
     </>
   );
 }
+

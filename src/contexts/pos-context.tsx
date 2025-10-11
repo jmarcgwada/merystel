@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -93,6 +94,7 @@ interface PosContextType {
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
   updateItemNote: (itemId: OrderItem['id'], note: string) => void;
+  updateOrderItem: (item: Item) => void;
   applyDiscount: (
     itemId: OrderItem['id'],
     value: number,
@@ -1146,6 +1148,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Note ajoutée à l\'article.' });
   }, [toast]);
 
+  const updateOrderItem = useCallback((updatedItem: Item) => {
+    setOrder(currentOrder => 
+      currentOrder.map(orderItem => 
+        orderItem.itemId === updatedItem.id 
+          ? { 
+              ...orderItem, 
+              name: updatedItem.name, 
+              price: updatedItem.price, 
+              description: updatedItem.description, 
+              description2: updatedItem.description2 
+            }
+          : orderItem
+      )
+    );
+  }, []);
+
   const applyDiscount = useCallback(
     (
       itemId: OrderItem['id'],
@@ -2147,6 +2165,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateItemQuantityInOrder,
       updateQuantityFromKeypad,
       updateItemNote,
+      updateOrderItem,
       applyDiscount,
       clearOrder,
       orderTotal,
@@ -2331,6 +2350,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       updateItemQuantityInOrder,
       updateQuantityFromKeypad,
       updateItemNote,
+      updateOrderItem,
       applyDiscount,
       clearOrder,
       orderTotal,
