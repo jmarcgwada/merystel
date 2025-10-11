@@ -558,7 +558,16 @@ export function OrderSummary() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-1">
                 <p className="font-semibold pr-1">{item.name}</p>
-                
+                {!readOnlyOrder && user?.role === 'admin' && (
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-muted-foreground opacity-70 group-hover:opacity-100"
+                        onClick={(e) => handleEditItemClick(e, item)}
+                    >
+                        <Pencil className="h-3 w-3" />
+                    </Button>
+                )}
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
