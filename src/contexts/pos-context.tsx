@@ -564,13 +564,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
        if (!ref) {
         return;
       }
-      try {
-        await setDoc(ref, cleanDataForFirebase(data), { merge: true });
-        if(toastTitle) toast({ title: toastTitle });
-      } catch (error) {
-        console.error(`Error updating ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: 'Erreur de mise à jour' });
-      }
+      setDoc(ref, cleanDataForFirebase(data), { merge: true })
+        .then(() => {
+          if (toastTitle) toast({ title: toastTitle });
+        })
+        .catch(error => {
+          console.error(`Error updating ${collectionName}:`, error);
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: ref.path,
+            operation: 'update',
+            requestResourceData: data,
+          }));
+        });
     },
     [getDocRef, toast]
   );
@@ -1709,11 +1714,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           isForcedMode: userData.isForcedMode,
         };
 
-        await setDoc(doc(firestore, 'users', authUser.uid), userDocData);
-
-        toast({
-            title: 'Utilisateur créé avec succès',
-        });
+        const userDocRef = doc(firestore, 'users', authUser.uid);
+        
+        setDoc(userDocRef, userDocData)
+          .then(() => {
+              toast({ title: 'Utilisateur créé avec succès' });
+          })
+          .catch(error => {
+              console.error("Error setting user document:", error);
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: userDocRef.path,
+                  operation: 'create',
+                  requestResourceData: userDocData
+              }));
+          });
 
       } catch (error: any) {
         console.error('Error creating user:', error);
@@ -1734,10 +1748,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = useCallback(
     (userData: User) => {
-      const {id, ...data} = userData;
-      updateEntity('users', id, data, 'Utilisateur mis à jour', true)
+      const { id, ...data } = userData;
+      const userRef = doc(firestore, 'users', id);
+      updateDoc(userRef, cleanDataForFirebase(data))
+          .then(() => {
+              toast({ title: 'Utilisateur mis à jour' });
+          })
+          .catch(error => {
+              console.error("Error updating user:", error);
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: userRef.path,
+                  operation: 'update',
+                  requestResourceData: data
+              }));
+          });
     },
-    [updateEntity]
+    [firestore, toast]
   );
 
   const deleteUser = useCallback(
@@ -1783,7 +1809,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const validateSession = useCallback((userId: string, token: string) => {
         if (!users) {
-            return false; // Users not loaded yet, can't validate.
+            return false;
         }
         const user = users.find(u => u.id === userId);
         return user?.sessionToken === token;
