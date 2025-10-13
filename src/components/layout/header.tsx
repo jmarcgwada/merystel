@@ -58,14 +58,26 @@ export default function Header() {
     defaultSalesMode,
     externalLinkModalEnabled,
     isLoading: isPosLoading,
+    isHydrated,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
 
+  const [salesModeLink, setSalesModeLink] = useState('/pos');
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   
+  useEffect(() => {
+    if (isHydrated) {
+      switch (defaultSalesMode) {
+        case 'supermarket': setSalesModeLink('/supermarket'); break;
+        case 'restaurant': setSalesModeLink('/restaurant'); break;
+        case 'pos': default: setSalesModeLink('/pos'); break;
+      }
+    }
+  }, [isHydrated, defaultSalesMode]);
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
     if (isSalesPage && order.length > 0) {
@@ -87,16 +99,6 @@ export default function Header() {
 
     return `${monthStr}${dayStr}${difference}`;
   };
-
-  const salesModeLink = useMemo(() => {
-    switch (defaultSalesMode) {
-      case 'supermarket': return '/supermarket';
-      case 'restaurant': return '/restaurant';
-      case 'pos':
-      default:
-        return '/pos';
-    }
-  }, [defaultSalesMode]);
 
   const handlePinSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -127,6 +129,23 @@ export default function Header() {
   };
 
   const isUserInForcedMode = isForcedMode;
+
+  const NavButton = ({ href, currentPath, children }: { href: string; currentPath: string; children: React.ReactNode; }) => {
+    if (!isHydrated) {
+      return (
+        <Button variant="ghost" disabled>
+          {children}
+        </Button>
+      );
+    }
+    return (
+      <Button asChild variant={currentPath.startsWith(href) ? 'default' : 'ghost'}>
+        <Link href={href} onClick={(e) => handleNavClick(e, href)}>
+          {children}
+        </Link>
+      </Button>
+    );
+  };
 
   return (
     <>
@@ -159,19 +178,15 @@ export default function Header() {
           </div>
           
           <nav className="hidden md:flex items-center gap-2">
-              <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
-                  <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
-              </Button>
-              <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                {isPosLoading ? (
-                  <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
-                ) : (
-                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
-                )}
-              </Button>
-              <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
-                  <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
-              </Button>
+              <NavButton href="/commercial" currentPath={pathname}>
+                <FileText />Commercial
+              </NavButton>
+              <NavButton href={salesModeLink} currentPath={pathname}>
+                 <ShoppingCart />Caisse
+              </NavButton>
+              <NavButton href="/management/items" currentPath={pathname}>
+                <Blocks />Gestion
+              </NavButton>
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
