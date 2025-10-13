@@ -1,14 +1,8 @@
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Zenith POS',
-  description: 'Système de point de vente moderne',
-};
-
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -79,6 +73,7 @@ function AutoAuth({ children }: { children: React.ReactNode }) {
                 firstName: 'Super',
                 lastName: 'Admin',
                 email: superAdminEmail,
+                role: 'admin',
               }, superAdminPassword);
               
               // Now sign in
@@ -117,6 +112,8 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning className="h-full">
       <head>
+        <title>Zenith POS</title>
+        <meta name="description" content="Système de point de vente moderne" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
