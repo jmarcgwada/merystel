@@ -418,7 +418,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => (user && user.role === 'admin') ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
   const { data: usersData, isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const users = useMemo(() => {
@@ -439,7 +439,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
-  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
+  const categoriesCollectionRef = useMemoFirebase(() => !userLoading ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, userLoading]);
   const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
   const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
@@ -481,7 +481,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const vatRatesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user]);
   const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
 
-  const heldOrdersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user]);
+  const heldOrdersCollectionRef = useMemoFirebase(() => !userLoading ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, userLoading]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
 
   const companyDocRef = useMemoFirebase(() => user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user]);
