@@ -633,23 +633,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       ];
       
       const defaultCustomers = [
-        { name: 'Client au comptoir', isDefault: true },
+        { name: 'Client au comptoir', isDefault: true, id: 'C-WALKIN' },
       ];
       
-      const defaultMarginPercentage = 30;
-
-      const defaultItems = [
-          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO001' },
-          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO002' },
-          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO004' },
-          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO006' },
-      ];
-
-      const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
-      ];
-
       // --- Batch Write ---
       defaultCategories.forEach(data => {
           const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
@@ -664,24 +650,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           batch.set(ref, data);
       });
       defaultCustomers.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
-          batch.set(ref, { ...data, id: ref.id });
-      });
-      defaultItems.forEach(item => {
-          const vatRate = defaultVatRates.find(v => v.id === item.vatId)?.rate || 0;
-          const priceHT = item.price / (1 + vatRate / 100);
-          const purchasePrice = priceHT / (1 + defaultMarginPercentage / 100);
-
-          const data = {
-              ...item,
-              purchasePrice: purchasePrice,
-              marginPercentage: defaultMarginPercentage
-          };
-          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
-          batch.set(ref, data);
-      });
-      defaultTables.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
+          const ref = doc(firestore, 'companies', companyId, 'customers', data.id);
           batch.set(ref, data);
       });
       
@@ -694,14 +663,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [firestore, companyId, toast]);
 
   useEffect(() => {
-    // Automatically seed data on first launch for admin
-    if (
-      !isLoading &&
-      user &&
-      categories.length === 0 &&
-      vatRates.length === 0 &&
-      paymentMethods.length === 0
-    ) {
+    // Automatically seed data on first launch for any authenticated user
+    const shouldSeed = !isLoading && user && (categories.length === 0 || vatRates.length === 0 || paymentMethods.length === 0);
+    
+    if (shouldSeed) {
       seedInitialData();
     }
   }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
@@ -2554,5 +2519,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
