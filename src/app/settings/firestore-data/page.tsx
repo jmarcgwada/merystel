@@ -5,8 +5,8 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck } from 'lucide-react';
-import { useUser } from '@/contexts/user-context';
-import { useAppData } from '@/contexts/app-data-context';
+import { useUser } from '@/firebase/auth/use-user';
+import { usePos } from '@/contexts/pos-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,8 +46,8 @@ export default function FirestoreDataPage() {
       exportConfiguration, 
       importConfiguration, 
       importDemoData, 
-      deleteAllSales 
-  } = useAppData();
+      deleteAllSales,
+  } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
@@ -207,40 +207,38 @@ export default function FirestoreDataPage() {
         <div className="space-y-8 mt-8">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Initialiser avec les données de démo</CardTitle>
-                                <CardDescription>
-                                    Peuple l'application avec un jeu de données complet (articles, clients, etc.) pour des tests.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Importer les données de démo
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les données de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera des articles, catégories, clients et fournisseurs à vos données actuelles. Elle est recommandée pour une application vide.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={importDemoData}>
-                                                Confirmer et importer
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                    </div>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Données de démonstration</CardTitle>
+                            <CardDescription>
+                                Peuplez l'application avec un jeu de données complet (articles, clients, etc.) pour des tests.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Importer les données de démo
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Importer les données de démo ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action ajoutera des articles, catégories, clients et fournisseurs à vos données actuelles. Elle est recommandée pour une application vide.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={importDemoData}>
+                                            Confirmer et importer
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </CardContent>
+                    </Card>
 
                     <Card className="mt-4">
                         <CardHeader>
