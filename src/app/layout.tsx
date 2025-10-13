@@ -1,7 +1,14 @@
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Zenith POS',
+  description: 'Système de point de vente moderne',
+};
+
+'use client';
 
 import * as React from 'react';
-import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -12,14 +19,11 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 import { SessionManager } from '@/components/session-manager';
-import { PosProvider } from '@/contexts/pos-context';
+import { PosProvider, usePos } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
-
-
-export const metadata: Metadata = {
-  title: 'Zenith POS',
-  description: 'Système de point de vente moderne',
-};
+import { useUser } from '@/firebase/auth/use-user';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 function AppLoading() {
   return (
@@ -44,6 +48,67 @@ function AppLoading() {
   )
 }
 
+function AutoAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useUser();
+  const auth = useAuth();
+  const { addUser } = usePos();
+  const [isAutoLoginDone, setIsAutoLoginDone] = useState(false);
+  const autoLoginAttempted = React.useRef(false);
+
+  const superAdminEmail = 'superadmin@zenith.app';
+  const superAdminPassword = 'password';
+
+  React.useEffect(() => {
+    if (loading || !auth || autoLoginAttempted.current) {
+      return;
+    }
+    
+    autoLoginAttempted.current = true;
+
+    if (!user) {
+      const autoLogin = async () => {
+        try {
+          // Attempt to sign in first
+          await signInWithEmailAndPassword(auth, superAdminEmail, superAdminPassword);
+          setIsAutoLoginDone(true);
+        } catch (error: any) {
+          // If user does not exist, create it
+          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            try {
+              await addUser({
+                firstName: 'Super',
+                lastName: 'Admin',
+                email: superAdminEmail,
+              }, superAdminPassword);
+              
+              // Now sign in
+              await signInWithEmailAndPassword(auth, superAdminEmail, superAdminPassword);
+              setIsAutoLoginDone(true);
+            } catch (creationError) {
+              console.error("Failed to create and sign in super admin:", creationError);
+              setIsAutoLoginDone(true); // Stop trying
+            }
+          } else {
+            console.error("Failed to sign in super admin:", error);
+            setIsAutoLoginDone(true); // Stop trying
+          }
+        }
+      };
+      
+      autoLogin();
+    } else {
+        setIsAutoLoginDone(true);
+    }
+  }, [user, loading, auth, addUser]);
+
+  if (loading || !isAutoLoginDone) {
+    return <AppLoading />;
+  }
+
+  return <>{children}</>;
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -62,6 +127,7 @@ export default function RootLayout({
       <body className="font-body antialiased flex flex-col h-screen overflow-hidden">
         <FirebaseClientProvider>
           <PosProvider>
+            <AutoAuth>
               <KeyboardProvider>
                 <SessionManager>
                   <React.Suspense fallback={<AppLoading/>}>
@@ -75,6 +141,7 @@ export default function RootLayout({
                   </React.Suspense>
                 </SessionManager>
               </KeyboardProvider>
+            </AutoAuth>
           </PosProvider>
         </FirebaseClientProvider>
       </body>
