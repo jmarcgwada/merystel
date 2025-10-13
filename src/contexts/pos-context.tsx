@@ -664,7 +664,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Automatically seed data on first launch for any authenticated user
-    const shouldSeed = !isLoading && user && (categories.length === 0 || vatRates.length === 0 || paymentMethods.length === 0);
+    const shouldSeed = !isLoading && user && (!categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0);
     
     if (shouldSeed) {
       seedInitialData();
