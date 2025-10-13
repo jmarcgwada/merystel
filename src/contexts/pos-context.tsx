@@ -25,14 +25,13 @@ import type {
   Supplier,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, startOfDay, endOfDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
+import type { Timestamp } from 'firebase/firestore';
 
-// The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
 
 const TAKEAWAY_TABLE: Table = {
@@ -76,8 +75,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -118,7 +117,7 @@ interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -281,57 +280,11 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
 }
 
-const initializeDemoData = () => {
-  const demoVatRates = [
-    { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-    { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-    { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-  ];
-
-  const demoPaymentMethods = [
-    { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
-    { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
-    { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
-    { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
-  ];
-
-  const demoCategories: Category[] = [];
-  const demoItems: Item[] = [];
-
-  demoData.categories.forEach((categoryData, catIndex) => {
-      const catId = `cat_${catIndex}`;
-      demoCategories.push({
-          id: catId,
-          name: categoryData.name,
-          image: `https://picsum.photos/seed/${catId}/200/150`,
-          color: '#e2e8f0'
-      });
-
-      categoryData.items.forEach((itemData, itemIndex) => {
-          const itemId = `${catId}_item_${itemIndex}`;
-          demoItems.push({
-              id: itemId,
-              name: itemData.name,
-              price: itemData.price,
-              description: itemData.description,
-              categoryId: catId,
-              vatId: 'vat_20', // Default VAT
-              image: `https://picsum.photos/seed/${itemId}/200/150`,
-              barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
-          });
-      });
-  });
-
-  return { demoVatRates, demoPaymentMethods, demoCategories, demoItems };
-};
-
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const { toast: shadcnToast } = useShadcnToast();
-
-  const { demoVatRates, demoPaymentMethods, demoCategories, demoItems } = useMemo(initializeDemoData, []);
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -391,17 +344,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
   // Data states, now managed locally
-  const [items, setItems] = useState<Item[]>(demoItems);
-  const [categories, setCategories] = useState<Category[]>(demoCategories);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [tablesData, setTablesData] = useState<Table[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(demoPaymentMethods);
-  const [vatRates, setVatRates] = useState<VatRate[]>(demoVatRates);
-  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
-  const [companyInfo, setCompanyInfoState] = useState<CompanyInfo | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading;
   // #endregion
@@ -427,17 +380,171 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
-  // #region Mock Data Management
-  const seedInitialData = useCallback(() => {}, []);
-  const importDemoData = useCallback(() => {}, []);
-  const resetAllData = useCallback(() => {}, []);
+  // #region Mock/Local Data Management
+    const seedInitialData = useCallback(() => {
+        const hasData = items.length > 0 || categories.length > 0 || vatRates.length > 0;
+        if (hasData) {
+            toast({ title: 'Données existantes', description: 'Initialisation annulée car des données existent déjà.' });
+            return;
+        }
+
+        const defaultVatRates = [
+            { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+            { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+            { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+        ];
+        setVatRates(defaultVatRates);
+
+        const defaultPaymentMethods = [
+            { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
+            { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
+            { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
+            { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
+        ];
+        setPaymentMethods(defaultPaymentMethods);
+        
+        toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
+    }, [items, categories, vatRates, setVatRates, setPaymentMethods, toast]);
+    
+    useEffect(() => {
+        const isSeeded = localStorage.getItem('data.seeded');
+        if (!isSeeded) {
+            seedInitialData();
+            localStorage.setItem('data.seeded', 'true');
+        }
+    }, [seedInitialData]);
+
+
+  const importDemoData = useCallback(() => {
+        const newCategories: Category[] = [];
+        const newItems: Item[] = [];
+        const categoryIdMap: { [key: string]: string } = {};
+        const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
+        
+        if (!defaultVatId) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
+            return;
+        }
+
+        demoData.categories.forEach((categoryData) => {
+            const catId = uuidv4();
+            newCategories.push({
+                id: catId,
+                name: categoryData.name,
+                image: `https://picsum.photos/seed/${catId}/200/150`,
+                color: '#e2e8f0'
+            });
+            categoryIdMap[categoryData.name] = catId;
+
+            categoryData.items.forEach((itemData) => {
+                const itemId = uuidv4();
+                newItems.push({
+                    id: itemId,
+                    name: itemData.name,
+                    price: itemData.price,
+                    purchasePrice: itemData.price * 0.6,
+                    description: itemData.description,
+                    categoryId: catId,
+                    vatId: defaultVatId,
+                    image: `https://picsum.photos/seed/${itemId}/200/150`,
+                    barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+                });
+            });
+        });
+
+        setCategories(prev => [...prev, ...newCategories]);
+        setItems(prev => [...prev, ...newItems]);
+        toast({ title: 'Données de démo importées !', description: `${newItems.length} articles et ${newCategories.length} catégories ajoutés.` });
+    }, [vatRates, toast]);
+    
+    const importDemoCustomers = useCallback(() => {
+        const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
+            id: `C${uuidv4().substring(0,6)}`,
+            name: `Client Démo ${i + 1}`,
+            email: `client${i+1}@demo.com`
+        }));
+        setCustomers(prev => [...prev, ...demoCustomers]);
+        toast({ title: 'Clients de démo importés !' });
+    }, [toast]);
+    
+     const importDemoSuppliers = useCallback(() => {
+        const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
+            id: `S-${uuidv4().substring(0,6)}`,
+            name: `Fournisseur Démo ${i + 1}`,
+            email: `fournisseur${i+1}@demo.com`
+        }));
+        setSuppliers(prev => [...prev, ...demoSuppliers]);
+        toast({ title: 'Fournisseurs de démo importés !' });
+    }, [toast]);
+
+  const resetAllData = useCallback(() => {
+    setItems([]);
+    setCategories([]);
+    setCustomers([]);
+    setSuppliers([]);
+    setTablesData([]);
+    setSales([]);
+    setHeldOrders([]);
+    setPaymentMethods([]);
+    setVatRates([]);
+    setCompanyInfo(null);
+    localStorage.removeItem('data.seeded');
+    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
+  }, [toast]);
+  
   const deleteAllSales = useCallback(async () => {
     setSales([]);
-    toast({ title: 'Ventes supprimées (localement)' });
+    toast({ title: 'Ventes supprimées' });
   }, [toast]);
+  
+    const exportConfiguration = useCallback(() => {
+        const config = {
+            items,
+            categories,
+            customers,
+            suppliers,
+            tables: tablesData,
+            paymentMethods,
+            vatRates,
+            companyInfo,
+        };
+        const jsonString = JSON.stringify(config, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: 'Exportation réussie' });
+    }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, toast]);
+
+    const importConfiguration = useCallback(async (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const config = JSON.parse(event.target?.result as string);
+                if (config.items) setItems(config.items);
+                if (config.categories) setCategories(config.categories);
+                if (config.customers) setCustomers(config.customers);
+                if (config.suppliers) setSuppliers(config.suppliers);
+                if (config.tables) setTablesData(config.tables);
+                if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
+                if (config.vatRates) setVatRates(config.vatRates);
+                if (config.companyInfo) setCompanyInfo(config.companyInfo);
+                toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+            }
+        };
+        reader.readAsText(file);
+    }, [toast]);
+
   // #endregion
 
-  // #region Order Management (all local now)
+  // #region Order Management
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -590,7 +697,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          // Pass the existing order item to preserve serials
           setSerialNumberItem({ item: itemToUpdate, quantity });
         }
         return;
@@ -695,76 +801,285 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [order, readOnlyOrder, vatRates]);
   // #endregion
 
-  // #region Mock Implementations of DB-dependent functions
-  const holdOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée', description: 'La mise en attente nécessite une base de données.' }), [toast]);
-  const recallOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const deleteHeldOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const setSelectedTableById = useCallback((tableId: string | null) => {
+  // #region Table & Held Order Management (Local)
+    const holdOrder = useCallback(() => {
+        if (order.length === 0) return;
+        const newHeldOrder: HeldOrder = {
+            id: uuidv4(),
+            date: new Date(),
+            items: order,
+            total: orderTotal + orderTax,
+        };
+        setHeldOrders(prev => [...(prev || []), newHeldOrder]);
+        clearOrder();
+        toast({ title: 'Commande mise en attente' });
+    }, [order, orderTotal, orderTax, setHeldOrders, clearOrder, toast]);
+
+    const recallOrder = useCallback((orderId: string) => {
+        const orderToRecall = heldOrders?.find(o => o.id === orderId);
+        if (orderToRecall) {
+            setOrder(orderToRecall.items);
+            setCurrentSaleId(orderToRecall.id);
+            setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
+            toast({ title: 'Commande rappelée' });
+        }
+    }, [heldOrders, setHeldOrders, toast]);
+
+    const deleteHeldOrder = useCallback((orderId: string) => {
+        setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
+        toast({ title: 'Ticket en attente supprimé' });
+    }, [setHeldOrders, toast]);
+
+    const setSelectedTableById = useCallback((tableId: string | null) => {
       if (!tableId) {
-          clearOrder();
-          return;
-      }
-      if (tableId === 'takeaway') {
-          setCameFromRestaurant(true);
-          router.push('/pos');
-          return;
+        setSelectedTable(null);
+        if (cameFromRestaurant) clearOrder();
+        return;
       }
       const table = tables.find(t => t.id === tableId);
-      if(table) {
+      if (table) {
         setSelectedTable(table);
-        setOrder(table.order);
-        router.push(`/pos?tableId=${tableId}`);
+        setOrder(table.order || []);
       }
-  }, [tables, clearOrder, router, setCameFromRestaurant]);
-  const updateTableOrder = useCallback(() => {}, []);
-  const saveTableOrderAndExit = useCallback(() => router.push('/restaurant'), [router]);
-  const promoteTableToTicket = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const forceFreeTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const addTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const updateTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const deleteTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const recordSale = useCallback(async (): Promise<Sale | null> => null, []);
-  const recordCommercialDocument = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+    }, [tables, cameFromRestaurant, clearOrder]);
 
-  const addUser = useCallback(async () => {}, []);
-  const updateUser = useCallback(() => {}, []);
-  const deleteUser = useCallback(() => {}, []);
-  const sendPasswordResetEmailForUser = useCallback(() => {}, []);
-  const findUserByEmail = useCallback(() => undefined, []);
-  const handleSignOut = useCallback(async () => {}, []);
-  const validateSession = useCallback(() => false, []);
-  const forceSignOut = useCallback(() => {}, []);
-  const forceSignOutUser = useCallback(() => {}, []);
-  const addCategory = useCallback(async () => null, []);
-  const updateCategory = useCallback(() => {}, []);
-  const deleteCategory = useCallback(() => {}, []);
-  const toggleCategoryFavorite = useCallback(() => {}, []);
-  const getCategoryColor = useCallback(() => undefined, []);
-  const addItem = useCallback(async () => null, []);
-  const updateItem = useCallback(() => {}, []);
-  const deleteItem = useCallback(() => {}, []);
-  const toggleItemFavorite = useCallback(() => {}, []);
-  const toggleFavoriteForList = useCallback(() => {}, []);
-  const addCustomer = useCallback(async () => null, []);
-  const updateCustomer = useCallback(() => {}, []);
-  const deleteCustomer = useCallback(() => {}, []);
-  const setDefaultCustomer = useCallback(() => {}, []);
-  const addSupplier = useCallback(async () => null, []);
-  const updateSupplier = useCallback(() => {}, []);
-  const deleteSupplier = useCallback(() => {}, []);
-  const addPaymentMethod = useCallback(() => {}, []);
-  const updatePaymentMethod = useCallback(() => {}, []);
-  const deletePaymentMethod = useCallback(() => {}, []);
-  const addVatRate = useCallback(() => {}, []);
-  const updateVatRate = useCallback(() => {}, []);
-  const deleteVatRate = useCallback(() => {}, []);
-  const setCompanyInfo = useCallback(() => {}, []);
-  const exportConfiguration = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
-  const importConfiguration = useCallback(async () => {}, []);
-  const importDemoCustomers = useCallback(async () => {}, []);
-  const importDemoSuppliers = useCallback(async () => {}, []);
-  const loadTicketForViewing = useCallback(() => {}, []);
-  const loadSaleForEditing = useCallback(() => {}, []);
+    const updateTableOrder = useCallback((tableId: string, order: OrderItem[]) => {
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order, status: order.length > 0 ? 'occupied' : 'available'} : t));
+    }, [setTablesData]);
+
+    const saveTableOrderAndExit = useCallback((tableId: string, order: OrderItem[]) => {
+      updateTableOrder(tableId, order);
+      router.push('/restaurant');
+      toast({ title: 'Table sauvegardée' });
+      clearOrder();
+    }, [updateTableOrder, router, clearOrder, toast]);
+
+    const promoteTableToTicket = useCallback((tableId: string, orderData: OrderItem[]) => {
+      const table = tables.find(t => t.id === tableId);
+      if (!table) return;
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'paying'} : t));
+      setCurrentSaleId(`table-${tableId}`);
+      setCurrentSaleContext({ tableId: table.id, tableName: table.name, isTableSale: true });
+      setOrder(orderData);
+    }, [tables, setTablesData, setCurrentSaleId, setCurrentSaleContext, setOrder]);
+    
+    const forceFreeTable = useCallback((tableId: string) => {
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: []} : t));
+      toast({ title: 'Table libérée' });
+    }, [setTablesData, toast]);
+
+    const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
+      const newTable: Table = {
+        ...tableData,
+        id: uuidv4(),
+        number: (tablesData.length > 0 ? Math.max(...tablesData.map(t => t.number)) : 0) + 1,
+        status: 'available',
+        order: [],
+      };
+      setTablesData(prev => [...prev, newTable]);
+      toast({ title: 'Table créée' });
+    }, [tablesData, setTablesData, toast]);
+
+    const updateTable = useCallback((table: Table) => {
+      setTablesData(prev => prev.map(t => t.id === table.id ? table : t));
+      toast({ title: 'Table modifiée' });
+    }, [setTablesData, toast]);
+
+    const deleteTable = useCallback((tableId: string) => {
+      setTablesData(prev => prev.filter(t => t.id !== tableId));
+      toast({ title: 'Table supprimée' });
+    }, [setTablesData, toast]);
+  // #endregion
+
+  // #region Sales
+    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+        const today = new Date();
+        
+        let finalSale: Sale;
+
+        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+            const existingSale = sales.find(s => s.id === saleIdToUpdate);
+            if (!existingSale) return null;
+            finalSale = {
+                ...existingSale,
+                ...saleData,
+                modifiedAt: today,
+            };
+            setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+        } else {
+            const dayMonth = format(today, 'ddMM');
+            const todaysSalesCount = sales.filter(s => new Date(s.date as Date).toDateString() === today.toDateString()).length;
+            const shortUuid = uuidv4().substring(0, 4).toUpperCase();
+            const ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+            
+            finalSale = {
+                id: uuidv4(),
+                date: today,
+                ticketNumber,
+                userId: user?.id,
+                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                ...saleData,
+            };
+            setSales(prev => [finalSale, ...prev]);
+        }
+        
+        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+            setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: []} : t));
+        }
+        
+        if (currentSaleId && !currentSaleId.startsWith('table-')) {
+            setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
+        }
+
+        return finalSale;
+    }, [sales, setSales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders]);
+    
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
+        const today = new Date();
+        const prefix = type === 'quote' ? 'Devis' : type === 'delivery_note' ? 'BL' : 'CF';
+        
+        const count = sales.filter(s => s.documentType === type).length;
+        const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+
+        let finalDoc: Sale;
+
+        if (docIdToUpdate) {
+            const existingDoc = sales.find(s => s.id === docIdToUpdate);
+            if (!existingDoc) return;
+            finalDoc = {
+                ...existingDoc,
+                ...docData,
+                modifiedAt: today,
+            };
+            setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
+        } else {
+             finalDoc = {
+                id: uuidv4(),
+                date: today,
+                ticketNumber: number,
+                documentType: type,
+                userId: user?.id,
+                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                ...docData,
+            };
+            setSales(prev => [finalDoc, ...prev]);
+        }
+        
+        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+        clearOrder();
+
+        const reportPath = type === 'invoice' ? '/reports?filter=Fact-' 
+                        : type === 'quote' ? '/reports?filter=Devis-'
+                        : type === 'delivery_note' ? '/reports?filter=BL-'
+                        : '/reports';
+        router.push(reportPath);
+    }, [sales, setSales, user, clearOrder, toast, router]);
+
+
+  // #endregion
+
+  // #region Entity Management (Local)
+    const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const findUserByEmail = useCallback(() => undefined, []);
+    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
+    const validateSession = useCallback(() => true, []);
+    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
+    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+
+    const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
+        const newCategory = { ...category, id: uuidv4() };
+        setCategories(prev => [...prev, newCategory]);
+        toast({ title: 'Catégorie ajoutée' });
+        return newCategory;
+    }, [setCategories, toast]);
+    const updateCategory = useCallback((category: Category) => {
+        setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+        toast({ title: 'Catégorie modifiée' });
+    }, [setCategories, toast]);
+    const deleteCategory = useCallback((id: string) => {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        setItems(prev => prev.filter(i => i.categoryId !== id));
+        toast({ title: 'Catégorie supprimée' });
+    }, [setCategories, setItems, toast]);
+    const toggleCategoryFavorite = useCallback((id: string) => {
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
+    }, [setCategories]);
+    
+    const getCategoryColor = useCallback((categoryId: string) => {
+      return categories.find(c => c.id === categoryId)?.color;
+    }, [categories]);
+
+    const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
+        const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13) };
+        setItems(prev => [newItem, ...prev]);
+        toast({ title: 'Article créé' });
+        return newItem;
+    }, [setItems, toast]);
+    const updateItem = useCallback((item: Item) => {
+        setItems(prev => prev.map(i => i.id === item.id ? item : i));
+        toast({ title: 'Article modifié' });
+    }, [setItems, toast]);
+    const deleteItem = useCallback((id: string) => {
+        setItems(prev => prev.filter(i => i.id !== id));
+        toast({ title: 'Article supprimé' });
+    }, [setItems, toast]);
+    const toggleItemFavorite = useCallback((id: string) => {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
+    }, [setItems]);
+    const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
+        setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
+    }, [setItems]);
+
+    const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'> & {id: string}) => {
+        const newCustomer = { ...customer, isDefault: customers.length === 0 };
+        setCustomers(prev => [...prev, newCustomer]);
+        return newCustomer;
+    }, [customers.length, setCustomers]);
+    const updateCustomer = useCallback((customer: Customer) => {
+        setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
+    }, [setCustomers]);
+    const deleteCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.filter(c => c.id !== id));
+    }, [setCustomers]);
+    const setDefaultCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
+    }, [setCustomers]);
+
+    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'>) => {
+        const newSupplier = { ...supplier, id: uuidv4() };
+        setSuppliers(prev => [...prev, newSupplier]);
+        return newSupplier;
+    }, [setSuppliers]);
+    const updateSupplier = useCallback((supplier: Supplier) => {
+        setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
+    }, [setSuppliers]);
+    const deleteSupplier = useCallback((id: string) => {
+        setSuppliers(prev => prev.filter(s => s.id !== id));
+    }, [setSuppliers]);
+
+    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
+        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4() }]);
+    }, [setPaymentMethods]);
+    const updatePaymentMethod = useCallback((method: PaymentMethod) => {
+        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? method : pm));
+    }, [setPaymentMethods]);
+    const deletePaymentMethod = useCallback((id: string) => {
+        setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
+    }, [setPaymentMethods]);
+
+    const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
+        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
+        setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode }]);
+    }, [vatRates, setVatRates]);
+    const updateVatRate = useCallback((vatRate: VatRate) => {
+        setVatRates(prev => prev.map(v => v.id === vatRate.id ? vatRate : v));
+    }, [setVatRates]);
+    const deleteVatRate = useCallback((id: string) => {
+        setVatRates(prev => prev.filter(v => v.id !== id));
+    }, [setVatRates]);
   // #endregion
 
   // #region Navigation Confirmation
@@ -792,8 +1107,39 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return items.slice(0, popularItemsCount);
   }, [items, popularItemsCount]);
   
-  const lastDirectSale: Sale | null = null;
-  const lastRestaurantSale: Sale | null = null;
+  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    const sortedSales = [...sales].sort((a, b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime());
+    return {
+        lastDirectSale: sortedSales.find(s => !s.tableId) || null,
+        lastRestaurantSale: sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null
+    };
+  }, [sales]);
+
+  const loadTicketForViewing = useCallback((ticket: Sale) => {
+    setReadOnlyOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
+    setCurrentSaleId(ticket.id);
+    setCurrentSaleContext({
+      ticketNumber: ticket.ticketNumber,
+      date: ticket.date,
+      userName: ticket.userName,
+      isTableSale: !!ticket.tableId,
+      tableName: ticket.tableName,
+      tableId: ticket.tableId,
+    });
+  }, []);
+  
+  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          isInvoice: type === 'invoice',
+          documentType: type,
+        });
+      }
+    }, [sales]);
 
   // #endregion
 
@@ -862,5 +1208,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

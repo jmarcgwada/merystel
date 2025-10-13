@@ -28,7 +28,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { v4 as uuidv4 } from 'uuid';
 
 
 const adminSchema = z.object({
@@ -59,7 +58,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
-  const { users, isLoading: posLoading, addUser, findUserByEmail, handleSignOut, sendPasswordResetEmailForUser } = usePos();
+  const { users, isLoading: posLoading, addUser } = usePos();
   const [isReady, setIsReady] = useState(false);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   
@@ -77,6 +76,7 @@ export default function LoginPage() {
     if (lastEmail) {
       setEmail(lastEmail);
     }
+    setIsReady(true);
   }, []);
 
 
@@ -85,43 +85,65 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [user, userLoading, router]);
+
+   useEffect(() => {
+    if (isReady && !posLoading && users && users.length === 0) {
+      setIsFirstLaunch(true);
+    }
+  }, [isReady, posLoading, users]);
   
   const adminForm = useForm<AdminFormValues>({
     resolver: zodResolver(adminSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
+      firstName: 'Admin',
+      lastName: 'Zenith',
+      email: 'admin@zenith.pos',
       password: '',
     },
   });
 
   const handleCreateAdmin = async (data: AdminFormValues) => {
     setIsLoading(true);
-    // Mock user creation
-    toast({
-        title: 'Mode déconnecté',
-        description: 'Fonctionnalité non disponible sans connexion à la base de données.',
-    });
-    setIsFirstLaunch(false);
-    setIsLoading(false);
+    try {
+        await addUser(data, data.password);
+        toast({ title: 'Administrateur créé', description: 'Vous pouvez maintenant vous connecter.' });
+        setIsFirstLaunch(false);
+        setEmail(data.email);
+    } catch (e) {
+        // Error is handled in context
+    } finally {
+        setIsLoading(false);
+    }
   }
-
-  const performLogin = async (emailToLogin: string, passwordToLogin: string) => {
-    toast({
-        title: 'Mode déconnecté',
-        description: 'La connexion est désactivée.',
-    });
-    router.push('/dashboard');
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Bypass all firebase logic
+    // Bypass all firebase logic in local mode
     localStorage.setItem('lastLoginEmail', email);
     router.push('/dashboard');
+    
+    // The original logic is kept here for reference if DB is re-enabled
+    /*
+    const userToLogin = findUserByEmail(email);
+    if (!userToLogin) {
+        toast({ variant: 'destructive', title: 'Erreur de connexion', description: 'Aucun compte trouvé pour cet email.'});
+        setIsLoading(false);
+        return;
+    }
+    if (userToLogin.isDisabled) {
+        toast({ variant: 'destructive', title: 'Compte désactivé', description: 'Ce compte a été désactivé par un administrateur.'});
+        setIsLoading(false);
+        return;
+    }
+    if (userToLogin.sessionToken) {
+        setLoginCredentials({email, password});
+        setShowPinDialog(true);
+        return;
+    }
+    await performLogin(email, password);
+    */
   };
   
   const generateDynamicPin = () => {
@@ -137,7 +159,21 @@ export default function LoginPage() {
   };
 
   const handlePinSubmit = async (e?: React.FormEvent) => {
-    // Disabled
+    e?.preventDefault();
+    if (pin === generateDynamicPin()) {
+        setShowPinDialog(false);
+        if(loginCredentials) {
+            // await forceSignOutUser(findUserByEmail(loginCredentials.email)!.id);
+            // await performLogin(loginCredentials.email, loginCredentials.password);
+            toast({ title: 'Mode déconnecté', description: 'La fonctionnalité PIN est désactivée.'});
+        }
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Code PIN incorrect',
+        });
+    }
+    setPin('');
   }
 
   const handlePinKeyPress = (key: string) => {
@@ -152,7 +188,10 @@ export default function LoginPage() {
 
 
   const handlePasswordReset = async () => {
-    // Disabled
+    // sendPasswordResetEmailForUser(resetEmail);
+    toast({ title: 'Mode déconnecté', description: 'La réinitialisation est désactivée.'});
+    setForgotPasswordOpen(false);
+    setResetEmail('');
   };
 
 
@@ -177,7 +216,7 @@ export default function LoginPage() {
                 <UserPlus /> Bienvenue !
               </CardTitle>
               <CardDescription>
-                Créez un compte pour commencer.
+                Créez le premier compte administrateur pour démarrer.
               </CardDescription>
             </CardHeader>
             <Form {...adminForm}>
