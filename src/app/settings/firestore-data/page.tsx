@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -39,7 +40,7 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 );
 
 export default function FirestoreDataPage() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const { 
       resetAllData, 
       isLoading, 
@@ -47,6 +48,8 @@ export default function FirestoreDataPage() {
       importConfiguration, 
       importDemoData, 
       deleteAllSales,
+      importDemoCustomers,
+      importDemoSuppliers,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -63,10 +66,11 @@ export default function FirestoreDataPage() {
 
 
   useEffect(() => {
-    if (user?.role !== 'admin') {
+    if (!userLoading && user?.role !== 'admin') {
+      toast({ title: "Accès non autorisé", variant: "destructive" });
       router.push('/settings');
     }
-  }, [user, router]);
+  }, [user, userLoading, router, toast]);
 
   const generateDynamicPin = () => {
     const now = new Date();
@@ -138,8 +142,12 @@ export default function FirestoreDataPage() {
     }
   };
   
-  if (user?.role !== 'admin') {
-      return null;
+  if (userLoading || user?.role !== 'admin') {
+      return (
+          <div className="flex h-full items-center justify-center">
+              <Skeleton className="h-64 w-full" />
+          </div>
+      );
   }
   
   if(isPinDialogOpen) {
@@ -207,11 +215,11 @@ export default function FirestoreDataPage() {
         <div className="space-y-8 mt-8">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                     <Card>
+                    <Card>
                         <CardHeader>
                             <CardTitle>Données de démonstration</CardTitle>
                             <CardDescription>
-                                Peuplez l'application avec un jeu de données complet (articles, clients, etc.) pour des tests.
+                                Peuplez l'application avec un jeu de données complet (articles, clients, fournisseurs etc.) pour des tests.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -219,7 +227,7 @@ export default function FirestoreDataPage() {
                                 <AlertDialogTrigger asChild>
                                     <Button>
                                         <Sparkles className="mr-2 h-4 w-4" />
-                                        Importer les données de démo
+                                        Initialiser avec données de base
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -288,12 +296,6 @@ export default function FirestoreDataPage() {
                         <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
                             <FileCode className="mr-2 h-4 w-4" />
                             Générer le Prompt Projet
-                        </Button>
-                        <Button variant="outline" asChild>
-                            <Link href="https://console.firebase.google.com/project/studio-2563067287-258f7/firestore/data" target="_blank" rel="noopener noreferrer">
-                                <Database className="mr-2 h-4 w-4" />
-                                Ouvrir la console Firebase
-                            </Link>
                         </Button>
                     </div>
                 </div>
