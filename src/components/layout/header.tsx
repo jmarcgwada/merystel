@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils"
 
 import { usePos } from '@/contexts/pos-context';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Separator } from '../ui/separator';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
@@ -58,6 +58,7 @@ export default function Header() {
     isForcedMode,
     setIsForcedMode: setGlobalForcedMode,
     toast,
+    defaultSalesMode,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
@@ -72,6 +73,18 @@ export default function Header() {
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   
+  const salesModeLink = useMemo(() => {
+    switch (defaultSalesMode) {
+      case 'supermarket':
+        return '/supermarket';
+      case 'restaurant':
+        return '/restaurant';
+      case 'pos':
+      default:
+        return '/pos';
+    }
+  }, [defaultSalesMode]);
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
     if (isSalesPage && order.length > 0) {
@@ -168,7 +181,7 @@ export default function Header() {
                   <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
               </Button>
                 <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                  <Link href={'/pos'} onClick={e => handleNavClick(e, '/pos')}><ShoppingCart />Caisse</Link>
+                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
               </Button>
               <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
                   <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
