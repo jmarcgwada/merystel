@@ -110,13 +110,8 @@ function SupplierOrdersPageContent() {
             <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            {isReady && submitHandler ? (
-                 <Button size="lg" onClick={submitHandler}>{saleIdToEdit ? 'Mettre à jour' : 'Sauvegarder la commande'}</Button>
-            ) : (
-                <Button size="lg" variant="outline" className="btn-back" onClick={() => router.back()}>
-                    <ArrowLeft />
-                    Retour
-                </Button>
+            {isReady && submitHandler && (
+                 <Button size="lg" onClick={submitHandler} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour' : 'Sauvegarder la commande'}</Button>
             )}
           </div>
         </PageHeader>
