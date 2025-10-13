@@ -118,13 +118,16 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   useEffect(() => {
     if (updatedItemId && items) {
-      setOrder(currentOrder => 
-        currentOrder.map(orderItem => 
-          orderItem.itemId === updatedItemId 
-            ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
-            : orderItem
-        )
-      );
+      const updatedItem = items.find(i => i.id === updatedItemId);
+      if (updatedItem) {
+          setOrder(currentOrder => 
+            currentOrder.map(orderItem => 
+              orderItem.itemId === updatedItemId 
+                ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+                : orderItem
+            )
+          );
+      }
       const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
       router.replace(newUrl, { scroll: false });
     }
