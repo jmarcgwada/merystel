@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,7 +26,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
-import { useUser } from '@/firebase/auth/use-user';
 
 const iconMap: { [key: string]: Icon } = {
   card: CreditCard,
@@ -36,8 +36,6 @@ const iconMap: { [key: string]: Icon } = {
 
 export default function PaymentMethodsPage() {
   const { paymentMethods, deletePaymentMethod, isLoading, updatePaymentMethod } = usePos();
-  const { user } = useUser();
-  const isCashier = user?.role === 'cashier';
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [methodToEdit, setMethodToEdit] = useState<PaymentMethod | null>(null);
@@ -68,19 +66,16 @@ export default function PaymentMethodsPage() {
   }
 
   const toggleActive = (method: PaymentMethod) => {
-    if (isCashier) return;
     updatePaymentMethod({ ...method, isActive: !method.isActive });
   };
 
   return (
     <>
       <PageHeader title="Gérer les moyens de paiement" subtitle="Configurez les options de paiement disponibles lors de l'encaissement.">
-        {!isCashier && (
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un moyen de paiement
-          </Button>
-        )}
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un moyen de paiement
+        </Button>
       </PageHeader>
        <div className="mt-8">
         <Card>
@@ -130,7 +125,6 @@ export default function PaymentMethodsPage() {
                                             id={`active-switch-${method.id}`}
                                             checked={method.isActive ?? true}
                                             onCheckedChange={() => toggleActive(method)}
-                                            disabled={isCashier}
                                         />
                                         <label htmlFor={`active-switch-${method.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                             {method.isActive ?? true ? "Actif" : "Inactif"}
@@ -138,10 +132,10 @@ export default function PaymentMethodsPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                      <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(method)} disabled={isCashier}>
+                                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(method)}>
                                           <Edit className="h-4 w-4"/>
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setMethodToDelete(method)} disabled={isCashier}>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setMethodToDelete(method)}>
                                           <Trash2 className="h-4 w-4"/>
                                       </Button>
                                   </TableCell>

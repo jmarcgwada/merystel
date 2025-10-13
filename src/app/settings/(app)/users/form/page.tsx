@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, Suspense } from 'react';
@@ -13,24 +14,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, Lock, ShoppingCart, ScanLine, Utensils, FileText, Blocks } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/firebase/auth/use-user';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
   lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   email: z.string().email({ message: "L'email n'est pas valide." }),
-  role: z.enum(['admin', 'manager', 'cashier']),
   password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }).optional(),
   sessionDuration: z.coerce.number().min(0, { message: 'La durée doit être positive.' }).optional(),
-  accessMode: z.enum(['caisse', 'commercial', 'both']).default('both'),
-  defaultSalesMode: z.enum(['pos', 'supermarket', 'restaurant']).default('pos'),
-  isForcedMode: z.boolean().default(false),
 }).refine(data => {
     if (typeof window === 'undefined') return true;
     const searchParams = new URLSearchParams(window.location.search);
@@ -55,7 +49,6 @@ function UserForm() {
   const isEditMode = Boolean(userId);
   const userToEdit = isEditMode && users ? users.find(u => u.id === userId) : null;
   
-  const isForbidden = currentUser?.role === 'cashier' || currentUser?.role === 'manager';
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
@@ -63,22 +56,10 @@ function UserForm() {
       firstName: '',
       lastName: '',
       email: '',
-      role: 'cashier',
       password: '',
       sessionDuration: 30,
-      accessMode: 'both',
-      defaultSalesMode: 'pos',
-      isForcedMode: false,
     },
   });
-  
-  const watchedAccessMode = form.watch('accessMode');
-
-  useEffect(() => {
-    if (isForbidden) {
-        router.push('/dashboard');
-    }
-  }, [isForbidden, router]);
 
   useEffect(() => {
     if (isEditMode && userToEdit) {
@@ -86,32 +67,20 @@ function UserForm() {
         firstName: userToEdit.firstName,
         lastName: userToEdit.lastName,
         email: userToEdit.email,
-        role: userToEdit.role,
         sessionDuration: userToEdit.sessionDuration ?? 30,
-        accessMode: userToEdit.accessMode || 'both',
-        defaultSalesMode: userToEdit.defaultSalesMode || 'pos',
-        isForcedMode: userToEdit.isForcedMode || false,
       });
     } else {
       form.reset({
         firstName: '',
         lastName: '',
         email: '',
-        role: 'cashier',
         password: '',
         sessionDuration: 30,
-        accessMode: 'both',
-        defaultSalesMode: 'pos',
-        isForcedMode: false,
       });
     }
   }, [isEditMode, userToEdit, form]);
 
   async function onSubmit(data: UserFormValues) {
-    if (isForbidden) {
-        toast({ variant: 'destructive', title: 'Accès refusé' });
-        return;
-    }
     if (isEditMode && userToEdit) {
       const { password, ...updateData } = data;
       updateUser({ ...userToEdit, ...updateData });
@@ -126,21 +95,6 @@ function UserForm() {
         }
       }
     }
-  }
-
-  if (isForbidden) {
-    return (
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <PageHeader title="Accès non autorisé" />
-        <Alert variant="destructive" className="mt-4">
-          <Lock className="h-4 w-4" />
-          <AlertTitle>Accès refusé</AlertTitle>
-          <AlertDescription>
-            Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
   }
 
   return (
@@ -170,72 +124,8 @@ function UserForm() {
                 </div>
                 <FormField control={form.control} name="email" render={({ field }) => ( <FormItem> <FormLabel>Adresse e-mail</FormLabel> <FormControl> <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} /> </FormControl> <FormMessage /> </FormItem> )}/>
                 {!isEditMode && ( <FormField control={form.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>Mot de passe</FormLabel> <FormControl> <Input type="password" placeholder="••••••••" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/> )}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField control={form.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Rôle</FormLabel> <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode && userToEdit?.id === currentUser?.uid}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez un rôle" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="admin">Administrateur</SelectItem> <SelectItem value="manager">Manager</SelectItem> <SelectItem value="cashier">Caissier</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
-                    <FormField control={form.control} name="sessionDuration" render={({ field }) => ( <FormItem> <FormLabel>Durée de session (minutes)</FormLabel> <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez une durée" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="15">15 minutes</SelectItem> <SelectItem value="30">30 minutes</SelectItem> <SelectItem value="60">1 heure</SelectItem> <SelectItem value="120">2 heures</SelectItem> <SelectItem value="240">4 heures</SelectItem> <SelectItem value="480">8 heures</SelectItem> <SelectItem value="0">Illimitée</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
-                 </div>
+                 <FormField control={form.control} name="sessionDuration" render={({ field }) => ( <FormItem> <FormLabel>Durée de session (minutes)</FormLabel> <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez une durée" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="15">15 minutes</SelectItem> <SelectItem value="30">30 minutes</SelectItem> <SelectItem value="60">1 heure</SelectItem> <SelectItem value="120">2 heures</SelectItem> <SelectItem value="240">4 heures</SelectItem> <SelectItem value="480">8 heures</SelectItem> <SelectItem value="0">Illimitée</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                 {isEditMode && ( <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription> )}
-              </CardContent>
-            </Card>
-
-             <Card>
-              <CardHeader>
-                <CardTitle>Modes & Accès</CardTitle>
-                <CardDescription>Définissez les droits d'accès et le mode d'affichage par défaut de l'utilisateur.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <FormField control={form.control} name="accessMode" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Mode d'Accès</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="both"><Blocks className="inline-block mr-2"/>Accès Complet</SelectItem>
-                                <SelectItem value="caisse"><ShoppingCart className="inline-block mr-2"/>Caisse Uniquement</SelectItem>
-                                <SelectItem value="commercial"><FileText className="inline-block mr-2"/>Commercial Uniquement</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-
-                {(watchedAccessMode === 'caisse' || watchedAccessMode === 'both') && (
-                    <>
-                        <Separator />
-                        <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Paramètres du mode Caisse</h4>
-                             <FormField control={form.control} name="defaultSalesMode" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Mode d'exploitation par défaut</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="pos"><ShoppingCart className="inline-block mr-2"/>Point de Vente</SelectItem>
-                                            <SelectItem value="supermarket"><ScanLine className="inline-block mr-2"/>Supermarché</SelectItem>
-                                            <SelectItem value="restaurant"><Utensils className="inline-block mr-2"/>Restaurant</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                             <FormField
-                                control={form.control}
-                                name="isForcedMode"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                        <div className="space-y-0.5">
-                                            <FormLabel className="text-base">Mode Caisse Forcé</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                Si activé, l'utilisateur est redirigé et verrouillé sur son mode de vente par défaut après connexion.
-                                            </p>
-                                        </div>
-                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    </>
-                )}
               </CardContent>
             </Card>
           
@@ -257,3 +147,5 @@ export default function UserFormPage() {
         </Suspense>
     )
 }
+
+    

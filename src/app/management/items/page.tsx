@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -33,8 +34,6 @@ type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | '
 
 export default function ItemsPage() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
-  const { user } = useUser();
-  const isCashier = user?.role === 'cashier';
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -168,12 +167,10 @@ export default function ItemsPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        {!isCashier && (
-            <Button onClick={() => router.push('/management/items/form')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un article
-            </Button>
-        )}
+        <Button onClick={() => router.push('/management/items/form')}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un article
+        </Button>
       </PageHeader>
 
       <div className="mt-8">
@@ -231,13 +228,11 @@ export default function ItemsPage() {
                             Stock {getSortIcon('stock')}
                         </Button>
                     </TableHead>
-                    {!isCashier && (
                       <TableHead className="text-right">
                           <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
                               Prix Achat {getSortIcon('purchasePrice')}
                           </Button>
                       </TableHead>
-                    )}
                     <TableHead className="text-right">
                       <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
                           Prix Vente {getSortIcon('price')}
@@ -253,7 +248,7 @@ export default function ItemsPage() {
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                      {!isCashier && <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>}
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
@@ -277,16 +272,16 @@ export default function ItemsPage() {
                       <TableCell className="text-center">
                           <StockBadge item={item} />
                       </TableCell>
-                      {!isCashier && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
+                      <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleItemFavorite(item.id)} disabled={isCashier}>
+                        <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                             <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)} >
                             <Edit className="h-4 w-4"/>
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setItemToDelete(item)} disabled={isCashier}>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
                             <Trash2 className="h-4 w-4"/>
                         </Button>
                       </TableCell>
@@ -315,3 +310,5 @@ export default function ItemsPage() {
     </>
   );
 }
+
+    

@@ -32,7 +32,6 @@ import Link from 'next/link';
 export default function UsersPage() {
   const { users, deleteUser, isLoading, sendPasswordResetEmailForUser, forceSignOutUser, updateUser } = usePos();
   const { user: currentUser } = useUser();
-  const isManager = currentUser?.role === 'manager';
   const router = useRouter();
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReset, setUserToReset] = useState<User | null>(null);
@@ -41,10 +40,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (currentUser?.role === 'cashier' || currentUser?.role === 'manager') {
-      router.push('/dashboard');
-    }
-  }, [currentUser, router]);
+  }, []);
 
   const handleDeleteUser = () => {
     if (userToDelete) {
@@ -72,21 +68,6 @@ export default function UsersPage() {
     updateUser({ ...user, isDisabled: !user.isDisabled });
   };
 
-  if (currentUser?.role === 'cashier' || currentUser?.role === 'manager') {
-    return (
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <PageHeader title="Accès non autorisé" />
-            <Alert variant="destructive" className="mt-4">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Accès refusé</AlertTitle>
-                <AlertDescription>
-                    Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
-                </AlertDescription>
-            </Alert>
-        </div>
-    );
-  }
-
   return (
     <>
       <PageHeader title="Gérer les utilisateurs" subtitle={isClient && users ? `Vous avez ${users.length} utilisateurs au total.` : "Ajoutez, modifiez ou supprimez des utilisateurs."}>
@@ -111,10 +92,9 @@ export default function UsersPage() {
                       <TableRow>
                           <TableHead>Nom</TableHead>
                           <TableHead>Email</TableHead>
-                          <TableHead>Rôle</TableHead>
                           <TableHead>Statut session</TableHead>
                           <TableHead>Statut compte</TableHead>
-                          {!isManager && <TableHead className="w-[180px] text-right">Actions</TableHead>}
+                          <TableHead className="w-[180px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -122,10 +102,9 @@ export default function UsersPage() {
                           <TableRow key={i}>
                               <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-52" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                               <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                              {!isManager && <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>}
+                              <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
                           </TableRow>
                       ))}
                       {isClient && !isLoading && users && users.map(u => {
@@ -134,9 +113,6 @@ export default function UsersPage() {
                           <TableRow key={u.id}>
                             <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
                             <TableCell>{u.email}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="capitalize">{u.role}</Badge>
-                            </TableCell>
                             <TableCell>
                               {isUserConnected ? (
                                   <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
@@ -150,33 +126,31 @@ export default function UsersPage() {
                                         id={`active-switch-${u.id}`}
                                         checked={!u.isDisabled}
                                         onCheckedChange={() => toggleUserDisabled(u)}
-                                        disabled={!currentUser || currentUser.uid === u.id || isManager}
+                                        disabled={!currentUser || currentUser.uid === u.id}
                                     />
                                     <label htmlFor={`active-switch-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                         {u.isDisabled ? "Inactif" : "Actif"}
                                     </label>
                                 </div>
                             </TableCell>
-                            {!isManager && (
-                              <TableCell className="text-right">
-                                  {currentUser?.role === 'admin' && currentUser.uid !== u.id && isUserConnected && (
-                                      <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
-                                          <LogOut className="h-4 w-4 text-destructive"/>
-                                      </Button>
-                                  )}
-                                  {currentUser?.role === 'admin' && currentUser.uid !== u.id && (
-                                      <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
-                                          <KeyRound className="h-4 w-4"/>
-                                      </Button>
-                                  )}
-                                  <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/users/form?id=${u.id}`)} disabled={isManager}>
-                                      <Edit className="h-4 w-4"/>
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
-                                      <Trash2 className="h-4 w-4"/>
-                                  </Button>
-                              </TableCell>
-                            )}
+                            <TableCell className="text-right">
+                                {currentUser?.uid !== u.id && isUserConnected && (
+                                    <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
+                                        <LogOut className="h-4 w-4 text-destructive"/>
+                                    </Button>
+                                )}
+                                {currentUser?.uid !== u.id && (
+                                    <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
+                                        <KeyRound className="h-4 w-4"/>
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/users/form?id=${u.id}`)}>
+                                    <Edit className="h-4 w-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </TableCell>
                           </TableRow>
                       )})}
                   </TableBody>

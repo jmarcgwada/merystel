@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -9,51 +10,42 @@ import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
-  const { user, loading: isUserLoading } = useUser();
-  const showAdminSections = !isUserLoading && user?.role === 'admin';
-
   const settingsLinks = [
     {
         href: '/settings/customization',
         title: "Personnalisation de l'interface",
         description: 'Ajustez les options visuelles de votre point de vente.',
         icon: Brush,
-        adminOnly: false,
     },
      {
         href: '/settings/appearance',
         title: "Apparence & Couleurs",
         description: "Changez les couleurs des différents modes de l'application.",
         icon: Palette,
-        adminOnly: false,
     },
     {
         href: '/settings/parameters',
         title: "Paramétrage",
         description: "Configurez les paramètres fonctionnels de l'application.",
         icon: Settings,
-        adminOnly: false,
     },
     {
         href: '/settings/company',
         title: "Détails de l'entreprise",
         description: "Gérez le nom, l'adresse et les coordonnées de votre entreprise.",
         icon: Building,
-        adminOnly: true,
     },
      {
         href: '/settings/users',
         title: "Gestion des utilisateurs",
         description: "Gérez les comptes et les autorisations des utilisateurs.",
         icon: UserCog,
-        adminOnly: true,
     },
     {
         href: '/settings/firestore-data',
         title: 'Données Firestore',
         description: "Gérez les données brutes de l'application (import, export, réinitialisation).",
         icon: Database,
-        adminOnly: true,
     }
   ]
 
@@ -77,7 +69,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {settingsLinks.filter(link => !link.adminOnly || showAdminSections).map(link => (
+        {settingsLinks.map(link => (
             <Link href={link.href} key={link.href} className="group" target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
                 <Card className="h-full transition-all hover:shadow-md hover:border-primary">
                     <CardContent className="pt-6">
@@ -97,3 +89,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

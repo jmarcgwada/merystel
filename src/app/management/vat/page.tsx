@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,8 +31,6 @@ export default function VatPage() {
   const [isAddVatOpen, setAddVatOpen] = useState(false);
   const [isEditVatOpen, setEditVatOpen] = useState(false);
   const { vatRates, deleteVatRate, isLoading } = usePos();
-  const { user } = useUser();
-  const isCashier = user?.role === 'cashier';
   const [vatToDelete, setVatToDelete] = useState<VatRate | null>(null);
   const [vatToEdit, setVatToEdit] = useState<VatRate | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -60,12 +59,10 @@ export default function VatPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        {!isCashier && (
-            <Button onClick={() => setAddVatOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un taux de TVA
-            </Button>
-        )}
+        <Button onClick={() => setAddVatOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un taux de TVA
+        </Button>
       </PageHeader>
        <div className="mt-8">
         <Card>
@@ -94,10 +91,10 @@ export default function VatPage() {
                               <TableCell className="font-medium">{vat.name}</TableCell>
                               <TableCell className="text-right">{vat.rate.toFixed(2)}%</TableCell>
                               <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(vat)} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(vat)}>
                                       <Edit className="h-4 w-4"/>
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setVatToDelete(vat)} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setVatToDelete(vat)}>
                                       <Trash2 className="h-4 w-4"/>
                                   </Button>
                               </TableCell>

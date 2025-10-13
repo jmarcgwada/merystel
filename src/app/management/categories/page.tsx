@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -34,8 +35,6 @@ export default function CategoriesPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
   const { categories, deleteCategory, toggleCategoryFavorite, isLoading, items } = usePos();
-  const { user } = useUser();
-  const isCashier = user?.role === 'cashier';
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -82,12 +81,10 @@ export default function CategoriesPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        {!isCashier && (
-            <Button onClick={() => setAddCategoryOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter une catégorie
-            </Button>
-        )}
+        <Button onClick={() => setAddCategoryOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter une catégorie
+        </Button>
       </PageHeader>
       <div className="mt-8">
         <Card>
@@ -147,13 +144,13 @@ export default function CategoriesPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => !isCashier && toggleCategoryFavorite(category.id)} disabled={isCashier}>
+                      <Button variant="ghost" size="icon" onClick={() => toggleCategoryFavorite(category.id)}>
                           <Star className={cn("h-4 w-4", category.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => !isCashier && handleOpenEditDialog(category)} disabled={isCashier}>
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(category)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => !isCashier && setCategoryToDelete(category)} disabled={isCashier}>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCategoryToDelete(category)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -221,3 +218,5 @@ export default function CategoriesPage() {
     </>
   );
 }
+
+    

@@ -49,8 +49,6 @@ export default function CustomersPage() {
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
-  const { user } = useUser();
-  const isCashier = user?.role === 'cashier';
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -104,12 +102,10 @@ export default function CustomersPage() {
         <Button variant="outline" size="icon" onClick={() => router.refresh()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        {!isCashier && (
-            <Button onClick={() => setAddCustomerOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un client
-            </Button>
-        )}
+        <Button onClick={() => setAddCustomerOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un client
+        </Button>
       </PageHeader>
        <div className="mt-8">
         <Card>
@@ -168,13 +164,13 @@ export default function CustomersPage() {
                               <TableCell>{customer.email}</TableCell>
                               <TableCell>{customer.phone}</TableCell>
                               <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); !isCashier && setDefaultCustomer(customer.id)}} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDefaultCustomer(customer.id)}}>
                                       <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                                   </Button>
-                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); !isCashier && handleOpenEditDialog(customer)}} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); handleOpenEditDialog(customer)}}>
                                       <Edit className="h-4 w-4"/>
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); !isCashier && setCustomerToDelete(customer)}} disabled={isCashier}>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); setCustomerToDelete(customer)}}>
                                       <Trash2 className="h-4 w-4"/>
                                   </Button>
                               </TableCell>
@@ -232,3 +228,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
+    
