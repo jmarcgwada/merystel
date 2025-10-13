@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -47,12 +47,12 @@ function AutoAuth({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const { addUser } = usePos();
   const [isAutoLoginDone, setIsAutoLoginDone] = useState(false);
-  const autoLoginAttempted = React.useRef(false);
+  const autoLoginAttempted = useRef(false);
 
   const superAdminEmail = 'superadmin@zenith.app';
   const superAdminPassword = 'password';
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (loading || !auth || autoLoginAttempted.current) {
       return;
     }
