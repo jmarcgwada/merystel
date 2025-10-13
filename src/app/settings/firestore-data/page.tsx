@@ -5,8 +5,8 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck } from 'lucide-react';
-import { useUser } from '@/firebase/auth/use-user';
-import { usePos } from '@/contexts/pos-context';
+import { useUser } from '@/contexts/user-context';
+import { useAppData } from '@/contexts/app-data-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -40,21 +39,15 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 );
 
 export default function FirestoreDataPage() {
-  const { user, loading: isUserLoading } = useUser();
+  const { user } = useUser();
   const { 
-      seedInitialData, 
       resetAllData, 
-      categories, 
-      vatRates, 
-      paymentMethods, 
       isLoading, 
       exportConfiguration, 
       importConfiguration, 
       importDemoData, 
-      importDemoCustomers, 
-      importDemoSuppliers,
       deleteAllSales 
-  } = usePos();
+  } = useAppData();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
@@ -70,10 +63,10 @@ export default function FirestoreDataPage() {
 
 
   useEffect(() => {
-    if (!isUserLoading && user?.role !== 'admin') {
+    if (user?.role !== 'admin') {
       router.push('/settings');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, router]);
 
   const generateDynamicPin = () => {
     const now = new Date();
@@ -91,7 +84,7 @@ export default function FirestoreDataPage() {
     e?.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
-      setPinDialogOpen(false); // Just close the dialog, no redirect
+      setPinDialogOpen(false);
     } else {
       toast({
         variant: 'destructive',
@@ -117,27 +110,6 @@ export default function FirestoreDataPage() {
     setPin(prev => prev.slice(0, -1));
   };
 
-
-  const canSeedData = useMemo(() => {
-    if (isLoading) return false;
-    return !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
-  }, [categories, vatRates, paymentMethods, isLoading]);
-
-  const handleSeedData = () => {
-    seedInitialData();
-  }
-
-  const handleImportDemoData = () => {
-    importDemoData();
-  };
-  
-  const handleImportDemoCustomers = () => {
-    importDemoCustomers();
-  };
-
-  const handleImportDemoSuppliers = () => {
-    importDemoSuppliers();
-  };
 
   const handleResetData = () => {
     resetAllData();
@@ -166,7 +138,7 @@ export default function FirestoreDataPage() {
     }
   };
   
-  if (isUserLoading || user?.role !== 'admin') {
+  if (user?.role !== 'admin') {
       return null;
   }
   
@@ -238,131 +210,30 @@ export default function FirestoreDataPage() {
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Initialiser l'application</CardTitle>
+                                <CardTitle>Initialiser avec les données de démo</CardTitle>
                                 <CardDescription>
-                                    Créez un jeu de données de base (catégories, TVA...). N'est possible que si l'application est vide.
+                                    Peuple l'application avec un jeu de données complet (articles, clients, etc.) pour des tests.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button disabled={!canSeedData}>
+                                        <Button>
                                             <Sparkles className="mr-2 h-4 w-4" />
-                                            Initialiser avec données de base
+                                            Importer les données de démo
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Initialiser les données ?</AlertDialogTitle>
+                                            <AlertDialogTitle>Importer les données de démo ?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Cette action va créer un jeu de données de base.
+                                                Cette action ajoutera des articles, catégories, clients et fournisseurs à vos données actuelles. Elle est recommandée pour une application vide.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleSeedData}>
-                                                Confirmer et initialiser
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                {!canSeedData && (
-                                    <p className="text-sm text-destructive mt-2 flex items-center gap-2">
-                                        <AlertTriangle className="h-4 w-4"/> L'application contient déjà des données.
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Importer les articles de démo</CardTitle>
-                                <CardDescription>
-                                    Importe les catégories et articles depuis le fichier `demodata.json`.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="secondary">
-                                            <FileJson className="mr-2 h-4 w-4" />
-                                            Importer articles (JSON)
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les articles de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera les articles et catégories du fichier `demodata.json` à vos données actuelles.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleImportDemoData}>
-                                                Oui, importer
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Importer des clients de démo</CardTitle>
-                                <CardDescription>
-                                    Ajoute 10 clients fictifs à votre base de données.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="secondary">
-                                            <Users className="mr-2 h-4 w-4" />
-                                            Importer clients (Démo)
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les clients de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera 10 clients fictifs à votre liste.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleImportDemoCustomers}>
-                                                Oui, importer
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Importer des fournisseurs de démo</CardTitle>
-                                <CardDescription>
-                                    Ajoute 5 fournisseurs fictifs à votre base de données.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="secondary">
-                                            <Truck className="mr-2 h-4 w-4" />
-                                            Importer fournisseurs (Démo)
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Importer les fournisseurs de démo ?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action ajoutera 5 fournisseurs fictifs à votre liste.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleImportDemoSuppliers}>
-                                                Oui, importer
+                                            <AlertDialogAction onClick={importDemoData}>
+                                                Confirmer et importer
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
