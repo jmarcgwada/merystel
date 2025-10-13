@@ -425,7 +425,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
-  const categoriesCollectionRef = useMemoFirebase(() => !userLoading ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, userLoading]);
+  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
   const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
   const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
@@ -440,7 +440,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   
   const salesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user]);
-  const { data: rawSales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
+  const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
   
   const sales = useMemo(() => {
     if (!rawSales) return [];
@@ -467,7 +467,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const vatRatesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user]);
   const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
 
-  const heldOrdersCollectionRef = useMemoFirebase(() => !userLoading ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, userLoading]);
+  const heldOrdersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
 
   const companyDocRef = useMemoFirebase(() => user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user]);
@@ -597,6 +597,115 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     [getDocRef, toast]
   );
   // #endregion
+
+  // #region Data Seeding
+  const seedInitialData = useCallback(async () => {
+    if (!firestore || !companyId) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
+      return;
+    }
+
+    try {
+      toast({ title: 'Initialisation des données...', description: 'Veuillez patienter.' });
+      const batch = writeBatch(firestore);
+
+      // --- Define Data ---
+      const defaultCategories = [
+        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
+        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
+        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
+        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
+        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
+        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
+      ];
+
+      const defaultVatRates = [
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+        { id: 'vat_5_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+      ];
+
+      const defaultPaymentMethods = [
+        { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
+        { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
+        { name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
+        { name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
+      ];
+      
+      const defaultCustomers = [
+        { name: 'Client au comptoir', isDefault: true },
+      ];
+      
+      const defaultMarginPercentage = 30;
+
+      const defaultItems = [
+          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO001' },
+          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO002' },
+          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO004' },
+          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO006' },
+      ];
+
+      const defaultTables = [
+        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
+        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
+      ];
+
+      // --- Batch Write ---
+      defaultCategories.forEach(data => {
+          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
+          batch.set(ref, data);
+      });
+      defaultVatRates.forEach(data => {
+          const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
+          batch.set(ref, data);
+      });
+      defaultPaymentMethods.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
+          batch.set(ref, data);
+      });
+      defaultCustomers.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
+          batch.set(ref, { ...data, id: ref.id });
+      });
+      defaultItems.forEach(item => {
+          const vatRate = defaultVatRates.find(v => v.id === item.vatId)?.rate || 0;
+          const priceHT = item.price / (1 + vatRate / 100);
+          const purchasePrice = priceHT / (1 + defaultMarginPercentage / 100);
+
+          const data = {
+              ...item,
+              purchasePrice: purchasePrice,
+              marginPercentage: defaultMarginPercentage
+          };
+          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
+          batch.set(ref, data);
+      });
+      defaultTables.forEach(data => {
+          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
+          batch.set(ref, data);
+      });
+      
+      await batch.commit();
+      toast({ title: 'Initialisation réussie', description: 'Les données de base ont été créées.' });
+    } catch (error) {
+      console.error('Error seeding data:', error);
+      toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
+    }
+  }, [firestore, companyId, toast]);
+
+  useEffect(() => {
+    // Automatically seed data on first launch for admin
+    if (
+      !isLoading &&
+      user &&
+      categories.length === 0 &&
+      vatRates.length === 0 &&
+      paymentMethods.length === 0
+    ) {
+      seedInitialData();
+    }
+  }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
+
 
   // #region Config Import/Export
     const exportConfiguration = useCallback(async () => {
@@ -811,115 +920,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [firestore, companyId, toast]);
 
-  const seedInitialData = useCallback(async () => {
-    if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
-      return;
-    }
-
-    const canSeed = !categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0;
-
-    if (!canSeed) {
-      toast({ variant: 'destructive', title: 'Données existantes', description: "L'initialisation a été annulée car des données de configuration existent déjà." });
-      return;
-    }
-
-    try {
-      const batch = writeBatch(firestore);
-
-      // --- Define Data ---
-      const defaultCategories = [
-        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
-        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
-        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
-        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
-        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
-        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
-      ];
-
-      const defaultVatRates = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-      ];
-
-      const defaultPaymentMethods = [
-        { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
-        { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
-        { name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
-        { name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
-      ];
-      
-      const defaultCustomers = [
-        { name: 'Client au comptoir', isDefault: true },
-        { name: 'Marie Dubois', email: 'marie.d@email.com' },
-        { name: 'Ahmed Khan', email: 'ahmed.k@email.com' },
-        { name: 'Sophie Leroy', email: 'sophie.l@email.com' },
-      ];
-      
-      const defaultMarginPercentage = 30;
-
-      const defaultItems = [
-          { name: 'Café Espresso', price: 2.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/espresso/200/150', barcode: 'DEMO001' },
-          { name: 'Cappuccino', price: 3.50, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/cappuccino/200/150', isFavorite: true, barcode: 'DEMO002' },
-          { name: 'Thé Vert', price: 3.00, categoryId: 'cat_boissons_chaudes', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/thevert/200/150', barcode: 'DEMO003' },
-          { name: 'Jus d\'orange pressé', price: 4.00, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/jusorange/200/150', isFavorite: true, barcode: 'DEMO004' },
-          { name: 'Limonade Artisanale', price: 3.50, categoryId: 'cat_boissons_fraiches', vatId: 'vat_10', image: 'https://picsum.photos/seed/limonade/200/150', barcode: 'DEMO005' },
-          { name: 'Croissant', price: 1.50, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/croissant/200/150', isFavorite: true, barcode: 'DEMO006' },
-          { name: 'Pain au chocolat', price: 1.70, categoryId: 'cat_viennoiseries', vatId: 'vat_5_5', image: 'https://picsum.photos/seed/painchoc/200/150', barcode: 'DEMO007' },
-          { name: 'Salade César', price: 12.50, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/saladecesar/200/150', isRestaurantOnly: true, barcode: 'DEMO008' },
-          { name: 'Burger Classique', price: 15.00, categoryId: 'cat_plats', vatId: 'vat_10', image: 'https://picsum.photos/seed/burger/200/150', isRestaurantOnly: true, barcode: 'DEMO009' },
-          { name: 'Mousse au chocolat', price: 6.50, categoryId: 'cat_desserts', vatId: 'vat_10', image: 'https://picsum.photos/seed/moussechoc/200/150', barcode: 'DEMO010' },
-      ];
-
-      const defaultTables = [
-        { name: 'Table 1', description: 'Près de la fenêtre', number: 1, status: 'available', order: [], covers: 4 },
-        { name: 'Table 2', description: 'Au fond', number: 2, status: 'available', order: [], covers: 2 },
-      ];
-
-      // --- Batch Write ---
-      defaultCategories.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
-          batch.set(ref, data);
-      });
-      defaultVatRates.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
-          batch.set(ref, data);
-      });
-      defaultPaymentMethods.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
-          batch.set(ref, data);
-      });
-      defaultCustomers.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'customers'));
-          batch.set(ref, { ...data, id: ref.id });
-      });
-      defaultItems.forEach(item => {
-          const vatRate = defaultVatRates.find(v => v.id === item.vatId)?.rate || 0;
-          const priceHT = item.price / (1 + vatRate / 100);
-          const purchasePrice = priceHT / (1 + defaultMarginPercentage / 100);
-
-          const data = {
-              ...item,
-              purchasePrice: purchasePrice,
-              marginPercentage: defaultMarginPercentage
-          };
-          const ref = doc(collection(firestore, 'companies', companyId, 'items'));
-          batch.set(ref, data);
-      });
-      defaultTables.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'tables'));
-          batch.set(ref, data);
-      });
-      
-      await batch.commit();
-      toast({ title: 'Initialisation réussie', description: 'Les données de démonstration ont été créées.' });
-    } catch (error) {
-      console.error('Error seeding data:', error);
-      toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
-    }
-  }, [firestore, companyId, categories, vatRates, paymentMethods, toast]);
-
     const resetAllData = useCallback(async () => {
         if (!firestore || !companyId) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
@@ -1002,7 +1002,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           description: item.description,
           description2: item.description2,
           serialNumbers: serialNumbers,
-          barcode: 'barcode' in item ? item.barcode : '',
+          barcode: 'barcode' in item ? item.barcode || '' : '',
         };
         return [...currentOrder, newOrderItem];
       }
@@ -2164,20 +2164,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   }, [sales, toast]);
   // #endregion
-  
-  useEffect(() => {
-    // Automatically seed data on first launch for admin
-    if (
-      !isLoading &&
-      user &&
-      (!categories || categories.length === 0) &&
-      (!vatRates || vatRates.length === 0) &&
-      (!paymentMethods || paymentMethods.length === 0)
-    ) {
-      seedInitialData();
-    }
-  }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
-
 
   const value = useMemo(
     () => ({
