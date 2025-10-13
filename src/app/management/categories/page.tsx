@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -29,12 +27,24 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 
 export default function CategoriesPage() {
+  const firestore = useFirestore();
+  const { user } = useUser();
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
-  const { categories, deleteCategory, toggleCategoryFavorite, isLoading, items } = usePos();
+  const { deleteCategory, toggleCategoryFavorite, isLoading: isPosLoading } = usePos();
+  
+  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'categories') : null, [firestore, user]);
+  const { data: categories, isLoading: isCategoriesLoading } = useCollection<Category>(categoriesCollectionRef);
+  const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'items') : null, [firestore, user]);
+  const { data: items, isLoading: isItemsLoading } = useCollection<Item>(itemsCollectionRef);
+  const isLoading = isPosLoading || isCategoriesLoading || isItemsLoading;
+  
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -68,7 +78,7 @@ export default function CategoriesPage() {
   }
 
   const handleShowItems = (category: Category) => {
-    const itemsForCategory = items.filter(item => item.categoryId === category.id);
+    const itemsForCategory = items?.filter(item => item.categoryId === category.id) || [];
     setSelectedCategoryItems(itemsForCategory);
     setSelectedCategoryName(category.name);
     setIsItemListOpen(true);
@@ -218,5 +228,3 @@ export default function CategoriesPage() {
     </>
   );
 }
-
-    

@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -21,19 +19,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Item } from '@/lib/types';
+import type { Item, Category, VatRate } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { deleteItem, toggleItemFavorite, isLoading: isPosLoading } = usePos();
+  
+  const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'items') : null, [firestore, user]);
+  const { data: items, isLoading: isItemsLoading } = useCollection<Item>(itemsCollectionRef);
+  
+  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'categories') : null, [firestore, user]);
+  const { data: categories, isLoading: isCategoriesLoading } = useCollection<Category>(categoriesCollectionRef);
+  
+  const vatRatesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'vatRates') : null, [firestore, user]);
+  const { data: vatRates, isLoading: isVatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
+
+  const isLoading = isPosLoading || isItemsLoading || isCategoriesLoading || isVatRatesLoading;
+  
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -52,7 +67,8 @@ export default function ItemsPage() {
   }
 
   const getVatRate = (vatId: string) => {
-    return vatRates?.find(v => v.id === vatId)?.rate.toFixed(2) || 'N/A';
+    const rate = vatRates?.find(v => v.id === vatId)?.rate;
+    return rate !== undefined ? rate.toFixed(2) : 'N/A';
   }
 
   const sortedAndFilteredItems = useMemo(() => {
@@ -310,5 +326,3 @@ export default function ItemsPage() {
     </>
   );
 }
-
-    

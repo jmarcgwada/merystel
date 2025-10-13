@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,7 +28,7 @@ interface AddSupplierDialogProps {
 
 export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSupplierDialogProps) {
     const { toast } = useToast();
-    const { addSupplier, suppliers } = usePos();
+    const { addSupplier } = usePos();
     const [supplierId, setSupplierId] = useState('');
     const [name, setName] = useState('');
     const [contactName, setContactName] = useState('');
@@ -66,11 +65,6 @@ export function AddSupplierDialog({ isOpen, onClose, onSupplierAdded }: AddSuppl
                 title: 'Champs requis',
                 description: 'Le nom et le code fournisseur sont obligatoires.',
             });
-            return;
-        }
-
-        if (suppliers && suppliers.some(s => s.id === supplierId)) {
-            setError(`Le code fournisseur "${supplierId}" existe déjà.`);
             return;
         }
 

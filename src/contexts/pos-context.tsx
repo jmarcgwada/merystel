@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -148,7 +147,7 @@ interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -1931,26 +1930,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addSupplier = useCallback(
-    async (supplier: Omit<Supplier, 'id'>): Promise<Supplier | null> => {
+    async (supplier: Omit<Supplier, 'id'> & {id: string}): Promise<Supplier | null> => {
       if (!firestore) { throw new Error("Firestore not initialized"); }
+      if (suppliers.some(s => s.id === supplier.id)) {
+          throw new Error(`Le code fournisseur "${supplier.id}" existe déjà.`);
+      }
+      
       const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
-      const newSupplierRef = doc(suppliersRef);
-  
-      const newSupplier = { ...supplier, id: newSupplierRef.id };
+      const newSupplierRef = doc(suppliersRef, supplier.id);
+
       try {
-        await setDoc(newSupplierRef, newSupplier);
-        return newSupplier;
+        await setDoc(newSupplierRef, supplier);
+        return supplier as Supplier;
       } catch (e: any) {
         const contextualError = new FirestorePermissionError({
           path: newSupplierRef.path,
           operation: 'create',
-          requestResourceData: newSupplier,
+          requestResourceData: supplier,
         });
         errorEmitter.emit('permission-error', contextualError);
         throw e;
       }
     },
-    [firestore, companyId]
+    [firestore, suppliers, companyId]
   );
 
   const updateSupplier = useCallback(
