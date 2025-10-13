@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -128,14 +129,6 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   }
 
   const handleAddItem = (item: Item) => {
-    if (typeof item.purchasePrice !== 'number' || item.purchasePrice <= 0) {
-        toast({
-            variant: 'destructive',
-            title: 'Prix d\'achat manquant ou nul',
-            description: `L'article "${item.name}" n'a pas de prix d'achat valide.`,
-        });
-        return;
-    }
     // We add to order with purchase price, not sale price
     addToOrder(item.id);
   }
