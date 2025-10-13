@@ -26,7 +26,7 @@ import type {
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fr } from 'date-fns.locale';
+import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import {
   useUser as useFirebaseUser,
@@ -118,7 +118,7 @@ interface PosContextType {
   loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId'>, password?: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -148,7 +148,7 @@ interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -279,6 +279,7 @@ interface PosContextType {
   isLoading: boolean;
   user: CombinedUser | null;
   toast: (props: any) => void;
+  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -419,22 +420,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
-  const { data: usersData, isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
-
-  const users = useMemo(() => {
-    if (user && usersData && !usersData.find(u => u.id === user.uid)) {
-        return [...usersData, {
-            id: user.uid,
-            firstName: user.firstName || 'Current',
-            lastName: user.lastName || 'User',
-            email: user.email || '',
-            role: user.role || 'admin',
-            companyId: SHARED_COMPANY_ID
-        }];
-    }
-    return usersData || [];
-  }, [usersData, user]);
-
+  const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
@@ -454,7 +440,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   
   const salesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user]);
-  const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
+  const { data: rawSales = [], isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
   
   const sales = useMemo(() => {
     if (!rawSales) return [];
@@ -1693,7 +1679,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region User Management & Session
   const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'companyId'>, password?: string) => {
+    async (userData: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => {
       const authInstance = getAuth();
       if (!authInstance || !firestore) {
         toast({
@@ -1721,11 +1707,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userData.email,
-          role: userData.role,
           companyId: SHARED_COMPANY_ID,
-          accessMode: userData.accessMode,
-          defaultSalesMode: userData.defaultSalesMode,
-          isForcedMode: userData.isForcedMode,
+          sessionDuration: userData.sessionDuration,
         };
 
         const userDocRef = doc(firestore, 'users', authUser.uid);
@@ -1984,19 +1967,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addSupplier = useCallback(
-    async (supplier: Omit<Supplier, 'id'> & {id: string}): Promise<Supplier | null> => {
+    async (supplier: Omit<Supplier, 'id'>): Promise<Supplier | null> => {
       if (!firestore) { throw new Error("Firestore not initialized"); }
       const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
-      const newSupplierRef = doc(suppliersRef, supplier.id);
+      const newSupplierRef = doc(suppliersRef);
   
+      const newSupplier = { ...supplier, id: newSupplierRef.id };
       try {
-        await setDoc(newSupplierRef, supplier);
-        return { ...supplier, id: newSupplierRef.id };
+        await setDoc(newSupplierRef, newSupplier);
+        return newSupplier;
       } catch (e: any) {
         const contextualError = new FirestorePermissionError({
           path: newSupplierRef.path,
           operation: 'create',
-          requestResourceData: supplier,
+          requestResourceData: newSupplier,
         });
         errorEmitter.emit('permission-error', contextualError);
         throw e;
@@ -2093,7 +2077,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
-    sales.forEach((sale) => {
+    const relevantSales = sales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
+    relevantSales.forEach((sale) => {
       if (Array.isArray(sale.items)) {
         sale.items.forEach((orderItem) => {
           if (itemCounts[orderItem.itemId]) {
@@ -2184,7 +2169,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     // Automatically seed data on first launch for admin
     if (
       !isLoading &&
-      user?.role === 'admin' &&
+      user &&
       (!categories || categories.length === 0) &&
       (!vatRates || vatRates.length === 0) &&
       (!paymentMethods || paymentMethods.length === 0)
@@ -2389,7 +2374,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       enableDynamicBg, setEnableDynamicBg,
       dynamicBgOpacity, setDynamicBgOpacity,
       readOnlyOrder,
-      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2403,13 +2387,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       orderTotal,
       orderTax,
       isKeypadOpen,
-      setIsKeypadOpen,
       currentSaleId,
-      setCurrentSaleId,
       currentSaleContext,
-      setCurrentSaleContext,
       serialNumberItem,
-      setSerialNumberItem,
       variantItem,
       setVariantItem,
       lastDirectSale,
@@ -2427,7 +2407,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
-      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -2478,75 +2457,40 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
-      setShowTicketImages,
       showItemImagesInGrid,
-      setShowItemImagesInGrid,
       descriptionDisplay,
-      setDescriptionDisplay,
       popularItemsCount,
-      setPopularItemsCount,
       itemCardOpacity,
-      setItemCardOpacity,
       paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
       itemDisplayMode,
-      setItemDisplayMode,
       itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
-      setItemCardImageOverlayOpacity,
       itemCardTextColor,
-      setItemCardTextColor,
       itemCardShowPrice,
-      setItemCardShowPrice,
       externalLinkModalEnabled,
-      setExternalLinkModalEnabled,
       externalLinkUrl,
-      setExternalLinkUrl,
       externalLinkTitle,
-      setExternalLinkTitle,
       externalLinkModalWidth,
-      setExternalLinkModalWidth,
       externalLinkModalHeight,
-      setExternalLinkModalHeight,
       showDashboardStats,
-      setShowDashboardStats,
       enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
       showNotifications,
-      setShowNotifications,
       notificationDuration,
-      setNotificationDuration,
       enableSerialNumber,
-      setEnableSerialNumber,
       defaultSalesMode,
-      setDefaultSalesMode,
       isForcedMode,
-      setIsForcedMode,
       directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
-      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
       dashboardBgType,
-      setDashboardBgType,
       dashboardBackgroundColor,
-      setDashboardBackgroundColor,
       dashboardBackgroundImage,
-      setDashboardBackgroundImage,
       dashboardBgOpacity,
-      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
-      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2561,11 +2505,52 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoCustomers,
       importDemoSuppliers,
       cameFromRestaurant,
-      setCameFromRestaurant,
       isLoading,
       user,
       toast,
       holdOrder,
+      setReadOnlyOrder,
+      setIsKeypadOpen,
+      setCurrentSaleId,
+      setSerialNumberItem,
+      setSessionInvalidated,
+      setCameFromRestaurant,
+      setShowTicketImages,
+      setShowItemImagesInGrid,
+      setDescriptionDisplay,
+      setPopularItemsCount,
+      setItemCardOpacity,
+      setPaymentMethodImageOpacity,
+      setItemDisplayMode,
+      setItemCardShowImageAsBackground,
+      setItemCardImageOverlayOpacity,
+      setItemCardTextColor,
+      setItemCardShowPrice,
+      setExternalLinkModalEnabled,
+      setExternalLinkUrl,
+      setExternalLinkTitle,
+      setExternalLinkModalWidth,
+      setExternalLinkModalHeight,
+      setShowDashboardStats,
+      setEnableRestaurantCategoryFilter,
+      setShowNotifications,
+      setNotificationDuration,
+      setEnableSerialNumber,
+      setDefaultSalesMode,
+      setIsForcedMode,
+      setDirectSaleBackgroundColor,
+      setRestaurantModeBackgroundColor,
+      setDirectSaleBgOpacity,
+      setRestaurantModeBgOpacity,
+      setDashboardBgType,
+      setDashboardBackgroundColor,
+      setDashboardBackgroundImage,
+      setDashboardBgOpacity,
+      setDashboardButtonBackgroundColor,
+      setDashboardButtonOpacity,
+      setDashboardButtonShowBorder,
+      setDashboardButtonBorderColor,
+      setCurrentSaleContext
     ]
   );
 
@@ -2583,3 +2568,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
