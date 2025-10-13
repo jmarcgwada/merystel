@@ -106,13 +106,20 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   const form = useForm<SupplierOrderFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      items: order.map(item => ({ ...item, price: item.price })), // Ensure purchasePrice is mapped
+      items: [],
     },
   });
   
   useEffect(() => {
-    form.setValue('items', order.map(item => ({ ...item, price: item.price })));
-  }, [order, form.setValue]);
+    const updatedOrderItems = order.map(item => {
+      const fullItem = allItems?.find(i => i.id === item.itemId);
+      return {
+        ...item,
+        price: fullItem?.purchasePrice ?? 0,
+      };
+    });
+    form.setValue('items', updatedOrderItems);
+  }, [order, form.setValue, allItems]);
   
   const watchItems = form.watch('items');
   
@@ -214,7 +221,8 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
       if (!vatInfo) return;
 
-      const totalItemHT = item.price * item.quantity;
+      const purchasePriceHT = item.price; // The price in the order item IS the purchase price
+      const totalItemHT = purchasePriceHT * item.quantity;
       const taxForItem = totalItemHT * (vatInfo.rate / 100);
 
       subTotalHT += totalItemHT;
