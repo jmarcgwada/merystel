@@ -218,35 +218,65 @@ export default function DashboardPage() {
           title="Tableau de bord"
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         >
-          <div className="flex items-center gap-1">
-            {authUser && (
-              <TooltipProvider>
-                  <Tooltip>
-                      <TooltipTrigger asChild>
-                          <Button asChild variant="ghost" size="icon">
-                              <Link href="/settings">
-                                  <Settings />
-                              </Link>
-                          </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                          <p>Paramètres</p>
-                      </TooltipContent>
-                  </Tooltip>
-                   <Tooltip>
-                      <TooltipTrigger asChild>
-                           <Button asChild variant="ghost" size="icon">
-                              <Link href="/help">
-                                  <LifeBuoy />
-                              </Link>
-                          </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                          <p>Assistance et Aide</p>
-                      </TooltipContent>
-                  </Tooltip>
-              </TooltipProvider>
+          <div className="flex items-center gap-4">
+            {isMounted && todaysSalesData.lastSale && (
+                <Card style={buttonStyle} className="bg-accent/10 border-accent/20 hidden xl:block">
+                  <CardContent className="p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-x-4">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Dernière vente</Badge>
+                            <div className="flex items-center gap-2 text-xs">
+                              <Clock className="h-3 w-3" />
+                              <span>{format(todaysSalesData.lastSale.date, 'HH:mm')}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <User className="h-3 w-3" />
+                              <span>{todaysSalesData.lastSale.userName}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-xs">
+                              <CreditCard className="h-3 w-3" />
+                              <Badge variant="secondary">{todaysSalesData.lastSale.paymentMethod}</Badge>
+                            </div>
+                            <div className="text-base font-bold text-primary">
+                              {todaysSalesData.lastSale.total.toFixed(2)}€
+                            </div>
+                          </div>
+                      </div>
+                  </CardContent>
+                </Card>
             )}
+            <div className="flex items-center gap-1">
+              {authUser && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button asChild variant="ghost" size="icon">
+                                <Link href="/settings">
+                                    <Settings />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Paramètres</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button asChild variant="ghost" size="icon">
+                                <Link href="/help">
+                                    <LifeBuoy />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Assistance et Aide</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </div>
         </PageHeader>
         
@@ -314,38 +344,6 @@ export default function DashboardPage() {
              </Card>
             </div>
         )}
-
-        {isMounted && todaysSalesData.lastSale && (
-          <div className="mt-6">
-            <Card style={buttonStyle} className="bg-accent/10 border-accent/20">
-              <CardContent className="p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">Dernière vente</Badge>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4" />
-                          <span>{format(todaysSalesData.lastSale.date, 'HH:mm')}</span>
-                        </div>
-                         <div className="flex items-center gap-2 text-sm">
-                          <User className="h-4 w-4" />
-                          <span>{todaysSalesData.lastSale.userName}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                         <div className="flex items-center gap-2 text-sm">
-                          <CreditCard className="h-4 w-4" />
-                          <Badge variant="secondary">{todaysSalesData.lastSale.paymentMethod}</Badge>
-                        </div>
-                        <div className="text-xl font-bold text-primary">
-                          {todaysSalesData.lastSale.total.toFixed(2)}€
-                        </div>
-                      </div>
-                  </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
 
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -450,4 +448,3 @@ export default function DashboardPage() {
   );
 }
 
-    
