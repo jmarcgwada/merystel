@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -49,10 +48,6 @@ interface PosContextType {
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   systemDate: Date;
   dynamicBgImage: string | null;
-  enableDynamicBg: boolean;
-  setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
-  dynamicBgOpacity: number;
-  setDynamicBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
@@ -156,7 +151,27 @@ interface PosContextType {
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
-  authRequired: boolean;
+  isNavConfirmOpen: boolean;
+  showNavConfirm: (url: string) => void;
+  closeNavConfirm: () => void;
+  confirmNavigation: () => void;
+  
+  seedInitialData: () => void;
+  resetAllData: () => Promise<void>;
+  exportConfiguration: () => void;
+  importConfiguration: (file: File) => Promise<void>;
+  importDemoData: () => Promise<void>;
+  importDemoCustomers: () => Promise<void>;
+  importDemoSuppliers: () => Promise<void>;
+  cameFromRestaurant: boolean;
+  setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
+  isLoading: boolean;
+  user: any;
+  toast: (props: any) => void;
+  enableDynamicBg: boolean;
+  setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
+  dynamicBgOpacity: number;
+  setDynamicBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   showTicketImages: boolean;
   setShowTicketImages: React.Dispatch<React.SetStateAction<boolean>>;
   showItemImagesInGrid: boolean;
@@ -231,23 +246,6 @@ interface PosContextType {
   setDashboardButtonBorderColor: React.Dispatch<React.SetStateAction<string>>;
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
-  isNavConfirmOpen: boolean;
-  showNavConfirm: (url: string) => void;
-  closeNavConfirm: () => void;
-  confirmNavigation: () => void;
-  
-  seedInitialData: () => void;
-  resetAllData: () => void;
-  exportConfiguration: () => void;
-  importConfiguration: (file: File) => Promise<void>;
-  importDemoData: () => Promise<void>;
-  importDemoCustomers: () => Promise<void>;
-  importDemoSuppliers: () => Promise<void>;
-  cameFromRestaurant: boolean;
-  setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
-  isLoading: boolean;
-  user: any;
-  toast: (props: any) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -290,12 +288,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
-  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
-  const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   
+  // Settings States
+  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
   const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
@@ -376,26 +375,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, []);
 
-  const authRequired = false;
-
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
   // #region Mock/Local Data Management
     const seedInitialData = useCallback(() => {
         const hasData = items.length > 0 || categories.length > 0 || vatRates.length > 0;
         if (hasData) {
-            toast({ title: 'Données existantes', description: 'Initialisation annulée car des données existent déjà.' });
+            console.log('Data already exists, skipping seed.');
             return;
         }
 
-        const defaultVatRates = [
+        const defaultVatRates: VatRate[] = [
             { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
             { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
             { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
         ];
         setVatRates(defaultVatRates);
 
-        const defaultPaymentMethods = [
+        const defaultPaymentMethods: PaymentMethod[] = [
             { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
             { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
             { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
@@ -415,7 +412,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [seedInitialData]);
 
 
-  const importDemoData = useCallback(() => {
+  const importDemoData = useCallback(async () => {
         const newCategories: Category[] = [];
         const newItems: Item[] = [];
         const categoryIdMap: { [key: string]: string } = {};
@@ -455,9 +452,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCategories(prev => [...prev, ...newCategories]);
         setItems(prev => [...prev, ...newItems]);
         toast({ title: 'Données de démo importées !', description: `${newItems.length} articles et ${newCategories.length} catégories ajoutés.` });
-    }, [vatRates, toast]);
+    }, [vatRates, setCategories, setItems, toast]);
     
-    const importDemoCustomers = useCallback(() => {
+    const importDemoCustomers = useCallback(async () => {
         const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
             id: `C${uuidv4().substring(0,6)}`,
             name: `Client Démo ${i + 1}`,
@@ -465,9 +462,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }));
         setCustomers(prev => [...prev, ...demoCustomers]);
         toast({ title: 'Clients de démo importés !' });
-    }, [toast]);
+    }, [setCustomers, toast]);
     
-     const importDemoSuppliers = useCallback(() => {
+     const importDemoSuppliers = useCallback(async () => {
         const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
             id: `S-${uuidv4().substring(0,6)}`,
             name: `Fournisseur Démo ${i + 1}`,
@@ -475,9 +472,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }));
         setSuppliers(prev => [...prev, ...demoSuppliers]);
         toast({ title: 'Fournisseurs de démo importés !' });
-    }, [toast]);
+    }, [setSuppliers, toast]);
 
-  const resetAllData = useCallback(() => {
+  const resetAllData = useCallback(async () => {
     setItems([]);
     setCategories([]);
     setCustomers([]);
@@ -490,12 +487,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
-  }, [toast]);
+    // Re-seed after clearing
+    setTimeout(seedInitialData, 100);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData]);
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
     toast({ title: 'Ventes supprimées' });
-  }, [toast]);
+  }, [setSales, toast]);
   
     const exportConfiguration = useCallback(() => {
         const config = {
@@ -540,7 +539,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
         };
         reader.readAsText(file);
-    }, [toast]);
+    }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, toast]);
 
   // #endregion
 
@@ -674,7 +673,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -718,7 +717,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         )
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items]
+    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -820,6 +819,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (orderToRecall) {
             setOrder(orderToRecall.items);
             setCurrentSaleId(orderToRecall.id);
+            setSelectedTable(null);
+            setCurrentSaleContext({
+                tableId: orderToRecall.tableId,
+                tableName: orderToRecall.tableName,
+            });
             setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
             toast({ title: 'Commande rappelée' });
         }
@@ -840,8 +844,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (table) {
         setSelectedTable(table);
         setOrder(table.order || []);
+         router.push(`/pos?tableId=${tableId}`);
       }
-    }, [tables, cameFromRestaurant, clearOrder]);
+    }, [tables, cameFromRestaurant, clearOrder, router]);
 
     const updateTableOrder = useCallback((tableId: string, order: OrderItem[]) => {
       setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order, status: order.length > 0 ? 'occupied' : 'available'} : t));
@@ -861,7 +866,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCurrentSaleId(`table-${tableId}`);
       setCurrentSaleContext({ tableId: table.id, tableName: table.name, isTableSale: true });
       setOrder(orderData);
-    }, [tables, setTablesData, setCurrentSaleId, setCurrentSaleContext, setOrder]);
+    }, [tables, setTablesData]);
     
     const forceFreeTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: []} : t));
@@ -877,18 +882,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         order: [],
       };
       setTablesData(prev => [...prev, newTable]);
-      toast({ title: 'Table créée' });
-    }, [tablesData, setTablesData, toast]);
+    }, [tablesData, setTablesData]);
 
     const updateTable = useCallback((table: Table) => {
       setTablesData(prev => prev.map(t => t.id === table.id ? table : t));
-      toast({ title: 'Table modifiée' });
-    }, [setTablesData, toast]);
+    }, [setTablesData]);
 
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
-      toast({ title: 'Table supprimée' });
-    }, [setTablesData, toast]);
+    }, [setTablesData]);
   // #endregion
 
   // #region Sales
@@ -992,18 +994,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
         const newCategory = { ...category, id: uuidv4() };
         setCategories(prev => [...prev, newCategory]);
-        toast({ title: 'Catégorie ajoutée' });
         return newCategory;
-    }, [setCategories, toast]);
+    }, [setCategories]);
     const updateCategory = useCallback((category: Category) => {
         setCategories(prev => prev.map(c => c.id === category.id ? category : c));
-        toast({ title: 'Catégorie modifiée' });
-    }, [setCategories, toast]);
+    }, [setCategories]);
     const deleteCategory = useCallback((id: string) => {
         setCategories(prev => prev.filter(c => c.id !== id));
         setItems(prev => prev.filter(i => i.categoryId !== id));
-        toast({ title: 'Catégorie supprimée' });
-    }, [setCategories, setItems, toast]);
+    }, [setCategories, setItems]);
     const toggleCategoryFavorite = useCallback((id: string) => {
         setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
     }, [setCategories]);
@@ -1015,17 +1014,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
         const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13) };
         setItems(prev => [newItem, ...prev]);
-        toast({ title: 'Article créé' });
         return newItem;
-    }, [setItems, toast]);
+    }, [setItems]);
     const updateItem = useCallback((item: Item) => {
         setItems(prev => prev.map(i => i.id === item.id ? item : i));
-        toast({ title: 'Article modifié' });
-    }, [setItems, toast]);
+    }, [setItems]);
     const deleteItem = useCallback((id: string) => {
         setItems(prev => prev.filter(i => i.id !== id));
-        toast({ title: 'Article supprimé' });
-    }, [setItems, toast]);
+    }, [setItems]);
     const toggleItemFavorite = useCallback((id: string) => {
         setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
     }, [setItems]);
@@ -1143,9 +1139,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #endregion
 
-  const value = useMemo(
-    () => ({
-      order, setOrder, systemDate, dynamicBgImage, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity, readOnlyOrder, setReadOnlyOrder,
+  const value: PosContextType = {
+      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
@@ -1154,11 +1149,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, authRequired, showTicketImages, setShowTicketImages,
-      showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity,
-      paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground, setItemCardShowImageAsBackground,
-      itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice, setItemCardShowPrice,
-      externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
       externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
       enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
@@ -1166,36 +1164,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
       setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
       dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, resetAllData, exportConfiguration, importConfiguration,
-      importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast,
-    }),
-    [ order, setOrder, systemDate, dynamicBgImage, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
-      clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
-      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, validateSession, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, authRequired, showTicketImages, setShowTicketImages,
-      showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity,
-      paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground, setItemCardShowImageAsBackground,
-      itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice, setItemCardShowPrice,
-      externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
-      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
-      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, resetAllData, exportConfiguration, importConfiguration,
-      importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast]
-  );
+  };
 
   return (
-    <PosContext.Provider value={value as any}>
+    <PosContext.Provider value={value}>
       {children}
     </PosContext.Provider>
   );
