@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -746,6 +746,13 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
+                                            {(sale.status === 'quote' || sale.status === 'delivery_note') && (
+                                                <Button asChild variant="ghost" size="icon" title="Transformer en Facture">
+                                                    <Link href={`/commercial/invoices?edit=${sale.id}`}>
+                                                        <FileCog className="h-4 w-4 text-green-600" />
+                                                    </Link>
+                                                </Button>
+                                            )}
                                             {sale.status !== 'paid' && editPath && (
                                                 <Button asChild variant="ghost" size="icon">
                                                     <Link href={editPath}>

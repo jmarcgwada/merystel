@@ -9,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, FilePlus, Sparkles } from 'lucide-react';
+import { ArrowLeft, FilePlus, Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -82,15 +82,21 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
   const config = docTypeConfig[documentType];
+  
+  // Use a state to manage the current document type being edited, allowing transformation
+  const [editingDocType, setEditingDocType] = useState<DocumentType>(documentType);
+
+  const currentConfig = docTypeConfig[editingDocType];
+
   const pageTitle = saleIdToEdit
-    ? `${config.editTitle} #${currentSaleContext?.ticketNumber || '...'}`
-    : config.title;
+    ? `${currentConfig.editTitle} #${currentSaleContext?.ticketNumber || '...'}`
+    : currentConfig.title;
 
   useEffect(() => {
     // This effect now runs only once on mount to set up the context.
-    setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
+    setCurrentSaleContext(prev => ({...prev, documentType: editingDocType}));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editingDocType]);
 
   useEffect(() => {
     if (saleIdToEdit) {
@@ -112,16 +118,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   useEffect(() => {
     if (updatedItemId && items) {
-      const updatedItem = items.find(i => i.id === updatedItemId);
-      if (updatedItem) {
-        setOrder(currentOrder => 
-          currentOrder.map(orderItem => 
-            orderItem.itemId === updatedItemId 
-              ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
-              : orderItem
-          )
-        );
-      }
+      setOrder(currentOrder => 
+        currentOrder.map(orderItem => 
+          orderItem.itemId === updatedItemId 
+            ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+            : orderItem
+        )
+      );
       const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
       router.replace(newUrl, { scroll: false });
     }
@@ -129,40 +132,34 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   const handleTransformToInvoice = () => {
     if (!isReady || !currentSaleContext?.customerId) return;
+    setEditingDocType('invoice');
     setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice', subtotal: totals.subtotal, tax: totals.tax, total: totals.total }));
-    if (submitHandler) {
-      submitHandler(); // This will open checkout modal for invoicing
-    }
+    toast({ title: 'Transformation en facture', description: 'Le document est maintenant prêt à être encaissé.'});
   };
 
-  const handleSave = async (isTransformation: boolean = false) => {
+  const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
-    // For quotes and delivery notes being edited, transform them into an invoice
-    if (isTransformation && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note')) {
-      handleTransformToInvoice();
-      return;
-    }
-
-    // For new invoices or editing invoices
-    if (documentType === 'invoice') {
+    // For invoices (new, edited, or transformed) -> open checkout
+    if (editingDocType === 'invoice') {
       if (submitHandler) {
-        submitHandler(); // This will trigger the checkout modal from the form
+        submitHandler(); 
       }
       return;
     }
     
+    // For saving quotes or delivery notes
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: totals.subtotal,
       tax: totals.tax,
       total: totals.total,
-      status: documentType, // status is now the same as documentType for quotes/delivery_notes
+      status: editingDocType, // status is now the same as documentType for quotes/delivery_notes
       payments: [],
       customerId: currentSaleContext.customerId,
     };
     
-    await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
+    await recordCommercialDocument(doc, editingDocType, currentSaleId || undefined);
   };
   
   const handleGenerateRandom = () => {
@@ -227,31 +224,33 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         )
     }
 
-    const saveButtonText = saleIdToEdit ? 'Sauvegarder les modifications' : config.saveButton;
-    
+    if (!isReady) {
+       return (
+         <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
+           <Sparkles className="h-4 w-4" />
+         </Button>
+       )
+    }
+
+    const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
+
     return (
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-              <Sparkles className="h-4 w-4" />
-            </Button>
-            
-            {/* Case: Editing a Quote or Delivery Note */}
-            {isReady && saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
-                 <>
-                    <Button size="lg" variant="outline" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
-                    <Button size="lg" onClick={() => handleSave(true)} disabled={!isReady}>{config.updateButton}</Button>
-                 </>
+            {isQuoteOrDeliveryNote && (
+              <>
+                 <Button size="lg" variant="outline" onClick={handleSave}>
+                     {saleIdToEdit ? 'Sauvegarder les modifications' : currentConfig.saveButton}
+                 </Button>
+                 <Button size="lg" onClick={handleTransformToInvoice} className="bg-green-600 hover:bg-green-700">
+                     <FileCog className="mr-2 h-4 w-4" />
+                     {currentConfig.updateButton}
+                 </Button>
+              </>
             )}
 
-            {/* Case: New Quote or Delivery Note */}
-            {isReady && !saleIdToEdit && (documentType === 'quote' || documentType === 'delivery_note') && (
-                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>{saveButtonText}</Button>
-            )}
-
-            {/* Case: New or Editing an Invoice */}
-            {isReady && documentType === 'invoice' && (
-                 <Button size="lg" onClick={() => handleSave(false)} disabled={!isReady}>
-                     {config.updateButton}
+            {editingDocType === 'invoice' && (
+                 <Button size="lg" onClick={handleSave}>
+                     {currentConfig.saveButton}
                  </Button>
             )}
         </div>
@@ -263,7 +262,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
             title={pageTitle}
-            subtitle={config.editSubtitle}
+            subtitle={currentConfig.editSubtitle}
         >
           {renderHeaderActions()}
         </PageHeader>
@@ -278,7 +277,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
                 setIsReady={setIsReady}
-                showAcompte={config.showAcompte}
+                showAcompte={currentConfig.showAcompte}
                 onTotalsChange={setTotals}
                 updateItemQuantityInOrder={updateItemQuantityInOrder}
             />
