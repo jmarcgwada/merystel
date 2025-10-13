@@ -181,7 +181,11 @@ export default function Header() {
                   <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
               </Button>
                 <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
+                  {isClient ? (
+                    <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
+                  ) : (
+                    <div className="flex items-center"><ShoppingCart />Caisse</div>
+                  )}
               </Button>
               <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
                   <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
