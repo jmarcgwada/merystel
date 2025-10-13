@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useUser } from '@/firebase/auth/use-user';
-import { getAuth, updatePassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { User } from 'lucide-react';
@@ -40,30 +39,11 @@ export default function ProfilePage() {
   });
 
   const onSubmit = async (data: PasswordFormValues) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non trouvé.' });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const auth = getAuth();
-      if(auth.currentUser) {
-        await updatePassword(auth.currentUser, data.newPassword);
-        toast({ title: 'Succès', description: 'Votre mot de passe a été modifié.' });
-        form.reset();
-      } else {
-         throw new Error("L'utilisateur actuel n'a pas été trouvé dans l'instance d'authentification.");
-      }
-    } catch (error: any) {
-      console.error("Password change error:", error);
-       toast({
+    toast({
         variant: 'destructive',
-        title: 'Échec de la modification',
-        description: 'Une erreur est survenue. Veuillez vous déconnecter et vous reconnecter avant de réessayer.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+        title: 'Mode déconnecté',
+        description: 'Cette fonctionnalité est désactivée.',
+    });
   };
 
    if (!user) {
@@ -74,13 +54,19 @@ export default function ProfilePage() {
           subtitle="Gérez les informations de votre compte."
         />
         <div className="mt-8 max-w-2xl mx-auto">
-           <Alert>
-              <User className="h-4 w-4" />
-              <AlertTitle>Non connecté</AlertTitle>
-              <AlertDescription>
-                  Vous devez être connecté pour voir cette page.
-              </AlertDescription>
-          </Alert>
+           <Card>
+          <CardHeader>
+            <CardTitle>Informations Personnelles</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+                <div><span className="font-semibold">Prénom:</span> Utilisateur</div>
+                <div><span className="font-semibold">Nom:</span> de démo</div>
+            </div>
+             <div><span className="font-semibold">Email:</span> email@example.com</div>
+             <div><span className="font-semibold">Rôle:</span> <span className="capitalize">admin</span></div>
+          </CardContent>
+        </Card>
         </div>
       </div>
     );

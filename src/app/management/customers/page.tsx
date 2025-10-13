@@ -25,10 +25,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { useUser } from '@/firebase/auth/use-user';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -47,15 +43,9 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 export default function CustomersPage() {
-  const firestore = useFirestore();
-  const { user } = useUser();
+  const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
-  const { deleteCustomer, setDefaultCustomer, isLoading: isPosLoading } = usePos();
-  
-  const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'customers') : null, [firestore, user]);
-  const { data: customers, isLoading: isCustomersLoading } = useCollection<Customer>(customersCollectionRef);
-  const isLoading = isPosLoading || isCustomersLoading;
 
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);

@@ -81,7 +81,7 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    await handlePosSignOut();
+    // await handlePosSignOut(); // Firebase-related
     router.push('/login');
   };
   
@@ -131,7 +131,7 @@ export default function Header() {
     setPin(prev => prev.slice(0, -1));
   };
 
-  const isUserInForcedMode = user?.isForcedMode || isForcedMode;
+  const isUserInForcedMode = isForcedMode;
 
   return (
     <>
@@ -161,38 +161,22 @@ export default function Header() {
                 Zenith POS
               </span>
             </Link>
-            {user && companyInfo?.name && (
-              <>
-                <Separator orientation="vertical" className="h-6" />
-                {canAccessCompanySettings ? (
-                    <Link href="/settings/company" className="text-lg font-semibold text-foreground/90 hover:text-primary transition-colors" onClick={(e) => handleNavClick(e, '/settings/company')}>
-                      {companyInfo.name}
-                    </Link>
-                ) : (
-                    <span className="text-lg font-semibold text-foreground/90">{companyInfo.name}</span>
-                )}
-              </>
-            )}
           </div>
           
           <nav className="hidden md:flex items-center gap-2">
-            {user && user.accessMode === 'both' && (
-                <>
-                    <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
-                        <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
-                    </Button>
-                     <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                        <Link href={user.defaultSalesMode ? `/${user.defaultSalesMode}` : '/pos'} onClick={e => handleNavClick(e, user.defaultSalesMode ? `/${user.defaultSalesMode}` : '/pos')}><ShoppingCart />Caisse</Link>
-                    </Button>
-                    <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
-                        <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
-                    </Button>
-                </>
-            )}
+              <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
+                  <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
+              </Button>
+                <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
+                  <Link href={'/pos'} onClick={e => handleNavClick(e, '/pos')}><ShoppingCart />Caisse</Link>
+              </Button>
+              <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
+                  <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
+              </Button>
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
-            {user && isKeyboardVisibleInHeader && (
+            {isKeyboardVisibleInHeader && (
                 <Button 
                   variant="outline"
                   size="icon"
@@ -201,7 +185,7 @@ export default function Header() {
                     <KeyboardIcon className="h-4 w-4" />
                 </Button>
             )}
-            {user && externalLinkModalEnabled && (
+            {externalLinkModalEnabled && (
                 <Button 
                   variant="outline"
                   size="icon"
@@ -210,20 +194,19 @@ export default function Header() {
                     <ExternalLink className="h-4 w-4" />
                 </Button>
             )}
-            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
-                      <p className="text-sm font-medium text-foreground">{user.firstName} {user.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-sm font-medium text-foreground">Utilisateur</p>
+                      <p className="text-xs text-muted-foreground">email@example.com</p>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                      <p className="text-sm font-medium leading-none">Utilisateur de démo</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
+                        email@example.com
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -234,7 +217,7 @@ export default function Header() {
                       <span>Mon Profil</span>
                     </Link>
                   </DropdownMenuItem>
-                  {isUserInForcedMode && user.role === 'admin' && (
+                  {isUserInForcedMode && (
                     <>
                       <DropdownMenuSeparator />
                        <DropdownMenuItem onClick={() => setPinDialogOpen(true)}>
@@ -250,7 +233,6 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
           </div>
         </div>
       </header>

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -64,7 +63,7 @@ export default function UsersPage() {
   }
 
   const toggleUserDisabled = (user: User) => {
-    if(currentUser?.uid === user.id) return; // Can't disable self
+    if(currentUser?.id === user.id) return; // Can't disable self
     updateUser({ ...user, isDisabled: !user.isDisabled });
   };
 
@@ -126,7 +125,7 @@ export default function UsersPage() {
                                         id={`active-switch-${u.id}`}
                                         checked={!u.isDisabled}
                                         onCheckedChange={() => toggleUserDisabled(u)}
-                                        disabled={!currentUser || currentUser.uid === u.id}
+                                        disabled={!currentUser || currentUser.id === u.id}
                                     />
                                     <label htmlFor={`active-switch-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                         {u.isDisabled ? "Inactif" : "Actif"}
@@ -134,12 +133,12 @@ export default function UsersPage() {
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
-                                {currentUser?.uid !== u.id && isUserConnected && (
+                                {currentUser?.id !== u.id && isUserConnected && (
                                     <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
                                         <LogOut className="h-4 w-4 text-destructive"/>
                                     </Button>
                                 )}
-                                {currentUser?.uid !== u.id && (
+                                {currentUser?.id !== u.id && (
                                     <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
                                         <KeyRound className="h-4 w-4"/>
                                     </Button>
@@ -147,7 +146,7 @@ export default function UsersPage() {
                                 <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/users/form?id=${u.id}`)}>
                                     <Edit className="h-4 w-4"/>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.uid === u.id}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.id === u.id}>
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
                             </TableCell>
@@ -203,5 +202,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    

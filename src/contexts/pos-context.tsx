@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -27,39 +28,9 @@ import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import {
-  useUser as useFirebaseUser,
-  useFirestore,
-  useCollection,
-  useDoc,
-  useMemoFirebase,
-  useAuth,
-} from '@/firebase';
-import {
-  collection,
-  doc,
-  writeBatch,
-  deleteDoc,
-  addDoc,
-  setDoc,
-  getDocs,
-  query,
-  where,
-  getDoc,
-  updateDoc,
-  deleteField,
-  serverTimestamp,
-  Timestamp,
-  runTransaction,
-  increment,
-  CollectionReference,
-} from 'firebase/firestore';
-import type { CombinedUser } from '@/firebase/auth/use-user';
-import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 // The single, shared company ID for the entire application.
 const SHARED_COMPANY_ID = 'main';
@@ -276,33 +247,11 @@ interface PosContextType {
   cameFromRestaurant: boolean;
   setCameFromRestaurant: React.Dispatch<React.SetStateAction<boolean>>;
   isLoading: boolean;
-  user: CombinedUser | null;
+  user: any;
   toast: (props: any) => void;
-  holdOrder: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
-
-// Helper function to recursively remove undefined properties from an object before sending to Firebase
-const cleanDataForFirebase = (data: any): any => {
-  if (Array.isArray(data)) {
-    return data.map(item => cleanDataForFirebase(item));
-  }
-  if (data !== null && typeof data === 'object') {
-    // This handles Firebase Timestamps and other special objects correctly
-    if (typeof data.toDate === 'function' || data instanceof Timestamp) {
-        return data;
-    }
-    return Object.entries(data).reduce((acc, [key, value]) => {
-      if (value !== undefined) {
-        (acc as any)[key] = cleanDataForFirebase(value);
-      }
-      return acc;
-    }, {});
-  }
-  return data;
-};
-
 
 // Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -335,12 +284,8 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
-  const firestore = useFirestore();
-  const auth = useAuth();
   const router = useRouter();
   const { toast: shadcnToast } = useShadcnToast();
-
-  const companyId = useMemo(() => SHARED_COMPANY_ID, []);
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -398,6 +343,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
+  
+  // Data states, now managed locally
+  const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [tablesData, setTablesData] = useState<Table[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [vatRates, setVatRates] = useState<VatRate[]>([]);
+  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
+  const [companyInfo, setCompanyInfoState] = useState<CompanyInfo | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+
+  const isLoading = userLoading;
   // #endregion
 
   // Custom toast function that respects the user setting
@@ -417,520 +377,98 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, []);
 
-  // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'users') : null, [firestore, user, userLoading]);
-  const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+  const authRequired = false;
 
-  const itemsCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user, userLoading]);
-  const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
+  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
-  const categoriesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user, userLoading]);
-  const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
+  // #region Mock Data Management
+  const seedInitialData = useCallback(() => {
+    // This function will now populate local state instead of Firestore
+    const defaultVatRates = [
+      { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+      { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+      { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+    ];
+    setVatRates(defaultVatRates);
 
-  const customersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user, userLoading]);
-  const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
-
-  const suppliersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user, userLoading]);
-  const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
-
-  const tablesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user, userLoading]);
-  const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
+    const defaultPaymentMethods = [
+      { id: 'pm_cash', name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
+      { id: 'pm_card', name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
+      { id: 'pm_check', name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
+      { id: 'pm_other', name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
+    ];
+    setPaymentMethods(defaultPaymentMethods as any);
+    toast({ title: "Données de base initialisées (localement)" });
+  }, [toast]);
   
-  const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
-  
-  const salesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, userLoading]);
-  const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
-  
-  const sales = useMemo(() => {
-    if (!rawSales) return [];
-    return rawSales.map(sale => {
-      const toDate = (ts: any): Date => {
-        if (!ts) return new Date();
-        if (ts instanceof Timestamp) return ts.toDate();
-        if (ts.seconds) return new Timestamp(ts.seconds, ts.nanoseconds).toDate();
-        return new Date(ts);
-      }
-      return {
-          ...sale,
-          date: toDate(sale.date),
-          ...(sale.modifiedAt && { modifiedAt: toDate(sale.modifiedAt) }),
-          payments: (sale.payments || []).map(p => ({...p, date: toDate(p.date)})),
-          ...(sale.originalPayments && { originalPayments: sale.originalPayments.map(p => ({...p, date: toDate(p.date)})) })
-      };
-    });
-  }, [rawSales]);
+  const importDemoData = useCallback(() => {
+    const defaultVatId = 'vat_20';
+    const demoCategories: Category[] = [];
+    const demoItems: Item[] = [];
 
-  const paymentMethodsCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user, userLoading]);
-  const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
-
-  const vatRatesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user, userLoading]);
-  const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
-
-  const heldOrdersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user, userLoading]);
-  const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
-
-  const companyDocRef = useMemoFirebase(() => !userLoading && user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user, userLoading]);
-  const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(companyDocRef);
-
-
-  const isLoading =
-    userLoading ||
-    usersLoading ||
-    itemsLoading ||
-    categoriesLoading ||
-    customersLoading ||
-    suppliersLoading ||
-    tablesLoading ||
-    salesLoading ||
-    paymentMethodsLoading ||
-    vatRatesLoading ||
-    heldOrdersLoading ||
-    companyInfoLoading;
-
-  // #endregion
-  
-  const routerRef = useRef(router);
-  useEffect(() => {
-    routerRef.current = router;
-  }, [router]);
-
-  const heldOrdersRef = useRef(heldOrders);
-  useEffect(() => {
-    heldOrdersRef.current = heldOrders;
-  }, [heldOrders]);
-
-  const authRequired = true;
-  
-  // #region Base Callbacks
-  const getCollectionRef = useCallback(
-    (name: string, global: boolean = false): CollectionReference | null => {
-      if (!firestore) return null;
-      if (global) {
-        return collection(firestore, name);
-      }
-      if (!companyId) {
-         console.warn(`Cannot get collection ${name}, companyId not available.`);
-         return null;
-      };
-      return collection(firestore, 'companies', companyId, name);
-    },
-    [companyId, firestore]
-  );
-
-  const getDocRef = useCallback(
-    (collectionName: string, docId: string, global: boolean = false) => {
-      if (!firestore) return null;
-      if (global) {
-        return doc(firestore, collectionName, docId);
-      }
-      if (!companyId) {
-        console.warn(`Cannot get doc from ${collectionName}, companyId not available.`);
-        return null;
-      }
-      return doc(firestore, 'companies', companyId, collectionName, docId);
-    },
-    [companyId, firestore]
-  );
-
-  const addEntity = useCallback(
-    async (collectionName: string, data: any, toastTitle: string, global: boolean = false) => {
-      const ref = getCollectionRef(collectionName, global);
-      if (!ref) {
-        return null;
-      }
-      try {
-        const docRef = await addDoc(ref, cleanDataForFirebase(data));
-        toast({ title: toastTitle });
-        return { ...data, id: docRef.id };
-      } catch (error) {
-        console.error(`Error adding ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: `Erreur lors de l'ajout` });
-        return null;
-      }
-    },
-    [getCollectionRef, toast]
-  );
-
-  const updateEntity = useCallback(
-    async (
-      collectionName: string,
-      id: string,
-      data: any,
-      toastTitle: string,
-      global: boolean = false,
-    ) => {
-       const ref = getDocRef(collectionName, id, global);
-       if (!ref) {
-        return;
-      }
-      setDoc(ref, cleanDataForFirebase(data), { merge: true })
-        .then(() => {
-          if (toastTitle) toast({ title: toastTitle });
-        })
-        .catch(error => {
-          console.error(`Error updating ${collectionName}:`, error);
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: ref.path,
-            operation: 'update',
-            requestResourceData: data,
-          }));
+    demoData.categories.forEach((categoryData, catIndex) => {
+        const catId = `cat_${catIndex}`;
+        demoCategories.push({
+            id: catId,
+            name: categoryData.name,
+            image: `https://picsum.photos/seed/${catId}/200/150`,
+            color: '#e2e8f0'
         });
-    },
-    [getDocRef, toast]
-  );
 
-  const deleteEntity = useCallback(
-    async (collectionName: string, id: string, toastTitle: string, global: boolean = false) => {
-      const ref = getDocRef(collectionName, id, global);
-      if (!ref) {
-        return;
-      }
-      try {
-        await deleteDoc(ref);
-        toast({ title: toastTitle });
-      } catch (error) {
-        console.error(`Error deleting ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: 'Erreur de suppression' });
-      }
-    },
-    [getDocRef, toast]
-  );
-  // #endregion
+        categoryData.items.forEach((itemData, itemIndex) => {
+            const itemId = `${catId}_item_${itemIndex}`;
+            demoItems.push({
+                id: itemId,
+                name: itemData.name,
+                price: itemData.price,
+                description: itemData.description,
+                categoryId: catId,
+                vatId: defaultVatId,
+                image: `https://picsum.photos/seed/${itemId}/200/150`,
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+            });
+        });
+    });
 
-  // #region Data Seeding
-  const seedInitialData = useCallback(async () => {
-    if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
-      return;
-    }
-
-    try {
-      toast({ title: 'Initialisation des données...', description: 'Veuillez patienter.' });
-      const batch = writeBatch(firestore);
-
-      // --- Define Data ---
-      const defaultCategories = [
-        { id: 'cat_boissons_chaudes', name: 'Boissons Chaudes', color: '#a855f7', image: `https://picsum.photos/seed/boissonschaudes/200/150` },
-        { id: 'cat_boissons_fraiches', name: 'Boissons Fraîches', color: '#ef4444', image: `https://picsum.photos/seed/boissonsfraiches/200/150` },
-        { id: 'cat_viennoiseries', name: 'Viennoiseries', color: '#eab308', image: `https://picsum.photos/seed/viennoiseries/200/150` },
-        { id: 'cat_plats', name: 'Plats Principaux', color: '#3b82f6', image: `https://picsum.photos/seed/plats/200/150`, isRestaurantOnly: true },
-        { id: 'cat_entrees', name: 'Entrées', color: '#10b981', image: `https://picsum.photos/seed/entrees/200/150`, isRestaurantOnly: true },
-        { id: 'cat_desserts', name: 'Desserts', color: '#f97316', image: `https://picsum.photos/seed/desserts/200/150` },
-      ];
-
-      const defaultVatRates = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-      ];
-
-      const defaultPaymentMethods = [
-        { name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
-        { name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
-        { name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
-        { name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
-      ];
-      
-      const defaultCustomers = [
-        { name: 'Client au comptoir', isDefault: true, id: 'C-WALKIN' },
-      ];
-      
-      // --- Batch Write ---
-      defaultCategories.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'categories', data.id);
-          batch.set(ref, data);
-      });
-      defaultVatRates.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'vatRates', data.id);
-          batch.set(ref, data);
-      });
-      defaultPaymentMethods.forEach(data => {
-          const ref = doc(collection(firestore, 'companies', companyId, 'paymentMethods'));
-          batch.set(ref, data);
-      });
-      defaultCustomers.forEach(data => {
-          const ref = doc(firestore, 'companies', companyId, 'customers', data.id);
-          batch.set(ref, data);
-      });
-      
-      await batch.commit();
-      toast({ title: 'Initialisation réussie', description: 'Les données de base ont été créées.' });
-    } catch (error) {
-      console.error('Error seeding data:', error);
-      toast({ variant: 'destructive', title: 'Erreur', description: "L'initialisation des données a échoué." });
-    }
-  }, [firestore, companyId, toast]);
+    setCategories(prev => [...prev, ...demoCategories]);
+    setItems(prev => [...prev, ...demoItems]);
+    toast({ title: 'Données de démo importées (localement)' });
+  }, [toast]);
 
   useEffect(() => {
-    const shouldSeed = !isLoading && user && (!categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0);
-    
-    if (shouldSeed) {
-      seedInitialData();
-    }
-  }, [isLoading, user, categories, vatRates, paymentMethods, seedInitialData]);
+    seedInitialData();
+    importDemoData();
+  }, [seedInitialData, importDemoData]);
 
+  const resetAllData = useCallback(() => {
+    setItems([]);
+    setCategories([]);
+    setCustomers([]);
+    setTablesData([]);
+    setSales([]);
+    setPaymentMethods([]);
+    setVatRates([]);
+    setHeldOrders([]);
+    setCompanyInfoState(null);
+    setUsers([]);
+    toast({ title: 'Données locales réinitialisées' });
+  }, [toast]);
 
-  // #region Config Import/Export
-    const exportConfiguration = useCallback(async () => {
-        if (!companyId || !firestore) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
-            return;
-        }
-
-        toast({ title: 'Exportation en cours...' });
-        try {
-            const collectionsToExport = ['categories', 'customers', 'suppliers', 'items', 'paymentMethods', 'tables', 'vatRates'];
-            const config: { [key: string]: any[] } = {};
-
-            for (const collectionName of collectionsToExport) {
-                const collectionRef = collection(firestore, 'companies', companyId, collectionName);
-                const snapshot = await getDocs(collectionRef);
-                config[collectionName] = snapshot.docs.map(doc => ({ ...doc.data(), __id: doc.id }));
-            }
-            
-            const companyDoc = await getDoc(doc(firestore, 'companies', companyId));
-            if(companyDoc.exists()) {
-                config.companyInfo = [{...companyDoc.data(), __id: companyDoc.id}];
-            }
-
-            const jsonString = JSON.stringify(config, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            toast({ title: 'Exportation réussie', description: 'Le fichier de configuration a été téléchargé.' });
-        } catch (error) {
-            console.error("Error exporting configuration:", error);
-            toast({ variant: 'destructive', title: 'Erreur d\'exportation' });
-        }
-    }, [companyId, firestore, toast]);
-
-    const importConfiguration = useCallback(async (file: File) => {
-        if (!companyId || !firestore) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const jsonString = event.target?.result as string;
-                const config = JSON.parse(jsonString);
-                toast({ title: 'Importation en cours...', description: 'Veuillez ne pas fermer cette page.' });
-
-                // 1. Delete existing data
-                const collectionsToDelete = ['categories', 'customers', 'suppliers', 'items', 'paymentMethods', 'tables', 'vatRates'];
-                const deleteBatch = writeBatch(firestore);
-                for (const collectionName of collectionsToDelete) {
-                    const collectionRef = collection(firestore, 'companies', companyId, collectionName);
-                    const snapshot = await getDocs(collectionRef);
-                    snapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
-                }
-                await deleteBatch.commit();
-
-                // 2. Import new data
-                const importBatch = writeBatch(firestore);
-                for (const collectionName in config) {
-                    if (collectionName === 'companyInfo') {
-                        const info = config.companyInfo[0];
-                        if (info) {
-                            const { __id, ...data } = info;
-                            const companyRef = doc(firestore, 'companies', companyId);
-                            importBatch.set(companyRef, data);
-                        }
-                    } else {
-                        const collectionData = config[collectionName] as any[];
-                        collectionData.forEach(item => {
-                            const { __id, ...data } = item;
-                            const docRef = doc(firestore, 'companies', companyId, collectionName, __id);
-                            importBatch.set(docRef, data);
-                        });
-                    }
-                }
-                await importBatch.commit();
-                
-                toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée. L\'application va se recharger.' });
-                
-                // Force reload to reflect all changes
-                setTimeout(() => window.location.reload(), 2000);
-            } catch (error) {
-                console.error("Error importing configuration:", error);
-                toast({ variant: 'destructive', title: 'Erreur d\'importation', description: 'Le fichier est peut-être invalide ou corrompu.' });
-            }
-        };
-        reader.readAsText(file);
-    }, [companyId, firestore, toast]);
+  const deleteAllSales = useCallback(async () => {
+    setSales([]);
+    toast({ title: 'Ventes supprimées (localement)' });
+  }, [toast]);
   // #endregion
 
-  // #region Data Seeding
-  const importDemoData = useCallback(async () => {
-    if (!firestore || !companyId || !vatRates) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Les services ne sont pas prêts.' });
-        return;
-    }
-
-    toast({ title: 'Importation des données de démo...' });
-    
-    try {
-        const batch = writeBatch(firestore);
-        const categoryIdMap: { [key: string]: string } = {};
-
-        const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
-
-        if (!defaultVatId) {
-            toast({ variant: 'destructive', title: 'Erreur de configuration', description: 'Aucun taux de TVA n\'est configuré. Veuillez en ajouter un avant d\'importer.' });
-            return;
-        }
-
-        for (const category of demoData.categories) {
-            const newCategoryRef = doc(collection(firestore, 'companies', companyId, 'categories'));
-            categoryIdMap[category.name] = newCategoryRef.id;
-            batch.set(newCategoryRef, { name: category.name, image: `https://picsum.photos/seed/${newCategoryRef.id}/200/150` });
-
-            for (const item of category.items) {
-                const newItemRef = doc(collection(firestore, 'companies', companyId, 'items'));
-                batch.set(newItemRef, {
-                    name: item.name,
-                    price: item.price,
-                    description: item.description,
-                    categoryId: newCategoryRef.id,
-                    vatId: defaultVatId,
-                    image: `https://picsum.photos/seed/${newItemRef.id}/200/150`,
-                    barcode: `${newCategoryRef.id.slice(0,3)}${newItemRef.id.slice(0,8)}`
-                });
-            }
-        }
-
-        await batch.commit();
-        toast({ title: 'Importation réussie', description: 'Les articles et catégories de démonstration ont été ajoutés.' });
-    } catch (error) {
-        console.error('Error importing demo data:', error);
-        toast({ variant: 'destructive', title: 'Erreur d\'importation' });
-    }
-  }, [firestore, companyId, vatRates, toast]);
-
-    const importDemoCustomers = useCallback(async () => {
-    if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
-      return;
-    }
-    toast({ title: 'Importation des clients de démo...' });
-
-    const demoCustomers = [
-      { id: 'C-ALICE', name: 'Alice Martin', email: 'alice.martin@example.com', phone: '0612345678', address: '12 Rue de la Paix', postalCode: '75002', city: 'Paris', country: 'France' },
-      { id: 'C-BRUNO', name: 'Bruno Petit', email: 'bruno.petit@example.com', phone: '0623456789', address: '45 Avenue des Champs-Élysées', postalCode: '75008', city: 'Paris', country: 'France' },
-      { id: 'C-CHLOE', name: 'Chloé Durand', email: 'chloe.durand@example.com', phone: '0634567890', address: '8 Rue de la République', postalCode: '69001', city: 'Lyon', country: 'France' },
-      { id: 'C-DAVID', name: 'David Lefebvre', email: 'david.lefebvre@example.com', phone: '0645678901', address: '22 Quai de la Joliette', postalCode: '13002', city: 'Marseille', country: 'France' },
-      { id: 'C-EMILI', name: 'Émilie Moreau', email: 'emilie.moreau@example.com', phone: '0656789012', address: '15 Place du Capitole', postalCode: '31000', city: 'Toulouse', country: 'France' },
-      { id: 'C-FRANC', name: 'François Lambert', email: 'francois.lambert@example.com', phone: '0667890123', address: '5 Rue Nationale', postalCode: '59000', city: 'Lille', country: 'France' },
-      { id: 'C-GABRI', name: 'Gabrielle Simon', email: 'gabrielle.simon@example.com', phone: '0678901234', address: '30 Place de la Bourse', postalCode: '33000', city: 'Bordeaux', country: 'France' },
-      { id: 'C-HUGO', name: 'Hugo Bernard', email: 'hugo.bernard@example.com', phone: '0689012345', address: '1 Place Masséna', postalCode: '06000', city: 'Nice', country: 'France' },
-      { id: 'C-INES', name: 'Inès Girard', email: 'ines.girard@example.com', phone: '0690123456', address: '10 Rue de la Krutenau', postalCode: '67000', city: 'Strasbourg', country: 'France' },
-      { id: 'C-JULIE', name: 'Julien Laurent', email: 'julien.laurent@example.com', phone: '0601234567', address: '2 Rue du Calvaire', postalCode: '44000', city: 'Nantes', country: 'France' },
-    ];
-    
-    try {
-      const batch = writeBatch(firestore);
-      const customersRef = collection(firestore, 'companies', companyId, 'customers');
-      
-      demoCustomers.forEach(customer => {
-        const customerRef = doc(customersRef, customer.id);
-        batch.set(customerRef, customer);
-      });
-
-      await batch.commit();
-      toast({ title: 'Clients de démo ajoutés', description: '10 clients fictifs ont été ajoutés à votre liste.' });
-    } catch (error) {
-      console.error('Error importing demo customers:', error);
-      toast({ variant: 'destructive', title: 'Erreur d\'importation des clients' });
-    }
-  }, [firestore, companyId, toast]);
-  
-    const importDemoSuppliers = useCallback(async () => {
-    if (!firestore || !companyId) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'La base de données n\'est pas prête.' });
-      return;
-    }
-    toast({ title: 'Importation des fournisseurs de démo...' });
-
-    const demoSuppliers = [
-        { id: 'S-ABCDE', name: 'Fournisseur A', contactName: 'Alex Dupont', email: 'contact@fournisseura.com', phone: '0123456789', address: '10 Rue de l\'Industrie', city: 'Lyon', postalCode: '69003', country: 'France' },
-        { id: 'S-FGHIJ', name: 'Boissons & Co', contactName: 'Béatrice Martin', email: 'b.martin@boissonsco.fr', phone: '0456789123', address: '25 Avenue des Vins', city: 'Bordeaux', postalCode: '33000', country: 'France' },
-        { id: 'S-KLMNO', name: 'Le Fournil d\'Or', contactName: 'Christophe Boulanger', email: 'christophe@fournil.com', phone: '0388123456', address: '5 Rue des Pains', city: 'Strasbourg', postalCode: '67000', country: 'France' },
-        { id: 'S-PQRST', name: 'Produits Frais Express', contactName: 'David Legrand', email: 'ventes@fraisexpress.net', phone: '0299887766', address: 'Zone du Marché', city: 'Rennes', postalCode: '35000', country: 'France' },
-        { id: 'S-UVWXY', name: 'Épices du Monde', contactName: 'Émilie Petit', email: 'epices@monde.org', phone: '0491234567', address: '3 Boulevard du Port', city: 'Marseille', postalCode: '13002', country: 'France' },
-    ];
-    
-    try {
-      const batch = writeBatch(firestore);
-      const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
-      
-      demoSuppliers.forEach(supplier => {
-        const newSupplierRef = doc(suppliersRef, supplier.id);
-        batch.set(newSupplierRef, supplier);
-      });
-
-      await batch.commit();
-      toast({ title: 'Fournisseurs de démo ajoutés', description: '5 fournisseurs fictifs ont été ajoutés à votre liste.' });
-    } catch (error) {
-      console.error('Error importing demo suppliers:', error);
-      toast({ variant: 'destructive', title: 'Erreur d\'importation des fournisseurs' });
-    }
-  }, [firestore, companyId, toast]);
-
-    const resetAllData = useCallback(async () => {
-        if (!firestore || !companyId) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Connexion à la base de données indisponible.' });
-            return;
-        }
-
-        const collectionsToDelete = ['items', 'categories', 'customers', 'suppliers', 'tables', 'sales', 'paymentMethods', 'vatRates', 'heldOrders'];
-        
-        try {
-            const batch = writeBatch(firestore);
-
-            for (const collectionName of collectionsToDelete) {
-                const collRef = getCollectionRef(collectionName);
-                if (collRef) {
-                    const snapshot = await getDocs(query(collRef));
-                    snapshot.docs.forEach(doc => {
-                        batch.delete(doc.ref);
-                    });
-                }
-            }
-
-            await batch.commit();
-            toast({ title: 'Réinitialisation réussie', description: 'Toutes les données de l\'application ont été supprimées.' });
-        } catch (error) {
-            console.error('Error resetting data:', error);
-            toast({ variant: 'destructive', title: 'Erreur de réinitialisation', description: 'Une erreur s\'est produite lors de la suppression des données.' });
-        }
-
-    }, [firestore, companyId, getCollectionRef, toast]);
-  // #endregion
-
-  // #region Order Management
-  const clearOrder = useCallback(async () => {
+  // #region Order Management (all local now)
+  const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
     if (readOnlyOrder) setReadOnlyOrder(null);
-    
-    if (selectedTable?.id) {
-        const tableRef = getDocRef('tables', selectedTable.id);
-        if (tableRef) {
-          // You might not need to do anything here if table state is managed elsewhere on nav
-        }
-    }
-    
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [readOnlyOrder, selectedTable, getDocRef]);
+  }, [readOnlyOrder]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -965,13 +503,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           description: item.description,
           description2: item.description2,
           serialNumbers: serialNumbers,
-          barcode: 'barcode' in item ? item.barcode || '' : '',
+          barcode: 'barcode' in item ? (item.barcode || '') : '',
         };
         return [...currentOrder, newOrderItem];
       }
     });
   
-    if (item.image) setDynamicBgImage(item.image);
+    if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
 
@@ -1180,843 +718,76 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [order, readOnlyOrder, vatRates]);
   // #endregion
 
-  // #region Held Order & Table Management
-  const recallOrder = useCallback(async (orderId: string) => {
-    if (!heldOrdersRef.current) return;
-    const orderToRecall = heldOrdersRef.current.find((o) => o.id === orderId);
-    if (orderToRecall) {
-      setOrder(orderToRecall.items);
-      if(orderToRecall.items?.[0]?.image) setDynamicBgImage(orderToRecall.items[0].image);
-      setCurrentSaleId(orderToRecall.id);
-      setSelectedTable(null); // Ensure no table is selected
-      setCurrentSaleContext({
-          tableId: orderToRecall.tableId,
-          tableName: orderToRecall.tableName,
-      });
-      await deleteEntity('heldOrders', orderId, '');
-      toast({ title: 'Commande rappelée' });
-      routerRef.current.push('/pos');
-    }
-  }, [deleteEntity, toast]);
-
-  const setSelectedTableById = useCallback(
-    (tableId: string | null) => {
+  // #region Mock Implementations of DB-dependent functions
+  const holdOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée', description: 'La mise en attente nécessite une base de données.' }), [toast]);
+  const recallOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const deleteHeldOrder = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const setSelectedTableById = useCallback((tableId: string | null) => {
+      if (!tableId) {
+          clearOrder();
+          return;
+      }
       if (tableId === 'takeaway') {
           setCameFromRestaurant(true);
-          clearOrder();
-          routerRef.current.push('/pos?from=restaurant');
-      } else {
-          const tableToSelect = tableId ? tables.find((t) => t.id === tableId) : null;
-          setSelectedTable(tableToSelect || null);
-          const tableOrder = tableToSelect?.order || [];
-          setOrder(tableOrder);
-          if (tableOrder.length > 0 && tableOrder[0].image) {
-            setDynamicBgImage(tableOrder[0].image);
-          } else {
-            setDynamicBgImage(null);
-          }
-          setCurrentSaleId(null);
-          setCurrentSaleContext({
-              tableId: tableToSelect?.id,
-              tableName: tableToSelect?.name,
-              isTableSale: !!tableToSelect && tableToSelect.id !== 'takeaway'
-          });
-          if(tableId) {
-            routerRef.current.push(`/pos?tableId=${tableId}`);
-          }
+          router.push('/pos');
+          return;
       }
-    },
-    [tables, clearOrder, setCameFromRestaurant]
-  );
-  
-  const holdOrder = useCallback(async () => {
-    if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-        const tableRef = getDocRef('tables', currentSaleContext.tableId);
-        if (tableRef) {
-            await updateDoc(tableRef, { status: 'occupied' });
-        }
-        await clearOrder();
-        routerRef.current.push('/restaurant');
-        return;
-    }
-    if (order.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Commande vide',
-        description: 'Ajoutez des articles avant de mettre en attente.',
-      });
-      return;
-    }
-    const newHeldOrder: Omit<HeldOrder, 'id'> = {
-      date: new Date(),
-      items: order,
-      total: orderTotal + orderTax,
-    };
-    addEntity('heldOrders', newHeldOrder, 'Commande mise en attente');
-    await clearOrder();
-  }, [order, orderTotal, orderTax, addEntity, clearOrder, toast, currentSaleContext, getDocRef]);
-  
-  const deleteHeldOrder = useCallback(
-    async (orderId: string) => {
-      if (!heldOrders) return;
-      const orderToDelete = heldOrders.find((o) => o.id === orderId);
-      const tableRef = orderToDelete?.tableId ? getDocRef('tables', orderToDelete.tableId) : null;
-      
-      if (tableRef) {
-        await updateDoc(tableRef, { status: 'available' });
-      }
-      await deleteEntity('heldOrders', orderId, 'Ticket en attente supprimé.');
-    },
-    [heldOrders, getDocRef, deleteEntity, toast]
-  );
-  
-  const promoteTableToTicket = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
       const table = tables.find(t => t.id === tableId);
-      if (!tableRef || !table) return;
-      try {
-        await updateDoc(tableRef, {
-          order: orderData.map(cleanDataForFirebase),
-          status: 'paying',
-          occupiedByUserId: table.status === 'available' ? user?.uid : table.occupiedByUserId,
-          occupiedAt: table.status === 'available' ? Timestamp.fromDate(new Date()) : table.occupiedAt,
-        });
-        setCurrentSaleId(`table-${tableId}`);
-        setCurrentSaleContext({
-          tableId: table.id,
-          tableName: table.name,
-          isTableSale: true,
-        });
-      } catch (error) {
-        console.error('Error promoting table to ticket:', error);
-        toast({ variant: 'destructive', title: 'Erreur de clôture' });
+      if(table) {
+        setSelectedTable(table);
+        setOrder(table.order);
+        router.push(`/pos?tableId=${tableId}`);
       }
-    },
-    [getDocRef, toast, tables, user]
-  );
+  }, [tables, clearOrder, router, setCameFromRestaurant]);
+  const updateTableOrder = useCallback(() => {}, []);
+  const saveTableOrderAndExit = useCallback(() => router.push('/restaurant'), [router]);
+  const promoteTableToTicket = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const forceFreeTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const addTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const updateTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const deleteTable = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const recordSale = useCallback(async (): Promise<Sale | null> => null, []);
+  const recordCommercialDocument = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
 
-  const updateTableOrder = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      const table = tables.find(t => t.id === tableId);
-      if (!tableRef || !table) return;
-      try {
-        await updateDoc(tableRef, {
-            order: orderData.map(cleanDataForFirebase),
-            status: orderData.length > 0 ? 'occupied' : 'available',
-            occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
-            closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
-        });
-      } catch (error) {
-        console.error('Error updating table order:', error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde' });
-      }
-    },
-    [getDocRef, toast, tables, user]
-  );
-
-  const saveTableOrderAndExit = useCallback(
-    async (tableId: string, orderData: OrderItem[]) => {
-      const tableRef = getDocRef('tables', tableId);
-      const table = tables.find(t => t.id === tableId);
-      if (tableRef && table) {
-          routerRef.current.push('/restaurant');
-          await updateDoc(tableRef, {
-            order: orderData.map(cleanDataForFirebase),
-            status: orderData.length > 0 ? 'occupied' : 'available',
-            occupiedByUserId: orderData.length > 0 ? (table.occupiedByUserId || user?.uid) : deleteField(),
-            occupiedAt: orderData.length > 0 ? (table.occupiedAt || Timestamp.fromDate(new Date())) : deleteField(),
-            closedByUserId: orderData.length === 0 ? user?.uid : deleteField(),
-            closedAt: orderData.length === 0 ? serverTimestamp() : deleteField(),
-          });
-          toast({ title: 'Table sauvegardée' });
-          await clearOrder();
-      }
-    },
-    [getDocRef, clearOrder, toast, tables, user]
-  );
-
-  const forceFreeTable = useCallback(
-    async (tableId: string) => {
-      if (!firestore) return;
-      const batch = writeBatch(firestore);
-      const tableRef = getDocRef('tables', tableId);
-      if (tableRef) {
-        batch.update(tableRef, { 
-          status: 'available', 
-          order: [], 
-          verrou: deleteField(),
-          occupiedByUserId: deleteField(),
-          occupiedAt: deleteField(),
-          closedByUserId: user?.uid,
-          closedAt: serverTimestamp(),
-        });
-      }
-      
-      // Also delete any associated held order for that table
-      const heldOrderForTable = heldOrders?.find(
-        (ho) => ho.tableId === tableId
-      );
-      if (heldOrderForTable) {
-        const heldOrderRef = getDocRef('heldOrders', heldOrderForTable.id);
-        if (heldOrderRef) {
-          batch.delete(heldOrderRef);
-        }
-      }
-      await batch.commit();
-      toast({ title: 'Table libérée' });
-    },
-    [firestore, getDocRef, heldOrders, toast, user]
-  );
-
-  const addTable = useCallback(
-    (tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
-      const newTable: Omit<Table, 'id'> = {
-        ...tableData,
-        number: Date.now() % 10000,
-        status: 'available' as const,
-        order: [],
-        verrou: false,
-      };
-      addEntity('tables', newTable, 'Table créée');
-    },
-    [addEntity]
-  );
-
-  const updateTable = useCallback(
-    (table: Table) =>
-      updateEntity('tables', table.id, table, 'Table modifiée'),
-    [updateEntity]
-  );
-
-  const deleteTable = useCallback(
-    (tableId: string) => deleteEntity('tables', tableId, 'Table supprimée'),
-    [deleteEntity]
-  );
-  // #endregion
-
-  // #region Sales
-    const recordSale = useCallback(
-    async (
-      saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>,
-      saleIdToUpdate?: string
-    ): Promise<Sale | null> => {
-      if (!firestore || !companyId || !user) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Services de base de données non initialisés.' });
-        return null;
-      }
-      
-      let finalSaleData: Sale | null = null;
-
-      try {
-        const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-        
-        await runTransaction(firestore, async (transaction) => {
-          const companyRef = doc(firestore, 'companies', companyId);
-          let pieceRef;
-          let existingData: Partial<Sale> = {};
-          const isNewPiece = !saleIdToUpdate;
-          
-          let saleDate: any = Timestamp.fromDate(new Date());
-
-          if (saleIdToUpdate) {
-            pieceRef = doc(firestore, 'companies', companyId, 'sales', saleIdToUpdate);
-            const existingDoc = await transaction.get(pieceRef);
-            if (existingDoc.exists()) {
-              existingData = existingDoc.data() as Sale;
-              saleDate = existingData.date || saleDate;
-            }
-          } else {
-            const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
-            pieceRef = doc(salesCollRef);
-          }
-          
-          const isFinalizing = (saleData.status === 'paid' || (currentSaleContext?.documentType === 'invoice' && saleData.status === 'pending'));
-          const needsNumber = isFinalizing && !existingData.ticketNumber;
-          let pieceNumber = existingData.ticketNumber || '';
-          
-          let documentType: Sale['documentType'] = currentSaleContext?.documentType || 'ticket';
-
-          if (needsNumber) {
-            const companyDoc = await transaction.get(companyRef);
-            let prefix, counterField;
-
-            switch(documentType) {
-                case 'invoice':
-                    prefix = 'Fact';
-                    counterField = 'invoiceCounter';
-                    break;
-                case 'quote':
-                    prefix = 'Devis';
-                    counterField = 'quoteCounter';
-                    break;
-                case 'delivery_note':
-                    prefix = 'BL';
-                    counterField = 'deliveryNoteCounter';
-                    break;
-                case 'supplier_order':
-                    prefix = 'CF';
-                    counterField = 'supplierOrderCounter';
-                    break;
-                default:
-                    prefix = 'Tick';
-                    counterField = 'ticketCounter';
-                    break;
-            }
-            
-            const currentCounter = companyDoc.data()?.[counterField] ?? 0;
-            const newCount = currentCounter + 1;
-            
-            transaction.update(companyRef, { [counterField]: newCount });
-            
-            const dayMonth = format(new Date(), 'ddMM');
-            pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
-          }
-          
-          finalSaleData = {
-            ...existingData,
-            ...saleData,
-            id: pieceRef.id,
-            date: saleDate, // Use original date on update, new date on create
-            modifiedAt: isNewPiece ? undefined : Timestamp.fromDate(new Date()),
-            userId: user.uid,
-            userName: sellerName,
-            ticketNumber: pieceNumber,
-            documentType: documentType,
-          } as Sale;
-          
-          transaction.set(pieceRef, cleanDataForFirebase(finalSaleData), { merge: true });
-
-          if (finalSaleData.status === 'paid' && finalSaleData.documentType !== 'supplier_order') {
-            finalSaleData.items?.forEach((orderItem: OrderItem) => {
-              if (!items) return;
-              const itemDoc = items.find(i => i.id === orderItem.itemId);
-              if (itemDoc && itemDoc.manageStock) {
-                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-                transaction.update(itemRef, { stock: increment(-orderItem.quantity) });
-              }
-            });
-          } else if (finalSaleData.status === 'paid' && finalSaleData.documentType === 'supplier_order') {
-            finalSaleData.items?.forEach((orderItem: OrderItem) => {
-              if (!items) return;
-              const itemDoc = items.find(i => i.id === orderItem.itemId);
-              if (itemDoc && itemDoc.manageStock) {
-                const itemRef = doc(firestore, 'companies', companyId, 'items', orderItem.itemId);
-                transaction.update(itemRef, { stock: increment(orderItem.quantity) });
-              }
-            });
-          }
-
-          if (finalSaleData.status === 'paid' && finalSaleData.tableId) {
-            const tableRef = doc(firestore, 'companies', companyId, 'tables', finalSaleData.tableId);
-            transaction.update(tableRef, {
-              status: 'available',
-              order: [],
-              occupiedByUserId: deleteField(),
-              occupiedAt: deleteField(),
-              closedByUserId: user.uid,
-              closedAt: serverTimestamp(),
-            });
-          }
-        });
-
-        return finalSaleData;
-
-      } catch (error) {
-        console.error("Transaction failed: ", error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message || "La pièce n'a pas pu être enregistrée." });
-        return null;
-      }
-    },
-    [companyId, firestore, user, items, currentSaleContext, toast]
-  );
-
-  const recordCommercialDocument = useCallback(
-    async (
-      docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-      type: 'quote' | 'delivery_note' | 'supplier_order',
-      docIdToUpdate?: string
-    ) => {
-      if (!firestore || !companyId || !user) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Services non initialisés.' });
-        return;
-      }
-
-      const sellerName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.email;
-      let prefix = '';
-      let counterField = '';
-
-      try {
-        await runTransaction(firestore, async (transaction) => {
-          const companyRef = doc(firestore, 'companies', companyId);
-          let pieceRef;
-          const isNewDoc = !docIdToUpdate;
-          let pieceNumber = '';
-
-
-          switch (type) {
-            case 'quote':
-              prefix = 'Devis';
-              counterField = 'quoteCounter';
-              break;
-            case 'delivery_note':
-              prefix = 'BL';
-              counterField = 'deliveryNoteCounter';
-              break;
-            case 'supplier_order':
-               prefix = 'CF';
-               counterField = 'supplierOrderCounter';
-               break;
-          }
-
-          if (isNewDoc) {
-            const companyDoc = await transaction.get(companyRef);
-            const currentCounter = companyDoc.data()?.[counterField] ?? 0;
-            const newCount = currentCounter + 1;
-            transaction.update(companyRef, { [counterField]: newCount });
-            const dayMonth = format(new Date(), 'ddMM');
-            pieceNumber = `${prefix}-${dayMonth}-${newCount.toString().padStart(4, '0')}`;
-            const salesCollRef = collection(firestore, 'companies', companyId, 'sales');
-            pieceRef = doc(salesCollRef);
-          } else {
-            pieceRef = doc(firestore, 'companies', companyId, 'sales', docIdToUpdate);
-          }
-
-          const finalDocData: Omit<Sale, 'id'> = {
-            ...docData,
-            date: isNewDoc ? Timestamp.fromDate(new Date()) : (await transaction.get(pieceRef)).data()?.date,
-            modifiedAt: isNewDoc ? undefined : Timestamp.fromDate(new Date()),
-            userId: user.uid,
-            userName: sellerName,
-            ticketNumber: isNewDoc ? pieceNumber : (await transaction.get(pieceRef)).data()?.ticketNumber,
-            documentType: type,
-            status: type === 'supplier_order' ? 'pending' : type,
-          };
-          
-          transaction.set(pieceRef, cleanDataForFirebase(finalDocData), { merge: true });
-        });
-        
-        toast({ title: `${prefix} enregistré`, description: 'Le document a été sauvegardé avec succès.' });
-        
-        clearOrder();
-
-        const reportFilters = {
-          quote: 'Devis-',
-          delivery_note: 'BL-',
-          supplier_order: 'CF-',
-        }
-        router.push(`/reports?filter=${reportFilters[type]}`);
-
-      } catch (error) {
-        console.error(`Error recording ${type}:`, error);
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: `Le document n'a pas pu être enregistré.` });
-      }
-    },
-    [companyId, firestore, user, toast, clearOrder, router]
-  );
-  
-  const deleteAllSales = useCallback(async () => {
-    const salesCollRef = getCollectionRef('sales');
-    if (!salesCollRef) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Collection des ventes non trouvée.' });
-      return;
-    }
-    try {
-      toast({ title: 'Suppression en cours...' });
-      const snapshot = await getDocs(query(salesCollRef));
-      const batch = writeBatch(firestore);
-      snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-      toast({ title: 'Succès', description: 'Toutes les pièces de vente ont été supprimées.' });
-    } catch (error) {
-      console.error("Error deleting all sales:", error);
-      toast({ variant: 'destructive', title: 'Erreur de suppression', description: 'Impossible de supprimer toutes les ventes.' });
-    }
-  }, [getCollectionRef, firestore, toast]);
-  // #endregion
-
-  // #region User Management & Session
-  const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => {
-      const authInstance = getAuth();
-      if (!authInstance || !firestore) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: 'Le service d\'authentification n\'est pas disponible.',
-        });
-        return;
-      }
-
-      const finalPassword = password;
-      if (!finalPassword) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: 'Un mot de passe est requis pour créer un utilisateur.',
-        });
-        return;
-      }
-
-      try {
-        const userCredential = await createUserWithEmailAndPassword(authInstance, userData.email, finalPassword);
-        const authUser = userCredential.user;
-        const userDocData: Omit<User, 'id'> = {
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          companyId: SHARED_COMPANY_ID,
-          sessionDuration: userData.sessionDuration,
-        };
-
-        const userDocRef = doc(firestore, 'users', authUser.uid);
-        
-        setDoc(userDocRef, userDocData)
-          .then(() => {
-              toast({ title: 'Utilisateur créé avec succès' });
-          })
-          .catch(error => {
-              console.error("Error setting user document:", error);
-              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: userDocRef.path,
-                  operation: 'create',
-                  requestResourceData: userDocData
-              }));
-          });
-
-      } catch (error: any) {
-        console.error('Error creating user:', error);
-        let description = "Une erreur inconnue s'est produite.";
-        if (error.code === 'auth/email-already-in-use') {
-          description = 'Cette adresse e-mail est déjà utilisée par un autre compte.';
-        } else if (error.code === 'auth/invalid-email') {
-          description = "L'adresse e-mail n'est pas valide.";
-        } else if (error.code === 'auth/weak-password') {
-          description = 'Le mot de passe est trop faible.';
-        }
-        toast({ variant: 'destructive', title: 'Erreur de création', description });
-        throw error; // Re-throw to be caught by the caller if needed
-      }
-    },
-    [firestore, toast]
-  );
-
-  const updateUser = useCallback(
-    (userData: User) => {
-      const { id, ...data } = userData;
-      const userRef = doc(firestore, 'users', id);
-      updateDoc(userRef, cleanDataForFirebase(data))
-          .then(() => {
-              toast({ title: 'Utilisateur mis à jour' });
-          })
-          .catch(error => {
-              console.error("Error updating user:", error);
-              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: userRef.path,
-                  operation: 'update',
-                  requestResourceData: data
-              }));
-          });
-    },
-    [firestore, toast]
-  );
-
-  const deleteUser = useCallback(
-    (id: string) => deleteEntity('users', id, 'Utilisateur supprimé', true),
-    [deleteEntity]
-  );
-
-  const sendPasswordResetEmailForUser = useCallback(async (email: string) => {
-    if (!auth) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Service d\'authentification non disponible.' });
-        return;
-    }
-    try {
-        await sendPasswordResetEmail(auth, email);
-        toast({ title: 'E-mail envoyé', description: `Un e-mail de réinitialisation de mot de passe a été envoyé à ${email}.` });
-    } catch (error: any) {
-        console.error("Password reset error:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'envoyer l\'e-mail de réinitialisation.' });
-    }
-  }, [auth, toast]);
-
-    const findUserByEmail = useCallback((email: string) => {
-        if (!users) return undefined;
-        return users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    }, [users]);
-    
-    const handleSignOut = useCallback(async (isAuto = false) => {
-        if (!auth || !user) return;
-        
-        if (isAuto && order.length > 0) {
-            await clearOrder();
-        }
-
-        await updateDoc(doc(firestore, 'users', user.uid), {
-            sessionToken: deleteField()
-        });
-        
-        await signOut(auth);
-        localStorage.removeItem('sessionToken');
-        router.push('/login');
-    }, [auth, user, firestore, order, clearOrder, router]);
-
-
-    const validateSession = useCallback((userId: string, token: string) => {
-        if (!users) {
-            return false;
-        }
-        const user = users.find(u => u.id === userId);
-        return user?.sessionToken === token;
-    }, [users]);
-
-    const forceSignOut = useCallback(async (message: string) => {
-        await handleSignOut();
-        toast({
-            variant: 'destructive',
-            title: "Session expirée",
-            description: message,
-        });
-    }, [toast, handleSignOut]);
-
-    const forceSignOutUser = useCallback(
-      async (userId: string) => {
-        const userRef = getDocRef('users', userId, true);
-        if (!userRef) return;
-        try {
-          await updateDoc(userRef, { sessionToken: deleteField() });
-          // The onSnapshot listener for the users collection will automatically update the UI.
-          toast({ title: 'Utilisateur déconnecté', description: "La session de l'utilisateur a été terminée." });
-        } catch (error) {
-          console.error("Error forcing user sign out:", error);
-          toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de déconnecter l'utilisateur." });
-        }
-      },
-      [getDocRef, toast]
-    );
-
-  // #endregion
-
-  // #region Generic Entity Management
-  const addCategory = useCallback(
-    async (category: Omit<Category, 'id'>) =>
-      addEntity('categories', category, 'Catégorie ajoutée') as Promise<Category | null>,
-    [addEntity]
-  );
-  const updateCategory = useCallback(
-    (category: Category) =>
-      updateEntity('categories', category.id, category, 'Catégorie modifiée'),
-    [updateEntity]
-  );
-  const deleteCategory = useCallback(
-    (id: string) => deleteEntity('categories', id, 'Catégorie supprimée'),
-    [deleteEntity]
-  );
-  const toggleCategoryFavorite = useCallback(
-    (id: string) => {
-      if (!categories) return;
-      const category = categories.find((c) => c.id === id);
-      if (category)
-        updateEntity(
-          'categories',
-          id,
-          { isFavorite: !category.isFavorite },
-          'Favori mis à jour'
-        );
-    },
-    [categories, updateEntity]
-  );
-
-  const getCategoryColor = useCallback((categoryId: string) => {
-    if (!categories) return undefined;
-    return categories.find(c => c.id === categoryId)?.color;
-  }, [categories]);
-
-  const addItem = useCallback(
-    (item: Omit<Item, 'id'>) => addEntity('items', item, 'Article créé') as Promise<Item | null>,
-    [addEntity]
-  );
-  const updateItem = useCallback(
-    (item: Item) => updateEntity('items', item.id, item, ''),
-    [updateEntity]
-  );
-  const deleteItem = useCallback(
-    (id: string) => deleteEntity('items', id, 'Article supprimé'),
-    [deleteEntity]
-  );
-  const toggleItemFavorite = useCallback(
-    (id: string) => {
-      if (!items) return;
-      const item = items.find((i) => i.id === id);
-      if (item)
-        updateEntity(
-          'items',
-          id,
-          { isFavorite: !item.isFavorite },
-          'Favori mis à jour'
-        );
-    },
-    [items, updateEntity]
-  );
-  const toggleFavoriteForList = useCallback(
-    async (itemIds: string[], setFavorite: boolean) => {
-      if (!firestore) return;
-      const batch = writeBatch(firestore);
-      itemIds.forEach((id) => {
-        const itemRef = getDocRef('items', id);
-        if (itemRef) {
-          batch.update(itemRef, { isFavorite: setFavorite });
-        }
-      });
-      await batch.commit();
-      toast({ title: `Favoris mis à jour.` });
-    },
-    [firestore, getDocRef, toast]
-  );
-
-  const addCustomer = useCallback(
-    async (customer: Omit<Customer, 'isDefault'> & {id: string}): Promise<Customer | null> => {
-        if (!firestore) { throw new Error("Firestore not initialized"); }
-        if (customers.some(c => c.id === customer.id)) {
-            throw new Error(`Le code client "${customer.id}" existe déjà.`);
-        }
-        
-        const customersRef = collection(firestore, 'companies', companyId!, 'customers');
-        const newCustomerRef = doc(customersRef, customer.id);
-
-        const newCustomerData = {
-            ...customer,
-            isDefault: !customers || !customers.some((c) => c.isDefault),
-        };
-        await setDoc(newCustomerRef, newCustomerData);
-
-        return newCustomerData as Customer;
-    },
-    [firestore, customers, companyId]
-  );
-
-  const updateCustomer = useCallback(
-    (customer: Customer) =>
-      updateEntity('customers', customer.id, customer, 'Client modifié'),
-    [updateEntity]
-  );
-  const deleteCustomer = useCallback(
-    (id: string) => deleteEntity('customers', id, 'Client supprimé'),
-    [deleteEntity]
-  );
-  const setDefaultCustomer = useCallback(
-    async (customerId: string) => {
-      if (!customers || !firestore) return;
-      const batch = writeBatch(firestore);
-      customers.forEach((c) => {
-        const customerRef = getDocRef('customers', c.id);
-        if (customerRef) {
-          if (c.id === customerId) {
-            batch.update(customerRef, { isDefault: !c.isDefault });
-          } else if (c.isDefault) {
-            batch.update(customerRef, { isDefault: false });
-          }
-        }
-      });
-      await batch.commit();
-      toast({ title: 'Client par défaut modifié' });
-    },
-    [customers, firestore, getDocRef, toast]
-  );
-
-  const addSupplier = useCallback(
-    async (supplier: Omit<Supplier, 'id'> & {id: string}): Promise<Supplier | null> => {
-      if (!firestore) { throw new Error("Firestore not initialized"); }
-      if (suppliers.some(s => s.id === supplier.id)) {
-          throw new Error(`Le code fournisseur "${supplier.id}" existe déjà.`);
-      }
-      
-      const suppliersRef = collection(firestore, 'companies', companyId, 'suppliers');
-      const newSupplierRef = doc(suppliersRef, supplier.id);
-
-      try {
-        await setDoc(newSupplierRef, supplier);
-        return supplier as Supplier;
-      } catch (e: any) {
-        const contextualError = new FirestorePermissionError({
-          path: newSupplierRef.path,
-          operation: 'create',
-          requestResourceData: supplier,
-        });
-        errorEmitter.emit('permission-error', contextualError);
-        throw e;
-      }
-    },
-    [firestore, suppliers, companyId]
-  );
-
-  const updateSupplier = useCallback(
-    (supplier: Supplier) =>
-      updateEntity('suppliers', supplier.id, supplier, 'Fournisseur modifié'),
-    [updateEntity]
-  );
-
-  const deleteSupplier = useCallback(
-    (id: string) => deleteEntity('suppliers', id, 'Fournisseur supprimé'),
-    [deleteEntity]
-  );
-
-  const addPaymentMethod = useCallback(
-    (method: Omit<PaymentMethod, 'id'>) =>
-      addEntity('paymentMethods', method, 'Moyen de paiement ajouté'),
-    [addEntity]
-  );
-  const updatePaymentMethod = useCallback(
-    (method: PaymentMethod) =>
-      updateEntity(
-        'paymentMethods',
-        method.id,
-        method,
-        'Moyen de paiement modifié'
-      ),
-    [updateEntity]
-  );
-  const deletePaymentMethod = useCallback(
-    (id: string) =>
-      deleteEntity('paymentMethods', id, 'Moyen de paiement supprimé'),
-    [deleteEntity]
-  );
-
-  const addVatRate = useCallback(
-    (vatRate: Omit<VatRate, 'id' | 'code'>) => {
-      if (!vatRates) return;
-      const newCode = Math.max(0, ...vatRates.map((v) => v.code)) + 1;
-      const newVatRate = { ...vatRate, code: newCode };
-      addEntity('vatRates', newVatRate, 'Taux de TVA ajouté');
-    },
-    [addEntity, vatRates]
-  );
-  const updateVatRate = useCallback(
-    (vatRate: VatRate) =>
-      updateEntity('vatRates', vatRate.id, vatRate, 'Taux de TVA modifié'),
-    [updateEntity]
-  );
-  const deleteVatRate = useCallback(
-    (id: string) => deleteEntity('vatRates', id, 'Taux de TVA supprimé'),
-    [deleteEntity]
-  );
-
-  const setCompanyInfo = useCallback(
-    (info: CompanyInfo) => {
-      if (companyId && firestore) {
-        const { id, ...data } = info;
-        const companyRef = doc(firestore, 'companies', companyId);
-        setDoc(companyRef, data, { merge: true });
-      }
-    },
-    [companyId, firestore]
-  );
-  
+  const addUser = useCallback(async () => {}, []);
+  const updateUser = useCallback(() => {}, []);
+  const deleteUser = useCallback(() => {}, []);
+  const sendPasswordResetEmailForUser = useCallback(() => {}, []);
+  const findUserByEmail = useCallback(() => undefined, []);
+  const handleSignOut = useCallback(async () => {}, []);
+  const validateSession = useCallback(() => false, []);
+  const forceSignOut = useCallback(() => {}, []);
+  const forceSignOutUser = useCallback(() => {}, []);
+  const addCategory = useCallback(async () => null, []);
+  const updateCategory = useCallback(() => {}, []);
+  const deleteCategory = useCallback(() => {}, []);
+  const toggleCategoryFavorite = useCallback(() => {}, []);
+  const getCategoryColor = useCallback(() => undefined, []);
+  const addItem = useCallback(async () => null, []);
+  const updateItem = useCallback(() => {}, []);
+  const deleteItem = useCallback(() => {}, []);
+  const toggleItemFavorite = useCallback(() => {}, []);
+  const toggleFavoriteForList = useCallback(() => {}, []);
+  const addCustomer = useCallback(async () => null, []);
+  const updateCustomer = useCallback(() => {}, []);
+  const deleteCustomer = useCallback(() => {}, []);
+  const setDefaultCustomer = useCallback(() => {}, []);
+  const addSupplier = useCallback(async () => null, []);
+  const updateSupplier = useCallback(() => {}, []);
+  const deleteSupplier = useCallback(() => {}, []);
+  const addPaymentMethod = useCallback(() => {}, []);
+  const updatePaymentMethod = useCallback(() => {}, []);
+  const deletePaymentMethod = useCallback(() => {}, []);
+  const addVatRate = useCallback(() => {}, []);
+  const updateVatRate = useCallback(() => {}, []);
+  const deleteVatRate = useCallback(() => {}, []);
+  const setCompanyInfo = useCallback(() => {}, []);
+  const exportConfiguration = useCallback(() => toast({ title: 'Fonctionnalité désactivée' }), [toast]);
+  const importConfiguration = useCallback(async () => {}, []);
+  const importDemoCustomers = useCallback(async () => {}, []);
+  const importDemoSuppliers = useCallback(async () => {}, []);
+  const loadTicketForViewing = useCallback(() => {}, []);
+  const loadSaleForEditing = useCallback(() => {}, []);
   // #endregion
 
   // #region Navigation Confirmation
@@ -2033,475 +804,75 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const confirmNavigation = useCallback(async () => {
     if (nextUrl) {
       await clearOrder();
-      routerRef.current.push(nextUrl);
+      router.push(nextUrl);
     }
     closeNavConfirm();
-  }, [nextUrl, clearOrder, closeNavConfirm]);
+  }, [nextUrl, clearOrder, closeNavConfirm, router]);
   // #endregion
 
   // #region Derived State
   const popularItems = useMemo(() => {
-    if (!sales || !items) return [];
-    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
-    const relevantSales = sales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
-    relevantSales.forEach((sale) => {
-      if (Array.isArray(sale.items)) {
-        sale.items.forEach((orderItem) => {
-          if (itemCounts[orderItem.itemId]) {
-            itemCounts[orderItem.itemId].count += orderItem.quantity;
-          } else {
-            const itemDetails = items.find((i) => i.id === orderItem.itemId);
-            if (itemDetails) {
-              itemCounts[orderItem.itemId] = {
-                item: itemDetails,
-                count: orderItem.quantity,
-              };
-            }
-          }
-        });
-      }
-    });
-    return Object.values(itemCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, popularItemsCount)
-      .map((i) => i.item);
-  }, [sales, items, popularItemsCount]);
+    return items.slice(0, popularItemsCount);
+  }, [items, popularItemsCount]);
   
-  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
-    if (!sales || sales.length === 0) {
-        return { lastDirectSale: null, lastRestaurantSale: null };
-    }
-    const sortedSales = [...sales].sort((a, b) => {
-        const dateA = a.date instanceof Object && 'toDate' in a.date ? (a.date as Timestamp).toDate() : new Date(a.date);
-        const dateB = b.date instanceof Object && 'toDate' in b.date ? (b.date as Timestamp).toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
-    });
+  const lastDirectSale: Sale | null = null;
+  const lastRestaurantSale: Sale | null = null;
 
-    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
-    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
-
-    return { lastDirectSale, lastRestaurantSale };
-  }, [sales]);
-
-  const loadTicketForViewing = useCallback((ticket: Sale) => {
-    const itemsWithSource = ticket.items.map(item => ({ ...item, sourceSale: ticket }));
-    setReadOnlyOrder(itemsWithSource);
-    if(itemsWithSource?.[0]?.image) setDynamicBgImage(itemsWithSource[0].image);
-    setCurrentSaleId(ticket.id); // Also set currentSaleId to have context
-    setCurrentSaleContext({ 
-        ticketNumber: ticket.ticketNumber,
-        date: ticket.date,
-        userName: ticket.userName,
-        isTableSale: !!ticket.tableId,
-        tableName: ticket.tableName,
-        tableId: ticket.tableId,
-        payments: ticket.payments,
-        originalTotal: ticket.originalTotal,
-        originalPayments: ticket.originalPayments,
-        change: ticket.change,
-    });
-  }, []);
-
-  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' = 'invoice') => {
-    if (!sales) return;
-    const sale = sales.find(s => s.id === saleId);
-    if (!sale) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Document non trouvé.' });
-      return;
-    }
-    
-    setOrder(sale.items);
-    setCurrentSaleId(sale.id);
-
-    const acompte = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-    
-    setCurrentSaleContext({
-      documentType: type,
-      ticketNumber: sale.ticketNumber,
-      date: sale.date,
-      userName: sale.userName,
-      customerId: sale.customerId,
-      payments: sale.payments,
-      originalTotal: sale.total,
-      originalPayments: sale.payments,
-      change: sale.change,
-      acompte: acompte,
-    });
-
-  }, [sales, toast]);
   // #endregion
 
   const value = useMemo(
     () => ({
-      order,
-      setOrder,
-      systemDate,
-      dynamicBgImage,
-      enableDynamicBg, setEnableDynamicBg,
-      dynamicBgOpacity, setDynamicBgOpacity,
-      readOnlyOrder,
-      setReadOnlyOrder,
-      addToOrder,
-      addSerializedItemToOrder,
-      removeFromOrder,
-      updateQuantity,
-      updateItemQuantityInOrder,
-      updateQuantityFromKeypad,
-      updateItemNote,
-      updateOrderItem,
-      applyDiscount,
-      clearOrder,
-      orderTotal,
-      orderTax,
-      isKeypadOpen,
-      setIsKeypadOpen,
-      currentSaleId,
-      setCurrentSaleId,
-      currentSaleContext,
-      setCurrentSaleContext,
-      serialNumberItem,
-      setSerialNumberItem,
-      variantItem,
-      setVariantItem,
-      lastDirectSale,
-      lastRestaurantSale,
-      loadTicketForViewing,
-      loadSaleForEditing,
-      users,
-      addUser,
-      updateUser,
-      deleteUser,
-      sendPasswordResetEmailForUser,
-      findUserByEmail,
-      handleSignOut,
-      validateSession,
-      forceSignOut,
-      forceSignOutUser,
-      sessionInvalidated,
-      setSessionInvalidated,
-      items,
-      addItem,
-      updateItem,
-      deleteItem,
-      toggleItemFavorite,
-      toggleFavoriteForList,
-      popularItems,
-      categories,
-      addCategory,
-      updateCategory,
-      deleteCategory,
-      toggleCategoryFavorite,
-      getCategoryColor,
-      customers,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      setDefaultCustomer,
-      suppliers,
-      addSupplier,
-      updateSupplier,
-      deleteSupplier,
-      tables,
-      addTable,
-      updateTable,
-      deleteTable,
-      forceFreeTable,
-      selectedTable,
-      setSelectedTable,
-      setSelectedTableById,
-      updateTableOrder,
-      saveTableOrderAndExit,
-      promoteTableToTicket,
-      sales,
-      recordSale,
-      recordCommercialDocument,
-      deleteAllSales,
-      paymentMethods,
-      addPaymentMethod,
-      updatePaymentMethod,
-      deletePaymentMethod,
-      vatRates,
-      addVatRate,
-      updateVatRate,
-      deleteVatRate,
-      heldOrders,
-      recallOrder,
-      deleteHeldOrder,
-      authRequired,
-      showTicketImages,
-      setShowTicketImages,
-      showItemImagesInGrid,
-      setShowItemImagesInGrid,
-      descriptionDisplay,
-      setDescriptionDisplay,
-      popularItemsCount,
-      setPopularItemsCount,
-      itemCardOpacity,
-      setItemCardOpacity,
-      paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
-      itemDisplayMode,
-      setItemDisplayMode,
-      itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground,
-      itemCardImageOverlayOpacity,
-      setItemCardImageOverlayOpacity,
-      itemCardTextColor,
-      setItemCardTextColor,
-      itemCardShowPrice,
-      setItemCardShowPrice,
-      externalLinkModalEnabled,
-      setExternalLinkModalEnabled,
-      externalLinkUrl,
-      setExternalLinkUrl,
-      externalLinkTitle,
-      setExternalLinkTitle,
-      externalLinkModalWidth,
-      setExternalLinkModalWidth,
-      externalLinkModalHeight,
-      setExternalLinkModalHeight,
-      showDashboardStats,
-      setShowDashboardStats,
-      enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
-      showNotifications,
-      setShowNotifications,
-      notificationDuration,
-      setNotificationDuration,
-      enableSerialNumber,
-      setEnableSerialNumber,
-      defaultSalesMode,
-      setDefaultSalesMode,
-      isForcedMode,
-      setIsForcedMode,
-      directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
-      restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
-      directSaleBgOpacity,
-      setDirectSaleBgOpacity,
-      restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
-      dashboardBgType,
-      setDashboardBgType,
-      dashboardBackgroundColor,
-      setDashboardBackgroundColor,
-      dashboardBackgroundImage,
-      setDashboardBackgroundImage,
-      dashboardBgOpacity,
-      setDashboardBgOpacity,
-      dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
-      dashboardButtonOpacity,
-      setDashboardButtonOpacity,
-      dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
-      dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
-      companyInfo,
-      setCompanyInfo,
-      isNavConfirmOpen,
-      showNavConfirm,
-      closeNavConfirm,
-      confirmNavigation,
-      seedInitialData,
-      resetAllData,
-      exportConfiguration,
-      importConfiguration,
-      importDemoData,
-      importDemoCustomers,
-      importDemoSuppliers,
-      cameFromRestaurant,
-      setCameFromRestaurant,
-      isLoading,
-      user,
-      toast,
-      holdOrder,
+      order, setOrder, systemDate, dynamicBgImage, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, validateSession, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, authRequired, showTicketImages, setShowTicketImages,
+      showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity,
+      paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground, setItemCardShowImageAsBackground,
+      itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice, setItemCardShowPrice,
+      externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, resetAllData, exportConfiguration, importConfiguration,
+      importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast,
     }),
-    [
-      order,
-      setOrder,
-      systemDate,
-      dynamicBgImage,
-      enableDynamicBg, setEnableDynamicBg,
-      dynamicBgOpacity, setDynamicBgOpacity,
-      readOnlyOrder,
-      addToOrder,
-      addSerializedItemToOrder,
-      removeFromOrder,
-      updateQuantity,
-      updateItemQuantityInOrder,
-      updateQuantityFromKeypad,
-      updateItemNote,
-      updateOrderItem,
-      applyDiscount,
-      clearOrder,
-      orderTotal,
-      orderTax,
-      isKeypadOpen,
-      currentSaleId,
-      currentSaleContext,
-      serialNumberItem,
-      variantItem,
-      setVariantItem,
-      lastDirectSale,
-      lastRestaurantSale,
-      loadTicketForViewing,
-      loadSaleForEditing,
-      users,
-      addUser,
-      updateUser,
-      deleteUser,
-      sendPasswordResetEmailForUser,
-      findUserByEmail,
-      handleSignOut,
-      validateSession,
-      forceSignOut,
-      forceSignOutUser,
-      sessionInvalidated,
-      items,
-      addItem,
-      updateItem,
-      deleteItem,
-      toggleItemFavorite,
-      toggleFavoriteForList,
-      popularItems,
-      categories,
-      addCategory,
-      updateCategory,
-      deleteCategory,
-      toggleCategoryFavorite,
-      getCategoryColor,
-      customers,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      setDefaultCustomer,
-      suppliers,
-      addSupplier,
-      updateSupplier,
-      deleteSupplier,
-      tables,
-      addTable,
-      updateTable,
-      deleteTable,
-      forceFreeTable,
-      selectedTable,
-      setSelectedTable,
-      setSelectedTableById,
-      updateTableOrder,
-      saveTableOrderAndExit,
-      promoteTableToTicket,
-      sales,
-      recordSale,
-      recordCommercialDocument,
-      deleteAllSales,
-      paymentMethods,
-      addPaymentMethod,
-      updatePaymentMethod,
-      deletePaymentMethod,
-      vatRates,
-      addVatRate,
-      updateVatRate,
-      deleteVatRate,
-      heldOrders,
-      recallOrder,
-      deleteHeldOrder,
-      authRequired,
-      showTicketImages,
-      setShowTicketImages,
-      showItemImagesInGrid,
-      setShowItemImagesInGrid,
-      descriptionDisplay,
-      setDescriptionDisplay,
-      popularItemsCount,
-      setPopularItemsCount,
-      itemCardOpacity,
-      setItemCardOpacity,
-      paymentMethodImageOpacity,
-      setPaymentMethodImageOpacity,
-      itemDisplayMode,
-      setItemDisplayMode,
-      itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground,
-      itemCardImageOverlayOpacity,
-      setItemCardImageOverlayOpacity,
-      itemCardTextColor,
-      setItemCardTextColor,
-      itemCardShowPrice,
-      setItemCardShowPrice,
-      externalLinkModalEnabled,
-      setExternalLinkModalEnabled,
-      externalLinkUrl,
-      setExternalLinkUrl,
-      externalLinkTitle,
-      setExternalLinkTitle,
-      externalLinkModalWidth,
-      setExternalLinkModalWidth,
-      externalLinkModalHeight,
-      setExternalLinkModalHeight,
-      showDashboardStats,
-      setShowDashboardStats,
-      enableRestaurantCategoryFilter,
-      setEnableRestaurantCategoryFilter,
-      showNotifications,
-      setShowNotifications,
-      notificationDuration,
-      setNotificationDuration,
-      enableSerialNumber,
-      setEnableSerialNumber,
-      defaultSalesMode,
-      setDefaultSalesMode,
-      isForcedMode,
-      setIsForcedMode,
-      directSaleBackgroundColor,
-      setDirectSaleBackgroundColor,
-      restaurantModeBackgroundColor,
-      setRestaurantModeBackgroundColor,
-      directSaleBgOpacity,
-      setDirectSaleBgOpacity,
-      restaurantModeBgOpacity,
-      setRestaurantModeBgOpacity,
-      dashboardBgType,
-      setDashboardBgType,
-      dashboardBackgroundColor,
-      setDashboardBackgroundColor,
-      dashboardBackgroundImage,
-      setDashboardBackgroundImage,
-      dashboardBgOpacity,
-      setDashboardBgOpacity,
-      dashboardButtonBackgroundColor,
-      setDashboardButtonBackgroundColor,
-      dashboardButtonOpacity,
-      setDashboardButtonOpacity,
-      dashboardButtonShowBorder,
-      setDashboardButtonShowBorder,
-      dashboardButtonBorderColor,
-      setDashboardButtonBorderColor,
-      companyInfo,
-      setCompanyInfo,
-      isNavConfirmOpen,
-      showNavConfirm,
-      closeNavConfirm,
-      confirmNavigation,
-      seedInitialData,
-      resetAllData,
-      exportConfiguration,
-      importConfiguration,
-      importDemoData,
-      importDemoCustomers,
-      importDemoSuppliers,
-      cameFromRestaurant,
-      setCameFromRestaurant,
-      isLoading,
-      user,
-      toast,
-      holdOrder,
-    ]
+    [ order, setOrder, systemDate, dynamicBgImage, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, validateSession, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, authRequired, showTicketImages, setShowTicketImages,
+      showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount, itemCardOpacity, setItemCardOpacity,
+      paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground, setItemCardShowImageAsBackground,
+      itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice, setItemCardShowPrice,
+      externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, resetAllData, exportConfiguration, importConfiguration,
+      importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast]
   );
 
   return (
-    <PosContext.Provider value={value}>
+    <PosContext.Provider value={value as any}>
       {children}
     </PosContext.Provider>
   );

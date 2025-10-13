@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,7 +23,6 @@ import { AddVatDialog } from './components/add-vat-dialog';
 import { EditVatDialog } from './components/edit-vat-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/auth/use-user';
 
 
 export default function VatPage() {
@@ -124,5 +122,3 @@ export default function VatPage() {
     </>
   );
 }
-
-    

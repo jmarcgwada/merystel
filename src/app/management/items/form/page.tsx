@@ -254,7 +254,7 @@ function ItemForm() {
         return;
     }
 
-    const submissionData = {
+    const submissionData: Omit<Item, 'id'> & { id?: string } = {
         ...data,
         variantOptions: data.variantOptions?.map(opt => ({
             name: opt.name,

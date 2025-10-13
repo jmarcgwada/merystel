@@ -33,34 +33,14 @@ function AppLoading() {
 
 function SessionValidation({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
-  const { validateSession, forceSignOut, sessionInvalidated, setSessionInvalidated, order } = usePos();
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const pathname = usePathname();
 
   useEffect(() => {
-    if (loading) {
-      return;
-    }
-    if (!user) {
+    if (!loading && !user) {
       redirect('/login');
-      return;
     }
-    const sessionToken = localStorage.getItem('sessionToken');
-    if (!sessionToken || !validateSession(user.uid, sessionToken)) {
-        if (order && order.length > 0) {
-            setSessionInvalidated(true);
-        } else {
-            forceSignOut("Une nouvelle session a été démarrée sur un autre appareil.");
-            return;
-        }
-    } else if (sessionInvalidated && order && order.length === 0) {
-        forceSignOut("Session terminée après la fin de la transaction.");
-        return;
-    }
-    setIsCheckingSession(false);
-  }, [user, loading, validateSession, forceSignOut, order, sessionInvalidated, setSessionInvalidated, pathname]);
+  }, [user, loading]);
 
-  if (isCheckingSession || loading) {
+  if (loading) {
     return <AppLoading />;
   }
 
@@ -82,10 +62,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <PosProvider>
       <SessionValidation>
         {children}
       </SessionValidation>
-    </PosProvider>
   )
 }

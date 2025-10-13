@@ -26,24 +26,11 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/auth/use-user';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
-
 
 export default function CategoriesPage() {
-  const firestore = useFirestore();
-  const { user } = useUser();
+  const { categories, items, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
-  const { deleteCategory, toggleCategoryFavorite, isLoading: isPosLoading } = usePos();
-  
-  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'categories') : null, [firestore, user]);
-  const { data: categories, isLoading: isCategoriesLoading } = useCollection<Category>(categoriesCollectionRef);
-  const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'items') : null, [firestore, user]);
-  const { data: items, isLoading: isItemsLoading } = useCollection<Item>(itemsCollectionRef);
-  const isLoading = isPosLoading || isCategoriesLoading || isItemsLoading;
   
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);

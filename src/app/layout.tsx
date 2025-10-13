@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import * as React from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -11,12 +10,8 @@ import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
-import { SessionManager } from '@/components/session-manager';
-import { PosProvider, usePos } from '@/contexts/pos-context';
+import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
-import { useUser } from '@/firebase/auth/use-user';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 function AppLoading() {
   return (
@@ -41,68 +36,6 @@ function AppLoading() {
   )
 }
 
-function AutoAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useUser();
-  const auth = useAuth();
-  const { addUser } = usePos();
-  const [isAutoLoginDone, setIsAutoLoginDone] = useState(false);
-  const autoLoginAttempted = useRef(false);
-
-  const superAdminEmail = 'superadmin@zenith.app';
-  const superAdminPassword = 'password';
-
-  useEffect(() => {
-    if (loading || !auth || autoLoginAttempted.current) {
-      return;
-    }
-    
-    autoLoginAttempted.current = true;
-
-    if (!user) {
-      const autoLogin = async () => {
-        try {
-          // Attempt to sign in first
-          await signInWithEmailAndPassword(auth, superAdminEmail, superAdminPassword);
-          setIsAutoLoginDone(true);
-        } catch (error: any) {
-          // If user does not exist, create it
-          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            try {
-              await addUser({
-                firstName: 'Super',
-                lastName: 'Admin',
-                email: superAdminEmail,
-                role: 'admin',
-              }, superAdminPassword);
-              
-              // Now sign in
-              await signInWithEmailAndPassword(auth, superAdminEmail, superAdminPassword);
-              setIsAutoLoginDone(true);
-            } catch (creationError) {
-              console.error("Failed to create and sign in super admin:", creationError);
-              setIsAutoLoginDone(true); // Stop trying
-            }
-          } else {
-            console.error("Failed to sign in super admin:", error);
-            setIsAutoLoginDone(true); // Stop trying
-          }
-        }
-      };
-      
-      autoLogin();
-    } else {
-        setIsAutoLoginDone(true);
-    }
-  }, [user, loading, auth, addUser]);
-
-  if (loading || !isAutoLoginDone) {
-    return <AppLoading />;
-  }
-
-  return <>{children}</>;
-}
-
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -123,21 +56,17 @@ export default function RootLayout({
       <body className="font-body antialiased flex flex-col h-screen overflow-hidden">
         <FirebaseClientProvider>
           <PosProvider>
-            <AutoAuth>
-              <KeyboardProvider>
-                <SessionManager>
-                  <React.Suspense fallback={<AppLoading/>}>
-                    <Header />
-                    <main className="flex-1 overflow-auto">{children}</main>
-                    <Toaster />
-                    <NavigationGuard />
-                    <NavigationConfirmationDialog />
-                    <VirtualKeyboard />
-                    <ExternalLinkModal />
-                  </React.Suspense>
-                </SessionManager>
-              </KeyboardProvider>
-            </AutoAuth>
+            <KeyboardProvider>
+                <React.Suspense fallback={<AppLoading/>}>
+                  <Header />
+                  <main className="flex-1 overflow-auto">{children}</main>
+                  <Toaster />
+                  <NavigationGuard />
+                  <NavigationConfirmationDialog />
+                  <VirtualKeyboard />
+                  <ExternalLinkModal />
+                </React.Suspense>
+            </KeyboardProvider>
           </PosProvider>
         </FirebaseClientProvider>
       </body>

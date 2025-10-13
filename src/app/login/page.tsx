@@ -7,8 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
@@ -31,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, setDoc } from 'firebase/firestore';
 
 
 const adminSchema = z.object({
@@ -60,8 +57,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
   const { users, isLoading: posLoading, addUser, findUserByEmail, handleSignOut, sendPasswordResetEmailForUser } = usePos();
@@ -76,15 +71,6 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
 
 
-  useEffect(() => {
-    if (!userLoading && !posLoading) {
-      setIsReady(true);
-      if (users && users.length === 0) {
-        setIsFirstLaunch(true);
-      }
-    }
-  }, [userLoading, posLoading, users]);
-  
   useEffect(() => {
     // Set email from localStorage on initial client-side render
     const lastEmail = localStorage.getItem('lastLoginEmail');
@@ -112,81 +98,30 @@ export default function LoginPage() {
 
   const handleCreateAdmin = async (data: AdminFormValues) => {
     setIsLoading(true);
-    try {
-        await addUser({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            role: 'admin',
-        }, data.password);
-        toast({
-            title: 'Administrateur créé',
-            description: 'Vous pouvez maintenant vous connecter avec ces identifiants.',
-        });
-        setIsFirstLaunch(false); // Switch to login form
-    } catch (error) {
-         // The error toast is already handled inside addUser
-    } finally {
-        setIsLoading(false);
-    }
+    // Mock user creation
+    toast({
+        title: 'Mode déconnecté',
+        description: 'Fonctionnalité non disponible sans connexion à la base de données.',
+    });
+    setIsFirstLaunch(false);
+    setIsLoading(false);
   }
 
   const performLogin = async (emailToLogin: string, passwordToLogin: string) => {
-    try {
-        const userToLogin = findUserByEmail(emailToLogin);
-        if (userToLogin?.isDisabled) {
-            toast({
-                variant: 'destructive',
-                title: 'Compte désactivé',
-                description: 'Ce compte est désactivé. Veuillez contacter un administrateur.'
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, passwordToLogin);
-        const newSessionToken = uuidv4();
-        localStorage.setItem('sessionToken', newSessionToken);
-        localStorage.setItem('lastLoginEmail', emailToLogin); // Remember email on successful login
-        const userRef = doc(firestore, 'users', userCredential.user.uid);
-        await setDoc(userRef, { sessionToken: newSessionToken }, { merge: true });
-        router.push('/dashboard');
-    } catch (error: any) {
-        console.error("Login Error:", error);
-        let description = 'Vérifiez vos identifiants et réessayez.';
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            description = 'L\'adresse e-mail ou le mot de passe est incorrect.';
-        }
-        toast({ variant: 'destructive', title: 'Échec de la connexion', description });
-    } finally {
-        setIsLoading(false);
-    }
+    toast({
+        title: 'Mode déconnecté',
+        description: 'La connexion est désactivée.',
+    });
+    router.push('/dashboard');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const userToLogin = findUserByEmail(email);
-
-    if (userToLogin?.isDisabled) {
-        toast({
-            variant: 'destructive',
-            title: 'Compte désactivé',
-            description: 'Ce compte est désactivé. Veuillez contacter un administrateur.'
-        });
-        setIsLoading(false);
-        return;
-    }
-
-    if (userToLogin && userToLogin.sessionToken && userToLogin.sessionToken.length > 0) {
-        setLoginCredentials({email, password});
-        setShowPinDialog(true);
-        setIsLoading(false);
-        return;
-    }
-
-    await performLogin(email, password);
+    // Bypass all firebase logic
+    localStorage.setItem('lastLoginEmail', email);
+    router.push('/dashboard');
   };
   
   const generateDynamicPin = () => {
@@ -202,25 +137,7 @@ export default function LoginPage() {
   };
 
   const handlePinSubmit = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        const correctPin = generateDynamicPin();
-        if (pin === correctPin) {
-            setShowPinDialog(false);
-            setPin('');
-            if(loginCredentials) {
-                setIsLoading(true);
-                await performLogin(loginCredentials.email, loginCredentials.password);
-            }
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Code PIN incorrect',
-                description: 'La tentative de connexion a échoué.'
-            });
-            setShowPinDialog(false);
-            setPin('');
-             setIsLoading(false);
-        }
+    // Disabled
   }
 
   const handlePinKeyPress = (key: string) => {
@@ -235,24 +152,14 @@ export default function LoginPage() {
 
 
   const handlePasswordReset = async () => {
-    if (!resetEmail) {
-      toast({
-        variant: 'destructive',
-        title: 'Email requis',
-        description: 'Veuillez entrer une adresse e-mail.',
-      });
-      return;
-    }
-    await sendPasswordResetEmailForUser(resetEmail);
-    setForgotPasswordOpen(false);
-    setResetEmail('');
+    // Disabled
   };
 
 
   if (userLoading || posLoading || !isReady) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p>Initialisation de l'application...</p>
+        <p>Chargement de l'application...</p>
       </div>
     );
   }
@@ -270,7 +177,7 @@ export default function LoginPage() {
                 <UserPlus /> Bienvenue !
               </CardTitle>
               <CardDescription>
-                Aucun utilisateur détecté. Veuillez créer le premier compte administrateur.
+                Créez un compte pour commencer.
               </CardDescription>
             </CardHeader>
             <Form {...adminForm}>
@@ -333,7 +240,7 @@ export default function LoginPage() {
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full" type="submit" disabled={isLoading}>
-                        {isLoading ? 'Création en cours...' : 'Créer le compte administrateur'}
+                        {isLoading ? 'Création en cours...' : 'Créer le compte'}
                         </Button>
                     </CardFooter>
                 </form>

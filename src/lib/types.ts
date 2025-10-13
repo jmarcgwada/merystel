@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -191,11 +192,9 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  // role is removed, all users are admins
+  role?: 'admin' | 'manager' | 'cashier';
   companyId: string;
   sessionToken?: string;
   isDisabled?: boolean;
   sessionDuration?: number; // in minutes, 0 for unlimited
 }
-
-    

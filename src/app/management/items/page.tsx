@@ -24,31 +24,13 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser } from '@/firebase/auth/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
-  const firestore = useFirestore();
-  const { user } = useUser();
-  const { deleteItem, toggleItemFavorite, isLoading: isPosLoading } = usePos();
-  
-  const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'items') : null, [firestore, user]);
-  const { data: items, isLoading: isItemsLoading } = useCollection<Item>(itemsCollectionRef);
-  
-  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'categories') : null, [firestore, user]);
-  const { data: categories, isLoading: isCategoriesLoading } = useCollection<Category>(categoriesCollectionRef);
-  
-  const vatRatesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'vatRates') : null, [firestore, user]);
-  const { data: vatRates, isLoading: isVatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
-
-  const isLoading = isPosLoading || isItemsLoading || isCategoriesLoading || isVatRatesLoading;
-  
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -88,8 +70,8 @@ export default function ItemsPage() {
                 aValue = getCategoryName(a.categoryId);
                 bValue = getCategoryName(b.categoryId);
             } else {
-                aValue = a[sortConfig.key] ?? 0;
-                bValue = b[sortConfig.key] ?? 0;
+                aValue = a[sortConfig.key as keyof Item] ?? 0;
+                bValue = b[sortConfig.key as keyof Item] ?? 0;
             }
 
             if (aValue < bValue) {
