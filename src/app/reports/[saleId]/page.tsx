@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -167,7 +166,7 @@ function SaleDetailContent() {
     }
   }
   
-  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'Bon de livraison' : 'Ticket';
+  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'BL' : 'Ticket';
 
   if (isLoading) {
       return (
@@ -416,4 +415,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-

@@ -41,9 +41,9 @@ const docTypeConfig = {
     showAcompte: false,
   },
   delivery_note: {
-    title: 'Gestion des Bons de Livraison',
+    title: 'Gestion des BL',
     subtitle: 'Créez un nouveau bon de livraison.',
-    editTitle: 'Modifier le bon de livraison',
+    editTitle: 'Modifier le BL',
     editSubtitle: 'Modifiez les articles et finalisez le bon.',
     saveButton: 'Sauvegarder le bon',
     updateButton: 'Transformer en Facture',

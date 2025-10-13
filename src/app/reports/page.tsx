@@ -397,7 +397,7 @@ export default function ReportsPage() {
               <Button asChild>
                   <Link href="/commercial/delivery-notes">
                       <FilePlus className="mr-2 h-4 w-4" />
-                      Nouveau bon de livraison
+                      Nouveau BL
                   </Link>
               </Button>
           )
@@ -707,7 +707,7 @@ export default function ReportsPage() {
                             const sellerName = getUserName(sale.userId, sale.userName);
                             const pieceType = sale.documentType === 'invoice' ? 'Facture'
                                             : sale.documentType === 'quote' ? 'Devis'
-                                            : sale.documentType === 'delivery_note' ? 'Bon de livraison'
+                                            : sale.documentType === 'delivery_note' ? 'BL'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
                                             : 'Ticket';
                             
