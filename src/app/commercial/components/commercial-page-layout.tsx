@@ -220,47 +220,53 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const renderHeaderActions = () => {
     const isEditingExistingDoc = !!saleIdToEdit;
     const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
-
+  
+    // Logic for creating a new document
     if (!isEditingExistingDoc) {
       return (
         <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-             <Sparkles className="h-4 w-4" />
-           </Button>
+          <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
+            <Sparkles className="h-4 w-4" />
+          </Button>
           {editingDocType === 'invoice' ? (
-              <Button size="lg" onClick={handleSave} disabled={!isReady}>
-                {currentConfig.saveButton}
-              </Button>
+            <Button size="lg" onClick={handleSave} disabled={!isReady}>
+              {currentConfig.saveButton}
+            </Button>
           ) : (
-             <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
-                {currentConfig.saveButton}
-             </Button>
+            <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
+              {currentConfig.saveButton}
+            </Button>
           )}
         </div>
       );
     }
-
-    // Is editing an existing document
-    return (
-      <div className="flex items-center gap-2">
-        {isQuoteOrDeliveryNote && (
-          <>
-            <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
-              Sauvegarder les modifications
-            </Button>
-            <Button size="lg" onClick={handleTransformToInvoice} disabled={!isReady} className="bg-green-600 hover:bg-green-700">
-              <FileCog className="mr-2 h-4 w-4" />
-              {currentConfig.updateButton}
-            </Button>
-          </>
-        )}
-        {editingDocType === 'invoice' && (
-          <Button size="lg" onClick={handleSave} disabled={!isReady}>
-            {currentConfig.saveButton}
+  
+    // Logic for editing an existing document
+    if (isQuoteOrDeliveryNote) {
+      return (
+        <div className="flex items-center gap-2">
+          <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
+            Sauvegarder les modifications
           </Button>
-        )}
-      </div>
-    );
+          <Button size="lg" onClick={handleTransformToInvoice} disabled={!isReady} className="bg-green-600 hover:bg-green-700">
+            <FileCog className="mr-2 h-4 w-4" />
+            {currentConfig.updateButton}
+          </Button>
+        </div>
+      );
+    }
+  
+    if (editingDocType === 'invoice') {
+      return (
+        <div className="flex items-center gap-2">
+          <Button size="lg" onClick={handleSave} disabled={!isReady}>
+            {currentConfig.updateButton}
+          </Button>
+        </div>
+      );
+    }
+  
+    return null;
   };
 
 
