@@ -281,11 +281,57 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
 }
 
+const initializeDemoData = () => {
+  const demoVatRates = [
+    { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+    { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+    { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+  ];
+
+  const demoPaymentMethods = [
+    { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
+    { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
+    { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
+    { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
+  ];
+
+  const demoCategories: Category[] = [];
+  const demoItems: Item[] = [];
+
+  demoData.categories.forEach((categoryData, catIndex) => {
+      const catId = `cat_${catIndex}`;
+      demoCategories.push({
+          id: catId,
+          name: categoryData.name,
+          image: `https://picsum.photos/seed/${catId}/200/150`,
+          color: '#e2e8f0'
+      });
+
+      categoryData.items.forEach((itemData, itemIndex) => {
+          const itemId = `${catId}_item_${itemIndex}`;
+          demoItems.push({
+              id: itemId,
+              name: itemData.name,
+              price: itemData.price,
+              description: itemData.description,
+              categoryId: catId,
+              vatId: 'vat_20', // Default VAT
+              image: `https://picsum.photos/seed/${itemId}/200/150`,
+              barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+          });
+      });
+  });
+
+  return { demoVatRates, demoPaymentMethods, demoCategories, demoItems };
+};
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const { toast: shadcnToast } = useShadcnToast();
+
+  const { demoVatRates, demoPaymentMethods, demoCategories, demoItems } = useMemo(initializeDemoData, []);
 
   // #region State
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -345,14 +391,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
   // Data states, now managed locally
-  const [items, setItems] = useState<Item[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [items, setItems] = useState<Item[]>(demoItems);
+  const [categories, setCategories] = useState<Category[]>(demoCategories);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [tablesData, setTablesData] = useState<Table[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [vatRates, setVatRates] = useState<VatRate[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(demoPaymentMethods);
+  const [vatRates, setVatRates] = useState<VatRate[]>(demoVatRates);
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [companyInfo, setCompanyInfoState] = useState<CompanyInfo | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -382,78 +428,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
   // #region Mock Data Management
-  const seedInitialData = useCallback(() => {
-    // This function will now populate local state instead of Firestore
-    const defaultVatRates = [
-      { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-      { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-      { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-    ];
-    setVatRates(defaultVatRates);
-
-    const defaultPaymentMethods = [
-      { id: 'pm_cash', name: 'Espèces', icon: 'cash', type: 'direct', isActive: true },
-      { id: 'pm_card', name: 'Carte Bancaire', icon: 'card', type: 'direct', isActive: true },
-      { id: 'pm_check', name: 'Chèque', icon: 'check', type: 'direct', isActive: true },
-      { id: 'pm_other', name: 'AUTRE', icon: 'other', type: 'direct', isActive: true },
-    ];
-    setPaymentMethods(defaultPaymentMethods as any);
-    toast({ title: "Données de base initialisées (localement)" });
-  }, [toast]);
-  
-  const importDemoData = useCallback(() => {
-    const defaultVatId = 'vat_20';
-    const demoCategories: Category[] = [];
-    const demoItems: Item[] = [];
-
-    demoData.categories.forEach((categoryData, catIndex) => {
-        const catId = `cat_${catIndex}`;
-        demoCategories.push({
-            id: catId,
-            name: categoryData.name,
-            image: `https://picsum.photos/seed/${catId}/200/150`,
-            color: '#e2e8f0'
-        });
-
-        categoryData.items.forEach((itemData, itemIndex) => {
-            const itemId = `${catId}_item_${itemIndex}`;
-            demoItems.push({
-                id: itemId,
-                name: itemData.name,
-                price: itemData.price,
-                description: itemData.description,
-                categoryId: catId,
-                vatId: defaultVatId,
-                image: `https://picsum.photos/seed/${itemId}/200/150`,
-                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
-            });
-        });
-    });
-
-    setCategories(prev => [...prev, ...demoCategories]);
-    setItems(prev => [...prev, ...demoItems]);
-    toast({ title: 'Données de démo importées (localement)' });
-  }, [toast]);
-
-  useEffect(() => {
-    seedInitialData();
-    importDemoData();
-  }, [seedInitialData, importDemoData]);
-
-  const resetAllData = useCallback(() => {
-    setItems([]);
-    setCategories([]);
-    setCustomers([]);
-    setTablesData([]);
-    setSales([]);
-    setPaymentMethods([]);
-    setVatRates([]);
-    setHeldOrders([]);
-    setCompanyInfoState(null);
-    setUsers([]);
-    toast({ title: 'Données locales réinitialisées' });
-  }, [toast]);
-
+  const seedInitialData = useCallback(() => {}, []);
+  const importDemoData = useCallback(() => {}, []);
+  const resetAllData = useCallback(() => {}, []);
   const deleteAllSales = useCallback(async () => {
     setSales([]);
     toast({ title: 'Ventes supprimées (localement)' });
@@ -885,3 +862,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
