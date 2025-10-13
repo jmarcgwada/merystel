@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -403,16 +404,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
     }, [items, categories, vatRates, setVatRates, setPaymentMethods, toast]);
     
-    useEffect(() => {
-        const isSeeded = localStorage.getItem('data.seeded');
-        if (!isSeeded) {
-            seedInitialData();
-            localStorage.setItem('data.seeded', 'true');
-        }
-    }, [seedInitialData]);
-
-
-  const importDemoData = useCallback(async () => {
+     const importDemoData = useCallback(async () => {
         const newCategories: Category[] = [];
         const newItems: Item[] = [];
         const categoryIdMap: { [key: string]: string } = {};
@@ -448,11 +440,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 });
             });
         });
+        
+        const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
+            id: `C${uuidv4().substring(0,6)}`,
+            name: `Client Démo ${i + 1}`,
+            email: `client${i+1}@demo.com`
+        }));
+        
+        const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
+            id: `S-${uuidv4().substring(0,6)}`,
+            name: `Fournisseur Démo ${i + 1}`,
+            email: `fournisseur${i+1}@demo.com`
+        }));
 
         setCategories(prev => [...prev, ...newCategories]);
         setItems(prev => [...prev, ...newItems]);
-        toast({ title: 'Données de démo importées !', description: `${newItems.length} articles et ${newCategories.length} catégories ajoutés.` });
-    }, [vatRates, setCategories, setItems, toast]);
+        setCustomers(prev => [...prev, ...demoCustomers]);
+        setSuppliers(prev => [...prev, ...demoSuppliers]);
+        toast({ title: 'Données de démo importées !' });
+    }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
     
     const importDemoCustomers = useCallback(async () => {
         const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
@@ -473,6 +479,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSuppliers(prev => [...prev, ...demoSuppliers]);
         toast({ title: 'Fournisseurs de démo importés !' });
     }, [setSuppliers, toast]);
+
+    useEffect(() => {
+        const isSeeded = localStorage.getItem('data.seeded');
+        if (!isSeeded) {
+            seedInitialData();
+            importDemoData();
+            localStorage.setItem('data.seeded', 'true');
+        }
+    }, [seedInitialData, importDemoData]);
+
 
   const resetAllData = useCallback(async () => {
     setItems([]);
@@ -910,9 +926,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
         } else {
             const dayMonth = format(today, 'ddMM');
-            const todaysSalesCount = sales.filter(s => new Date(s.date as Date).toDateString() === today.toDateString()).length;
-            const shortUuid = uuidv4().substring(0, 4).toUpperCase();
-            const ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+            let ticketNumber: string;
+
+            if (saleData.documentType === 'invoice') {
+                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
+                ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+            } else {
+                const todaysSalesCount = sales.filter(s => new Date(s.date as Date).toDateString() === today.toDateString() && s.documentType !== 'invoice').length;
+                ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+            }
             
             finalSale = {
                 id: uuidv4(),
@@ -970,8 +992,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
         clearOrder();
 
-        const reportPath = type === 'invoice' ? '/reports?filter=Fact-' 
-                        : type === 'quote' ? '/reports?filter=Devis-'
+        const reportPath = type === 'quote' ? '/reports?filter=Devis-'
                         : type === 'delivery_note' ? '/reports?filter=BL-'
                         : '/reports';
         router.push(reportPath);
