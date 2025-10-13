@@ -51,7 +51,7 @@ export default function Header() {
   const { 
     showNavConfirm, 
     order, 
-    handleSignOut: handlePosSignOut,
+    handleSignOut,
     isForcedMode,
     setIsForcedMode: setGlobalForcedMode,
     toast,
@@ -66,19 +66,24 @@ export default function Header() {
 
   useEffect(() => {
     setIsClient(true);
-    switch (defaultSalesMode) {
-      case 'supermarket':
-        setSalesModeLink('/supermarket');
-        break;
-      case 'restaurant':
-        setSalesModeLink('/restaurant');
-        break;
-      case 'pos':
-      default:
-        setSalesModeLink('/pos');
-        break;
+  }, []);
+
+  useEffect(() => {
+    if(isClient) {
+      switch (defaultSalesMode) {
+        case 'supermarket':
+          setSalesModeLink('/supermarket');
+          break;
+        case 'restaurant':
+          setSalesModeLink('/restaurant');
+          break;
+        case 'pos':
+        default:
+          setSalesModeLink('/pos');
+          break;
+      }
     }
-  }, [defaultSalesMode]);
+  }, [defaultSalesMode, isClient]);
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
@@ -90,11 +95,6 @@ export default function Header() {
       e.preventDefault();
       showNavConfirm(href);
     }
-  };
-
-  const handleSignOut = async () => {
-    // await handlePosSignOut(); // Firebase-related
-    router.push('/login');
   };
   
   const canAccessCompanySettings = user?.role === 'admin';
@@ -115,12 +115,8 @@ export default function Header() {
     e?.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
-        if(user?.isForcedMode) {
-          toast({ title: 'Non autorisé', description: "Le mode forcé est activé pour votre compte et ne peut être déverrouillé que par un administrateur."})
-        } else {
-          setGlobalForcedMode(false);
-          toast({ title: 'Mode forcé désactivé', description: 'Vous pouvez à nouveau naviguer librement.' });
-        }
+        setGlobalForcedMode(false);
+        toast({ title: 'Mode forcé désactivé', description: 'Vous pouvez à nouveau naviguer librement.' });
         setPinDialogOpen(false);
         setPin('');
         router.push('/dashboard');
@@ -181,9 +177,9 @@ export default function Header() {
               </Button>
               <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
                 {isClient ? (
-                    <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
+                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
                 ) : (
-                  // Render a non-interactive element on the server and during initial client render
+                  // Render a non-interactive element on the server and during initial client render to avoid hydration mismatch
                   <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
                 )}
               </Button>
@@ -214,16 +210,16 @@ export default function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
-                      <p className="text-sm font-medium text-foreground">Utilisateur</p>
-                      <p className="text-xs text-muted-foreground">email@example.com</p>
+                      <p className="text-sm font-medium text-foreground">{user?.firstName || 'Utilisateur'}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email || '...'}</p>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Utilisateur de démo</p>
+                      <p className="text-sm font-medium leading-none">{user?.firstName} {user?.lastName}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        email@example.com
+                        {user?.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>

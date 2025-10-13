@@ -26,7 +26,7 @@ import type {
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
@@ -71,8 +71,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -89,7 +89,6 @@ interface PosContextType {
   sendPasswordResetEmailForUser: (email: string) => void;
   findUserByEmail: (email: string) => User | undefined;
   handleSignOut: (isAuto?: boolean) => Promise<void>;
-  validateSession: (userId: string, token: string) => boolean;
   forceSignOut: (message: string) => void;
   forceSignOutUser: (userId: string) => void;
   sessionInvalidated: boolean;
@@ -252,88 +251,146 @@ interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 // Helper hook for persisting state to localStorage
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    });
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error(`Error reading localStorage key “${key}”:`, error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
                 console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
-    return [state, setState];
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error(`Error re-reading localStorage key “${key}”:`, error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
 }
 
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast: shadcnToast } = useShadcnToast();
 
-  // #region State
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Settings States
+  const [enableDynamicBg, setEnableDynamicBg, rehydrateEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [dynamicBgOpacity, setDynamicBgOpacity, rehydrateDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
+  const [showTicketImages, setShowTicketImages, rehydrateShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [showItemImagesInGrid, setShowItemImagesInGrid, rehydrateShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
+  const [descriptionDisplay, setDescriptionDisplay, rehydrateDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
+  const [popularItemsCount, setPopularItemsCount, rehydratePopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemCardOpacity, setItemCardOpacity, rehydrateItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity, rehydratePaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemDisplayMode, setItemDisplayMode, rehydrateItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground, rehydrateItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, rehydrateItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
+  const [itemCardTextColor, setItemCardTextColor, rehydrateItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
+  const [itemCardShowPrice, setItemCardShowPrice, rehydrateItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled, rehydrateExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl, rehydrateExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle, rehydrateExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkModalWidth, setExternalLinkModalWidth, rehydrateExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight, rehydrateExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats, rehydrateShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, rehydrateEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
+  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [enableSerialNumber, setEnableSerialNumber, rehydrateEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
+  const [defaultSalesMode, setDefaultSalesMode, rehydrateDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
+  const [isForcedMode, setIsForcedMode, rehydrateIsForcedMode] = usePersistentState('settings.isForcedMode', false);
+  const [directSaleBackgroundColor, setDirectSaleBackgroundColor, rehydrateDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
+  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, rehydrateRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
+  const [directSaleBgOpacity, setDirectSaleBgOpacity, rehydrateDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
+  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity, rehydrateRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
+  const [dashboardBgType, setDashboardBgType, rehydrateDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
+  const [dashboardBackgroundColor, setDashboardBackgroundColor, rehydrateDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
+  const [dashboardBackgroundImage, setDashboardBackgroundImage, rehydrateDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
+  const [dashboardBgOpacity, setDashboardBgOpacity, rehydrateDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, rehydrateDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
+  const [dashboardButtonOpacity, setDashboardButtonOpacity, rehydrateDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
+  const [dashboardButtonShowBorder, setDashboardButtonShowBorder, rehydrateDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
+  const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
+
+  useEffect(() => {
+    // This effect runs once on the client after hydration.
+    // We can now safely access localStorage and update our states.
+    rehydrateEnableDynamicBg();
+    rehydrateDynamicBgOpacity();
+    rehydrateShowTicketImages();
+    rehydrateShowItemImagesInGrid();
+    rehydrateDescriptionDisplay();
+    rehydratePopularItemsCount();
+    rehydrateItemCardOpacity();
+    rehydratePaymentMethodImageOpacity();
+    rehydrateItemDisplayMode();
+    rehydrateItemCardShowImageAsBackground();
+    rehydrateItemCardImageOverlayOpacity();
+    rehydrateItemCardTextColor();
+    rehydrateItemCardShowPrice();
+    rehydrateExternalLinkModalEnabled();
+    rehydrateExternalLinkUrl();
+    rehydrateExternalLinkTitle();
+    rehydrateExternalLinkModalWidth();
+    rehydrateExternalLinkModalHeight();
+    rehydrateShowDashboardStats();
+    rehydrateEnableRestaurantCategoryFilter();
+    rehydrateShowNotifications();
+    rehydrateNotificationDuration();
+    rehydrateEnableSerialNumber();
+    rehydrateDefaultSalesMode();
+    rehydrateIsForcedMode();
+    rehydrateDirectSaleBackgroundColor();
+    rehydrateRestaurantModeBackgroundColor();
+    rehydrateDirectSaleBgOpacity();
+    rehydrateRestaurantModeBgOpacity();
+    rehydrateDashboardBgType();
+    rehydrateDashboardBackgroundColor();
+    rehydrateDashboardBackgroundImage();
+    rehydrateDashboardBgOpacity();
+    rehydrateDashboardButtonBackgroundColor();
+    rehydrateDashboardButtonOpacity();
+    rehydrateDashboardButtonShowBorder();
+    rehydrateDashboardButtonBorderColor();
+    setIsHydrated(true);
+  }, []); // Empty dependency array ensures this runs only once on the client.
+
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
-  
-  // Settings States
-  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
-  const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
-  const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
-  const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
-  const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
-  const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
-  const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
-  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
-  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
-  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
-  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
-  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
-  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
-  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
-  const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
-  const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
-  const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
-  const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
-  const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
-  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
-  const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
-  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
-  const [dashboardBgType, setDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
-  const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
-  const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
-  const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
-  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
-  const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
-  const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
-  const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -344,22 +401,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
   // Data states, now managed locally
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData, rehydrateTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
-  const isLoading = userLoading;
-  // #endregion
-
-  // Custom toast function that respects the user setting
+  const isLoading = userLoading || !isHydrated;
+  
   const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
@@ -370,124 +425,140 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [showNotifications, notificationDuration, shadcnToast]);
   
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSystemDate(new Date());
-    }, 60000); // Update every minute
+    const timer = setInterval(() => setSystemDate(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
-  // #region Mock/Local Data Management
-    const seedInitialData = useCallback(() => {
-        const hasData = items.length > 0 || categories.length > 0 || vatRates.length > 0;
-        if (hasData) {
-            console.log('Data already exists, skipping seed.');
-            return;
-        }
-
-        const defaultVatRates: VatRate[] = [
-            { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-            { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-            { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-        ];
-        setVatRates(defaultVatRates);
-
-        const defaultPaymentMethods: PaymentMethod[] = [
-            { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
-            { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
-            { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
-            { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
-        ];
-        setPaymentMethods(defaultPaymentMethods);
-        
-        toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-    }, [items, categories, vatRates, setVatRates, setPaymentMethods, toast]);
-    
-     const importDemoData = useCallback(async () => {
-        const newCategories: Category[] = [];
-        const newItems: Item[] = [];
-        const categoryIdMap: { [key: string]: string } = {};
-        const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
-        
-        if (!defaultVatId) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
-            return;
-        }
-
-        demoData.categories.forEach((categoryData) => {
-            const catId = uuidv4();
-            newCategories.push({
-                id: catId,
-                name: categoryData.name,
-                image: `https://picsum.photos/seed/${catId}/200/150`,
-                color: '#e2e8f0'
-            });
-            categoryIdMap[categoryData.name] = catId;
-
-            categoryData.items.forEach((itemData) => {
-                const itemId = uuidv4();
-                newItems.push({
-                    id: itemId,
-                    name: itemData.name,
-                    price: itemData.price,
-                    purchasePrice: itemData.price * 0.6,
-                    description: itemData.description,
-                    categoryId: catId,
-                    vatId: defaultVatId,
-                    image: `https://picsum.photos/seed/${itemId}/200/150`,
-                    barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
-                });
-            });
-        });
-        
-        const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-            id: `C${uuidv4().substring(0,6)}`,
-            name: `Client Démo ${i + 1}`,
-            email: `client${i+1}@demo.com`
-        }));
-        
-        const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-            id: `S-${uuidv4().substring(0,6)}`,
-            name: `Fournisseur Démo ${i + 1}`,
-            email: `fournisseur${i+1}@demo.com`
-        }));
-
-        setCategories(prev => [...prev, ...newCategories]);
-        setItems(prev => [...prev, ...newItems]);
-        setCustomers(prev => [...prev, ...demoCustomers]);
-        setSuppliers(prev => [...prev, ...demoSuppliers]);
-        toast({ title: 'Données de démo importées !' });
-    }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
-    
-    const importDemoCustomers = useCallback(async () => {
-        const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-            id: `C${uuidv4().substring(0,6)}`,
-            name: `Client Démo ${i + 1}`,
-            email: `client${i+1}@demo.com`
-        }));
-        setCustomers(prev => [...prev, ...demoCustomers]);
-        toast({ title: 'Clients de démo importés !' });
-    }, [setCustomers, toast]);
-    
-     const importDemoSuppliers = useCallback(async () => {
-        const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-            id: `S-${uuidv4().substring(0,6)}`,
-            name: `Fournisseur Démo ${i + 1}`,
-            email: `fournisseur${i+1}@demo.com`
-        }));
-        setSuppliers(prev => [...prev, ...demoSuppliers]);
-        toast({ title: 'Fournisseurs de démo importés !' });
-    }, [setSuppliers, toast]);
+   const prevPathnameRef = useRef(pathname);
 
     useEffect(() => {
+        const prevPath = prevPathnameRef.current;
+        const salesModes = ['/pos', '/supermarket', '/restaurant'];
+        const commercialModes = ['/commercial'];
+
+        const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
+        const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
+
+        if (isLeavingSales || isLeavingCommercial) {
+            setCurrentSaleContext(null);
+            setCurrentSaleId(null);
+        }
+
+        prevPathnameRef.current = pathname;
+    }, [pathname]);
+
+  const seedInitialData = useCallback(() => {
+    const hasData = categories.length > 0 || vatRates.length > 0;
+    if (hasData) {
+        return;
+    }
+
+    const defaultVatRates: VatRate[] = [
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
+        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
+        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+    ];
+    setVatRates(defaultVatRates);
+
+    const defaultPaymentMethods: PaymentMethod[] = [
+        { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
+        { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
+        { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
+        { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
+    ];
+    setPaymentMethods(defaultPaymentMethods);
+    
+    toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
+  }, [categories, vatRates, setVatRates, setPaymentMethods, toast]);
+    
+  const importDemoData = useCallback(async () => {
+    const newCategories: Category[] = [];
+    const newItems: Item[] = [];
+    const categoryIdMap: { [key: string]: string } = {};
+    const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
+    
+    if (!defaultVatId) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
+        return;
+    }
+
+    demoData.categories.forEach((categoryData) => {
+        const catId = uuidv4();
+        newCategories.push({
+            id: catId,
+            name: categoryData.name,
+            image: `https://picsum.photos/seed/${catId}/200/150`,
+            color: '#e2e8f0'
+        });
+        categoryIdMap[categoryData.name] = catId;
+
+        categoryData.items.forEach((itemData) => {
+            const itemId = uuidv4();
+            newItems.push({
+                id: itemId,
+                name: itemData.name,
+                price: itemData.price,
+                purchasePrice: itemData.price * 0.6,
+                description: itemData.description,
+                categoryId: catId,
+                vatId: defaultVatId,
+                image: `https://picsum.photos/seed/${itemId}/200/150`,
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+            });
+        });
+    });
+    
+    const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`
+    }));
+    
+    const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`
+    }));
+
+    setCategories(prev => [...prev, ...newCategories]);
+    setItems(prev => [...prev, ...newItems]);
+    setCustomers(prev => [...prev, ...demoCustomers]);
+    setSuppliers(prev => [...prev, ...demoSuppliers]);
+    toast({ title: 'Données de démo importées !' });
+  }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
+    
+  const importDemoCustomers = useCallback(async () => {
+    const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`
+    }));
+    setCustomers(prev => [...prev, ...demoCustomers]);
+    toast({ title: 'Clients de démo importés !' });
+  }, [setCustomers, toast]);
+    
+  const importDemoSuppliers = useCallback(async () => {
+    const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`
+    }));
+    setSuppliers(prev => [...prev, ...demoSuppliers]);
+    toast({ title: 'Fournisseurs de démo importés !' });
+  }, [setSuppliers, toast]);
+
+  useEffect(() => {
+    if(isHydrated) {
         const isSeeded = localStorage.getItem('data.seeded');
         if (!isSeeded) {
-            seedInitialData();
-            importDemoData();
-            localStorage.setItem('data.seeded', 'true');
+          seedInitialData();
+          importDemoData();
+          localStorage.setItem('data.seeded', 'true');
         }
-    }, [seedInitialData, importDemoData]);
+    }
+  }, [isHydrated, seedInitialData, importDemoData]);
 
 
   const resetAllData = useCallback(async () => {
@@ -503,63 +574,63 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
-    // Re-seed after clearing
-    setTimeout(seedInitialData, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData]);
+    setTimeout(() => {
+      seedInitialData();
+      importDemoData();
+      localStorage.setItem('data.seeded', 'true');
+    }, 100);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
     toast({ title: 'Ventes supprimées' });
   }, [setSales, toast]);
   
-    const exportConfiguration = useCallback(() => {
-        const config = {
-            items,
-            categories,
-            customers,
-            suppliers,
-            tables: tablesData,
-            paymentMethods,
-            vatRates,
-            companyInfo,
-        };
-        const jsonString = JSON.stringify(config, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast({ title: 'Exportation réussie' });
-    }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, toast]);
+  const exportConfiguration = useCallback(() => {
+    const config = {
+        items,
+        categories,
+        customers,
+        suppliers,
+        tables: tablesData,
+        paymentMethods,
+        vatRates,
+        companyInfo,
+    };
+    const jsonString = JSON.stringify(config, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: 'Exportation réussie' });
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, toast]);
 
-    const importConfiguration = useCallback(async (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const config = JSON.parse(event.target?.result as string);
-                if (config.items) setItems(config.items);
-                if (config.categories) setCategories(config.categories);
-                if (config.customers) setCustomers(config.customers);
-                if (config.suppliers) setSuppliers(config.suppliers);
-                if (config.tables) setTablesData(config.tables);
-                if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
-                if (config.vatRates) setVatRates(config.vatRates);
-                if (config.companyInfo) setCompanyInfo(config.companyInfo);
-                toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Erreur d\'importation' });
-            }
-        };
-        reader.readAsText(file);
-    }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, toast]);
+  const importConfiguration = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const config = JSON.parse(event.target?.result as string);
+            if (config.items) setItems(config.items);
+            if (config.categories) setCategories(config.categories);
+            if (config.customers) setCustomers(config.customers);
+            if (config.suppliers) setSuppliers(config.suppliers);
+            if (config.tables) setTablesData(config.tables);
+            if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
+            if (config.vatRates) setVatRates(config.vatRates);
+            if (config.companyInfo) setCompanyInfo(config.companyInfo);
+            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+        }
+    };
+    reader.readAsText(file);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, toast]);
 
-  // #endregion
-
-  // #region Order Management
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -809,14 +880,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const orderTax = useMemo(() => {
     if (!vatRates) return 0;
     return (readOnlyOrder || order).reduce((sum, item) => {
-      const vat = vatRates.find((v) => v.id === item.vatId);
+      const vat = vatRates.find((v) === item.vatId);
       const taxForItem = item.total * ((vat?.rate || 0) / 100);
       return sum + taxForItem;
     }, 0);
   }, [order, readOnlyOrder, vatRates]);
-  // #endregion
-
-  // #region Table & Held Order Management (Local)
+  
     const holdOrder = useCallback(() => {
         if (order.length === 0) return;
         const newHeldOrder: HeldOrder = {
@@ -907,9 +976,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
-  // #endregion
-
-  // #region Sales
+  
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
         
@@ -998,17 +1065,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router]);
 
-
-  // #endregion
-
-  // #region Entity Management (Local)
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const findUserByEmail = useCallback(() => undefined, []);
     const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
-    const validateSession = useCallback(() => true, []);
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
@@ -1097,9 +1159,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteVatRate = useCallback((id: string) => {
         setVatRates(prev => prev.filter(v => v.id !== id));
     }, [setVatRates]);
-  // #endregion
-
-  // #region Navigation Confirmation
+  
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
     setNavConfirmOpen(true);
@@ -1117,9 +1177,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
-  // #endregion
-
-  // #region Derived State
+  
   const popularItems = useMemo(() => {
     return items.slice(0, popularItemsCount);
   }, [items, popularItemsCount]);
@@ -1145,7 +1203,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
-  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+  const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         setOrder(saleToEdit.items);
@@ -1158,14 +1216,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
     }, [sales]);
 
-  // #endregion
-
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
-      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, validateSession, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
@@ -1201,3 +1257,4 @@ export function usePos() {
   }
   return context;
 }
+
