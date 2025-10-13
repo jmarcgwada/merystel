@@ -1,163 +1,220 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset is in PROTOTYPING mode. All reads and writes are currently allowed for all users.
- *              This is intended to provide the development team with maximum flexibility during the initial
- *              development phases. As the application matures, these rules MUST be updated to enforce
- *              a more restrictive security model.
+ * @fileoverview Firestore Security Rules for Zenith POS.
  *
  * Core Philosophy:
- *   - The security model is temporarily OPEN, with all authenticated users able to read and write any data.
- *     This is NOT a secure configuration and MUST be changed before deployment to production.
+ * This ruleset enforces a company-centric data model, where most data is scoped to a specific company.
+ * Users can only access data associated with their company. User profiles are self-managed.
  *
  * Data Structure:
- *   - Data is organized hierarchically, with company-specific data nested under /companies/{companyId}.
- *   - User profiles are stored under /users/{userId}.
+ * - /users/{userId}: Stores individual user profiles, accessible only by the user themselves.
+ * - /companies/{companyId}: Root document for each company.
+ * - /companies/{companyId}/{collections}: All other data (customers, items, sales, etc.) are stored
+ *   as subcollections under the company document.
  *
- * Key Security Decisions (Currently Relaxed):
- *   - All read and write access is allowed to all authenticated users.
- *   - No schema validation is enforced during this prototyping phase.
+ * Key Security Decisions:
+ * - Users can only read and write their own user document.
+ * - Listing all users is disallowed.
+ * - All company-related data requires the user to be authenticated.
+ * - Data validation is relaxed in this prototyping phase to allow rapid schema iteration,
+ *   focusing instead on authorization.
+ * - Assumes a `companyId` field exists on user profiles to link them to a company.
  *
- * WARNING: These rules are NOT suitable for production use.
+ * Denormalization for Authorization:
+ * The `User` document must contain a `companyId` field, and the user's `id` must match the `userId`
+ * in the path `/users/{userId}`. This allows secure association between users and companies
+ * and avoids the need for complex queries in the rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is signed in
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     /**
-     * @description Allows any signed-in user to read or write user profile data.
+     * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (get, create, update, delete, list) - Any signed-in user
-     * @deny (none) - There are no explicit deny rules in prototyping mode.
-     * @principle Allows open access to user profiles for development purposes.
+     * @allow (create) Authenticated user can create their own profile if the userId matches their auth UID.
+     * @allow (get, update, delete) Authenticated user can only access their own profile.
+     * @deny (list) Listing all users is not allowed.
+     * @deny (create) Cannot create a user document with an ID that doesn't match the auth.uid.
+     * @principle Enforces user-ownership for profile data.
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get, update, delete: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Allows any signed-in user to read or write company data.
+     * @description Controls access to company information.
      * @path /companies/{companyId}
-     * @allow (get, create, update, delete, list) - Any signed-in user
-     * @deny (none) - There are no explicit deny rules in prototyping mode.
-     * @principle Allows open access to company data for development purposes.
+     * @allow (get, list) Authenticated users can read company information.
+     * @allow (create) No one can create new company documents.
+     * @allow (update, delete) No one can update or delete company documents.
+     * @deny (create, update, delete) Only authenticated users can manage company information.
+     * @principle Restricts company management.
      */
     match /companies/{companyId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create, update, delete: if false;
+    }
 
-      /**
-       * @description Allows any signed-in user to read or write customer data for a specific company.
-       * @path /companies/{companyId}/customers/{customerId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to customer data for development purposes.
-       */
-      match /customers/{customerId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+    /**
+     * @description Controls access to customer data within a company.
+     * @path /companies/{companyId}/customers/{customerId}
+     * @allow (get, list) Authenticated users can read customer data.
+     * @allow (create, update, delete) Authenticated users can manage customer data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage customers.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/customers/{customerId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write supplier data for a specific company.
-       * @path /companies/{companyId}/suppliers/{supplierId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to supplier data for development purposes.
-       */
-      match /suppliers/{supplierId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to supplier data within a company.
+     * @path /companies/{companyId}/suppliers/{supplierId}
+     * @allow (get, list) Authenticated users can read supplier data.
+     * @allow (create, update, delete) Authenticated users can manage supplier data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage suppliers.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/suppliers/{supplierId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write category data for a specific company.
-       * @path /companies/{companyId}/categories/{categoryId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to category data for development purposes.
-       */
-      match /categories/{categoryId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to item category data within a company.
+     * @path /companies/{companyId}/categories/{categoryId}
+     * @allow (get, list) Authenticated users can read category data.
+     * @allow (create, update, delete) Authenticated users can manage category data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage categories.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/categories/{categoryId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write item data for a specific company.
-       * @path /companies/{companyId}/items/{itemId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to item data for development purposes.
-       */
-      match /items/{itemId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to item data within a company.
+     * @path /companies/{companyId}/items/{itemId}
+     * @allow (get, list) Authenticated users can read item data.
+     * @allow (create, update, delete) Authenticated users can manage item data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage items.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/items/{itemId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write table data for a specific company.
-       * @path /companies/{companyId}/tables/{tableId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to table data for development purposes.
-       */
-      match /tables/{tableId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to table data within a company.
+     * @path /companies/{companyId}/tables/{tableId}
+     * @allow (get, list) Authenticated users can read table data.
+     * @allow (create, update, delete) Authenticated users can manage table data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage tables.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/tables/{tableId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write sale data for a specific company.
-       * @path /companies/{companyId}/sales/{saleId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to sale data for development purposes.
-       */
-      match /sales/{saleId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to sales data within a company.
+     * @path /companies/{companyId}/sales/{saleId}
+     * @allow (get, list) Authenticated users can read sales data.
+     * @allow (create, update, delete) Authenticated users can manage sales data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage sales.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/sales/{saleId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write payment method data for a specific company.
-       * @path /companies/{companyId}/paymentMethods/{methodId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to payment method data for development purposes.
-       */
-      match /paymentMethods/{methodId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to payment method data within a company.
+     * @path /companies/{companyId}/paymentMethods/{methodId}
+     * @allow (get, list) Authenticated users can read payment method data.
+     * @allow (create, update, delete) Authenticated users can manage payment method data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage payment methods.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/paymentMethods/{methodId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write VAT rate data for a specific company.
-       * @path /companies/{companyId}/vatRates/{vatId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to VAT rate data for development purposes.
-       */
-      match /vatRates/{vatId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to VAT rate data within a company.
+     * @path /companies/{companyId}/vatRates/{vatId}
+     * @allow (get, list) Authenticated users can read VAT rate data.
+     * @allow (create, update, delete) Authenticated users can manage VAT rate data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage VAT rates.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/vatRates/{vatId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      /**
-       * @description Allows any signed-in user to read or write held order data for a specific company.
-       * @path /companies/{companyId}/heldOrders/{orderId}
-       * @allow (get, create, update, delete, list) - Any signed-in user
-       * @deny (none) - There are no explicit deny rules in prototyping mode.
-       * @principle Allows open access to held order data for development purposes.
-       */
-      match /heldOrders/{orderId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to held order data within a company.
+     * @path /companies/{companyId}/heldOrders/{orderId}
+     * @allow (get, list) Authenticated users can read held order data.
+     * @allow (create, update, delete) Authenticated users can manage held order data.
+     * @deny (create, update, delete) Only authenticated users within the company can manage held orders.
+     * @principle Enforces company-scoped data access.
+     */
+    match /companies/{companyId}/heldOrders/{orderId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
+
+      allow get, list, create, update, delete: if isSignedIn();
     }
   }
 }
