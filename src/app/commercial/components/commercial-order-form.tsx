@@ -124,7 +124,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     if (currentSaleContext?.acompte) {
         form.setValue('acompte', currentSaleContext.acompte);
     }
-  }, [order, currentSaleContext, form.setValue]);
+  }, [order, currentSaleContext, form]);
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
@@ -137,7 +137,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             form.setValue('customerId', customer.id);
         }
     }
-  }, [currentSaleContext?.customerId, customers, form.setValue]);
+  }, [currentSaleContext?.customerId, customers, form]);
 
   useEffect(() => {
     const isReady = !!selectedCustomer && watchItems.length > 0;
@@ -486,13 +486,23 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
                               </div>
                             )}
                         </div>
-                      <Input 
-                          type="number" 
-                          value={field.quantity}
-                          onChange={e => updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1)}
-                          onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
-                          min={1} 
-                          className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
+                      <Controller
+                          control={form.control}
+                          name={`items.${index}.quantity`}
+                          render={({ field: controllerField }) => (
+                              <Input 
+                                  type="number" 
+                                  {...controllerField}
+                                  value={controllerField.value || 1}
+                                  onChange={e => {
+                                    controllerField.onChange(parseInt(e.target.value) || 1);
+                                    updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);
+                                  }}
+                                  onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                                  min={1} 
+                                  className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
+                              />
+                          )}
                       />
                       <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                       <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
