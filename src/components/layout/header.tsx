@@ -63,32 +63,26 @@ export default function Header() {
 
   const [isClient, setIsClient] = useState(false);
   const [salesModeLink, setSalesModeLink] = useState('/pos');
-  const [isPinDialogOpen, setPinDialogOpen] = useState(false);
-  const [pin, setPin] = useState('');
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      switch (defaultSalesMode) {
-        case 'supermarket':
-          setSalesModeLink('/supermarket');
-          break;
-        case 'restaurant':
-          setSalesModeLink('/restaurant');
-          break;
-        case 'pos':
-        default:
-          setSalesModeLink('/pos');
-          break;
-      }
+    switch (defaultSalesMode) {
+      case 'supermarket':
+        setSalesModeLink('/supermarket');
+        break;
+      case 'restaurant':
+        setSalesModeLink('/restaurant');
+        break;
+      case 'pos':
+      default:
+        setSalesModeLink('/pos');
+        break;
     }
-  }, [isClient, defaultSalesMode]);
-
+  }, [defaultSalesMode]);
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
+  const [isPinDialogOpen, setPinDialogOpen] = useState(false);
+  const [pin, setPin] = useState('');
   
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
@@ -187,7 +181,7 @@ export default function Header() {
               </Button>
               <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
                 {isClient ? (
-                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
+                    <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
                 ) : (
                   // Render a non-interactive element on the server and during initial client render
                   <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
