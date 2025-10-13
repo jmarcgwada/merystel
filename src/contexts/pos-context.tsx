@@ -250,7 +250,6 @@ interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -340,8 +339,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
 
   useEffect(() => {
-    // This effect runs once on the client after hydration.
-    // We can now safely access localStorage and update our states.
     rehydrateEnableDynamicBg();
     rehydrateDynamicBgOpacity();
     rehydrateShowTicketImages();
@@ -380,7 +377,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     rehydrateDashboardButtonShowBorder();
     rehydrateDashboardButtonBorderColor();
     setIsHydrated(true);
-  }, []); // Empty dependency array ensures this runs only once on the client.
+  }, []);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -880,7 +877,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const orderTax = useMemo(() => {
     if (!vatRates) return 0;
     return (readOnlyOrder || order).reduce((sum, item) => {
-      const vat = vatRates.find((v) === item.vatId);
+      const vat = vatRates.find((v) => v.id === item.vatId);
       const taxForItem = item.total * ((vat?.rate || 0) / 100);
       return sum + taxForItem;
     }, 0);
@@ -1257,4 +1254,3 @@ export function usePos() {
   }
   return context;
 }
-

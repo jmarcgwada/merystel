@@ -56,34 +56,11 @@ export default function Header() {
     setIsForcedMode: setGlobalForcedMode,
     toast,
     defaultSalesMode,
-    externalLinkModalEnabled
+    externalLinkModalEnabled,
+    isLoading: isPosLoading,
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
-
-  const [isClient, setIsClient] = useState(false);
-  const [salesModeLink, setSalesModeLink] = useState('/pos');
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if(isClient) {
-      switch (defaultSalesMode) {
-        case 'supermarket':
-          setSalesModeLink('/supermarket');
-          break;
-        case 'restaurant':
-          setSalesModeLink('/restaurant');
-          break;
-        case 'pos':
-        default:
-          setSalesModeLink('/pos');
-          break;
-      }
-    }
-  }, [defaultSalesMode, isClient]);
 
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
@@ -110,6 +87,16 @@ export default function Header() {
 
     return `${monthStr}${dayStr}${difference}`;
   };
+
+  const salesModeLink = useMemo(() => {
+    switch (defaultSalesMode) {
+      case 'supermarket': return '/supermarket';
+      case 'restaurant': return '/restaurant';
+      case 'pos':
+      default:
+        return '/pos';
+    }
+  }, [defaultSalesMode]);
 
   const handlePinSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -176,11 +163,10 @@ export default function Header() {
                   <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
               </Button>
               <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                {isClient ? (
-                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
-                ) : (
-                  // Render a non-interactive element on the server and during initial client render to avoid hydration mismatch
+                {isPosLoading ? (
                   <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
+                ) : (
+                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
                 )}
               </Button>
               <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
@@ -189,7 +175,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
-            {isClient && isKeyboardVisibleInHeader && (
+            {!isPosLoading && isKeyboardVisibleInHeader && (
                 <Button 
                   variant="outline"
                   size="icon"
@@ -198,7 +184,7 @@ export default function Header() {
                     <KeyboardIcon className="h-4 w-4" />
                 </Button>
             )}
-            {isClient && externalLinkModalEnabled && (
+            {!isPosLoading && externalLinkModalEnabled && (
                 <Button 
                   variant="outline"
                   size="icon"
