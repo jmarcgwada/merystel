@@ -212,20 +212,21 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
       if (!fullItem) return;
 
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
-      if (!vatInfo) return;
       
       const purchasePriceHT = item.price; // The price in the order item IS the purchase price
       const totalItemHT = purchasePriceHT * item.quantity;
-      const taxForItem = totalItemHT * (vatInfo.rate / 100);
-
+      
       subTotalHT += totalItemHT;
 
-      const vatKey = vatInfo.rate.toString();
-      if (vatBreakdown[vatKey]) {
-        vatBreakdown[vatKey].total += taxForItem;
-        vatBreakdown[vatKey].base += totalItemHT;
-      } else {
-        vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
+      if(vatInfo) {
+        const taxForItem = totalItemHT * (vatInfo.rate / 100);
+        const vatKey = vatInfo.rate.toString();
+        if (vatBreakdown[vatKey]) {
+          vatBreakdown[vatKey].total += taxForItem;
+          vatBreakdown[vatKey].base += totalItemHT;
+        } else {
+          vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
+        }
       }
     });
 

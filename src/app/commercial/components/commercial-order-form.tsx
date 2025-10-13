@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -246,21 +247,22 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
       if (!fullItem) return;
 
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
-      if (!vatInfo) return;
-
-      const priceHT = item.price / (1 + vatInfo.rate / 100);
+      
+      const priceHT = vatInfo ? item.price / (1 + vatInfo.rate / 100) : item.price;
       const remise = item.remise || 0;
       const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
-      const taxForItem = totalItemHT * (vatInfo.rate / 100);
-
+      
       subTotalHT += totalItemHT;
 
-      const vatKey = vatInfo.rate.toString();
-      if (vatBreakdown[vatKey]) {
-        vatBreakdown[vatKey].total += taxForItem;
-        vatBreakdown[vatKey].base += totalItemHT;
-      } else {
-        vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
+      if(vatInfo) {
+        const taxForItem = totalItemHT * (vatInfo.rate / 100);
+        const vatKey = vatInfo.rate.toString();
+        if (vatBreakdown[vatKey]) {
+          vatBreakdown[vatKey].total += taxForItem;
+          vatBreakdown[vatKey].base += totalItemHT;
+        } else {
+          vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
+        }
       }
     });
 
