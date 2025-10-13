@@ -49,7 +49,6 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 export default function Header() {
   const pathname = usePathname();
   const { 
-    companyInfo, 
     showNavConfirm, 
     order, 
     handleSignOut: handlePosSignOut,
@@ -63,6 +62,7 @@ export default function Header() {
   const router = useRouter();
 
   const [isClient, setIsClient] = useState(false);
+  const [salesModeLink, setSalesModeLink] = useState('/pos');
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
 
@@ -70,20 +70,26 @@ export default function Header() {
     setIsClient(true);
   }, []);
 
+  useEffect(() => {
+    if (isClient) {
+      switch (defaultSalesMode) {
+        case 'supermarket':
+          setSalesModeLink('/supermarket');
+          break;
+        case 'restaurant':
+          setSalesModeLink('/restaurant');
+          break;
+        case 'pos':
+        default:
+          setSalesModeLink('/pos');
+          break;
+      }
+    }
+  }, [isClient, defaultSalesMode]);
+
+
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   
-  const salesModeLink = useMemo(() => {
-    switch (defaultSalesMode) {
-      case 'supermarket':
-        return '/supermarket';
-      case 'restaurant':
-        return '/restaurant';
-      case 'pos':
-      default:
-        return '/pos';
-    }
-  }, [defaultSalesMode]);
-
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
     if (isSalesPage && order.length > 0) {
@@ -183,6 +189,7 @@ export default function Header() {
                 {isClient ? (
                   <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
                 ) : (
+                  // Render a non-interactive element on the server and during initial client render
                   <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
                 )}
               </Button>
