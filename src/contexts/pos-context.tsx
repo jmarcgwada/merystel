@@ -419,27 +419,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // #region Data Fetching
-  const usersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'users') : null, [firestore, user]);
+  const usersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'users') : null, [firestore, user, userLoading]);
   const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
 
-  const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
+  const itemsCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user, userLoading]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
 
-  const categoriesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user]);
+  const categoriesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'categories') : null, [firestore, companyId, user, userLoading]);
   const { data: categories = [], isLoading: categoriesLoading } = useCollection<Category>(categoriesCollectionRef);
 
-  const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
+  const customersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user, userLoading]);
   const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
-  const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user]);
+  const suppliersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user, userLoading]);
   const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
-  const tablesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user]);
+  const tablesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user, userLoading]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);
   
   const tables = useMemo(() => tablesData ? [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)] : [TAKEAWAY_TABLE], [tablesData]);
   
-  const salesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user]);
+  const salesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'sales') : null, [firestore, companyId, user, userLoading]);
   const { data: rawSales, isLoading: salesLoading } = useCollection<Sale>(salesCollectionRef);
   
   const sales = useMemo(() => {
@@ -461,16 +461,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, [rawSales]);
 
-  const paymentMethodsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user]);
+  const paymentMethodsCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'paymentMethods') : null, [firestore, companyId, user, userLoading]);
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsCollectionRef);
 
-  const vatRatesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user]);
+  const vatRatesCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'vatRates') : null, [firestore, companyId, user, userLoading]);
   const { data: vatRates = [], isLoading: vatRatesLoading } = useCollection<VatRate>(vatRatesCollectionRef);
 
-  const heldOrdersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user]);
+  const heldOrdersCollectionRef = useMemoFirebase(() => !userLoading && user ? collection(firestore, 'companies', companyId, 'heldOrders') : null, [firestore, companyId, user, userLoading]);
   const { data: heldOrders, isLoading: heldOrdersLoading } = useCollection<HeldOrder>(heldOrdersCollectionRef);
 
-  const companyDocRef = useMemoFirebase(() => user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user]);
+  const companyDocRef = useMemoFirebase(() => !userLoading && user ? doc(firestore, 'companies', companyId) : null, [firestore, companyId, user, userLoading]);
   const { data: companyInfo, isLoading: companyInfoLoading } = useDoc<CompanyInfo>(companyDocRef);
 
 
@@ -663,7 +663,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [firestore, companyId, toast]);
 
   useEffect(() => {
-    // Automatically seed data on first launch for any authenticated user
     const shouldSeed = !isLoading && user && (!categories || categories.length === 0 || !vatRates || vatRates.length === 0 || !paymentMethods || paymentMethods.length === 0);
     
     if (shouldSeed) {
@@ -2408,40 +2407,75 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deleteHeldOrder,
       authRequired,
       showTicketImages,
+      setShowTicketImages,
       showItemImagesInGrid,
+      setShowItemImagesInGrid,
       descriptionDisplay,
+      setDescriptionDisplay,
       popularItemsCount,
+      setPopularItemsCount,
       itemCardOpacity,
+      setItemCardOpacity,
       paymentMethodImageOpacity,
+      setPaymentMethodImageOpacity,
       itemDisplayMode,
+      setItemDisplayMode,
       itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground,
       itemCardImageOverlayOpacity,
+      setItemCardImageOverlayOpacity,
       itemCardTextColor,
+      setItemCardTextColor,
       itemCardShowPrice,
+      setItemCardShowPrice,
       externalLinkModalEnabled,
+      setExternalLinkModalEnabled,
       externalLinkUrl,
+      setExternalLinkUrl,
       externalLinkTitle,
+      setExternalLinkTitle,
       externalLinkModalWidth,
+      setExternalLinkModalWidth,
       externalLinkModalHeight,
+      setExternalLinkModalHeight,
       showDashboardStats,
+      setShowDashboardStats,
       enableRestaurantCategoryFilter,
+      setEnableRestaurantCategoryFilter,
       showNotifications,
+      setShowNotifications,
       notificationDuration,
+      setNotificationDuration,
       enableSerialNumber,
+      setEnableSerialNumber,
       defaultSalesMode,
+      setDefaultSalesMode,
       isForcedMode,
+      setIsForcedMode,
       directSaleBackgroundColor,
+      setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor,
+      setRestaurantModeBackgroundColor,
       directSaleBgOpacity,
+      setDirectSaleBgOpacity,
       restaurantModeBgOpacity,
+      setRestaurantModeBgOpacity,
       dashboardBgType,
+      setDashboardBgType,
       dashboardBackgroundColor,
+      setDashboardBackgroundColor,
       dashboardBackgroundImage,
+      setDashboardBackgroundImage,
       dashboardBgOpacity,
+      setDashboardBgOpacity,
       dashboardButtonBackgroundColor,
+      setDashboardButtonBackgroundColor,
       dashboardButtonOpacity,
+      setDashboardButtonOpacity,
       dashboardButtonShowBorder,
+      setDashboardButtonShowBorder,
       dashboardButtonBorderColor,
+      setDashboardButtonBorderColor,
       companyInfo,
       setCompanyInfo,
       isNavConfirmOpen,
@@ -2456,52 +2490,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoCustomers,
       importDemoSuppliers,
       cameFromRestaurant,
+      setCameFromRestaurant,
       isLoading,
       user,
       toast,
       holdOrder,
-      setReadOnlyOrder,
-      setIsKeypadOpen,
-      setCurrentSaleId,
-      setSerialNumberItem,
-      setSessionInvalidated,
-      setCameFromRestaurant,
-      setShowTicketImages,
-      setShowItemImagesInGrid,
-      setDescriptionDisplay,
-      setPopularItemsCount,
-      setItemCardOpacity,
-      setPaymentMethodImageOpacity,
-      setItemDisplayMode,
-      setItemCardShowImageAsBackground,
-      setItemCardImageOverlayOpacity,
-      setItemCardTextColor,
-      setItemCardShowPrice,
-      setExternalLinkModalEnabled,
-      setExternalLinkUrl,
-      setExternalLinkTitle,
-      setExternalLinkModalWidth,
-      setExternalLinkModalHeight,
-      setShowDashboardStats,
-      setEnableRestaurantCategoryFilter,
-      setShowNotifications,
-      setNotificationDuration,
-      setEnableSerialNumber,
-      setDefaultSalesMode,
-      setIsForcedMode,
-      setDirectSaleBackgroundColor,
-      setRestaurantModeBackgroundColor,
-      setDirectSaleBgOpacity,
-      setRestaurantModeBgOpacity,
-      setDashboardBgType,
-      setDashboardBackgroundColor,
-      setDashboardBackgroundImage,
-      setDashboardBgOpacity,
-      setDashboardButtonBackgroundColor,
-      setDashboardButtonOpacity,
-      setDashboardButtonShowBorder,
-      setDashboardButtonBorderColor,
-      setCurrentSaleContext
     ]
   );
 
