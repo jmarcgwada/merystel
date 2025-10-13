@@ -218,49 +218,51 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   };
 
   const renderHeaderActions = () => {
-    if (initialFilter?.startsWith(config.filterPrefix)) {
-        return (
-            <Button onClick={() => router.push(`/commercial/${documentType}`)}>
-                <FilePlus className="mr-2 h-4 w-4" />
-                Nouveau
-            </Button>
-        )
-    }
-
-    if (!isReady) {
-       return (
-         <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-           <Sparkles className="h-4 w-4" />
-         </Button>
-       )
-    }
-
+    const isEditingExistingDoc = !!saleIdToEdit;
     const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
 
-    return (
+    if (!isEditingExistingDoc) {
+      return (
         <div className="flex items-center gap-2">
-            {isQuoteOrDeliveryNote && (
-              <>
-                 <Button size="lg" variant="outline" onClick={handleSave}>
-                     {saleIdToEdit ? 'Sauvegarder les modifications' : currentConfig.saveButton}
-                 </Button>
-                 {saleIdToEdit && (
-                    <Button size="lg" onClick={handleTransformToInvoice} className="bg-green-600 hover:bg-green-700">
-                        <FileCog className="mr-2 h-4 w-4" />
-                        {currentConfig.updateButton}
-                    </Button>
-                 )}
-              </>
-            )}
-
-            {editingDocType === 'invoice' && (
-                 <Button size="lg" onClick={handleSave}>
-                     {currentConfig.saveButton}
-                 </Button>
-            )}
+           <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
+             <Sparkles className="h-4 w-4" />
+           </Button>
+          {editingDocType === 'invoice' ? (
+              <Button size="lg" onClick={handleSave} disabled={!isReady}>
+                {currentConfig.saveButton}
+              </Button>
+          ) : (
+             <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
+                {currentConfig.saveButton}
+             </Button>
+          )}
         </div>
-    )
-  }
+      );
+    }
+
+    // Is editing an existing document
+    return (
+      <div className="flex items-center gap-2">
+        {isQuoteOrDeliveryNote && (
+          <>
+            <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
+              Sauvegarder les modifications
+            </Button>
+            <Button size="lg" onClick={handleTransformToInvoice} disabled={!isReady} className="bg-green-600 hover:bg-green-700">
+              <FileCog className="mr-2 h-4 w-4" />
+              {currentConfig.updateButton}
+            </Button>
+          </>
+        )}
+        {editingDocType === 'invoice' && (
+          <Button size="lg" onClick={handleSave} disabled={!isReady}>
+            {currentConfig.saveButton}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="h-full flex flex-col">
