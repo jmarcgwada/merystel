@@ -49,16 +49,15 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 export default function Header() {
   const pathname = usePathname();
   const { 
+    companyInfo, 
     showNavConfirm, 
     order, 
-    companyInfo, 
     handleSignOut: handlePosSignOut,
-    externalLinkModalEnabled,
-    systemDate,
     isForcedMode,
     setIsForcedMode: setGlobalForcedMode,
     toast,
     defaultSalesMode,
+    externalLinkModalEnabled
   } = usePos();
   const { user } = useUser();
   const router = useRouter();
@@ -180,12 +179,12 @@ export default function Header() {
               <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
                   <Link href="/commercial" onClick={e => handleNavClick(e, '/commercial')}><FileText />Commercial</Link>
               </Button>
-                <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                  {isClient ? (
-                    <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
-                  ) : (
-                    <div className="flex items-center"><ShoppingCart />Caisse</div>
-                  )}
+              <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
+                {isClient ? (
+                  <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}><ShoppingCart />Caisse</Link>
+                ) : (
+                  <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"><ShoppingCart />Caisse</div>
+                )}
               </Button>
               <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
                   <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}><Blocks />Gestion</Link>
