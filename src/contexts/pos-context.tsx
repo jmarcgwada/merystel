@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -420,7 +419,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // #region Data Fetching
   const usersCollectionRef = useMemoFirebase(() => (user && user.role === 'admin') ? collection(firestore, 'users') : null, [firestore, user]);
-  const { data: users = [], isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+  const { data: usersData, isLoading: usersLoading } = useCollection<User>(usersCollectionRef);
+
+  const users = useMemo(() => {
+    if (user && usersData && !usersData.find(u => u.id === user.uid)) {
+        return [...usersData, {
+            id: user.uid,
+            firstName: user.firstName || 'Current',
+            lastName: user.lastName || 'User',
+            email: user.email || '',
+            role: 'admin', // Assume current user is admin if they can see users
+            companyId: SHARED_COMPANY_ID
+        }];
+    }
+    return usersData || [];
+  }, [usersData, user]);
+
 
   const itemsCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'items') : null, [firestore, companyId, user]);
   const { data: items = [], isLoading: itemsLoading } = useCollection<Item>(itemsCollectionRef);
@@ -1081,7 +1095,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             description: itemToAdd.description,
             description2: itemToAdd.description2,
             selectedVariants,
-            barcode: itemToAdd.barcode,
+            barcode: itemToAdd.barcode || '',
           };
           return [newItem, ...currentOrder];
         }
@@ -2375,6 +2389,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       enableDynamicBg, setEnableDynamicBg,
       dynamicBgOpacity, setDynamicBgOpacity,
       readOnlyOrder,
+      setReadOnlyOrder,
       addToOrder,
       addSerializedItemToOrder,
       removeFromOrder,
@@ -2388,8 +2403,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       orderTotal,
       orderTax,
       isKeypadOpen,
+      setIsKeypadOpen,
       currentSaleId,
+      setCurrentSaleId,
       currentSaleContext,
+      setCurrentSaleContext,
       serialNumberItem,
       setSerialNumberItem,
       variantItem,
@@ -2409,6 +2427,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       forceSignOut,
       forceSignOutUser,
       sessionInvalidated,
+      setSessionInvalidated,
       items,
       addItem,
       updateItem,
@@ -2546,11 +2565,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       user,
       toast,
-      holdOrder,
-      setIsKeypadOpen,
-      setCurrentSaleId,
-      setSessionInvalidated,
-      setCurrentSaleContext
+      holdOrder
     ]
   );
 
