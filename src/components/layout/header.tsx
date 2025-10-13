@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo } from 'react';
-import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart } from 'lucide-react';
 import {
@@ -30,9 +29,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Skeleton } from '../ui/skeleton';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -57,25 +53,28 @@ export default function Header() {
     defaultSalesMode,
     externalLinkModalEnabled,
     isLoading: isPosLoading,
-    isHydrated,
     user,
     setCurrentSaleContext,
   } = usePos();
 
   const router = useRouter();
-
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const salesModeLink = useMemo(() => {
-    if (!isHydrated) return '/pos';
+    if (!isClient) return '#'; // Return a placeholder for SSR
     switch (defaultSalesMode) {
         case 'supermarket': return '/supermarket';
         case 'restaurant': return '/restaurant';
         case 'pos': default: return '/pos';
     }
-  }, [isHydrated, defaultSalesMode]);
+  }, [isClient, defaultSalesMode]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     const isSalesPage = ['/pos', '/supermarket', '/restaurant', '/commercial'].some(page => pathname.startsWith(page));
@@ -163,7 +162,7 @@ export default function Header() {
           </div>
           
           <nav className="hidden md:flex items-center gap-2">
-            {!isHydrated ? (
+            {!isClient ? (
                 <>
                     <Button variant="ghost" disabled><FileText />Commercial</Button>
                     <Button variant="ghost" disabled><ShoppingCart />Caisse</Button>
