@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Separator } from '../ui/separator';
-import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '../ui/button';
 import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart } from 'lucide-react';
 import {
@@ -59,22 +58,22 @@ export default function Header() {
     externalLinkModalEnabled,
     isLoading: isPosLoading,
     isHydrated,
+    user,
+    setCurrentSaleContext,
   } = usePos();
-  const { user } = useUser();
+
   const router = useRouter();
 
-  const [salesModeLink, setSalesModeLink] = useState('/pos');
   const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   
-  useEffect(() => {
-    if (isHydrated) {
-      switch (defaultSalesMode) {
-        case 'supermarket': setSalesModeLink('/supermarket'); break;
-        case 'restaurant': setSalesModeLink('/restaurant'); break;
-        case 'pos': default: setSalesModeLink('/pos'); break;
-      }
+  const salesModeLink = useMemo(() => {
+    if (!isHydrated) return '/pos';
+    switch (defaultSalesMode) {
+        case 'supermarket': return '/supermarket';
+        case 'restaurant': return '/restaurant';
+        case 'pos': default: return '/pos';
     }
   }, [isHydrated, defaultSalesMode]);
 
@@ -86,7 +85,10 @@ export default function Header() {
     }
   };
   
-  const canAccessCompanySettings = user?.role === 'admin';
+  const handleCommercialClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    setCurrentSaleContext({ documentType: 'invoice' });
+    handleNavClick(e, '/commercial/invoices');
+  }
 
   const generateDynamicPin = () => {
     const now = new Date();
@@ -130,23 +132,6 @@ export default function Header() {
 
   const isUserInForcedMode = isForcedMode;
 
-  const NavButton = ({ href, currentPath, children }: { href: string; currentPath: string; children: React.ReactNode; }) => {
-    if (!isHydrated) {
-      return (
-        <Button variant="ghost" disabled>
-          {children}
-        </Button>
-      );
-    }
-    return (
-      <Button asChild variant={currentPath.startsWith(href) ? 'default' : 'ghost'}>
-        <Link href={href} onClick={(e) => handleNavClick(e, href)}>
-          {children}
-        </Link>
-      </Button>
-    );
-  };
-
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
@@ -178,15 +163,31 @@ export default function Header() {
           </div>
           
           <nav className="hidden md:flex items-center gap-2">
-              <NavButton href="/commercial" currentPath={pathname}>
-                <FileText />Commercial
-              </NavButton>
-              <NavButton href={salesModeLink} currentPath={pathname}>
-                 <ShoppingCart />Caisse
-              </NavButton>
-              <NavButton href="/management/items" currentPath={pathname}>
-                <Blocks />Gestion
-              </NavButton>
+            {!isHydrated ? (
+                <>
+                    <Button variant="ghost" disabled><FileText />Commercial</Button>
+                    <Button variant="ghost" disabled><ShoppingCart />Caisse</Button>
+                    <Button variant="ghost" disabled><Blocks />Gestion</Button>
+                </>
+            ) : (
+                <>
+                    <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
+                        <Link href="/commercial/invoices" onClick={handleCommercialClick}>
+                            <FileText />Commercial
+                        </Link>
+                    </Button>
+                    <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
+                        <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}>
+                            <ShoppingCart />Caisse
+                        </Link>
+                    </Button>
+                    <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
+                        <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}>
+                            <Blocks />Gestion
+                        </Link>
+                    </Button>
+                </>
+            )}
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
