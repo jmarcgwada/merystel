@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase/auth/use-user';
@@ -13,7 +12,7 @@ export default function RootPage() {
       if (user) {
         redirect('/dashboard');
       } else {
-        redirect('/about');
+        redirect('/login');
       }
     }
   }, [user, loading]);
