@@ -445,8 +445,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const customersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'customers') : null, [firestore, companyId, user]);
   const { data: customers = [], isLoading: customersLoading } = useCollection<Customer>(customersCollectionRef);
 
-  const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user]);
-  const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
+  const { data: suppliers = [], isLoading: suppliersLoading } = useCollection<Supplier>(useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'suppliers') : null, [firestore, companyId, user]));
 
   const tablesCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', companyId, 'tables') : null, [firestore, companyId, user]);
   const { data: tablesData = [], isLoading: tablesLoading } = useCollection<Table>(tablesCollectionRef);

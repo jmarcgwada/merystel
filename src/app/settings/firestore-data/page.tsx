@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -52,6 +52,7 @@ export default function FirestoreDataPage() {
       importConfiguration, 
       importDemoData, 
       importDemoCustomers, 
+      importDemoSuppliers,
       deleteAllSales 
   } = usePos();
   
@@ -132,6 +133,10 @@ export default function FirestoreDataPage() {
   
   const handleImportDemoCustomers = () => {
     importDemoCustomers();
+  };
+
+  const handleImportDemoSuppliers = () => {
+    importDemoSuppliers();
   };
 
   const handleResetData = () => {
@@ -325,6 +330,38 @@ export default function FirestoreDataPage() {
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Annuler</AlertDialogCancel>
                                             <AlertDialogAction onClick={handleImportDemoCustomers}>
+                                                Oui, importer
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Importer des fournisseurs de démo</CardTitle>
+                                <CardDescription>
+                                    Ajoute 5 fournisseurs fictifs à votre base de données.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="secondary">
+                                            <Truck className="mr-2 h-4 w-4" />
+                                            Importer fournisseurs (Démo)
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Importer les fournisseurs de démo ?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Cette action ajoutera 5 fournisseurs fictifs à votre liste.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleImportDemoSuppliers}>
                                                 Oui, importer
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
