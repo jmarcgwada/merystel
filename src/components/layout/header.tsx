@@ -176,7 +176,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
-            {isKeyboardVisibleInHeader && (
+            {isClient && isKeyboardVisibleInHeader && (
                 <Button 
                   variant="outline"
                   size="icon"
@@ -185,7 +185,7 @@ export default function Header() {
                     <KeyboardIcon className="h-4 w-4" />
                 </Button>
             )}
-            {externalLinkModalEnabled && (
+            {isClient && externalLinkModalEnabled && (
                 <Button 
                   variant="outline"
                   size="icon"
