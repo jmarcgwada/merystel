@@ -160,7 +160,7 @@ interface PosContextType {
   isTransformToInvoiceConfirmOpen: boolean;
   showTransformToInvoiceConfirm: () => void;
   closeTransformToInvoiceConfirm: () => void;
-  confirmTransformToInvoice: () => void;
+  confirmTransformToInvoice: (saleId: string) => void;
   seedInitialData: () => void;
   resetAllData: () => Promise<void>;
   exportConfiguration: () => void;
@@ -385,7 +385,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
-  
+
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -395,11 +395,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [readOnlyOrder]);
 
+  const showNavConfirm = (url: string) => {
+    setNextUrl(url);
+    setNavConfirmOpen(true);
+  };
+  
+  const closeNavConfirm = useCallback(() => {
+    setNextUrl(null);
+    setNavConfirmOpen(false);
+  }, []);
+
+  const confirmNavigation = useCallback(async () => {
+    if (nextUrl) {
+      await clearOrder();
+      router.push(nextUrl);
+    }
+    closeNavConfirm();
+  }, [nextUrl, clearOrder, closeNavConfirm, router]);
+
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
     clearOrder();
     setCurrentSaleId(null);
     setCurrentSaleContext({ documentType: pageType });
-  }, [clearOrder, setCurrentSaleId, setCurrentSaleContext]);
+  }, [clearOrder]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -441,7 +459,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         newCategories.push({
             id: catId,
             name: categoryData.name,
-            image: 'https://picsum.photos/seed/' + catId + '/200/150',
+            image: `https://picsum.photos/seed/${catId}/200/150`,
             color: '#e2e8f0'
         });
         categoryIdMap[categoryData.name] = catId;
@@ -456,22 +474,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 description: itemData.description,
                 categoryId: catId,
                 vatId: defaultVatId,
-                image: 'https://picsum.photos/seed/' + itemId + '/200/150',
-                barcode: 'DEMO' + Math.floor(100000 + Math.random() * 900000)
+                image: `https://picsum.photos/seed/${itemId}/200/150`,
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
             });
         });
     });
     
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: 'C' + uuidv4().substring(0,6),
-        name: 'Client Démo ' + (i + 1),
-        email: 'client' + (i+1) + '@demo.com'
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`
     }));
     
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: 'S-' + uuidv4().substring(0,6),
-        name: 'Fournisseur Démo ' + (i + 1),
-        email: 'fournisseur' + (i+1) + '@demo.com'
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`
     }));
 
     setCategories(prev => [...prev, ...newCategories]);
@@ -483,9 +501,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: 'C' + uuidv4().substring(0,6),
-        name: 'Client Démo ' + (i + 1),
-        email: 'client' + (i+1) + '@demo.com'
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
     toast({ title: 'Clients de démo importés !' });
@@ -493,9 +511,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: 'S-' + uuidv4().substring(0,6),
-        name: 'Fournisseur Démo ' + (i + 1),
-        email: 'fournisseur' + (i+1) + '@demo.com'
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
@@ -584,7 +602,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
-            toast({ variant: 'destructive', title: "Erreur d'importation" });
+            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
@@ -1136,29 +1154,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setVatRates(prev => prev.filter(v => v.id !== id));
     }, [setVatRates]);
   
-  const showNavConfirm = (url: string) => {
-    setNextUrl(url);
-    setNavConfirmOpen(true);
-  };
-  const closeNavConfirm = useCallback(() => { setNavConfirmOpen(false); }, []);
-  const confirmNavigation = useCallback(async () => {
-    if (nextUrl) {
-      await clearOrder();
-      router.push(nextUrl);
-    }
-    closeNavConfirm();
-  }, [nextUrl, clearOrder, closeNavConfirm, router]);
-
   const showTransformToInvoiceConfirm = () => {
     setTransformToInvoiceConfirmOpen(true);
   }
   const closeTransformToInvoiceConfirm = useCallback(() => { setTransformToInvoiceConfirmOpen(false); }, []);
-  const confirmTransformToInvoice = useCallback(() => {
-    if (currentSaleId) {
-        convertToInvoice(currentSaleId);
+  const confirmTransformToInvoice = useCallback((saleId: string) => {
+    if (saleId) {
+        convertToInvoice(saleId);
     }
     closeTransformToInvoiceConfirm();
-  }, [currentSaleId, closeTransformToInvoiceConfirm]);
+  }, [closeTransformToInvoiceConfirm]);
   
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
