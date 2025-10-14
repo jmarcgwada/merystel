@@ -91,8 +91,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   useEffect(() => {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
+    } else {
+      clearOrder();
     }
-  }, [saleIdToEdit, documentType, loadSaleForEditing]);
+    // We only want to run this when the main identifier `saleIdToEdit` changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleIdToEdit, documentType]);
 
 
   useEffect(() => {
