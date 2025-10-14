@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -81,8 +82,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   useEffect(() => {
     // This effect ensures that when the page is loaded for creating a new document,
-    // the context is correctly set. The loading for editing is now handled
-    // by the component that triggers the navigation (e.g., reports page).
+    // the context is correctly set. It avoids resetting when converting a doc.
     if (!currentSaleId && !currentSaleContext?.fromConversion) {
       resetCommercialPage(documentType);
     }
