@@ -39,7 +39,14 @@ const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | unde
             return;
         }
         
-        const toJsDate = (d: Date | Timestamp) => d instanceof Date ? d : (d as Timestamp)?.toDate();
+        const toJsDate = (d: Date | Timestamp | string): Date => {
+            if (d instanceof Date) return d;
+            if (typeof d === 'object' && d !== null && 'toDate' in d && typeof (d as any).toDate === 'function') {
+                return (d as Timestamp).toDate();
+            }
+            const parsedDate = new Date(d as string);
+            return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
+        };
         const paymentJsDate = toJsDate(date);
         const saleJsDate = toJsDate(saleDate);
 
@@ -141,8 +148,10 @@ export default function PaymentsReportPage() {
             const toJsDate = (d: Date | Timestamp | undefined | string): Date => {
                 if (!d) return new Date(0);
                 if (d instanceof Date) return d;
-                if (typeof (d as Timestamp)?.toDate === 'function') return (d as Timestamp).toDate();
-                const parsedDate = new Date(d);
+                if (typeof d === 'object' && d !== null && 'toDate' in d && typeof (d as any).toDate === 'function') {
+                    return (d as Timestamp).toDate();
+                }
+                const parsedDate = new Date(d as string);
                 return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
             };
             const paymentJsDate = toJsDate(payment.date);
@@ -190,8 +199,8 @@ export default function PaymentsReportPage() {
                 const toJsDateSafe = (d: Date | Timestamp | undefined | string): Date => {
                     if (!d) return new Date(0);
                     if (d instanceof Date) return d;
-                    if (typeof (d as Timestamp)?.toDate === 'function') return (d as Timestamp).toDate();
-                    const parsedDate = new Date(d);
+                    if (typeof d === 'object' && d !== null && 'toDate' in d && typeof (d as any).toDate === 'function') return (d as Timestamp).toDate();
+                    const parsedDate = new Date(d as string);
                     return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
                 };
                 switch (sortConfig.key) {
