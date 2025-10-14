@@ -1201,16 +1201,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
   
   const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-      const saleToEdit = sales.find(s => s.id === saleId);
-      if (saleToEdit) {
-        setOrder(saleToEdit.items);
-        setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          documentType: type || saleToEdit.documentType,
-        });
-      }
-    }, [sales, setOrder, setCurrentSaleId, setCurrentSaleContext]);
+    const saleToEdit = sales.find(s => s.id === saleId);
+    if (saleToEdit) {
+      setOrder(saleToEdit.items);
+      setCurrentSaleId(saleId);
+      setCurrentSaleContext({
+        ...saleToEdit,
+        documentType: type || saleToEdit.documentType,
+        isInvoice: type === 'invoice'
+      });
+    }
+  }, [sales]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,

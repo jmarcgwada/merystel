@@ -32,7 +32,7 @@ const docTypeConfig = {
   },
   quote: {
     title: 'Gestion des Devis',
-    subtitle: "peut-être que tu essaies de me mettre le numéro de la pièce au mauvaise endroit je vais t'indiquer à quel niveau il faut le mettre c'est ici",
+    subtitle: "Créez un nouveau devis.",
     editTitle: 'Modifier le devis',
     saveButton: 'Sauvegarder le devis',
     updateButton: 'Mettre à jour le devis',
@@ -94,10 +94,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
-      // Only clear the order if we are not editing an existing document.
       clearOrder();
     }
-  }, [saleIdToEdit, documentType]);
+  }, [saleIdToEdit, documentType, clearOrder, loadSaleForEditing]);
 
 
   useEffect(() => {
