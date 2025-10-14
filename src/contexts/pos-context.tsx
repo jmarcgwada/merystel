@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -71,8 +72,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -262,7 +263,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
-            console.error('Error reading localStorage key “${key}”:', error);
+            console.error('Error reading localStorage key "${key}":', error);
         }
         setIsHydrated(true);
     }, [key]);
@@ -272,7 +273,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error('Error setting localStorage key “${key}”:', error);
+                console.error('Error setting localStorage key "${key}":', error);
             }
         }
     }, [key, state, isHydrated]);
@@ -284,13 +285,12 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
-            console.error('Error re-reading localStorage key “${key}”:', error);
+            console.error('Error re-reading localStorage key "${key}":', error);
         }
     }, [key]);
 
     return [state, setState, rehydrate];
 }
-
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -301,43 +301,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Settings States
-  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
-  const [enableDynamicBg, setEnableDynamicBg, rehydrateEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity, rehydrateDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
-  const [showTicketImages, setShowTicketImages, rehydrateShowTicketImages] = usePersistentState('settings.showTicketImages', true);
-  const [showItemImagesInGrid, setShowItemImagesInGrid, rehydrateShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
-  const [descriptionDisplay, setDescriptionDisplay, rehydrateDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
-  const [popularItemsCount, setPopularItemsCount, rehydratePopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
-  const [itemCardOpacity, setItemCardOpacity, rehydrateItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
-  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity, rehydratePaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
-  const [itemDisplayMode, setItemDisplayMode, rehydrateItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground, rehydrateItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, rehydrateItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
-  const [itemCardTextColor, setItemCardTextColor, rehydrateItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
-  const [itemCardShowPrice, setItemCardShowPrice, rehydrateItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
-  const [externalLinkModalEnabled, setExternalLinkModalEnabled, rehydrateExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl, rehydrateExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle, rehydrateExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
-  const [externalLinkModalWidth, setExternalLinkModalWidth, rehydrateExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
-  const [externalLinkModalHeight, setExternalLinkModalHeight, rehydrateExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats, rehydrateShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, rehydrateEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
-  const [enableSerialNumber, setEnableSerialNumber, rehydrateEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
-  const [defaultSalesMode, setDefaultSalesMode, rehydrateDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
-  const [isForcedMode, setIsForcedMode, rehydrateIsForcedMode] = usePersistentState('settings.isForcedMode', false);
-  const [directSaleBackgroundColor, setDirectSaleBackgroundColor, rehydrateDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
-  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, rehydrateRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
-  const [directSaleBgOpacity, setDirectSaleBgOpacity, rehydrateDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
-  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity, rehydrateRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
-  const [dashboardBgType, setDashboardBgType, rehydrateDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
-  const [dashboardBackgroundColor, setDashboardBackgroundColor, rehydrateDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
-  const [dashboardBackgroundImage, setDashboardBackgroundImage, rehydrateDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
-  const [dashboardBgOpacity, setDashboardBgOpacity, rehydrateDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
-  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, rehydrateDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
-  const [dashboardButtonOpacity, setDashboardButtonOpacity, rehydrateDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
-  const [dashboardButtonShowBorder, setDashboardButtonShowBorder, rehydrateDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
-  const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
+  const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
+  const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
+  const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
+  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
+  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
+  const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
+  const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
+  const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
+  const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
+  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
+  const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
+  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
+  const [dashboardBgType, setDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
+  const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
+  const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
+  const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
+  const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
+  const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
+  const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -347,7 +347,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalSaleId?: string; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -357,17 +357,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
-  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData, rehydrateTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -390,9 +390,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [readOnlyOrder]);
 
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+    if(currentSaleContext?.fromConversion) return;
     clearOrder();
     setCurrentSaleContext({ documentType: pageType });
-  }, [clearOrder]);
+  }, [clearOrder, currentSaleContext?.fromConversion]);
   
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
@@ -400,37 +401,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
-
-  useEffect(() => {
-    // This effect runs once on mount to rehydrate all persistent states
-    rehydrateEnableDynamicBg(); rehydrateDynamicBgOpacity(); rehydrateShowTicketImages(); rehydrateShowItemImagesInGrid(); rehydrateDescriptionDisplay();
-    rehydratePopularItemsCount(); rehydrateItemCardOpacity(); rehydratePaymentMethodImageOpacity(); rehydrateItemDisplayMode();
-    rehydrateItemCardShowImageAsBackground(); rehydrateItemCardImageOverlayOpacity(); rehydrateItemCardTextColor(); rehydrateItemCardShowPrice();
-    rehydrateExternalLinkModalEnabled(); rehydrateExternalLinkUrl(); rehydrateExternalLinkTitle(); rehydrateExternalLinkModalWidth();
-    rehydrateExternalLinkModalHeight(); rehydrateShowDashboardStats(); rehydrateEnableRestaurantCategoryFilter(); rehydrateShowNotifications();
-    rehydrateNotificationDuration(); rehydrateEnableSerialNumber(); rehydrateDefaultSalesMode(); rehydrateIsForcedMode();
-    rehydrateDirectSaleBackgroundColor(); rehydrateRestaurantModeBackgroundColor(); rehydrateDirectSaleBgOpacity();
-    rehydrateRestaurantModeBgOpacity(); rehydrateDashboardBgType(); rehydrateDashboardBackgroundColor();
-    rehydrateDashboardBackgroundImage(); rehydrateDashboardBgOpacity(); rehydrateDashboardButtonBackgroundColor();
-    rehydrateDashboardButtonOpacity(); rehydrateDashboardButtonShowBorder(); rehydrateDashboardButtonBorderColor();
-    
-    rehydrateItems(); rehydrateCategories(); rehydrateCustomers(); rehydrateSuppliers(); rehydrateTablesData(); rehydrateSales(); rehydratePaymentMethods();
-    rehydrateVatRates(); rehydrateHeldOrders(); rehydrateCompanyInfo(); rehydrateUsers();
-
-    setIsHydrated(true);
-  }, [
-      rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers,
-      rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
-      rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
-      rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
-      rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
-      rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
-      rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
-      rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
-      rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
-      rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
-      rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
-  ]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -454,7 +424,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setPaymentMethods(defaultPaymentMethods);
     
     toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-  }, [categories, vatRates, setVatRates, setPaymentMethods, toast]);
+  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
@@ -511,8 +481,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Données de démo importées !' });
   }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
-    
-  const importDemoCustomers = useCallback(async () => {
+
+    const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
         id: `C${uuidv4().substring(0,6)}`,
         name: `Client Démo ${i + 1}`,
@@ -531,18 +501,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
   }, [setSuppliers, toast]);
-
-  useEffect(() => {
-    if(isHydrated) {
-        const isSeeded = localStorage.getItem('data.seeded');
-        if (!isSeeded) {
-          seedInitialData();
-          importDemoData();
-          localStorage.setItem('data.seeded', 'true');
-        }
-    }
-  }, [isHydrated, seedInitialData, importDemoData]);
-
 
   const resetAllData = useCallback(async () => {
     setItems([]);
@@ -564,6 +522,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 100);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
   
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if(isHydrated) {
+        const isSeeded = localStorage.getItem('data.seeded');
+        if (!isSeeded) {
+          seedInitialData();
+          importDemoData();
+          localStorage.setItem('data.seeded', 'true');
+        }
+    }
+  }, [isHydrated, seedInitialData, importDemoData]);
+
+
   const deleteAllSales = useCallback(async () => {
     setSales([]);
     toast({ title: 'Ventes supprimées' });
@@ -963,6 +937,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 date: today,
                 modifiedAt: today,
+                ticketNumber: existingSale.ticketNumber,
             };
         } else {
             const dayMonth = format(today, 'ddMM');
@@ -982,11 +957,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             finalSale = {
                 id: newId,
-                date: today,
                 ticketNumber,
                 userId: user?.id,
                 userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
                 ...saleData,
+                date: today
             };
         }
         
@@ -1258,21 +1233,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
       // Prepare the state for the new invoice page
       setOrder(originalSale.items);
-      setCurrentSaleId(null); // It's a new invoice, so no ID yet
+      setCurrentSaleId(null);
       setCurrentSaleContext({
-        ...originalSale, // Copy customer, items, etc.
+        ...originalSale,
         documentType: 'invoice',
         status: 'pending',
-        ticketNumber: undefined, // Will be generated on save
-        date: new Date(), // Set to current date
+        ticketNumber: undefined,
+        date: new Date(),
         payments: [],
         originalTotal: undefined,
         originalPayments: undefined,
         change: undefined,
         modifiedAt: undefined,
-        // Keep a reference to the original sale to update its status upon finalization
         originalSaleId: originalSale.id, 
-        fromConversion: true, // A flag to indicate this is a conversion
+        fromConversion: true,
       });
   
   }, [sales, toast, setOrder, setCurrentSaleId, setCurrentSaleContext]);

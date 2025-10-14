@@ -84,27 +84,17 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   useEffect(() => {
     const saleId = searchParams.get('edit');
-    // We check fromConversion first to prevent resetting the page during a conversion
     if (currentSaleContext?.fromConversion) {
-      return; 
-    }
-    if (saleId) {
+      // This is a conversion, do not reset the page.
+      // The context has been prepared by `convertToInvoice`.
+      // We need to clean up the flag so subsequent navigations work correctly.
+      setCurrentSaleContext(prev => ({...prev, fromConversion: false}));
+    } else if (saleId) {
       loadSaleForEditing(saleId, documentType);
     } else {
       resetCommercialPage(documentType);
     }
-  }, [documentType, searchParams, loadSaleForEditing, resetCommercialPage, currentSaleContext?.fromConversion]);
-
-  useEffect(() => {
-    // Cleanup conversion flag after setup
-    if (currentSaleContext?.fromConversion) {
-      setCurrentSaleContext(prev => {
-        if (!prev) return null;
-        const { fromConversion, ...rest } = prev;
-        return rest;
-      });
-    }
-  }, [currentSaleContext?.fromConversion, setCurrentSaleContext]);
+  }, [documentType, searchParams, loadSaleForEditing, resetCommercialPage, currentSaleContext?.fromConversion, setCurrentSaleContext]);
 
 
   const handleSave = useCallback(async () => {
