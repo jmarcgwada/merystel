@@ -952,61 +952,60 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        const today = new Date();
-        
-        let finalSale: Sale;
-
-        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
-            const existingSale = sales.find(s => s.id === saleIdToUpdate);
-            if (!existingSale) return null;
-            finalSale = {
-                ...existingSale,
-                ...saleData,
-                modifiedAt: today,
-            };
-            setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
-        } else {
-            const dayMonth = format(today, 'ddMM');
-            let ticketNumber: string;
-
-            if (saleData.documentType === 'invoice') {
-                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
-            } else {
-                const todaysSalesCount = sales.filter(s => new Date(s.date as Date).toDateString() === today.toDateString() && s.documentType !== 'invoice').length;
-                ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
-            }
-            
-            finalSale = {
-                id: uuidv4(),
-                date: today,
-                ticketNumber,
-                userId: user?.id,
-                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
-                ...saleData,
-            };
-            setSales(prev => [finalSale, ...prev]);
-        }
-        
-        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-            setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: []} : t));
-        }
-        
-        if (currentSaleId && !currentSaleId.startsWith('table-')) {
-            setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
-        }
-
-        return finalSale;
-    }, [sales, setSales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders]);
+    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+      const today = new Date();
+      let finalSale: Sale;
+  
+      if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+          const existingSale = sales.find(s => s.id === saleIdToUpdate);
+          if (!existingSale) return null;
+          finalSale = {
+              ...existingSale,
+              ...saleData,
+              modifiedAt: today,
+          };
+          setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+      } else {
+          const dayMonth = format(today, 'ddMM');
+          let ticketNumber: string;
+          let newId = uuidv4();
+  
+          if (saleData.documentType === 'invoice') {
+              const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
+              ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+          } else {
+              const todaysSalesCount = sales.filter(s => {
+                  const saleDate = new Date(s.date as Date);
+                  return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
+              }).length;
+              ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+          }
+          
+          finalSale = {
+              id: newId,
+              date: today,
+              ticketNumber,
+              userId: user?.id,
+              userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+              ...saleData,
+          };
+      }
+      
+      if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+          setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
+      }
+      
+      if (currentSaleId && !currentSaleId.startsWith('table-')) {
+          setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
+      }
+  
+      return finalSale;
+  }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
         const today = new Date();
         const prefix = type === 'quote' ? 'Devis' : type === 'delivery_note' ? 'BL' : 'CF';
         
-        const count = sales.filter(s => s.documentType === type).length;
-        const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
-
         let finalDoc: Sale;
 
         if (docIdToUpdate) {
@@ -1019,6 +1018,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             };
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
+             const count = sales.filter(s => s.documentType === type).length;
+             const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
              finalDoc = {
                 id: uuidv4(),
                 date: today,
@@ -1233,39 +1234,42 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, toast]);
 
     const convertToInvoice = useCallback(async (saleId: string) => {
-      const originalSale = sales.find(s => s.id === saleId);
-      if (!originalSale) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+        const originalSale = sales.find(s => s.id === saleId);
+        if (!originalSale) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+            return null;
+        }
+        
+        const newInvoiceData: Omit<Sale, 'id'> = {
+            ...originalSale,
+            date: new Date(),
+            documentType: 'invoice',
+            status: 'pending',
+            payments: [],
+            originalTotal: undefined, 
+            originalPayments: undefined,
+            change: undefined,
+            modifiedAt: undefined,
+            ticketNumber: '', // Let recordSale handle the numbering
+        };
+        
+        const newInvoice = await recordSale(newInvoiceData);
+        
+        if(newInvoice) {
+            setSales(currentSales => {
+                const updatedSales = currentSales.map(s => 
+                    s.id === saleId 
+                        ? { ...s, status: 'invoiced' as const } 
+                        : s
+                );
+                return [newInvoice, ...updatedSales];
+            });
+            toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
+            return newInvoice.id;
+        }
+        
         return null;
-      }
-      
-      const newInvoiceData: Omit<Sale, 'id' | 'ticketNumber'> = {
-        ...originalSale,
-        date: new Date(),
-        documentType: 'invoice',
-        status: 'pending',
-        payments: [],
-        originalTotal: undefined, 
-        originalPayments: undefined,
-        change: undefined,
-        modifiedAt: undefined,
-        ticketNumber: '', // Let recordSale handle the numbering
-      };
-      
-      const newInvoice = await recordSale(newInvoiceData);
-      
-      if(newInvoice) {
-        setSales(prev => {
-          const updatedOriginal = { ...originalSale, status: 'invoiced' as const };
-          const salesWithoutOriginal = prev.filter(s => s.id !== saleId);
-          return [newInvoice, updatedOriginal, ...salesWithoutOriginal];
-        });
-        toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
-        return newInvoice.id;
-      }
-      
-      return null;
-  }, [sales, recordSale, toast, setSales]);
+    }, [sales, recordSale, toast, setSales]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1309,4 +1313,3 @@ export function usePos() {
   }
   return context;
 }
-
