@@ -435,19 +435,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCurrentSaleContext({ documentType: pageType });
     }, [clearOrder]);
 
-    const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-      const saleToEdit = sales.find(s => s.id === saleId);
-      if (saleToEdit) {
-        setOrder(saleToEdit.items);
-        setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          documentType: type || saleToEdit.documentType,
-        });
-      }
-    }, [sales]);
-
-
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
     return () => clearInterval(timer);
@@ -468,7 +455,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     rehydrateCompanyInfo();
     rehydrateUsers();
   }, [rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers]);
-
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -1215,6 +1201,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
+  const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          isInvoice: type === 'invoice',
+          documentType: type,
+        });
+      }
+    }, [sales]);
+
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
