@@ -152,12 +152,12 @@ export default function ReportsPage() {
         if (targetInput?.name === 'reports-article-filter') setFilterArticleRef(inputValue);
     }, [inputValue, targetInput]);
 
-    const getCustomerName = useCallback((customerId?: string) => {
+    const getCustomerName = (customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
-    }, [customers]);
+    };
     
-    const getUserName = useCallback((userId?: string, fallbackName?: string) => {
+    const getUserName = (userId?: string, fallbackName?: string) => {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
@@ -165,19 +165,19 @@ export default function ReportsPage() {
             return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
-    }, [users]);
+    };
 
-    const handleEdit = useCallback((sale: Sale) => {
+    const handleEdit = (sale: Sale) => {
         const type = sale.documentType === 'quote' ? 'quote'
                    : sale.documentType === 'delivery_note' ? 'delivery_note'
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
                    : 'invoice';
-        loadSaleForEditing(sale.id, type);
-    }, [loadSaleForEditing]);
+        loadSaleForEditing(sale, type);
+    };
 
-    const handleConvertToInvoice = useCallback((sale: Sale) => {
-        loadSaleForEditing(sale.id, 'invoice');
-    }, [loadSaleForEditing]);
+    const handleConvertToInvoice = (sale: Sale) => {
+        loadSaleForEditing(sale, 'invoice');
+    };
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -701,7 +701,7 @@ export default function ReportsPage() {
                                     Total {getSortIcon('total')}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            <TableHead className="w-[150px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -756,12 +756,12 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            {(sale.status === 'quote' || sale.status === 'delivery_note') && (
+                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && (
                                                 <Button variant="ghost" size="icon" title="Transformer en Facture" onClick={() => handleConvertToInvoice(sale)}>
                                                     <FileCog className="h-4 w-4 text-green-600" />
                                                 </Button>
                                             )}
-                                            {sale.status !== 'paid' && sale.status !== 'invoiced' && (
+                                            {sale.status !== 'paid' && (
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
@@ -770,6 +770,9 @@ export default function ReportsPage() {
                                                 <Link href={`/reports/${sale.id}`}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
+                                            </Button>
+                                            <Button variant="secondary" onClick={() => handleEdit(sale)}>
+                                              Édition
                                             </Button>
                                         </div>
                                     </TableCell>
