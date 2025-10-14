@@ -120,11 +120,10 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   });
   
   useEffect(() => {
-    // Only update the form if the order has items and is different from the form's current state.
-    // This prevents resetting the form when it's already populated during an edit.
-    if (order && order.length > 0 && JSON.stringify(order) !== JSON.stringify(form.getValues('items'))) {
-      form.setValue('items', order.map(item => ({ ...item, remise: item.discountPercent || 0 })));
-    }
+    // This is the key fix. It ensures the form's internal state
+    // is reliably synchronized with the global `order` state from the context.
+    form.setValue('items', order.map(item => ({ ...item, remise: item.discountPercent || 0 })));
+    
      if (currentSaleContext?.acompte) {
         form.setValue('acompte', currentSaleContext.acompte);
     }
