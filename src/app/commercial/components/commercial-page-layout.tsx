@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,6 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
@@ -199,9 +201,15 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     });
   };
 
-  const pageTitle = isEditingExistingDoc ? currentConfig.editTitle : currentConfig.title;
+  const pageTitle = isEditingExistingDoc ? (
+    <div className="flex items-center gap-4">
+      <span>{currentConfig.editTitle}</span>
+      {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+    </div>
+  ) : currentConfig.title;
+
   const pageSubtitle = isEditingExistingDoc
-    ? `Modification #${currentSaleContext?.ticketNumber || '...'}`
+    ? `Mise à jour d'un document existant.`
     : currentConfig.subtitle;
 
   return (
