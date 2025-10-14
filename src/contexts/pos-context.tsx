@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -112,7 +113,7 @@ interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -433,7 +434,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
         clearOrder();
         setCurrentSaleContext({ documentType: pageType });
-    }, [clearOrder]);
+  }, [clearOrder]);
+
+  const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+        });
+      }
+    }, [sales]);
 
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
@@ -1201,19 +1214,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
-  const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-      const saleToEdit = sales.find(s => s.id === saleId);
-      if (saleToEdit) {
-        setOrder(saleToEdit.items);
-        setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          isInvoice: type === 'invoice',
-          documentType: type,
-        });
-      }
-    }, [sales]);
-
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
