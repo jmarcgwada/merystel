@@ -421,7 +421,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
-  
+
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -435,7 +435,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         clearOrder();
         setCurrentSaleContext({ documentType: pageType });
   }, [clearOrder]);
-
+  
   const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
@@ -1138,8 +1138,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
     }, [setCustomers]);
 
-    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'>) => {
-        const newSupplier = { ...supplier, id: uuidv4() };
+    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'> & {id: string}) => {
+        const newSupplier = { ...supplier, id: supplier.id || uuidv4() };
         setSuppliers(prev => [...prev, newSupplier]);
         return newSupplier;
     }, [setSuppliers]);
