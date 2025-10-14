@@ -87,7 +87,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const amountPaidFromPrevious = useMemo(() => {
     const totalPaid = previousPayments.reduce((acc, p) => acc + p.amount, 0);
-    // This is the amount the business effectively kept for the original sale.
     return totalPaid - previousChange;
   }, [previousPayments, previousChange]);
 
@@ -118,7 +117,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
   
  const handleFinalizeSale = useCallback((finalPayments: Payment[], isFullyPaid: boolean) => {
-    if (isPaid && isFullyPaid) return; // Prevent re-finalizing a paid sale
+    if (isPaid && isFullyPaid) return;
     
     const allPayments = [...previousPayments, ...finalPayments];
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -129,12 +128,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: allPayments.map(p => ({ ...p, date: Timestamp.fromDate(paymentDate) })),
+      payments: allPayments.map(p => ({ ...p, date: p.date || Timestamp.fromDate(paymentDate) })),
       status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
-      ...(currentSaleContext?.originalPayments && { originalPayments: currentSaleContext.originalPayments }),
+      ...(currentSaleContext?.originalSaleId && { originalSaleId: currentSaleContext.originalSaleId }),
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
       ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
       documentType: currentSaleContext?.documentType || 'ticket',
@@ -231,7 +230,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleAddPayment = (method: PaymentMethod) => {
     let amountToAdd : number;
-    // Always use the entered amount from the input field
     amountToAdd = parseFloat(String(currentAmount));
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
@@ -315,7 +313,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
-      // If the payment method has a fixed value (like a voucher), use that. Otherwise, use the entered amount.
       if (method.type === 'indirect' && method.value) {
         let amountToAdd = method.value > balanceDue ? balanceDue : method.value;
         setCurrentAmount(amountToAdd.toFixed(2));
@@ -326,7 +323,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     const handleSaveAsPending = () => {
       if (isInvoiceMode) {
-        handleFinalizeSale([], false); // Pass empty payments, finalize as pending
+        handleFinalizeSale(payments, false); 
       }
     };
     
@@ -573,11 +570,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             onClick={isInvoiceMode ? handleSaveAsPending : () => handleOpenChange(false)}
             className="w-full sm:w-auto"
         >
-            {isInvoiceMode ? 'Enregistrer' : 'Annuler'}
+            {isInvoiceMode && balanceDue > 0.009 ? 'Enregistrer en attente' : 'Annuler'}
         </Button>
 
         {(balanceDue < 0.009 || isInvoiceMode) && (
-          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
               Finaliser
           </Button>
         )}

@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -953,7 +954,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                modifiedAt: today, // Add modification date
+                modifiedAt: today, 
             };
         } else {
             const dayMonth = format(today, 'ddMM');
@@ -1212,6 +1213,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...saleToEdit,
           documentType: type,
           isReadOnly: isReadOnly,
+          originalTotal: saleToEdit.total,
+          originalPayments: saleToEdit.payments,
+          change: saleToEdit.change,
         });
         return true;
       } else {
@@ -1227,7 +1231,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return;
       }
   
-      // Prepare the state for a NEW invoice, based on the quote/delivery note.
       setOrder(saleToConvert.items);
       setCurrentSaleId(null); 
       
