@@ -67,13 +67,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   } = usePos();
 
   const formRef = useRef<{ submit: () => void }>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
-  const saleIdToEdit = searchParams.get('edit');
 
-  const isEditingExistingDoc = !!currentSaleId && saleIdToEdit === currentSaleId;
+  const isEditingExistingDoc = !!currentSaleId;
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditingExistingDoc && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
 

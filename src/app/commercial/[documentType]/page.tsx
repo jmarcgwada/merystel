@@ -15,37 +15,38 @@ function DocumentPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const { loadSaleForEditing, resetCommercialPage, order, currentSaleId } = usePos();
+  const { loadSaleForEditing, resetCommercialPage } = usePos();
   
   const documentType = params.documentType as string;
   const docType = typeMap[documentType];
   
+  // Extraire les valeurs de l'URL une seule fois. Ce sont des dépendances stables.
   const saleIdToEdit = searchParams.get('edit');
   const fromConversion = searchParams.get('fromConversion');
 
   useEffect(() => {
-    // This effect runs ONLY when the key parameters from the URL change.
-    // It decides whether to load an existing sale or reset for a new one.
+    // Ce hook s'exécute uniquement si les paramètres de l'URL changent.
     if (fromConversion) {
-      // The context is already prepared for conversion, so we do nothing.
+      // Si on vient d'une conversion, le contexte est déjà prêt. On ne fait rien.
       return;
     }
 
     if (saleIdToEdit) {
-      // If we are editing, load the sale.
+      // Si on édite, on charge la pièce.
       loadSaleForEditing(saleIdToEdit, docType);
     } else {
-      // Otherwise, it's a new document, so reset the page.
+      // Sinon (nouvelle pièce), on réinitialise.
       resetCommercialPage(docType);
     }
-  }, [saleIdToEdit, fromConversion, docType, loadSaleForEditing, resetCommercialPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleIdToEdit, fromConversion, docType]);
 
 
   if (!docType) {
     return <div>Type de document non valide</div>;
   }
 
-  // The layout component is now "dumb" and just displays what's in the context.
+  // Le layout est maintenant "passif" et ne fait qu'afficher ce qui est dans le contexte.
   return <CommercialPageLayout documentType={docType} />;
 }
 
