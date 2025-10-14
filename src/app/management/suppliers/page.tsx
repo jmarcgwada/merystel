@@ -28,6 +28,9 @@ import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from './components/add-supplier-dialog';
 import { EditSupplierDialog } from './components/edit-supplier-dialog';
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -46,10 +49,15 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 export default function SuppliersPage() {
-  const { suppliers, deleteSupplier, isLoading } = usePos();
+  const firestore = useFirestore();
   const { user } = useUser();
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
   const [isEditSupplierOpen, setEditSupplierOpen] = useState(false);
+  const { suppliers: suppliersFromContext, deleteSupplier, isLoading: isPosLoading } = usePos();
+
+  const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'suppliers') : null, [firestore, user]);
+  const { data: suppliers, isLoading: isSuppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
+  const isLoading = isPosLoading || isSuppliersLoading;
   
   const isCashier = user?.role === 'cashier';
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
