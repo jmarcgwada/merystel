@@ -64,6 +64,7 @@ interface PosContextType {
     type: 'percentage' | 'fixed'
   ) => void;
   clearOrder: () => void;
+  resetCommercialPage: (documentType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
@@ -432,18 +433,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const prevPath = prevPathnameRef.current;
         const salesModes = ['/pos', '/supermarket', '/restaurant'];
-        const commercialModes = ['/commercial'];
+        
+        // This regex will match /commercial/[anything]
+        const commercialRegex = /^\/commercial(\/.*)?$/;
 
         const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
-        const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
+        const isLeavingCommercial = commercialRegex.test(prevPath) && !commercialRegex.test(pathname);
 
-        if (isLeavingSales || isLeavingCommercial) {
-            setCurrentSaleContext(null);
+        if ((isLeavingSales || isLeavingCommercial) && order.length > 0) {
+            // Logic to handle unsaved changes is managed by NavigationGuard and showNavConfirm
+        } else if (isLeavingSales || isLeavingCommercial) {
+            // If there's no order, we can safely clear the context
             setCurrentSaleId(null);
+            setCurrentSaleContext(null);
+            setOrder([]);
         }
 
         prevPathnameRef.current = pathname;
-    }, [pathname]);
+    }, [pathname, order.length]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -635,6 +642,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
+
+  const resetCommercialPage = useCallback((documentType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+    setOrder([]);
+    setCurrentSaleId(null);
+    setCurrentSaleContext({ documentType: documentType });
+  }, []);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1206,9 +1219,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCurrentSaleId(saleId);
         setCurrentSaleContext({
           ...saleToEdit,
-          documentType: type || saleToEdit.documentType,
           isInvoice: type === 'invoice',
+          documentType: type || saleToEdit.documentType,
           customerId: saleToEdit.customerId,
+          supplierId: saleToEdit.supplierId,
+          ticketNumber: saleToEdit.ticketNumber,
         });
       }
     }, [sales]);
@@ -1216,7 +1231,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
-      clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,

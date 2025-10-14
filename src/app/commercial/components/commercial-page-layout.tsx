@@ -66,6 +66,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       setCurrentSaleContext,
       currentSaleId,
       updateItemQuantityInOrder,
+      resetCommercialPage,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -81,16 +82,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const config = docTypeConfig[documentType];
 
   useEffect(() => {
-    setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
-  }, [documentType, setCurrentSaleContext]);
-  
-  useEffect(() => {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
-      clearOrder();
+      resetCommercialPage(documentType);
     }
-  }, [saleIdToEdit, documentType, loadSaleForEditing, clearOrder]);
+  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
 
 
   useEffect(() => {

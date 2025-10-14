@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -27,6 +26,8 @@ function SupplierOrdersPageContent() {
       setCurrentSaleContext,
       updateItemNote,
       updateItemQuantityInOrder,
+      resetCommercialPage,
+      loadSaleForEditing,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -44,15 +45,15 @@ function SupplierOrdersPageContent() {
       router.replace(newUrl, { scroll: false });
     }
   }, [newItemId, addToOrder, router]);
-
+  
   useEffect(() => {
-    setCurrentSaleContext({ documentType: 'supplier_order' });
-    // For now, editing supplier orders is not implemented
-    if (order.length > 0 && !location.search.includes('edit')) {
-         clearOrder();
+    if (saleIdToEdit) {
+      loadSaleForEditing(saleIdToEdit, 'supplier_order');
+    } else {
+      resetCommercialPage('supplier_order');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit]);
+  }, [saleIdToEdit, resetCommercialPage, loadSaleForEditing]);
+
 
   const handleGenerateRandomOrder = useCallback(() => {
     if (!items?.length || !suppliers?.length) {
@@ -110,7 +111,7 @@ function SupplierOrdersPageContent() {
             <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
               <Sparkles className="h-4 w-4" />
             </Button>
-            {isReady && submitHandler && (
+            {submitHandler && (
                  <Button size="lg" onClick={submitHandler} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour' : 'Sauvegarder la commande'}</Button>
             )}
           </div>
