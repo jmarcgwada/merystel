@@ -66,6 +66,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       convertToInvoice,
+      loadSaleForEditing,
+      resetCommercialPage
   } = usePos();
 
   const formRef = useRef<{ submit: () => void }>(null);
@@ -74,6 +76,22 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const { toast } = useToast();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
   const saleIdToEdit = searchParams.get('edit');
+  const fromConversion = searchParams.get('fromConversion');
+
+  // This useEffect now reliably controls the data loading and resetting logic.
+  useEffect(() => {
+    // If 'fromConversion' is present, the context is already prepared. Do nothing.
+    if (fromConversion) {
+      return; 
+    }
+    
+    if (saleIdToEdit) {
+      loadSaleForEditing(saleIdToEdit, documentType);
+    } else {
+      resetCommercialPage(documentType);
+    }
+  }, [saleIdToEdit, fromConversion, documentType, loadSaleForEditing, resetCommercialPage]);
+
 
   const isEditingExistingDoc = !!currentSaleId && saleIdToEdit === currentSaleId;
   const config = docTypeConfig[documentType];

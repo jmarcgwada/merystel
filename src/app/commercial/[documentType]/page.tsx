@@ -11,40 +11,20 @@ const typeMap: Record<string, 'invoice' | 'quote' | 'delivery_note'> = {
   'delivery-notes': 'delivery_note',
 };
 
-function DocumentPageContent() {
+// This component is now simplified and mainly acts as a wrapper.
+// The core logic is moved to CommercialPageLayout to avoid effect conflicts.
+export default function DocumentPage() {
   const params = useParams();
-  const { loadSaleForEditing, resetCommercialPage } = usePos();
-  const searchParams = useSearchParams();
-  
   const documentType = params.documentType as string;
   const docType = typeMap[documentType];
-
-  const saleIdToEdit = searchParams.get('edit');
-
-  useEffect(() => {
-    if (saleIdToEdit) {
-      loadSaleForEditing(saleIdToEdit, docType);
-    } else {
-      // Let the context handle the state if it's a conversion.
-      // Otherwise, reset for a new document.
-      const isConversion = searchParams.has('fromConversion');
-      if (!isConversion) {
-        resetCommercialPage(docType);
-      }
-    }
-  }, [saleIdToEdit, docType, loadSaleForEditing, resetCommercialPage, searchParams]);
 
   if (!docType) {
     return <div>Type de document non valide</div>;
   }
 
-  return <CommercialPageLayout documentType={docType} />;
-}
-
-export default function DocumentPage() {
   return (
     <Suspense fallback={<div>Chargement...</div>}>
-      <DocumentPageContent />
+      <CommercialPageLayout documentType={docType} />
     </Suspense>
   );
 }
