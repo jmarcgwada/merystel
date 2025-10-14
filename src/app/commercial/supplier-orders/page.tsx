@@ -53,17 +53,19 @@ function SupplierOrdersPageContent() {
   }, [newItemId, addToOrder, router]);
   
   useEffect(() => {
+    // This effect is the SINGLE SOURCE OF TRUTH for loading a document.
     if (saleIdToEdit) {
       if (currentSaleId !== saleIdToEdit) {
-        // Reset first to ensure a clean state, especially when switching between documents
-        resetCommercialPage('supplier_order');
         loadSaleForEditing(saleIdToEdit, 'supplier_order');
       }
     } else {
-        resetCommercialPage('supplier_order');
+        // Only reset if we are not editing.
+        if (!currentSaleId) {
+             resetCommercialPage('supplier_order');
+        }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleIdToEdit, currentSaleId]);
 
   const handleSave = useCallback(async () => {
     if (formRef.current) {
