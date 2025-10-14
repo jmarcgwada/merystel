@@ -158,6 +158,7 @@ export interface Sale {
   documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order';
   userId?: string;
   userName?: string;
+  originalSaleId?: string;
 }
 
 export interface HeldOrder {

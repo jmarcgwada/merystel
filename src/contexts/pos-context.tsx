@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -132,7 +133,7 @@ interface PosContextType {
   promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
   sales: Sale[];
   recordSale: (
-    sale: Omit<Sale, 'id' | 'ticketNumber'>,
+    sale: Omit<Sale, 'id' | 'ticketNumber' | 'date'>,
     saleIdToUpdate?: string
   ) => Promise<Sale | null>;
    recordCommercialDocument: (
@@ -941,19 +942,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
         let finalSale: Sale;
     
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
             const existingSale = sales.find(s => s.id === saleIdToUpdate);
             if (!existingSale) return null;
+            
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: today,
-                modifiedAt: today,
-                ticketNumber: existingSale.ticketNumber,
+                modifiedAt: today, // Add modification date
             };
         } else {
             const dayMonth = format(today, 'ddMM');
@@ -974,8 +974,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 id: newId,
                 ticketNumber,
-                userId: user?.id,
-                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
                 ...saleData,
                 date: today
             };
@@ -1264,7 +1262,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, isTransformToInvoiceConfirmOpen: false, showTransformToInvoiceConfirm: () => {}, closeTransformToInvoiceConfirm: () => {}, confirmTransformToInvoice: () => {},
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
