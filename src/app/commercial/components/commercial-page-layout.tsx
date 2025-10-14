@@ -6,13 +6,14 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, Suspense, useCallback, useRef } from 'react';
+import { useState, Suspense, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useSearchParams } from 'next/navigation';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
@@ -65,7 +66,22 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       convertToInvoice,
+      resetCommercialPage,
   } = usePos();
+  
+  const searchParams = useSearchParams();
+  const isEditing = !!searchParams.get('edit');
+  const isConverting = !!searchParams.get('fromConversion');
+
+  useEffect(() => {
+    // This effect ensures that a new document is started when navigating
+    // between document types, but NOT during an edit or conversion.
+    if (!isEditing && !isConverting) {
+      resetCommercialPage(documentType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentType, isEditing, isConverting]);
+
 
   const formRef = useRef<{ submit: () => void }>(null);
   const { toast } = useToast();
