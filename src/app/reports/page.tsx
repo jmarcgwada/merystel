@@ -166,7 +166,7 @@ export default function ReportsPage() {
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
 
-    const handleEdit = useCallback(async (sale: Sale) => {
+    const handleEdit = useCallback((sale: Sale) => {
       const typeMap: Record<string, string> = {
           'quote': 'quotes',
           'delivery_note': 'delivery-notes',
@@ -177,11 +177,9 @@ export default function ReportsPage() {
       const docType = sale.documentType || 'invoice';
       const pathSegment = typeMap[docType] || 'invoices';
       
-      const isLoaded = await loadSaleForEditing(sale.id, docType as any);
-      if (isLoaded) {
-          router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
-      }
-  }, [loadSaleForEditing, router]);
+      // Navigate first, then the destination page will handle the loading.
+      router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
+  }, [router]);
 
 
     const filteredAndSortedSales = useMemo(() => {

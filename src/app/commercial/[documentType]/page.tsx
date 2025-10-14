@@ -24,33 +24,33 @@ function DocumentPageContent() {
   const fromConversion = searchParams.get('fromConversion');
 
   useEffect(() => {
-    // This effect runs only once when the page loads or when key parameters change.
-    // It decides whether to load an existing document for editing or reset for a new one.
-    // This is the SINGLE SOURCE OF TRUTH for loading/resetting.
+    // This effect is the SINGLE SOURCE OF TRUTH for loading or resetting a commercial document.
+    // It runs only when essential URL parameters change.
 
-    // If we just converted a document, the context is already set. Do nothing.
     if (fromConversion) {
+      // If we just converted a document, the context is already set up correctly. Do nothing.
       return;
     }
     
     if (saleIdToEdit) {
-      // If an ID is present, it's an edit. Load it.
-      // The check inside loadSaleForEditing will prevent re-loading if the context is already correct.
+      // If an ID is present for editing, load it.
+      // We also check if it's not already the one in context to prevent redundant loads.
       if (currentSaleId !== saleIdToEdit) {
         loadSaleForEditing(saleIdToEdit, docType);
       }
     } else {
-      // If no ID is present, it's a new document. Reset everything.
+      // If no ID is present, it's a new document. Reset everything for the current document type.
       resetCommercialPage(docType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, docType, fromConversion]); // Stable dependencies
+  }, [saleIdToEdit, docType, fromConversion]); // Use stable, primitive dependencies from URL.
 
 
   if (!docType) {
     return <div>Type de document non valide</div>;
   }
 
+  // CommercialPageLayout is now a "dumb" component that just displays the state from context.
   return <CommercialPageLayout documentType={docType} />;
 }
 

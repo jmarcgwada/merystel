@@ -67,16 +67,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       convertToInvoice,
   } = usePos();
   
-  const searchParams = useSearchParams();
-  const isEditing = !!currentSaleId || !!searchParams.get('edit');
+  const isEditing = !!currentSaleId;
 
   const formRef = useRef<{ submit: () => void }>(null);
   const { toast } = useToast();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
-  const isEditingExistingDoc = !!currentSaleId;
   const config = docTypeConfig[documentType];
-  const canBeConverted = isEditingExistingDoc && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
+  const canBeConverted = isEditing && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
 
   const handleSave = useCallback(async () => {
     if (formRef.current) {
