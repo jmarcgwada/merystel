@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -70,7 +69,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   } = usePos();
   
   const searchParams = useSearchParams();
-  const isEditing = !!searchParams.get('edit');
+  const isEditing = !!currentSaleId || !!searchParams.get('edit');
   const isConverting = !!searchParams.get('fromConversion');
 
   useEffect(() => {
@@ -80,7 +79,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       resetCommercialPage(documentType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentType, isEditing, isConverting]);
+  }, [documentType, isEditing, isConverting, currentSaleId]);
 
 
   const formRef = useRef<{ submit: () => void }>(null);

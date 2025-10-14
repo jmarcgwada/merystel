@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -168,23 +167,21 @@ export default function ReportsPage() {
     }, [users]);
 
     const handleEdit = useCallback(async (sale: Sale) => {
-      const type = sale.documentType === 'quote' ? 'quote'
-                 : sale.documentType === 'delivery_note' ? 'delivery_note'
-                 : sale.documentType === 'supplier_order' ? 'supplier_order'
-                 : 'invoice';
-      
-      const pathMap = {
-          'invoice': '/commercial/invoices',
-          'quote': '/commercial/quotes',
-          'delivery_note': '/commercial/delivery-notes',
-          'supplier_order': '/commercial/supplier-orders',
+      const typeMap: Record<string, string> = {
+          'quote': 'quotes',
+          'delivery_note': 'delivery-notes',
+          'supplier_order': 'supplier-orders',
+          'invoice': 'invoices',
       };
-      const path = pathMap[type];
       
-      if (path) {
-          router.push(`${path}?edit=${sale.id}`);
+      const docType = sale.documentType || 'invoice'; // Default to invoice
+      const pathSegment = typeMap[docType] || 'invoices';
+      
+      const isLoaded = await loadSaleForEditing(sale.id, docType as any);
+      if (isLoaded) {
+          router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
       }
-  }, [router]);
+  }, [loadSaleForEditing, router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
