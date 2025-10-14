@@ -82,7 +82,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const config = docTypeConfig[documentType];
   
-  // Use a state to manage the current document type being edited, allowing transformation
   const [editingDocType, setEditingDocType] = useState<DocumentType>(documentType);
 
   const currentConfig = docTypeConfig[editingDocType];
@@ -91,10 +90,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
 
   useEffect(() => {
-    // This effect now runs only once on mount to set up the context.
     setCurrentSaleContext(prev => ({...prev, documentType: editingDocType}));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingDocType]);
+  }, [editingDocType, setCurrentSaleContext]);
 
   useEffect(() => {
     if (saleIdToEdit) {
@@ -149,7 +146,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
-    // For invoices (new, edited, or transformed) -> open checkout
     if (editingDocType === 'invoice') {
       if (submitHandler) {
         submitHandler(); 
@@ -157,13 +153,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
     
-    // For saving quotes or delivery notes
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
       items: order,
       subtotal: totals.subtotal,
       tax: totals.tax,
       total: totals.total,
-      status: editingDocType, // status is now the same as documentType for quotes/delivery_notes
+      status: editingDocType,
       payments: [],
       customerId: currentSaleContext.customerId,
     };

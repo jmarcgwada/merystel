@@ -154,7 +154,7 @@ export interface Sale {
   supplierId?: string;
   tableId?: string;
   tableName?: string;
-  status: 'paid' | 'pending' | 'quote' | 'delivery_note';
+  status: 'paid' | 'pending' | 'quote' | 'delivery_note' | 'invoiced';
   documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order';
   userId?: string;
   userName?: string;

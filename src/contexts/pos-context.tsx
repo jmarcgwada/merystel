@@ -1062,18 +1062,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router]);
     
-    const transformToInvoice = useCallback((saleToTransform: Sale) => {
+    const transformToInvoice = useCallback(async (saleToTransform: Sale) => {
         const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
             ...saleToTransform,
             documentType: 'invoice',
             status: 'pending',
-            payments: [],
+            payments: [], // New invoice starts with no payments
             change: 0,
         };
-        recordSale(newInvoiceData);
-        clearOrder();
-        router.push('/commercial/invoices');
-    }, [recordSale, clearOrder, router]);
+
+        const newInvoice = await recordSale(newInvoiceData);
+        
+        // Mark original document as invoiced
+        const originalDoc = sales.find(s => s.id === saleToTransform.id);
+        if (originalDoc) {
+            const updatedOriginalDoc = { ...originalDoc, status: 'invoiced' as 'paid' | 'pending' | 'quote' | 'delivery_note' | 'invoiced' };
+            setSales(prev => prev.map(s => s.id === saleToTransform.id ? updatedOriginalDoc : s));
+        }
+
+        if (newInvoice) {
+            toast({ title: 'Transformation réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
+            router.push(`/commercial/invoices?edit=${newInvoice.id}`);
+        }
+        
+    }, [recordSale, sales, setSales, toast, router]);
 
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -326,6 +327,9 @@ export default function ReportsPage() {
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
+        if (sale.status === 'invoiced') {
+            return <Badge variant="outline">Facturé</Badge>;
+        }
         if (sale.status === 'paid') {
             return (
                 <div className="flex flex-wrap gap-1">
@@ -594,6 +598,7 @@ export default function ReportsPage() {
                                 <SelectContent>
                                     <SelectItem value="all">Tous les statuts</SelectItem>
                                     <SelectItem value="paid">Payé</SelectItem>
+                                    <SelectItem value="invoiced">Facturé</SelectItem>
                                     <SelectItem value="partial">Partiellement payé</SelectItem>
                                     <SelectItem value="pending">En attente</SelectItem>
                                 </SelectContent>
@@ -753,7 +758,7 @@ export default function ReportsPage() {
                                                     </Link>
                                                 </Button>
                                             )}
-                                            {sale.status !== 'paid' && editPath && (
+                                            {sale.status !== 'paid' && sale.status !== 'invoiced' && editPath && (
                                                 <Button asChild variant="ghost" size="icon">
                                                     <Link href={editPath}>
                                                         <Pencil className="h-4 w-4" />
