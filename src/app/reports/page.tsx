@@ -24,7 +24,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useKeyboard } from '@/contexts/keyboard-context';
@@ -93,9 +92,11 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const searchParams = useSearchParams();
+    
     const initialFilter = searchParams.get('filter');
     const initialStatusFilter = searchParams.get('filterStatus');
     const dateFilterParam = searchParams.get('date');
+
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
 
@@ -165,7 +166,18 @@ export default function ReportsPage() {
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
-    
+
+    const handleEdit = useCallback((sale: Sale) => {
+        const type = sale.documentType === 'quote' ? 'quote'
+                   : sale.documentType === 'delivery_note' ? 'delivery_note'
+                   : sale.documentType === 'supplier_order' ? 'supplier_order'
+                   : 'invoice';
+        loadSaleForEditing(sale.id, type);
+    }, [loadSaleForEditing]);
+
+    const handleConvertToInvoice = useCallback((sale: Sale) => {
+        loadSaleForEditing(sale.id, 'invoice');
+    }, [loadSaleForEditing]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -323,18 +335,6 @@ export default function ReportsPage() {
         setCurrentPage(1);
     }
     
-    const handleEdit = (sale: Sale) => {
-        const type = sale.documentType === 'quote' ? 'quote'
-                   : sale.documentType === 'delivery_note' ? 'delivery_note'
-                   : sale.documentType === 'supplier_order' ? 'supplier_order'
-                   : 'invoice';
-        loadSaleForEditing(sale.id, type);
-    };
-
-    const handleConvertToInvoice = (sale: Sale) => {
-        loadSaleForEditing(sale.id, 'invoice');
-    };
-
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
 

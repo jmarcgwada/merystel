@@ -435,7 +435,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         clearOrder();
         setCurrentSaleContext({ documentType: pageType });
   }, [clearOrder]);
-  
+
   const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
@@ -445,8 +445,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           ...saleToEdit,
           documentType: type,
         });
+
+        let path = '';
+        switch(type) {
+            case 'invoice': path = '/commercial/invoices'; break;
+            case 'quote': path = '/commercial/quotes'; break;
+            case 'delivery_note': path = '/commercial/delivery-notes'; break;
+            case 'supplier_order': path = '/commercial/supplier-orders'; break;
+        }
+        if(path) {
+            router.push(`${path}?edit=${saleId}`);
+        }
       }
-    }, [sales]);
+    }, [sales, router]);
 
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
