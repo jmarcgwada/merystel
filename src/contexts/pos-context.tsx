@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -1206,6 +1205,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
+        
+        const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
         setOrder(saleToEdit.items);
         setCurrentSaleId(saleId);
@@ -1215,6 +1216,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           isReadOnly: isReadOnly,
           originalTotal: saleToEdit.total,
           originalPayments: saleToEdit.payments,
+          acompte: totalPaid,
           change: saleToEdit.change,
         });
         return true;
