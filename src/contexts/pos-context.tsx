@@ -1207,8 +1207,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCurrentSaleId(saleId);
         setCurrentSaleContext({
           ...saleToEdit,
-          isInvoice: type === 'invoice',
-          documentType: type,
+          documentType: type || saleToEdit.documentType,
         });
       }
     }, [sales]);
@@ -1254,5 +1253,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
