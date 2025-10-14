@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -179,11 +178,15 @@ export default function ReportsPage() {
       };
       
       const docType = sale.documentType || (sale.ticketNumber?.startsWith('Fact-') ? 'invoice' : 'ticket');
-      const pathSegment = typeMap[docType] || 'invoices';
       
       if(docType === 'ticket') {
-          // Cannot edit tickets directly, they must be recalled.
           toast({ variant: 'destructive', title: 'Action non autorisée', description: 'Les tickets ne peuvent pas être modifiés, seulement dupliqués ou visualisés.'});
+          return;
+      }
+
+      const pathSegment = typeMap[docType];
+      if (!pathSegment) {
+          toast({ variant: 'destructive', title: 'Type de document inconnu', description: "Impossible d'ouvrir ce type de pièce pour modification."});
           return;
       }
       

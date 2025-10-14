@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,12 +5,13 @@ import { SupplierOrderForm } from '../components/supplier-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle, Lock } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 function SupplierOrdersPageContent() {
@@ -28,14 +28,20 @@ function SupplierOrdersPageContent() {
       updateItemQuantityInOrder,
       resetCommercialPage,
       loadSaleForEditing,
+      currentSaleId,
+      currentSaleContext,
   } = usePos();
-  const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  
+  const formRef = useRef<{ submit: () => void }>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  
   const saleIdToEdit = searchParams.get('edit');
   const newItemId = searchParams.get('newItemId');
+
+  const isEditing = !!currentSaleId;
+  const isReadOnly = currentSaleContext?.isReadOnly ?? false;
 
    useEffect(() => {
     if (newItemId) {
@@ -48,11 +54,20 @@ function SupplierOrdersPageContent() {
   
   useEffect(() => {
     if (saleIdToEdit) {
-      loadSaleForEditing(saleIdToEdit, 'supplier_order');
+      if (currentSaleId !== saleIdToEdit) {
+        loadSaleForEditing(saleIdToEdit, 'supplier_order');
+      }
     } else {
-      resetCommercialPage('supplier_order');
+        resetCommercialPage('supplier_order');
     }
-  }, [saleIdToEdit, resetCommercialPage, loadSaleForEditing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleIdToEdit]);
+
+  const handleSave = useCallback(async () => {
+    if (formRef.current) {
+      formRef.current.submit();
+    }
+  }, []);
 
 
   const handleGenerateRandomOrder = useCallback(() => {
@@ -100,36 +115,57 @@ function SupplierOrdersPageContent() {
     });
   }, [items, suppliers, resetCommercialPage, setCurrentSaleContext, setOrder, toast]);
   
+  const getButtonLabel = () => {
+    if (isEditing) {
+        return isReadOnly ? 'Commande Validée' : 'Valider la commande';
+    }
+    return 'Valider la commande';
+  }
+
   return (
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
-            title={saleIdToEdit ? "Modifier la commande fournisseur" : "Gestion des Commandes Fournisseur"}
-            subtitle={saleIdToEdit ? "Modifiez les articles et finalisez la commande." : "Créez une nouvelle commande fournisseur."}
+            title={isEditing ? "Modifier la commande fournisseur" : "Gestion des Commandes Fournisseur"}
+            subtitle={isEditing ? "Modifiez les articles et finalisez la commande." : "Créez une nouvelle commande fournisseur."}
         >
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
-              <Sparkles className="h-4 w-4" />
-            </Button>
-            {submitHandler && (
-                 <Button size="lg" onClick={submitHandler} disabled={!isReady}>{saleIdToEdit ? 'Mettre à jour' : 'Sauvegarder la commande'}</Button>
+            {!isEditing && (
+              <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
+                <Sparkles className="h-4 w-4" />
+              </Button>
             )}
+             <Button size="lg" onClick={handleSave} disabled={isReadOnly}>
+                 <CheckCircle className="mr-2 h-4 w-4" />
+                {getButtonLabel()}
+            </Button>
           </div>
         </PageHeader>
+
+        {isReadOnly && (
+            <Alert variant="default" className="mt-4 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+                <Lock className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800 dark:text-green-300">Commande Validée</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-400">
+                    Cette commande a été validée et ne peut plus être modifiée.
+                </AlertDescription>
+            </Alert>
+        )}
         
-        <div className="flex-1 flex flex-col min-h-0">
-            <SupplierOrderForm 
-                order={order} 
-                setOrder={setOrder}
-                addToOrder={addToOrder}
-                updateQuantity={updateQuantity}
-                removeFromOrder={removeFromOrder}
-                setSubmitHandler={setSubmitHandler}
-                setIsReady={setIsReady}
-                updateItemNote={updateItemNote}
-                updateItemQuantityInOrder={updateItemQuantityInOrder}
-            />
-        </div>
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 mt-4 group">
+            <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
+                <SupplierOrderForm 
+                    ref={formRef}
+                    order={order} 
+                    setOrder={setOrder}
+                    addToOrder={addToOrder}
+                    updateQuantity={updateQuantity}
+                    removeFromOrder={removeFromOrder}
+                    updateItemNote={updateItemNote}
+                    updateItemQuantityInOrder={updateItemQuantityInOrder}
+                />
+            </div>
+        </fieldset>
       </div>
       <SerialNumberModal />
       <VariantSelectionModal />

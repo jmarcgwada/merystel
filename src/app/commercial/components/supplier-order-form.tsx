@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Trash2, List, Search, Pencil, Truck, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Supplier, Item, OrderItem } from '@/lib/types';
+import type { Supplier, Item, OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -48,8 +46,6 @@ interface SupplierOrderFormProps {
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
   updateItemNote: (itemId: string, note: string) => void;
-  setSubmitHandler: (handler: (() => void) | null) => void;
-  setIsReady: (isReady: boolean) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
 }
 
@@ -83,8 +79,9 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
   );
 }
 
-export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, setSubmitHandler, setIsReady, updateItemQuantityInOrder }: SupplierOrderFormProps) {
-  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay } = usePos();
+export const SupplierOrderForm = forwardRef<{ submit: () => void }, SupplierOrderFormProps>(
+    ({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemQuantityInOrder }, ref) => {
+  const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay, currentSaleId } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isSupplierSearchOpen, setSupplierSearchOpen] = useState(false);
@@ -115,11 +112,17 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   }, [order, form.setValue]);
   
   const watchItems = form.watch('items');
-  
+
   useEffect(() => {
-    const isReady = !!selectedSupplier && watchItems.length > 0;
-    setIsReady(isReady);
-  }, [selectedSupplier, watchItems, setIsReady]);
+    if (currentSaleContext?.supplierId && suppliers) {
+        const supplier = suppliers.find(c => c.id === currentSaleContext.supplierId);
+        if (supplier) {
+            setSelectedSupplier(supplier);
+            form.setValue('supplierId', supplier.id);
+        }
+    }
+  }, [currentSaleContext?.supplierId, suppliers, form]);
+  
 
   const onSupplierSelected = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
@@ -238,27 +241,31 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
   
   const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
 
-  const onSubmit = useCallback(() => {
-    if (order.length === 0 || !selectedSupplier) return;
-    
-     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'documentType'> = {
-      items: order,
-      subtotal: subTotalHT,
-      tax: totalTVA,
-      total: totalTTC,
-      status: 'pending', 
-      payments: [],
-      supplierId: selectedSupplier.id,
-    };
-    
-    recordCommercialDocument(doc, 'supplier_order');
-    
-  }, [order, selectedSupplier, recordCommercialDocument, subTotalHT, totalTVA, totalTTC]);
-  
-  useEffect(() => {
-    setSubmitHandler(() => onSubmit);
-    return () => setSubmitHandler(null);
-  }, [onSubmit, setSubmitHandler]);
+  useImperativeHandle(ref, () => ({
+    submit: () => {
+        if (order.length === 0 || !selectedSupplier) {
+            toast({
+              title: "Commande invalide",
+              description: "Veuillez sélectionner un fournisseur et ajouter au moins un article.",
+              variant: "destructive"
+            });
+            return;
+        }
+        
+         const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'documentType'> = {
+          items: order,
+          subtotal: subTotalHT,
+          tax: totalTVA,
+          total: totalTTC,
+          status: 'paid', // Mark as paid to lock it
+          payments: [],
+          supplierId: selectedSupplier.id,
+        };
+        
+        recordCommercialDocument(doc, 'supplier_order', currentSaleId || undefined);
+    }
+  }));
+
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
@@ -357,7 +364,7 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     <Card className="mt-4 flex-1 flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col flex-1">
+          <form className="space-y-6 flex flex-col flex-1">
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Détails de la commande fournisseur</h3>
@@ -542,4 +549,6 @@ export function SupplierOrderForm({ order, setOrder, addToOrder, updateQuantity,
     )}
     </>
   );
-}
+});
+
+SupplierOrderForm.displayName = "SupplierOrderForm";
