@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -175,11 +176,17 @@ export default function ReportsPage() {
           'invoice': 'invoices',
       };
       
-      const docType = sale.documentType || 'invoice';
+      const docType = sale.documentType || (sale.ticketNumber?.startsWith('Fact-') ? 'invoice' : 'ticket');
       const pathSegment = typeMap[docType] || 'invoices';
       
+      if(docType === 'ticket') {
+          // Cannot edit tickets directly, they must be recalled.
+          toast({ variant: 'destructive', title: 'Action non autorisée', description: 'Les tickets ne peuvent pas être modifiés, seulement dupliqués ou visualisés.'});
+          return;
+      }
+      
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
-    }, [router]);
+    }, [router, toast]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -731,6 +738,9 @@ export default function ReportsPage() {
                                             : 'Ticket';
                             const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
                             
+                            const originalDoc = sale.originalSaleId ? allSales.find(s => s.id === sale.originalSaleId) : null;
+                            const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
+
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell>
@@ -746,7 +756,7 @@ export default function ReportsPage() {
                                         {sellerName}
                                     </TableCell>
                                     <TableCell>
-                                        {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : "Vente directe"}
+                                        {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}
                                     </TableCell>
                                     <TableCell>
                                         {getCustomerName(sale.customerId)}
