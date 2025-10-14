@@ -86,7 +86,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, convertToInvoice } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -161,7 +161,7 @@ export default function ReportsPage() {
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
         if (saleUser?.firstName && saleUser?.lastName) {
-            return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
+            return `${'saleUser.firstName'} ${'saleUser.lastName.charAt(0)'}.`;
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
@@ -178,7 +178,7 @@ export default function ReportsPage() {
       const pathSegment = typeMap[docType] || 'invoices';
       
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
-  }, [router]);
+    }, [router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -759,10 +759,8 @@ export default function ReportsPage() {
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {canBeConverted && (
-                                                <Button asChild variant="ghost" size="icon">
-                                                  <Link href={`/commercial/invoices?fromConversion=${sale.id}`} scroll={false}>
+                                                <Button variant="ghost" size="icon" onClick={() => convertToInvoice(sale.id)}>
                                                     <FileCog className="h-4 w-4 text-blue-600" />
-                                                  </Link>
                                                 </Button>
                                             )}
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>

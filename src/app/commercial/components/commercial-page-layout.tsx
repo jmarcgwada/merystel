@@ -125,7 +125,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
     toast({
       title: 'Document Aléatoire Généré',
-      description: `Préparation du document pour ${randomCustomer.name}.`,
+      description: `Préparation du document pour ${'randomCustomer.name'}.`,
     });
   };
 
@@ -153,7 +153,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 variant="outline"
                 size="icon"
                 onClick={handleGenerateRandom}
-                title={`Générer ${documentType} aléatoire`}
+                title={`Générer ${'documentType'} aléatoire`}
                 disabled={order.length > 0}
               >
                 <Sparkles className="h-4 w-4" />

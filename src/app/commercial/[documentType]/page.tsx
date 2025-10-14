@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePos } from '@/contexts/pos-context';
@@ -31,6 +30,8 @@ function DocumentPageContent() {
     if (saleIdToConvert) {
       // If we are converting, load the source document into the new invoice context
       loadSaleForConversion(saleIdToConvert);
+      // Remove query param to avoid re-triggering on refresh
+      window.history.replaceState({}, '', window.location.pathname);
       return; // Stop further processing
     }
     
