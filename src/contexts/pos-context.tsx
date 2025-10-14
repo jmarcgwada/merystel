@@ -388,7 +388,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-  
+
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
     clearOrder();
     setCurrentSaleContext({ documentType: pageType });
@@ -1296,4 +1296,3 @@ export function usePos() {
   }
   return context;
 }
-

@@ -66,56 +66,28 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       resetCommercialPage,
-      loadSaleForEditing
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const saleIdToEdit = searchParams.get('edit');
-  const newItemId = searchParams.get('newItemId');
-  const updatedItemId = searchParams.get('updatedItemId');
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
-  const isEditingExistingDoc = !!saleIdToEdit;
+  const isEditingExistingDoc = !!currentSaleId;
   const config = docTypeConfig[documentType];
-
-  useEffect(() => {
-    if (saleIdToEdit) {
-      loadSaleForEditing(saleIdToEdit, documentType);
-    } else {
-      resetCommercialPage(documentType);
-    }
-  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
-
-
-  useEffect(() => {
-    if (newItemId) {
-      addToOrder(newItemId);
-      const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [newItemId, addToOrder, router]);
   
   useEffect(() => {
-    if (updatedItemId && items) {
-      const updatedItem = items.find(i => i.id === updatedItemId);
-      if (updatedItem) {
-          setOrder(currentOrder => 
-            currentOrder.map(orderItem => 
-              orderItem.itemId === updatedItemId 
-                ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
-                : orderItem
-            )
-          );
-      }
-      const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
-      router.replace(newUrl, { scroll: false });
+    // This effect ensures that when the page is loaded for creating a new document,
+    // the context is correctly set. The loading for editing is now handled
+    // by the component that triggers the navigation (e.g., reports page).
+    if (!currentSaleId) {
+      resetCommercialPage(documentType);
     }
-  }, [updatedItemId, items, setOrder, router]);
+  }, [documentType, resetCommercialPage, currentSaleId]);
 
-  const handleSave = async () => {
+
+  const handleSave = useCallback(async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
     if (documentType === 'invoice') {
@@ -136,7 +108,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     };
     
     await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
-  };
+  }, [isReady, currentSaleContext, documentType, submitHandler, order, totals, recordCommercialDocument, currentSaleId]);
   
   const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {

@@ -152,12 +152,12 @@ export default function ReportsPage() {
         if (targetInput?.name === 'reports-article-filter') setFilterArticleRef(inputValue);
     }, [inputValue, targetInput]);
 
-    const getCustomerName = (customerId?: string) => {
+    const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
-    };
+    }, [customers]);
     
-    const getUserName = (userId?: string, fallbackName?: string) => {
+    const getUserName = useCallback((userId?: string, fallbackName?: string) => {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
@@ -165,7 +165,7 @@ export default function ReportsPage() {
             return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
-    };
+    }, [users]);
 
     const handleEdit = useCallback(async (sale: Sale) => {
         const type = sale.documentType === 'quote' ? 'quote'
@@ -801,4 +801,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

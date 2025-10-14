@@ -92,7 +92,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 
 
 export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange, updateItemQuantityInOrder }: CommercialOrderFormProps) {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -120,8 +120,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   });
   
   useEffect(() => {
-    // This is the key fix. It ensures the form's internal state
-    // is reliably synchronized with the global `order` state from the context.
     form.setValue('items', order.map(item => ({ ...item, remise: item.discountPercent || 0 })));
     
      if (currentSaleContext?.acompte) {
@@ -287,19 +285,31 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
 
   const onSubmit = useCallback(() => {
     if (order.length === 0 || !selectedCustomer) return;
-    
-    setCurrentSaleContext(prev => ({ 
-      ...prev, 
-      isInvoice: true, 
-      customerId: selectedCustomer.id, 
-      acompte,
-      subtotal: subTotalHT,
-      tax: totalTVA,
-      total: totalTTC,
-    }));
 
-    setCheckoutOpen(true);
-  }, [order, selectedCustomer, setCurrentSaleContext, acompte, subTotalHT, totalTVA, totalTTC]);
+    if (currentSaleContext?.documentType === 'invoice') {
+        setCurrentSaleContext(prev => ({ 
+            ...prev, 
+            isInvoice: true, 
+            customerId: selectedCustomer.id, 
+            acompte,
+            subtotal: subTotalHT,
+            tax: totalTVA,
+            total: totalTTC,
+        }));
+        setCheckoutOpen(true);
+    } else {
+        const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
+            items: order,
+            subtotal: subTotalHT,
+            tax: totalTVA,
+            total: totalTTC,
+            status: currentSaleContext?.documentType || 'pending',
+            payments: [],
+            customerId: selectedCustomer.id,
+        };
+        recordCommercialDocument(doc, currentSaleContext?.documentType as any, currentSaleId || undefined);
+    }
+  }, [order, selectedCustomer, currentSaleContext, acompte, subTotalHT, totalTVA, totalTTC, setCurrentSaleContext, recordCommercialDocument, currentSaleId]);
   
   useEffect(() => {
     setSubmitHandler(() => onSubmit);
