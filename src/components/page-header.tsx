@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface PageHeaderProps {
-  title: string;
+  title: React.ReactNode; // Allow React nodes for title
   subtitle?: string;
   children?: React.ReactNode;
   className?: string;

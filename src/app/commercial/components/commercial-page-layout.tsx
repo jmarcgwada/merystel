@@ -89,9 +89,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const currentConfig = docTypeConfig[editingDocType];
 
-  const pageTitle = saleIdToEdit
-    ? `${currentConfig.editTitle} #${currentSaleContext?.ticketNumber || '...'}`
-    : currentConfig.title;
+  const pageTitle = saleIdToEdit ? currentConfig.editTitle : currentConfig.title;
 
   useEffect(() => {
     // This effect now runs only once on mount to set up the context.
@@ -135,22 +133,22 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   }, [updatedItemId, items, setOrder, router]);
   
   const handleTransformToInvoice = () => {
-      if (!currentSaleId || !currentSaleContext) return;
-      
-      const saleToTransform: Sale = {
-          id: currentSaleId,
-          ...currentSaleContext,
-          items: order,
-          subtotal: totals.subtotal,
-          tax: totals.tax,
-          total: totals.total,
-          payments: [],
-          status: currentSaleContext.status || 'pending',
-          ticketNumber: currentSaleContext.ticketNumber || '',
-          date: currentSaleContext.date || new Date(),
-      };
-      transformToInvoice(saleToTransform);
-  };
+    if (!currentSaleId || !currentSaleContext) return;
+    
+    const saleToTransform: Sale = {
+        id: currentSaleId,
+        ...currentSaleContext,
+        items: order,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        payments: [],
+        status: currentSaleContext.status || 'pending',
+        ticketNumber: currentSaleContext.ticketNumber || '',
+        date: currentSaleContext.date || new Date(),
+    };
+    transformToInvoice(saleToTransform);
+};
 
   const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
@@ -228,59 +226,57 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       description: `Préparation du document pour ${randomCustomer.name}.`,
     });
   };
-
-  const renderHeaderActions = () => {
-    const isEditingExistingDoc = !!saleIdToEdit;
   
-    if (isEditingExistingDoc && (editingDocType === 'quote' || editingDocType === 'delivery_note')) {
-      return (
-        <div className="flex items-center gap-2">
-          <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
-            Sauvegarder les modifications
-          </Button>
-          <Button size="lg" onClick={handleTransformToInvoice} disabled={!isReady} className="bg-green-600 hover:bg-green-700">
-            <FileCog className="mr-2 h-4 w-4" />
-            {currentConfig.updateButton}
-          </Button>
-        </div>
-      );
-    }
-  
-    if (editingDocType === 'invoice') {
-      return (
-        <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-            <Sparkles className="h-4 w-4" />
-          </Button>
-          <Button size="lg" onClick={handleSave} disabled={!isReady}>
-            {isEditingExistingDoc ? currentConfig.updateButton : currentConfig.saveButton}
-          </Button>
-        </div>
-      );
-    }
-    
-    // Default for new quotes/delivery notes
-    return (
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-          <Sparkles className="h-4 w-4" />
-        </Button>
-        <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
-          {currentConfig.saveButton}
-        </Button>
-      </div>
-    );
-  };
-
+  const isEditingExistingDoc = !!saleIdToEdit;
+  const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
 
   return (
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
-            title={pageTitle}
-            subtitle={currentConfig.editSubtitle}
+          title={
+            <div className="flex items-center gap-4">
+              <span>{pageTitle}</span>
+              {isEditingExistingDoc && (
+                <span className="font-mono text-muted-foreground text-xl">
+                  #{currentSaleContext?.ticketNumber || '...'}
+                </span>
+              )}
+            </div>
+          }
+          subtitle={currentConfig.editSubtitle}
         >
-          {renderHeaderActions()}
+          <div className="flex items-center gap-2">
+            {isEditingExistingDoc && isQuoteOrDeliveryNote && (
+              <Button
+                size="lg"
+                onClick={handleTransformToInvoice}
+                disabled={!isReady}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <FileCog className="mr-2 h-4 w-4" />
+                {currentConfig.updateButton}
+              </Button>
+            )}
+
+            {!isEditingExistingDoc && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleGenerateRandom}
+                title={`Générer ${documentType} aléatoire`}
+                disabled={order.length > 0}
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
+
+            <Button size="lg" onClick={handleSave} disabled={!isReady}>
+              {isEditingExistingDoc
+                ? (isQuoteOrDeliveryNote ? 'Sauvegarder les modifications' : currentConfig.updateButton)
+                : currentConfig.saveButton}
+            </Button>
+          </div>
         </PageHeader>
         
         <div className="flex-1 flex flex-col min-h-0">
