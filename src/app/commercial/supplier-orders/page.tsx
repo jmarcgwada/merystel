@@ -55,6 +55,8 @@ function SupplierOrdersPageContent() {
   useEffect(() => {
     if (saleIdToEdit) {
       if (currentSaleId !== saleIdToEdit) {
+        // Reset first to ensure a clean state, especially when switching between documents
+        resetCommercialPage('supplier_order');
         loadSaleForEditing(saleIdToEdit, 'supplier_order');
       }
     } else {
