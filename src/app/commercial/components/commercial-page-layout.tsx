@@ -6,7 +6,7 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
@@ -65,12 +65,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       setCurrentSaleContext,
       currentSaleId,
       updateItemQuantityInOrder,
-      resetCommercialPage,
       convertToInvoice,
-      loadSaleForEditing,
   } = usePos();
-  const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
-  const [isReady, setIsReady] = useState(false);
+
+  const formRef = useRef<{ submit: () => void }>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -81,49 +79,15 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditingExistingDoc && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
 
-  
-  useEffect(() => {
-    const saleId = searchParams.get('edit');
-    if (currentSaleContext?.fromConversion) {
-      // This is a conversion, do not reset the page.
-      // The context has been prepared by `convertToInvoice`.
-      // We need to clean up the flag so subsequent navigations work correctly.
-      setCurrentSaleContext(prev => ({...prev, fromConversion: false}));
-    } else if (saleId) {
-      loadSaleForEditing(saleId, documentType);
-    } else {
-      resetCommercialPage(documentType);
-    }
-  }, [documentType, searchParams, loadSaleForEditing, resetCommercialPage, currentSaleContext?.fromConversion, setCurrentSaleContext]);
-
-
   const handleSave = useCallback(async () => {
-    if (!isReady || !currentSaleContext?.customerId) return;
-    
-    if (documentType === 'invoice') {
-      if (submitHandler) {
-        submitHandler(); 
-      }
-      return;
+    if (formRef.current) {
+      formRef.current.submit();
     }
-    
-    const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
-      items: order,
-      subtotal: totals.subtotal,
-      tax: totals.tax,
-      total: totals.total,
-      status: documentType,
-      payments: [],
-      customerId: currentSaleContext.customerId,
-    };
-    
-    await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
-  }, [isReady, currentSaleContext, documentType, submitHandler, order, totals, recordCommercialDocument, currentSaleId]);
+  }, []);
 
   const handleConvertToInvoice = useCallback(async () => {
     if (!currentSaleId) return;
     convertToInvoice(currentSaleId);
-    router.push(`/commercial/invoices`);
   }, [currentSaleId, convertToInvoice, router]);
   
   const handleGenerateRandom = () => {
@@ -135,8 +99,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       });
       return;
     }
-
-    resetCommercialPage(documentType);
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
     setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType });
@@ -163,14 +125,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         }
     }
     setOrder(newOrder);
-
-    if (documentType === 'invoice') {
-      setTimeout(() => {
-        if (submitHandler) {
-          submitHandler();
-        }
-      }, 500);
-    }
 
     toast({
       title: 'Document Aléatoire Généré',
@@ -216,7 +170,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 </Button>
             )}
 
-            <Button size="lg" onClick={handleSave} disabled={!isReady}>
+            <Button size="lg" onClick={handleSave}>
               {isEditingExistingDoc
                 ? config.updateButton
                 : config.saveButton}
@@ -226,17 +180,17 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         
         <div className="flex-1 flex flex-col min-h-0">
             <CommercialOrderForm
+                ref={formRef}
                 order={order} 
                 setOrder={setOrder}
                 addToOrder={addToOrder}
                 updateQuantity={updateQuantity}
                 removeFromOrder={removeFromOrder}
-                setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
-                setIsReady={setIsReady}
                 showAcompte={config.showAcompte}
                 onTotalsChange={setTotals}
                 updateItemQuantityInOrder={updateItemQuantityInOrder}
+                documentType={documentType}
             />
         </div>
       </div>

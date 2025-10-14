@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,7 +11,7 @@ import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Customer, Item, OrderItem } from '@/lib/types';
+import type { Customer, Item, OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -52,12 +52,11 @@ interface CommercialOrderFormProps {
   addToOrder: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
-  setSubmitHandler: (handler: (() => void) | null) => void;
   updateItemNote: (itemId: string, note: string) => void;
-  setIsReady: (isReady: boolean) => void;
   showAcompte?: boolean;
   onTotalsChange: (totals: { subtotal: number, tax: number, total: number }) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
+  documentType: 'invoice' | 'quote' | 'delivery_note';
 }
 
 const MAX_SEARCH_ITEMS = 100;
@@ -91,7 +90,10 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 }
 
 
-export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, setSubmitHandler, updateItemNote, setIsReady, showAcompte = false, onTotalsChange, updateItemQuantityInOrder }: CommercialOrderFormProps) {
+export const CommercialOrderForm = forwardRef<
+  { submit: () => void },
+  CommercialOrderFormProps
+>(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -137,13 +139,15 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
             setSelectedCustomer(customer);
             form.setValue('customerId', customer.id);
         }
+    } else if (!currentSaleContext?.customerId && customers && customers.length > 0) {
+      // Pre-select default customer if available and none is selected
+      const defaultCustomer = customers.find(c => c.isDefault);
+      if (defaultCustomer) {
+        setSelectedCustomer(defaultCustomer);
+        form.setValue('customerId', defaultCustomer.id);
+      }
     }
   }, [currentSaleContext?.customerId, customers, form]);
-
-  useEffect(() => {
-    const isReady = !!selectedCustomer && watchItems.length > 0;
-    setIsReady(isReady);
-  }, [selectedCustomer, watchItems, setIsReady]);
 
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -156,7 +160,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     addToOrder(item.id);
   }
 
-  // --- Search Logic ---
   const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
     if (!allItems) {
       setListContent([]);
@@ -196,7 +199,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
         setListContent([]);
       } else if (searchTerm.trim() !== '') {
         const trimmedSearch = searchTerm.trim();
-        const isBarcodeFormat = /^\\d{11,14}$/.test(trimmedSearch);
+        const isBarcodeFormat = /^\d{11,14}$/.test(trimmedSearch);
         const itemExists = allItems?.some(item => item.barcode === trimmedSearch);
 
         if (isBarcodeFormat && !itemExists) {
@@ -233,9 +236,8 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     performSearch(searchTerm, newType);
     searchInputRef.current?.focus();
   };
-  // --- End of Search Logic ---
   
-    const calculationResult = useMemo(() => {
+  const calculationResult = useMemo(() => {
     if (!allItems || !vatRates) {
       return { subTotalHT: 0, vatBreakdown: {}, totalTVA: 0, totalTTC: 0 };
     }
@@ -283,38 +285,50 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
   const acompte = form.watch('acompte') || 0;
   const netAPayer = totalTTC - acompte;
 
-  const onSubmit = useCallback(() => {
-    if (order.length === 0 || !selectedCustomer) return;
+  useImperativeHandle(ref, () => ({
+    submit: () => {
+      if (order.length === 0) {
+        toast({
+          title: "Commande vide",
+          description: "Veuillez ajouter au moins un article.",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!selectedCustomer) {
+        toast({
+          title: "Client manquant",
+          description: "Veuillez sélectionner un client.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (currentSaleContext?.documentType === 'invoice') {
-        setCurrentSaleContext(prev => ({ 
-            ...prev, 
-            isInvoice: true, 
-            customerId: selectedCustomer.id, 
-            acompte,
-            subtotal: subTotalHT,
-            tax: totalTVA,
-            total: totalTTC,
+      if (documentType === 'invoice') {
+        setCurrentSaleContext(prev => ({
+          ...prev,
+          isInvoice: true,
+          customerId: selectedCustomer?.id,
+          acompte,
+          subtotal: subTotalHT,
+          tax: totalTVA,
+          total: totalTTC,
         }));
         setCheckoutOpen(true);
-    } else {
-        const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
-            items: order,
-            subtotal: subTotalHT,
-            tax: totalTVA,
-            total: totalTTC,
-            status: currentSaleContext?.documentType || 'pending',
-            payments: [],
-            customerId: selectedCustomer.id,
+      } else {
+        const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+          items: order,
+          subtotal: subTotalHT,
+          tax: totalTVA,
+          total: totalTTC,
+          status: documentType,
+          payments: [],
+          customerId: selectedCustomer.id,
         };
-        recordCommercialDocument(doc, currentSaleContext?.documentType as any, currentSaleId || undefined);
+        recordCommercialDocument(doc, documentType, currentSaleId || undefined);
+      }
     }
-  }, [order, selectedCustomer, currentSaleContext, acompte, subTotalHT, totalTVA, totalTTC, setCurrentSaleContext, recordCommercialDocument, currentSaleId]);
-  
-  useEffect(() => {
-    setSubmitHandler(() => onSubmit);
-    return () => setSubmitHandler(null);
-  }, [onSubmit, setSubmitHandler]);
+  }));
 
   const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
@@ -413,7 +427,7 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     <Card className="mt-4 flex-1 flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col">
         <Form {...form}>
-          <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-6 flex flex-col flex-1">
+          <form className="space-y-6 flex flex-col flex-1">
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Détails de la facture</h3>
@@ -629,4 +643,6 @@ export function CommercialOrderForm({ order, setOrder, addToOrder, updateQuantit
     )}
     </>
   );
-}
+});
+
+CommercialOrderForm.displayName = "CommercialOrderForm";
