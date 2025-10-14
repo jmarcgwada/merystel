@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -209,7 +208,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   ) : currentConfig.title;
 
   const pageSubtitle = isEditingExistingDoc
-    ? `Mise à jour d'un document existant.`
+    ? `Mise à jour du document.`
     : currentConfig.subtitle;
 
   return (
