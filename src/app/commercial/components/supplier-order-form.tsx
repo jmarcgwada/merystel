@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -79,7 +80,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
   );
 }
 
-export const SupplierOrderForm = forwardRef<{ submit: () => void }, SupplierOrderFormProps>(
+export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) => void }, SupplierOrderFormProps>(
     ({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemQuantityInOrder }, ref) => {
   const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay, currentSaleId } = usePos();
   const { toast } = useToast();
@@ -242,7 +243,7 @@ export const SupplierOrderForm = forwardRef<{ submit: () => void }, SupplierOrde
   const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
 
   useImperativeHandle(ref, () => ({
-    submit: () => {
+    submit: (andValidate = false) => {
         if (order.length === 0 || !selectedSupplier) {
             toast({
               title: "Commande invalide",
@@ -257,7 +258,7 @@ export const SupplierOrderForm = forwardRef<{ submit: () => void }, SupplierOrde
           subtotal: subTotalHT,
           tax: totalTVA,
           total: totalTTC,
-          status: 'paid', // Mark as paid to lock it
+          status: andValidate ? 'paid' : 'pending',
           payments: [],
           supplierId: selectedSupplier.id,
         };

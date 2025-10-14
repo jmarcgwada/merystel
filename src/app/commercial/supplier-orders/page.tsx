@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -8,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, CheckCircle, Lock } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle, Lock, Save } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -30,6 +31,7 @@ function SupplierOrdersPageContent() {
       loadSaleForEditing,
       currentSaleId,
       currentSaleContext,
+      recordCommercialDocument,
   } = usePos();
   
   const formRef = useRef<{ submit: () => void }>(null);
@@ -53,26 +55,22 @@ function SupplierOrdersPageContent() {
   }, [newItemId, addToOrder, router]);
   
   useEffect(() => {
-    // This effect is the SINGLE SOURCE OF TRUTH for loading a document.
     if (saleIdToEdit) {
       if (currentSaleId !== saleIdToEdit) {
         loadSaleForEditing(saleIdToEdit, 'supplier_order');
       }
     } else {
-        // Only reset if we are not editing.
         if (!currentSaleId) {
              resetCommercialPage('supplier_order');
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, currentSaleId]);
+  }, [saleIdToEdit, currentSaleId, loadSaleForEditing, resetCommercialPage]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (andValidate = false) => {
     if (formRef.current) {
-      formRef.current.submit();
+      formRef.current.submit(andValidate);
     }
   }, []);
-
 
   const handleGenerateRandomOrder = useCallback(() => {
     if (!items?.length || !suppliers?.length) {
@@ -118,13 +116,6 @@ function SupplierOrdersPageContent() {
       description: `Préparation de la commande pour ${randomSupplier.name}.`,
     });
   }, [items, suppliers, resetCommercialPage, setCurrentSaleContext, setOrder, toast]);
-  
-  const getButtonLabel = () => {
-    if (isEditing) {
-        return isReadOnly ? 'Commande Validée' : 'Valider la commande';
-    }
-    return 'Valider la commande';
-  }
 
   return (
     <div className="h-full flex flex-col">
@@ -139,10 +130,16 @@ function SupplierOrdersPageContent() {
                 <Sparkles className="h-4 w-4" />
               </Button>
             )}
-             <Button size="lg" onClick={handleSave} disabled={isReadOnly}>
-                 <CheckCircle className="mr-2 h-4 w-4" />
-                {getButtonLabel()}
+             <Button size="lg" onClick={() => handleSave(false)} disabled={isReadOnly}>
+                 <Save className="mr-2 h-4 w-4" />
+                 {isEditing ? 'Sauvegarder' : 'Sauvegarder'}
             </Button>
+             {isEditing && (
+                <Button size="lg" onClick={() => handleSave(true)} disabled={isReadOnly}>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Valider la commande
+                </Button>
+            )}
           </div>
         </PageHeader>
 
