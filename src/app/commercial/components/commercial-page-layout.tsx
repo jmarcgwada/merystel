@@ -63,6 +63,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       clearOrder,
       loadSaleForEditing,
       recordCommercialDocument,
+      transformToInvoice,
       currentSaleContext,
       items,
       customers,
@@ -134,10 +135,21 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   }, [updatedItemId, items, setOrder, router]);
   
   const handleTransformToInvoice = () => {
-    if (!isReady || !currentSaleContext?.customerId) return;
-    setEditingDocType('invoice');
-    setCurrentSaleContext(prev => ({ ...prev, documentType: 'invoice', subtotal: totals.subtotal, tax: totals.tax, total: totals.total }));
-    toast({ title: 'Transformation en facture', description: 'Le document est maintenant prêt à être encaissé.'});
+      if (!currentSaleId || !currentSaleContext) return;
+      
+      const saleToTransform: Sale = {
+          id: currentSaleId,
+          ...currentSaleContext,
+          items: order,
+          subtotal: totals.subtotal,
+          tax: totals.tax,
+          total: totals.total,
+          payments: [],
+          status: currentSaleContext.status || 'pending',
+          ticketNumber: currentSaleContext.ticketNumber || '',
+          date: currentSaleContext.date || new Date(),
+      };
+      transformToInvoice(saleToTransform);
   };
 
   const handleSave = async () => {
@@ -219,30 +231,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const renderHeaderActions = () => {
     const isEditingExistingDoc = !!saleIdToEdit;
-    const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
   
-    // Logic for creating a new document
-    if (!isEditingExistingDoc) {
-      return (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
-            <Sparkles className="h-4 w-4" />
-          </Button>
-          {editingDocType === 'invoice' ? (
-            <Button size="lg" onClick={handleSave} disabled={!isReady}>
-              {currentConfig.saveButton}
-            </Button>
-          ) : (
-            <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
-              {currentConfig.saveButton}
-            </Button>
-          )}
-        </div>
-      );
-    }
-  
-    // Logic for editing an existing document
-    if (isQuoteOrDeliveryNote) {
+    if (isEditingExistingDoc && (editingDocType === 'quote' || editingDocType === 'delivery_note')) {
       return (
         <div className="flex items-center gap-2">
           <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
@@ -259,14 +249,27 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (editingDocType === 'invoice') {
       return (
         <div className="flex items-center gap-2">
+           <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
+            <Sparkles className="h-4 w-4" />
+          </Button>
           <Button size="lg" onClick={handleSave} disabled={!isReady}>
-            {currentConfig.updateButton}
+            {isEditingExistingDoc ? currentConfig.updateButton : currentConfig.saveButton}
           </Button>
         </div>
       );
     }
-  
-    return null;
+    
+    // Default for new quotes/delivery notes
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" onClick={handleGenerateRandom} title={`Générer ${documentType} aléatoire`} disabled={order.length > 0}>
+          <Sparkles className="h-4 w-4" />
+        </Button>
+        <Button size="lg" variant="outline" onClick={handleSave} disabled={!isReady}>
+          {currentConfig.saveButton}
+        </Button>
+      </div>
+    );
   };
 
 
