@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1245,26 +1244,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           return;
       }
   
+      // Prepare the state for a NEW invoice, based on the quote/delivery note.
+      // Do NOT set currentSaleId, as this is a new document, not an edit.
       setOrder(saleToConvert.items);
-      setCurrentSaleId(null);
+      setCurrentSaleId(null); 
       
       const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
 
       setCurrentSaleContext({
         ...restOfSale,
-        documentType: 'invoice',
-        status: 'pending',
-        date: new Date(),
-        payments: [],
+        documentType: 'invoice', // This is now an invoice
+        status: 'pending',       // A new invoice is pending payment
+        date: new Date(),        // Set to current date
+        payments: [],            // No payments yet
         originalTotal: undefined,
         originalPayments: undefined,
         change: undefined,
         modifiedAt: undefined,
-        originalSaleId: saleToConvert.id, 
-        fromConversion: true,
+        originalSaleId: saleToConvert.id, // Keep track of where it came from
+        fromConversion: true, // A flag to signal this is a conversion
       });
 
-      router.push('/commercial/invoices');
+      // Navigate to the invoice page. The page will pick up the context.
+      router.push('/commercial/invoices?fromConversion=true');
   
   }, [sales, toast, router]);
 
