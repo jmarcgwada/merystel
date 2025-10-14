@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
-import { NavigationBlocker } from '@/components/layout/navigation-blocker';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,7 +110,7 @@ export default function CommercialLayout({
                 <div className="pl-4 flex items-center gap-2">
                     {activeReportInfo && (
                         <Button asChild variant="outline">
-                            <Link href={\`/reports?filter=\${activeReportInfo.reportFilter}\`}>
+                            <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
                                 <BarChart3 />
                                 {activeReportInfo.reportLabel}
                             </Link>
