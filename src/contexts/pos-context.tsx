@@ -403,68 +403,34 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
   useEffect(() => {
-    rehydrateItems();
-    rehydrateCategories();
-    rehydrateCustomers();
-    rehydrateSuppliers();
-    rehydrateTablesData();
-    rehydrateSales();
-    rehydratePaymentMethods();
-    rehydrateVatRates();
-    rehydrateHeldOrders();
-    rehydrateCompanyInfo();
-    rehydrateUsers();
+    // This effect runs once on mount to rehydrate all persistent states
+    rehydrateEnableDynamicBg(); rehydrateDynamicBgOpacity(); rehydrateShowTicketImages(); rehydrateShowItemImagesInGrid(); rehydrateDescriptionDisplay();
+    rehydratePopularItemsCount(); rehydrateItemCardOpacity(); rehydratePaymentMethodImageOpacity(); rehydrateItemDisplayMode();
+    rehydrateItemCardShowImageAsBackground(); rehydrateItemCardImageOverlayOpacity(); rehydrateItemCardTextColor(); rehydrateItemCardShowPrice();
+    rehydrateExternalLinkModalEnabled(); rehydrateExternalLinkUrl(); rehydrateExternalLinkTitle(); rehydrateExternalLinkModalWidth();
+    rehydrateExternalLinkModalHeight(); rehydrateShowDashboardStats(); rehydrateEnableRestaurantCategoryFilter(); rehydrateShowNotifications();
+    rehydrateNotificationDuration(); rehydrateEnableSerialNumber(); rehydrateDefaultSalesMode(); rehydrateIsForcedMode();
+    rehydrateDirectSaleBackgroundColor(); rehydrateRestaurantModeBackgroundColor(); rehydrateDirectSaleBgOpacity();
+    rehydrateRestaurantModeBgOpacity(); rehydrateDashboardBgType(); rehydrateDashboardBackgroundColor();
+    rehydrateDashboardBackgroundImage(); rehydrateDashboardBgOpacity(); rehydrateDashboardButtonBackgroundColor();
+    rehydrateDashboardButtonOpacity(); rehydrateDashboardButtonShowBorder(); rehydrateDashboardButtonBorderColor();
+    
+    rehydrateItems(); rehydrateCategories(); rehydrateCustomers(); rehydrateSuppliers(); rehydrateTablesData(); rehydrateSales(); rehydratePaymentMethods();
+    rehydrateVatRates(); rehydrateHeldOrders(); rehydrateCompanyInfo(); rehydrateUsers();
 
-    rehydrateEnableDynamicBg();
-    rehydrateDynamicBgOpacity();
-    rehydrateShowTicketImages();
-    rehydrateShowItemImagesInGrid();
-    rehydrateDescriptionDisplay();
-    rehydratePopularItemsCount();
-    rehydrateItemCardOpacity();
-    rehydratePaymentMethodImageOpacity();
-    rehydrateItemDisplayMode();
-    rehydrateItemCardShowImageAsBackground();
-    rehydrateItemCardImageOverlayOpacity();
-    rehydrateItemCardTextColor();
-    rehydrateItemCardShowPrice();
-    rehydrateExternalLinkModalEnabled();
-    rehydrateExternalLinkUrl();
-    rehydrateExternalLinkTitle();
-    rehydrateExternalLinkModalWidth();
-    rehydrateExternalLinkModalHeight();
-    rehydrateShowDashboardStats();
-    rehydrateEnableRestaurantCategoryFilter();
-    rehydrateShowNotifications();
-    rehydrateNotificationDuration();
-    rehydrateEnableSerialNumber();
-    rehydrateDefaultSalesMode();
-    rehydrateIsForcedMode();
-    rehydrateDirectSaleBackgroundColor();
-    rehydrateRestaurantModeBackgroundColor();
-    rehydrateDirectSaleBgOpacity();
-    rehydrateRestaurantModeBgOpacity();
-    rehydrateDashboardBgType();
-    rehydrateDashboardBackgroundColor();
-    rehydrateDashboardBackgroundImage();
-    rehydrateDashboardBgOpacity();
-    rehydrateDashboardButtonBackgroundColor();
-    rehydrateDashboardButtonOpacity();
-    rehydrateDashboardButtonShowBorder();
-    rehydrateDashboardButtonBorderColor();
     setIsHydrated(true);
   }, [
-    rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers,
-    rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
-    rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
-    rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
-    rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
-    rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
-    rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
-    rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
-    rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
-    rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
-    rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
+      rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
+      rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
+      rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
+      rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
+      rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
+      rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
+      rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
+      rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
+      rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
+      rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
   ]);
 
   const seedInitialData = useCallback(() => {
@@ -1267,36 +1233,39 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, toast]);
 
     const convertToInvoice = useCallback(async (saleId: string) => {
-        const originalSale = sales.find(s => s.id === saleId);
-        if (!originalSale) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
-            return null;
-        }
-
-        // Create a new invoice object, but don't assign a ticketNumber
-        const newInvoiceData: Omit<Sale, 'id' | 'ticketNumber'> = {
-            ...originalSale,
-            date: new Date(),
-            documentType: 'invoice',
-            status: 'pending',
-            payments: [],
-            originalTotal: undefined, 
-            originalPayments: undefined,
-            change: undefined,
-            modifiedAt: undefined,
-        };
-        
-        const newInvoice = await recordSale(newInvoiceData);
-        
-        if(newInvoice) {
-            // Update original sale status in the local state
-            setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'invoiced' } : s));
-            toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
-            return newInvoice.id;
-        }
-        
+      const originalSale = sales.find(s => s.id === saleId);
+      if (!originalSale) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
         return null;
-    }, [sales, recordSale, toast, setSales]);
+      }
+      
+      const newInvoiceData: Omit<Sale, 'id' | 'ticketNumber'> = {
+        ...originalSale,
+        date: new Date(),
+        documentType: 'invoice',
+        status: 'pending',
+        payments: [],
+        originalTotal: undefined, 
+        originalPayments: undefined,
+        change: undefined,
+        modifiedAt: undefined,
+        ticketNumber: '', // Let recordSale handle the numbering
+      };
+      
+      const newInvoice = await recordSale(newInvoiceData);
+      
+      if(newInvoice) {
+        setSales(prev => {
+          const updatedOriginal = { ...originalSale, status: 'invoiced' as const };
+          const salesWithoutOriginal = prev.filter(s => s.id !== saleId);
+          return [newInvoice, updatedOriginal, ...salesWithoutOriginal];
+        });
+        toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
+        return newInvoice.id;
+      }
+      
+      return null;
+  }, [sales, recordSale, toast, setSales]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1311,7 +1280,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
-      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+      enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
@@ -1339,3 +1309,4 @@ export function usePos() {
   }
   return context;
 }
+
