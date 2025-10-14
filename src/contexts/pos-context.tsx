@@ -157,7 +157,10 @@ interface PosContextType {
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
-  
+  isTransformToInvoiceConfirmOpen: boolean;
+  showTransformToInvoiceConfirm: () => void;
+  closeTransformToInvoiceConfirm: () => void;
+  confirmTransformToInvoice: () => void;
   seedInitialData: () => void;
   resetAllData: () => Promise<void>;
   exportConfiguration: () => void;
@@ -263,7 +266,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
-            console.error('Error reading localStorage key "${key}":', error);
+            console.error('Error reading localStorage key "' + key + '":', error);
         }
         setIsHydrated(true);
     }, [key]);
@@ -273,7 +276,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error('Error setting localStorage key "${key}":', error);
+                console.error('Error setting localStorage key "' + key + '":', error);
             }
         }
     }, [key, state, isHydrated]);
@@ -285,7 +288,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
-            console.error('Error re-reading localStorage key "${key}":', error);
+            console.error('Error re-reading localStorage key "' + key + '":', error);
         }
     }, [key]);
 
@@ -301,43 +304,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Settings States
-  const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
-  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [enableDynamicBg, setEnableDynamicBg, rehydrateEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity, rehydrateDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
-  const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
-  const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
-  const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
-  const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
-  const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
-  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
-  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
-  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
-  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
-  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
-  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
-  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
-  const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
-  const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
-  const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
-  const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
-  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
-  const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
-  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
-  const [dashboardBgType, setDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
-  const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
-  const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
-  const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
-  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
-  const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
-  const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
-  const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
+  const [showTicketImages, setShowTicketImages, rehydrateShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [showItemImagesInGrid, setShowItemImagesInGrid, rehydrateShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
+  const [descriptionDisplay, setDescriptionDisplay, rehydrateDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
+  const [popularItemsCount, setPopularItemsCount, rehydratePopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemCardOpacity, setItemCardOpacity, rehydrateItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity, rehydratePaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemDisplayMode, setItemDisplayMode, rehydrateItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground, rehydrateItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, rehydrateItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
+  const [itemCardTextColor, setItemCardTextColor, rehydrateItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
+  const [itemCardShowPrice, setItemCardShowPrice, rehydrateItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled, rehydrateExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl, rehydrateExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle, rehydrateExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkModalWidth, setExternalLinkModalWidth, rehydrateExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight, rehydrateExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats, rehydrateShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, rehydrateEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
+  const [enableSerialNumber, setEnableSerialNumber, rehydrateEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
+  const [defaultSalesMode, setDefaultSalesMode, rehydrateDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
+  const [isForcedMode, setIsForcedMode, rehydrateIsForcedMode] = usePersistentState('settings.isForcedMode', false);
+  const [directSaleBackgroundColor, setDirectSaleBackgroundColor, rehydrateDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
+  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, rehydrateRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
+  const [directSaleBgOpacity, setDirectSaleBgOpacity, rehydrateDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
+  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity, rehydrateRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
+  const [dashboardBgType, setDashboardBgType, rehydrateDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
+  const [dashboardBackgroundColor, setDashboardBackgroundColor, rehydrateDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
+  const [dashboardBackgroundImage, setDashboardBackgroundImage, rehydrateDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
+  const [dashboardBgOpacity, setDashboardBgOpacity, rehydrateDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, rehydrateDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
+  const [dashboardButtonOpacity, setDashboardButtonOpacity, rehydrateDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
+  const [dashboardButtonShowBorder, setDashboardButtonShowBorder, rehydrateDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
+  const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -351,23 +354,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
+  const [isTransformToInvoiceConfirmOpen, setTransformToInvoiceConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData, rehydrateTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -394,13 +398,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder();
     setCurrentSaleContext({ documentType: pageType });
   }, [clearOrder, currentSaleContext?.fromConversion]);
-  
-  useEffect(() => {
-    const timer = setInterval(() => setSystemDate(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -442,7 +439,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         newCategories.push({
             id: catId,
             name: categoryData.name,
-            image: `https://picsum.photos/seed/${catId}/200/150`,
+            image: 'https://picsum.photos/seed/' + catId + '/200/150',
             color: '#e2e8f0'
         });
         categoryIdMap[categoryData.name] = catId;
@@ -457,22 +454,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 description: itemData.description,
                 categoryId: catId,
                 vatId: defaultVatId,
-                image: `https://picsum.photos/seed/${itemId}/200/150`,
-                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+                image: 'https://picsum.photos/seed/' + itemId + '/200/150',
+                barcode: 'DEMO' + Math.floor(100000 + Math.random() * 900000)
             });
         });
     });
     
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `C${uuidv4().substring(0,6)}`,
-        name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`
+        id: 'C' + uuidv4().substring(0,6),
+        name: 'Client Démo ' + (i + 1),
+        email: 'client' + (i+1) +'@demo.com'
     }));
     
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: `S-${uuidv4().substring(0,6)}`,
-        name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`
+        id: 'S-' + uuidv4().substring(0,6),
+        name: 'Fournisseur Démo ' + (i + 1),
+        email: 'fournisseur' + (i+1) + '@demo.com'
     }));
 
     setCategories(prev => [...prev, ...newCategories]);
@@ -484,9 +481,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `C${uuidv4().substring(0,6)}`,
-        name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`
+        id: 'C' + uuidv4().substring(0,6),
+        name: 'Client Démo ' + (i + 1),
+        email: 'client' + (i+1) + '@demo.com'
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
     toast({ title: 'Clients de démo importés !' });
@@ -494,9 +491,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: `S-${uuidv4().substring(0,6)}`,
-        name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`
+        id: 'S-' + uuidv4().substring(0,6),
+        name: 'Fournisseur Démo ' + (i + 1),
+        email: 'fournisseur' + (i+1) + '@demo.com'
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
@@ -521,10 +518,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('data.seeded', 'true');
     }, 100);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
-  
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   useEffect(() => {
     if(isHydrated) {
@@ -537,6 +530,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, seedInitialData, importDemoData]);
 
+
+  useEffect(() => {
+    const timer = setInterval(() => setSystemDate(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
   const deleteAllSales = useCallback(async () => {
     setSales([]);
@@ -559,7 +559,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    a.download = 'zenith-pos-config-' + format(new Date(), 'yyyy-MM-dd') + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -582,7 +582,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+            toast({ variant: 'destructive', title: "Erreur d'importation" });
         }
     };
     reader.readAsText(file);
@@ -628,7 +628,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
+    toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
 
   const addToOrder = useCallback(
@@ -641,7 +641,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: 'Rupture de stock',
-            description: `L'article "${itemToAdd.name}" n'est plus en stock.`,
+            description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock.",
         });
         return;
       }
@@ -651,8 +651,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({
             variant: 'destructive',
-            title: 'Prix d\'achat manquant ou nul',
-            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.`,
+            title: "Prix d'achat manquant ou nul",
+            description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide.",
         });
         return;
     }
@@ -706,7 +706,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: `${itemToAdd.name} ajouté à la commande` });
+    toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
@@ -768,7 +768,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         item.id === itemId ? { ...item, note } : item
       )
     );
-    toast({ title: 'Note ajoutée à l\'article.' });
+    toast({ title: "Note ajoutée à l'article." });
   }, [toast]);
 
   const updateOrderItem = useCallback((updatedItem: Item) => {
@@ -877,7 +877,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (table) {
         setSelectedTable(table);
         setOrder(table.order || []);
-         router.push(`/pos?tableId=${tableId}`);
+         router.push('/pos?tableId=' + tableId);
       }
     }, [tables, cameFromRestaurant, clearOrder, router]);
 
@@ -896,7 +896,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const table = tables.find(t => t.id === tableId);
       if (!table) return;
       setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'paying'} : t));
-      setCurrentSaleId(`table-${tableId}`);
+      setCurrentSaleId('table-' + tableId);
       setCurrentSaleContext({ tableId: table.id, tableName: table.name, isTableSale: true });
       setOrder(orderData);
     }, [tables, setTablesData]);
@@ -946,20 +946,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
             } else {
                 const todaysSalesCount = sales.filter(s => {
                     const saleDate = new Date(s.date as Date);
                     return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
                 }).length;
-                ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
             }
             
             finalSale = {
                 id: newId,
                 ticketNumber,
                 userId: user?.id,
-                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
                 ...saleData,
                 date: today
             };
@@ -1010,20 +1010,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
              const count = sales.filter(s => s.documentType === type).length;
-             const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
              finalDoc = {
                 id: uuidv4(),
                 date: today,
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id,
-                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
                 ...docData,
             };
             setSales(prev => [finalDoc, ...prev]);
         }
         
-        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+        toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'facturé' : 'enregistré') });
         clearOrder();
 
         const reportPath = type === 'quote' ? '/reports?filter=Devis-'
@@ -1137,12 +1137,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setNextUrl(url);
     setNavConfirmOpen(true);
   };
-
-  const closeNavConfirm = useCallback(() => {
-    setNextUrl(null);
-    setNavConfirmOpen(false);
-  }, []);
-
+  const closeNavConfirm = useCallback(() => { setNavConfirmOpen(false); }, []);
   const confirmNavigation = useCallback(async () => {
     if (nextUrl) {
       await clearOrder();
@@ -1150,6 +1145,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
+
+  const showTransformToInvoiceConfirm = () => {
+    setTransformToInvoiceConfirmOpen(true);
+  }
+  const closeTransformToInvoiceConfirm = useCallback(() => { setTransformToInvoiceConfirmOpen(false); }, []);
+  const confirmTransformToInvoice = useCallback(() => {
+    if (currentSaleId) {
+        convertToInvoice(currentSaleId);
+    }
+    closeTransformToInvoiceConfirm();
+  }, [currentSaleId, closeTransformToInvoiceConfirm]);
   
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
@@ -1225,31 +1231,34 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, toast]);
 
     const convertToInvoice = useCallback((saleId: string) => {
-      const originalSale = sales.find(s => s.id === saleId);
-      if (!originalSale) {
+      const saleToConvert = sales.find(s => s.id === saleId);
+      if (!saleToConvert) {
           toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
           return;
       }
   
-      // Prepare the state for the new invoice page
-      setOrder(originalSale.items);
+      setOrder(saleToConvert.items);
       setCurrentSaleId(null);
+      
+      const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
+
       setCurrentSaleContext({
-        ...originalSale,
+        ...restOfSale,
         documentType: 'invoice',
         status: 'pending',
-        ticketNumber: undefined,
         date: new Date(),
         payments: [],
         originalTotal: undefined,
         originalPayments: undefined,
         change: undefined,
         modifiedAt: undefined,
-        originalSaleId: originalSale.id, 
+        originalSaleId: saleToConvert.id, 
         fromConversion: true,
       });
+
+      router.push('/commercial/invoices');
   
-  }, [sales, toast, setOrder, setCurrentSaleId, setCurrentSaleContext]);
+  }, [sales, toast, router]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1262,7 +1271,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, isTransformToInvoiceConfirmOpen, showTransformToInvoiceConfirm, closeTransformToInvoiceConfirm, confirmTransformToInvoice,
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
@@ -1293,3 +1302,5 @@ export function usePos() {
   }
   return context;
 }
+
+  

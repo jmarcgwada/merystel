@@ -10,6 +10,16 @@ import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3 } from 'l
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
 import { NavigationBlocker } from '@/components/layout/navigation-blocker';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const navLinks = [
@@ -19,6 +29,29 @@ const navLinks = [
     { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Rapport Cdes Fournisseur', reportFilter: 'CF-' },
 ]
 
+function TransformToInvoiceDialog() {
+  const { isTransformToInvoiceConfirmOpen, closeTransformToInvoiceConfirm, confirmTransformToInvoice } = usePos();
+  return (
+    <AlertDialog open={isTransformToInvoiceConfirmOpen} onOpenChange={closeTransformToInvoiceConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Transformer en Facture ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            La pièce actuelle sera utilisée pour créer une nouvelle facture. Vous pourrez ensuite l'encaisser. Voulez-vous continuer ?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmTransformToInvoice}>
+            Transformer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+
 export default function CommercialLayout({
   children,
 }: {
@@ -26,13 +59,20 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { order, showNavConfirm } = usePos();
+  const { order, showNavConfirm, currentSaleId, showTransformToInvoiceConfirm } = usePos();
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   const activeReportInfo = navLinks.find(link => link.value === activeTab);
   
 
   const handleTabClick = (e: React.MouseEvent, href: string) => {
+    // If editing a quote or delivery note and clicking on invoices tab
+    if (currentSaleId && (pathname.startsWith('/commercial/quotes') || pathname.startsWith('/commercial/delivery-notes')) && href.startsWith('/commercial/invoices')) {
+      e.preventDefault();
+      showTransformToInvoiceConfirm();
+      return;
+    }
+
     if (order.length > 0 && !pathname.startsWith(href)) {
       e.preventDefault();
       showNavConfirm(href);
@@ -71,7 +111,7 @@ export default function CommercialLayout({
                 <div className="pl-4 flex items-center gap-2">
                     {activeReportInfo && (
                         <Button asChild variant="outline">
-                            <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
+                            <Link href={\`/reports?filter=\${activeReportInfo.reportFilter}\`}>
                                 <BarChart3 />
                                 {activeReportInfo.reportLabel}
                             </Link>
@@ -89,6 +129,7 @@ export default function CommercialLayout({
             {children}
           </Suspense>
         </main>
+        <TransformToInvoiceDialog />
     </div>
   );
 }
