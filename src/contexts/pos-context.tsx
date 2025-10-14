@@ -81,7 +81,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
-  loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
+  loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => Promise<boolean>;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
@@ -394,31 +394,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext({ documentType: pageType });
   }, [clearOrder]);
   
-  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-      const saleToEdit = sales.find(s => s.id === saleId);
-      if (saleToEdit) {
-        setOrder(saleToEdit.items);
-        setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          documentType: type,
-        });
-
-        const pathMap = {
-            'invoice': '/commercial/invoices',
-            'quote': '/commercial/quotes',
-            'delivery_note': '/commercial/delivery-notes',
-            'supplier_order': '/commercial/supplier-orders',
-        };
-        const path = pathMap[type];
-        if (path) {
-            router.push(`${path}?edit=${saleId}`);
-        }
-      } else {
-        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
-      }
-    }, [sales, router, toast]);
-
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
     return () => clearInterval(timer);
@@ -1264,6 +1239,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
+  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'): Promise<boolean> => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+        });
+        return true;
+      } else {
+        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
+        return false;
+      }
+    }, [sales, toast]);
+
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
@@ -1305,3 +1296,4 @@ export function usePos() {
   }
   return context;
 }
+

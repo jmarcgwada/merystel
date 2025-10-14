@@ -6,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -167,17 +167,33 @@ export default function ReportsPage() {
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     };
 
-    const handleEdit = (sale: Sale) => {
+    const handleEdit = useCallback(async (sale: Sale) => {
         const type = sale.documentType === 'quote' ? 'quote'
                    : sale.documentType === 'delivery_note' ? 'delivery_note'
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
                    : 'invoice';
-        loadSaleForEditing(sale, type);
-    };
+        
+        const success = await loadSaleForEditing(sale.id, type);
+        if (success) {
+            const pathMap = {
+                'invoice': '/commercial/invoices',
+                'quote': '/commercial/quotes',
+                'delivery_note': '/commercial/delivery-notes',
+                'supplier_order': '/commercial/supplier-orders',
+            };
+            const path = pathMap[type];
+            if (path) {
+                router.push(`${path}?edit=${sale.id}`);
+            }
+        }
+    }, [loadSaleForEditing, router]);
 
-    const handleConvertToInvoice = (sale: Sale) => {
-        loadSaleForEditing(sale, 'invoice');
-    };
+    const handleConvertToInvoice = useCallback(async (sale: Sale) => {
+        const success = await loadSaleForEditing(sale.id, 'invoice');
+        if (success) {
+            router.push(`/commercial/invoices?edit=${sale.id}`);
+        }
+    }, [loadSaleForEditing, router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -761,11 +777,9 @@ export default function ReportsPage() {
                                                     <FileCog className="h-4 w-4 text-green-600" />
                                                 </Button>
                                             )}
-                                            {sale.status !== 'paid' && (
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            )}
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
                                             <Button asChild variant="ghost" size="icon">
                                                 <Link href={`/reports/${sale.id}`}>
                                                     <Eye className="h-4 w-4" />
@@ -787,3 +801,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
