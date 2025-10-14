@@ -157,10 +157,6 @@ interface PosContextType {
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
-  isTransformToInvoiceConfirmOpen: boolean;
-  showTransformToInvoiceConfirm: () => void;
-  closeTransformToInvoiceConfirm: () => void;
-  confirmTransformToInvoice: (saleId: string) => void;
   seedInitialData: () => void;
   resetAllData: () => Promise<void>;
   exportConfiguration: () => void;
@@ -356,7 +352,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
-  const [isTransformToInvoiceConfirmOpen, setTransformToInvoiceConfirmOpen] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
@@ -1154,17 +1149,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setVatRates(prev => prev.filter(v => v.id !== id));
     }, [setVatRates]);
   
-  const showTransformToInvoiceConfirm = () => {
-    setTransformToInvoiceConfirmOpen(true);
-  }
-  const closeTransformToInvoiceConfirm = useCallback(() => { setTransformToInvoiceConfirmOpen(false); }, []);
-  const confirmTransformToInvoice = useCallback((saleId: string) => {
-    if (saleId) {
-        convertToInvoice(saleId);
-    }
-    closeTransformToInvoiceConfirm();
-  }, [closeTransformToInvoiceConfirm]);
-  
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
@@ -1266,9 +1250,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [sales, toast]);
 
     const convertToInvoice = useCallback((saleId: string) => {
-      loadSaleForConversion(saleId);
-      router.push('/commercial/invoices');
-  }, [loadSaleForConversion, router]);
+      router.push(`/commercial/invoices?fromConversion=${saleId}`);
+  }, [router]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1281,7 +1264,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, isTransformToInvoiceConfirmOpen, showTransformToInvoiceConfirm, closeTransformToInvoiceConfirm, confirmTransformToInvoice,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, isTransformToInvoiceConfirmOpen: false, showTransformToInvoiceConfirm: () => {}, closeTransformToInvoiceConfirm: () => {}, confirmTransformToInvoice: () => {},
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,

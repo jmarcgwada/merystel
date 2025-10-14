@@ -109,10 +109,8 @@ export default function ReportsPage() {
 
     const [isClient, setIsClient] = useState(false);
     
-    // Sorting state
     const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
     
-    // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState(initialStatusFilter || 'all');
@@ -129,6 +127,9 @@ export default function ReportsPage() {
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    
+    const [isConfirmOpen, setConfirmOpen] = useState(false);
+    const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
 
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -161,7 +162,7 @@ export default function ReportsPage() {
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
         if (saleUser?.firstName && saleUser?.lastName) {
-            return `${'saleUser.firstName'} ${'saleUser.lastName.charAt(0)'}.`;
+            return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
         }
         return fallbackName || saleUser?.email || 'Utilisateur supprimé';
     }, [users]);
@@ -429,6 +430,7 @@ export default function ReportsPage() {
     }
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports des pièces"
@@ -759,7 +761,7 @@ export default function ReportsPage() {
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {canBeConverted && (
-                                                <Button variant="ghost" size="icon" onClick={() => convertToInvoice(sale.id)}>
+                                                <Button variant="ghost" size="icon" onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
                                                     <FileCog className="h-4 w-4 text-blue-600" />
                                                 </Button>
                                             )}
@@ -782,5 +784,27 @@ export default function ReportsPage() {
         </Card>
       </div>
     </div>
+    <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                    if (saleToConvert) {
+                        router.push(`/commercial/invoices?fromConversion=${saleToConvert.id}`);
+                    }
+                    setConfirmOpen(false);
+                }}>
+                    Confirmer
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
