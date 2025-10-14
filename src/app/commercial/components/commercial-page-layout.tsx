@@ -6,7 +6,7 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
@@ -66,6 +66,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       resetCommercialPage,
+      loadSaleForEditing
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -81,12 +82,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const config = docTypeConfig[documentType];
 
   useEffect(() => {
-    // This effect ensures that if we land on a page without an edit context,
-    // we reset it to a clean slate for the current document type.
-    if (!saleIdToEdit) {
+    if (saleIdToEdit) {
+      loadSaleForEditing(saleIdToEdit, documentType);
+    } else {
       resetCommercialPage(documentType);
     }
-  }, [saleIdToEdit, documentType, resetCommercialPage]);
+  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
 
 
   useEffect(() => {

@@ -53,7 +53,7 @@ export default function SuppliersPage() {
   const { user } = useUser();
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
   const [isEditSupplierOpen, setEditSupplierOpen] = useState(false);
-  const { suppliers: suppliersFromContext, deleteSupplier, isLoading: isPosLoading } = usePos();
+  const { deleteSupplier, isLoading: isPosLoading } = usePos();
 
   const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'suppliers') : null, [firestore, user]);
   const { data: suppliers, isLoading: isSuppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);

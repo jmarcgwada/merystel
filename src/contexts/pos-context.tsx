@@ -339,58 +339,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder, rehydrateDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
 
-  useEffect(() => {
-    rehydrateEnableDynamicBg();
-    rehydrateDynamicBgOpacity();
-    rehydrateShowTicketImages();
-    rehydrateShowItemImagesInGrid();
-    rehydrateDescriptionDisplay();
-    rehydratePopularItemsCount();
-    rehydrateItemCardOpacity();
-    rehydratePaymentMethodImageOpacity();
-    rehydrateItemDisplayMode();
-    rehydrateItemCardShowImageAsBackground();
-    rehydrateItemCardImageOverlayOpacity();
-    rehydrateItemCardTextColor();
-    rehydrateItemCardShowPrice();
-    rehydrateExternalLinkModalEnabled();
-    rehydrateExternalLinkUrl();
-    rehydrateExternalLinkTitle();
-    rehydrateExternalLinkModalWidth();
-    rehydrateExternalLinkModalHeight();
-    rehydrateShowDashboardStats();
-    rehydrateEnableRestaurantCategoryFilter();
-    rehydrateShowNotifications();
-    rehydrateNotificationDuration();
-    rehydrateEnableSerialNumber();
-    rehydrateDefaultSalesMode();
-    rehydrateIsForcedMode();
-    rehydrateDirectSaleBackgroundColor();
-    rehydrateRestaurantModeBackgroundColor();
-    rehydrateDirectSaleBgOpacity();
-    rehydrateRestaurantModeBgOpacity();
-    rehydrateDashboardBgType();
-    rehydrateDashboardBackgroundColor();
-    rehydrateDashboardBackgroundImage();
-    rehydrateDashboardBgOpacity();
-    rehydrateDashboardButtonBackgroundColor();
-    rehydrateDashboardButtonOpacity();
-    rehydrateDashboardButtonShowBorder();
-    rehydrateDashboardButtonBorderColor();
-    setIsHydrated(true);
-  }, [
-    rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
-    rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
-    rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
-    rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
-    rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
-    rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
-    rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
-    rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
-    rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
-    rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
-  ]);
-
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
@@ -451,7 +399,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (saleToEdit) {
         setOrder(saleToEdit.items);
         setCurrentSaleId(saleId);
-        setCurrentSaleContext({ ...saleToEdit, documentType: type });
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+        });
 
         const pathMap = {
             'invoice': '/commercial/invoices',
@@ -487,7 +438,58 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     rehydrateHeldOrders();
     rehydrateCompanyInfo();
     rehydrateUsers();
-  }, [rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers]);
+
+    rehydrateEnableDynamicBg();
+    rehydrateDynamicBgOpacity();
+    rehydrateShowTicketImages();
+    rehydrateShowItemImagesInGrid();
+    rehydrateDescriptionDisplay();
+    rehydratePopularItemsCount();
+    rehydrateItemCardOpacity();
+    rehydratePaymentMethodImageOpacity();
+    rehydrateItemDisplayMode();
+    rehydrateItemCardShowImageAsBackground();
+    rehydrateItemCardImageOverlayOpacity();
+    rehydrateItemCardTextColor();
+    rehydrateItemCardShowPrice();
+    rehydrateExternalLinkModalEnabled();
+    rehydrateExternalLinkUrl();
+    rehydrateExternalLinkTitle();
+    rehydrateExternalLinkModalWidth();
+    rehydrateExternalLinkModalHeight();
+    rehydrateShowDashboardStats();
+    rehydrateEnableRestaurantCategoryFilter();
+    rehydrateShowNotifications();
+    rehydrateNotificationDuration();
+    rehydrateEnableSerialNumber();
+    rehydrateDefaultSalesMode();
+    rehydrateIsForcedMode();
+    rehydrateDirectSaleBackgroundColor();
+    rehydrateRestaurantModeBackgroundColor();
+    rehydrateDirectSaleBgOpacity();
+    rehydrateRestaurantModeBgOpacity();
+    rehydrateDashboardBgType();
+    rehydrateDashboardBackgroundColor();
+    rehydrateDashboardBackgroundImage();
+    rehydrateDashboardBgOpacity();
+    rehydrateDashboardButtonBackgroundColor();
+    rehydrateDashboardButtonOpacity();
+    rehydrateDashboardButtonShowBorder();
+    rehydrateDashboardButtonBorderColor();
+    setIsHydrated(true);
+  }, [
+    rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTablesData, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateCompanyInfo, rehydrateUsers,
+    rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
+    rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
+    rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
+    rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
+    rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
+    rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
+    rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
+    rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
+    rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
+    rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
+  ]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -1210,15 +1212,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
   
   const popularItems = useMemo(() => {
-    return items.slice(0, popularItemsCount);
-  }, [items, popularItemsCount]);
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
   
   const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
-    const sortedSales = [...sales].sort((a, b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime());
-    return {
-        lastDirectSale: sortedSales.find(s => !s.tableId) || null,
-        lastRestaurantSale: sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null
-    };
+    if (!sales || sales.length === 0) {
+        return { lastDirectSale: null, lastRestaurantSale: null };
+    }
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
+    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
+
+    return { lastDirectSale, lastRestaurantSale };
   }, [sales]);
 
   const loadTicketForViewing = useCallback((ticket: Sale) => {
@@ -1275,5 +1305,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
