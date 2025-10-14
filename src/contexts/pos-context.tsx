@@ -302,6 +302,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Settings States
+  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg, rehydrateEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity, rehydrateDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
   const [showTicketImages, setShowTicketImages, rehydrateShowTicketImages] = usePersistentState('settings.showTicketImages', true);
@@ -322,8 +324,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [externalLinkModalHeight, setExternalLinkModalHeight, rehydrateExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
   const [showDashboardStats, setShowDashboardStats, rehydrateShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, rehydrateEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
-  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableSerialNumber, setEnableSerialNumber, rehydrateEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
   const [defaultSalesMode, setDefaultSalesMode, rehydrateDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
   const [isForcedMode, setIsForcedMode, rehydrateIsForcedMode] = usePersistentState('settings.isForcedMode', false);
@@ -964,7 +964,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               ...saleData,
               modifiedAt: today,
           };
-          setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
       } else {
           const dayMonth = format(today, 'ddMM');
           let ticketNumber: string;
@@ -1000,7 +999,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
   
       return finalSale;
-  }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
+  }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
         const today = new Date();
@@ -1239,33 +1238,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
             return null;
         }
-        
-        const newInvoiceData: Omit<Sale, 'id'> = {
+
+        const newInvoiceRecord = await recordSale({
             ...originalSale,
-            date: new Date(),
             documentType: 'invoice',
             status: 'pending',
             payments: [],
-            originalTotal: undefined, 
+            originalTotal: undefined,
             originalPayments: undefined,
             change: undefined,
             modifiedAt: undefined,
-            ticketNumber: '', // Let recordSale handle the numbering
-        };
-        
-        const newInvoice = await recordSale(newInvoiceData);
-        
-        if(newInvoice) {
-            setSales(currentSales => {
-                const updatedSales = currentSales.map(s => 
+        });
+
+        if (newInvoiceRecord) {
+            setSales(currentSales => 
+                currentSales.map(s => 
                     s.id === saleId 
                         ? { ...s, status: 'invoiced' as const } 
                         : s
-                );
-                return [newInvoice, ...updatedSales];
-            });
-            toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
-            return newInvoice.id;
+                )
+            );
+            toast({ title: 'Conversion réussie', description: `La facture ${newInvoiceRecord.ticketNumber} a été créée.` });
+            return newInvoiceRecord.id;
         }
         
         return null;
@@ -1313,3 +1307,4 @@ export function usePos() {
   }
   return context;
 }
+
