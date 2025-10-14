@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1208,7 +1207,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCurrentSaleContext({
         ...saleToEdit,
         documentType: type || saleToEdit.documentType,
-        isInvoice: type === 'invoice'
+        isInvoice: type === 'invoice',
+        customerId: saleToEdit.customerId,
       });
     }
   }, [sales]);
