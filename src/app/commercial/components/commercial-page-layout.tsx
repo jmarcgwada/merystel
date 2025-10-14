@@ -5,10 +5,10 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, Suspense, useCallback, useRef, useEffect } from 'react';
+import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
+import { Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -65,22 +65,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       convertToInvoice,
-      resetCommercialPage,
   } = usePos();
   
   const searchParams = useSearchParams();
   const isEditing = !!currentSaleId || !!searchParams.get('edit');
-  const isConverting = !!searchParams.get('fromConversion');
-
-  useEffect(() => {
-    // This effect ensures that a new document is started when navigating
-    // between document types, but NOT during an edit or conversion.
-    if (!isEditing && !isConverting) {
-      resetCommercialPage(documentType);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentType, isEditing, isConverting, currentSaleId]);
-
 
   const formRef = useRef<{ submit: () => void }>(null);
   const { toast } = useToast();
@@ -145,12 +133,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const pageTitle = (
     <div className="flex items-center gap-4">
-      <span>{isEditingExistingDoc ? config.editTitle : config.title}</span>
-      {isEditingExistingDoc && currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+      <span>{isEditing ? config.editTitle : config.title}</span>
+      {isEditing && currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
     </div>
   );
 
-  const pageSubtitle = isEditingExistingDoc
+  const pageSubtitle = isEditing
     ? `Mise à jour du document.`
     : config.subtitle;
 
@@ -162,7 +150,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
           subtitle={pageSubtitle}
         >
           <div className="flex items-center gap-2">
-            {!isEditingExistingDoc && (
+            {!isEditing && (
               <Button
                 variant="outline"
                 size="icon"
@@ -182,7 +170,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             )}
 
             <Button size="lg" onClick={handleSave}>
-              {isEditingExistingDoc
+              {isEditing
                 ? config.updateButton
                 : config.saveButton}
             </Button>

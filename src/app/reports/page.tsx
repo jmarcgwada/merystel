@@ -86,7 +86,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing, convertToInvoice } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -174,7 +174,7 @@ export default function ReportsPage() {
           'invoice': 'invoices',
       };
       
-      const docType = sale.documentType || 'invoice'; // Default to invoice
+      const docType = sale.documentType || 'invoice';
       const pathSegment = typeMap[docType] || 'invoices';
       
       const isLoaded = await loadSaleForEditing(sale.id, docType as any);

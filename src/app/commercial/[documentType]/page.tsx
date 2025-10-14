@@ -15,7 +15,7 @@ function DocumentPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const { loadSaleForEditing, resetCommercialPage } = usePos();
+  const { loadSaleForEditing, resetCommercialPage, currentSaleId } = usePos();
   
   const documentType = params.documentType as string;
   const docType = typeMap[documentType];
@@ -24,15 +24,27 @@ function DocumentPageContent() {
   const fromConversion = searchParams.get('fromConversion');
 
   useEffect(() => {
-    // This effect runs only once when the page loads or when the key parameters change.
-    // It decides whether to load an existing document for editing.
-    if (saleIdToEdit && !fromConversion) {
-      loadSaleForEditing(saleIdToEdit, docType);
-    } else if (!fromConversion) { // Do not reset if we are converting
+    // This effect runs only once when the page loads or when key parameters change.
+    // It decides whether to load an existing document for editing or reset for a new one.
+    // This is the SINGLE SOURCE OF TRUTH for loading/resetting.
+
+    // If we just converted a document, the context is already set. Do nothing.
+    if (fromConversion) {
+      return;
+    }
+    
+    if (saleIdToEdit) {
+      // If an ID is present, it's an edit. Load it.
+      // The check inside loadSaleForEditing will prevent re-loading if the context is already correct.
+      if (currentSaleId !== saleIdToEdit) {
+        loadSaleForEditing(saleIdToEdit, docType);
+      }
+    } else {
+      // If no ID is present, it's a new document. Reset everything.
       resetCommercialPage(docType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, fromConversion, docType]); // Dependencies are stable URL params.
+  }, [saleIdToEdit, docType, fromConversion]); // Stable dependencies
 
 
   if (!docType) {
