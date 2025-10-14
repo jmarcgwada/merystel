@@ -1210,7 +1210,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           documentType: type || saleToEdit.documentType,
         });
       }
-    }, [sales]);
+    }, [sales, setOrder, setCurrentSaleId, setCurrentSaleContext]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,

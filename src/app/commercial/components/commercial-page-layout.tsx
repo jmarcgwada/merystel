@@ -94,9 +94,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
+      // Only clear the order if we are not editing an existing document.
       clearOrder();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
 
 
