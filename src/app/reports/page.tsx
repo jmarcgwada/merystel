@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -89,7 +87,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, setCurrentSaleContext } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -323,6 +321,24 @@ export default function ReportsPage() {
         setGeneralFilter('');
         setCurrentPage(1);
     }
+    
+    const handleEdit = (sale: Sale) => {
+        const type = sale.documentType === 'quote' ? 'quote'
+                   : sale.documentType === 'delivery_note' ? 'delivery_note'
+                   : sale.documentType === 'supplier_order' ? 'supplier_order'
+                   : 'invoice';
+        loadSaleForEditing(sale.id, type);
+        const path = type === 'quote' ? '/commercial/quotes'
+                   : type === 'delivery_note' ? '/commercial/delivery-notes'
+                   : type === 'supplier_order' ? '/commercial/supplier-orders'
+                   : '/commercial/invoices';
+        router.push(`${path}?edit=${sale.id}`);
+    };
+
+    const handleConvertToInvoice = (sale: Sale) => {
+        loadSaleForEditing(sale.id, 'invoice');
+        router.push(`/commercial/invoices?edit=${sale.id}`);
+    };
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -378,7 +394,7 @@ export default function ReportsPage() {
     const renderHeaderActions = () => {
       if (initialFilter?.startsWith('Fact-')) {
           return (
-              <Button asChild onClick={() => setCurrentSaleContext({ isInvoice: true})}>
+              <Button asChild>
                   <Link href="/commercial/invoices">
                       <FilePlus className="mr-2 h-4 w-4" />
                       Nouvelle facture
@@ -716,12 +732,6 @@ export default function ReportsPage() {
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
                                             : 'Ticket';
                             
-                            const editPath = 
-                                sale.documentType === 'invoice' ? `/commercial/invoices?edit=${sale.id}` :
-                                sale.documentType === 'quote' ? `/commercial/quotes?edit=${sale.id}` :
-                                sale.documentType === 'delivery_note' ? `/commercial/delivery-notes?edit=${sale.id}` :
-                                sale.documentType === 'supplier_order' ? `/commercial/supplier-orders?edit=${sale.id}` : '';
-
                             return (
                                 <TableRow key={sale.id}>
                                      <TableCell>
@@ -752,17 +762,13 @@ export default function ReportsPage() {
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {(sale.status === 'quote' || sale.status === 'delivery_note') && (
-                                                <Button asChild variant="ghost" size="icon" title="Transformer en Facture">
-                                                    <Link href={`/commercial/invoices?edit=${sale.id}`}>
-                                                        <FileCog className="h-4 w-4 text-green-600" />
-                                                    </Link>
+                                                <Button variant="ghost" size="icon" title="Transformer en Facture" onClick={() => handleConvertToInvoice(sale)}>
+                                                    <FileCog className="h-4 w-4 text-green-600" />
                                                 </Button>
                                             )}
-                                            {sale.status !== 'paid' && sale.status !== 'invoiced' && editPath && (
-                                                <Button asChild variant="ghost" size="icon">
-                                                    <Link href={editPath}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Link>
+                                            {sale.status !== 'paid' && sale.status !== 'invoiced' && (
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                                    <Pencil className="h-4 w-4" />
                                                 </Button>
                                             )}
                                             <Button asChild variant="ghost" size="icon">
