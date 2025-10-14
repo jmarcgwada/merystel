@@ -9,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileCog, Pencil } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -204,6 +204,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     <div className="flex items-center gap-4">
       <span>{currentConfig.editTitle}</span>
       {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+      <Button variant="outline" size="icon">
+        <Pencil className="h-4 w-4" />
+      </Button>
     </div>
   ) : currentConfig.title;
 
