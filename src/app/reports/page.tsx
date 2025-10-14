@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -182,7 +183,7 @@ export default function ReportsPage() {
             };
             const path = pathMap[type];
             if (path) {
-                router.push(path);
+                router.push(path + '?edit=' + sale.id);
             }
         }
     }, [loadSaleForEditing, router]);
@@ -771,9 +772,6 @@ export default function ReportsPage() {
                                                 <Link href={`/reports/${sale.id}`}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
-                                            </Button>
-                                            <Button variant="secondary" onClick={() => handleEdit(sale)}>
-                                              Édition
                                             </Button>
                                         </div>
                                     </TableCell>
