@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -64,7 +65,7 @@ interface PosContextType {
     type: 'percentage' | 'fixed'
   ) => void;
   clearOrder: () => void;
-  resetCommercialPage: (documentType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
+  resetCommercialPage: (pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
@@ -430,20 +431,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
    const prevPathnameRef = useRef(pathname);
 
+   const clearOrder = useCallback(() => {
+    setOrder([]);
+    setDynamicBgImage(null);
+    if (readOnlyOrder) setReadOnlyOrder(null);
+    setCurrentSaleId(null);
+    setCurrentSaleContext(null);
+    setSelectedTable(null);
+  }, [readOnlyOrder]);
+
+   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+        clearOrder();
+        setCurrentSaleContext({ documentType: pageType });
+    }, [clearOrder]);
+
     useEffect(() => {
         const prevPath = prevPathnameRef.current;
         const salesModes = ['/pos', '/supermarket', '/restaurant'];
         
-        // This regex will match /commercial/[anything]
         const commercialRegex = /^\/commercial(\/.*)?$/;
 
         const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
         const isLeavingCommercial = commercialRegex.test(prevPath) && !commercialRegex.test(pathname);
 
         if ((isLeavingSales || isLeavingCommercial) && order.length > 0) {
-            // Logic to handle unsaved changes is managed by NavigationGuard and showNavConfirm
+            
         } else if (isLeavingSales || isLeavingCommercial) {
-            // If there's no order, we can safely clear the context
+            
             setCurrentSaleId(null);
             setCurrentSaleContext(null);
             setOrder([]);
@@ -633,21 +647,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, toast]);
-
-  const clearOrder = useCallback(() => {
-    setOrder([]);
-    setDynamicBgImage(null);
-    if (readOnlyOrder) setReadOnlyOrder(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    setSelectedTable(null);
-  }, [readOnlyOrder]);
-
-  const resetCommercialPage = useCallback((documentType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-    setOrder([]);
-    setCurrentSaleId(null);
-    setCurrentSaleContext({ documentType: documentType });
-  }, []);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>

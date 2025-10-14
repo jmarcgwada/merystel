@@ -5,10 +5,10 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, FileCog, Pencil } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -65,8 +65,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       customers,
       setCurrentSaleContext,
       currentSaleId,
-      updateItemQuantityInOrder,
-      resetCommercialPage,
+      updateItemQuantityInOrder
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -85,9 +84,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
-      resetCommercialPage(documentType);
+      clearOrder();
     }
-  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
+  }, [saleIdToEdit, clearOrder, loadSaleForEditing, documentType]);
 
 
   useEffect(() => {
