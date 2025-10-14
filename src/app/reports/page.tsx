@@ -87,7 +87,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing, convertToInvoice } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -183,17 +183,18 @@ export default function ReportsPage() {
             };
             const path = pathMap[type];
             if (path) {
-                router.push(`${path}?edit=${sale.id}`);
+                router.push(path);
             }
         }
     }, [loadSaleForEditing, router]);
 
     const handleConvertToInvoice = useCallback(async (sale: Sale) => {
-        const success = await loadSaleForEditing(sale.id, 'invoice');
-        if (success) {
-            router.push(`/commercial/invoices?edit=${sale.id}`);
+        const newInvoiceId = await convertToInvoice(sale.id);
+        if (newInvoiceId) {
+            await loadSaleForEditing(newInvoiceId, 'invoice');
+            router.push('/commercial/invoices');
         }
-    }, [loadSaleForEditing, router]);
+    }, [convertToInvoice, loadSaleForEditing, router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -772,7 +773,7 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && (
+                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced' && (
                                                 <Button variant="ghost" size="icon" title="Transformer en Facture" onClick={() => handleConvertToInvoice(sale)}>
                                                     <FileCog className="h-4 w-4 text-green-600" />
                                                 </Button>
