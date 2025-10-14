@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -322,7 +323,7 @@ export default function ReportsPage() {
         setCurrentPage(1);
     }
     
-    const handleEdit = (sale: Sale) => {
+    const handleEdit = useCallback((sale: Sale) => {
         const type = sale.documentType === 'quote' ? 'quote'
                    : sale.documentType === 'delivery_note' ? 'delivery_note'
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
@@ -333,12 +334,12 @@ export default function ReportsPage() {
                    : type === 'supplier_order' ? '/commercial/supplier-orders'
                    : '/commercial/invoices';
         router.push(`${path}?edit=${sale.id}`);
-    };
+    }, [loadSaleForEditing, router]);
 
-    const handleConvertToInvoice = (sale: Sale) => {
+    const handleConvertToInvoice = useCallback((sale: Sale) => {
         loadSaleForEditing(sale.id, 'invoice');
         router.push(`/commercial/invoices?edit=${sale.id}`);
-    };
+    }, [loadSaleForEditing, router]);
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -789,3 +790,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
