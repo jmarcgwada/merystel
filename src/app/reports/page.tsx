@@ -173,18 +173,17 @@ export default function ReportsPage() {
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
                    : 'invoice';
         
-        const success = await loadSaleForEditing(sale.id, type);
-        if (success) {
-            const pathMap = {
-                'invoice': '/commercial/invoices',
-                'quote': '/commercial/quotes',
-                'delivery_note': '/commercial/delivery-notes',
-                'supplier_order': '/commercial/supplier-orders',
-            };
-            const path = pathMap[type];
-            if (path) {
-                router.push(path + '?edit=' + sale.id);
-            }
+        loadSaleForEditing(sale.id, type);
+        
+        const pathMap = {
+            'invoice': '/commercial/invoices',
+            'quote': '/commercial/quotes',
+            'delivery_note': '/commercial/delivery-notes',
+            'supplier_order': '/commercial/supplier-orders',
+        };
+        const path = pathMap[type];
+        if (path) {
+            router.push(`${path}?edit=${sale.id}`);
         }
     }, [loadSaleForEditing, router]);
 
@@ -786,3 +785,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+

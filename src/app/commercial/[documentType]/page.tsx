@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePos } from '@/contexts/pos-context';
@@ -20,22 +21,17 @@ function DocumentPageContent() {
   const documentType = params.documentType as string;
   const docType = typeMap[documentType];
   
-  // Extraire les valeurs de l'URL une seule fois. Ce sont des dépendances stables.
   const saleIdToEdit = searchParams.get('edit');
   const fromConversion = searchParams.get('fromConversion');
 
   useEffect(() => {
-    // Ce hook s'exécute uniquement si les paramètres de l'URL changent.
-    if (fromConversion) {
-      // Si on vient d'une conversion, le contexte est déjà prêt. On ne fait rien.
+    if (fromConversion === 'true') {
       return;
     }
 
     if (saleIdToEdit) {
-      // Si on édite, on charge la pièce.
       loadSaleForEditing(saleIdToEdit, docType);
     } else {
-      // Sinon (nouvelle pièce), on réinitialise.
       resetCommercialPage(docType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,7 +42,6 @@ function DocumentPageContent() {
     return <div>Type de document non valide</div>;
   }
 
-  // Le layout est maintenant "passif" et ne fait qu'afficher ce qui est dans le contexte.
   return <CommercialPageLayout documentType={docType} />;
 }
 
