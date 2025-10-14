@@ -20,7 +20,6 @@ function SupplierOrdersPageContent() {
       setOrder, 
       updateQuantity, 
       removeFromOrder, 
-      clearOrder,
       items,
       suppliers,
       setCurrentSaleContext,
@@ -65,7 +64,7 @@ function SupplierOrdersPageContent() {
       return;
     }
 
-    clearOrder();
+    resetCommercialPage('supplier_order');
 
     const randomSupplier = suppliers[Math.floor(Math.random() * suppliers.length)];
     setCurrentSaleContext({ supplierId: randomSupplier.id, documentType: 'supplier_order' });
@@ -98,7 +97,7 @@ function SupplierOrdersPageContent() {
       title: 'Commande Fournisseur Aléatoire Générée',
       description: `Préparation de la commande pour ${randomSupplier.name}.`,
     });
-  }, [items, suppliers, clearOrder, setCurrentSaleContext, setOrder, toast]);
+  }, [items, suppliers, resetCommercialPage, setCurrentSaleContext, setOrder, toast]);
   
   return (
     <div className="h-full flex flex-col">

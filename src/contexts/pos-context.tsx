@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -429,9 +428,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
 
-   const prevPathnameRef = useRef(pathname);
-
-   const clearOrder = useCallback(() => {
+  const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
     if (readOnlyOrder) setReadOnlyOrder(null);
@@ -440,31 +437,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [readOnlyOrder]);
 
-   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
         clearOrder();
         setCurrentSaleContext({ documentType: pageType });
     }, [clearOrder]);
 
-    useEffect(() => {
-        const prevPath = prevPathnameRef.current;
-        const salesModes = ['/pos', '/supermarket', '/restaurant'];
-        
-        const commercialRegex = /^\/commercial(\/.*)?$/;
+  useEffect(() => {
+    rehydrateItems();
+    rehydrateCategories();
+    rehydrateCustomers();
+    rehydrateSuppliers();
+    rehydrateTablesData();
+    rehydrateSales();
+    rehydratePaymentMethods();
+    rehydrateVatRates();
+    rehydrateHeldOrders();
+    rehydrateCompanyInfo();
+    rehydrateUsers();
+  }, []);
 
-        const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
-        const isLeavingCommercial = commercialRegex.test(prevPath) && !commercialRegex.test(pathname);
-
-        if ((isLeavingSales || isLeavingCommercial) && order.length > 0) {
-            
-        } else if (isLeavingSales || isLeavingCommercial) {
-            
-            setCurrentSaleId(null);
-            setCurrentSaleContext(null);
-            setOrder([]);
-        }
-
-        prevPathnameRef.current = pathname;
-    }, [pathname, order.length]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;

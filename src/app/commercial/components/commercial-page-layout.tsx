@@ -57,7 +57,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateQuantity, 
       removeFromOrder, 
       updateItemNote, 
-      clearOrder,
       loadSaleForEditing,
       recordCommercialDocument,
       currentSaleContext,
@@ -65,7 +64,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       customers,
       setCurrentSaleContext,
       currentSaleId,
-      updateItemQuantityInOrder
+      updateItemQuantityInOrder,
+      resetCommercialPage,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -84,9 +84,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
-      clearOrder();
+      resetCommercialPage(documentType);
     }
-  }, [saleIdToEdit, clearOrder, loadSaleForEditing, documentType]);
+  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
 
 
   useEffect(() => {
@@ -147,7 +147,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       return;
     }
 
-    clearOrder();
+    resetCommercialPage(documentType);
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
     setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType });
@@ -189,12 +189,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     });
   };
 
-  const pageTitle = isEditingExistingDoc ? (
+  const pageTitle = (
     <div className="flex items-center gap-4">
-      <span>{config.editTitle}</span>
-      {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+      <span>{isEditingExistingDoc ? config.editTitle : config.title}</span>
+      {isEditingExistingDoc && currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
     </div>
-  ) : config.title;
+  );
 
   const pageSubtitle = isEditingExistingDoc
     ? `Mise à jour du document.`
