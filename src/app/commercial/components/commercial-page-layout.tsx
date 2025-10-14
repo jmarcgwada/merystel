@@ -6,7 +6,7 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
@@ -96,7 +96,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     } else {
       clearOrder();
     }
-    // We only want to run this when the main identifier `saleIdToEdit` changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, documentType]);
 
