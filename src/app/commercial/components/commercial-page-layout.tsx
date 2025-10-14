@@ -199,22 +199,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   };
 
   const pageTitle = isEditingExistingDoc ? currentConfig.editTitle : currentConfig.title;
+  const pageSubtitle = isEditingExistingDoc ? `Modification #${currentSaleContext?.ticketNumber || '...'}` : currentConfig.subtitle;
 
   return (
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
-          title={
-            <div className="flex items-center gap-4">
-              <span>{pageTitle}</span>
-              {isEditingExistingDoc && (
-                <span className="font-mono text-muted-foreground text-xl">
-                  #{currentSaleContext?.ticketNumber || '...'}
-                </span>
-              )}
-            </div>
-          }
-          subtitle={isEditingExistingDoc ? currentConfig.editSubtitle : currentConfig.subtitle}
+          title={pageTitle}
+          subtitle={pageSubtitle}
         >
           <div className="flex items-center gap-2">
             {!isEditingExistingDoc && (
