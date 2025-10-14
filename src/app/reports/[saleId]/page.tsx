@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -315,6 +314,25 @@ function SaleDetailContent() {
         </div>
         
         <div className="lg:col-span-1 space-y-8">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {sellerName && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3>
+                    <p>{sellerName}</p>
+                  </div>
+                )}
+                {customer && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground">Client</h3>
+                    <p className="font-semibold">{customer.name}</p>
+                    {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
+                    {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
+                  </div>
+                )}
+              </div>
+            </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Résumé de la transaction</CardTitle>
@@ -365,44 +383,17 @@ function SaleDetailContent() {
             </CardFooter>
           </Card>
 
-          <div className="space-y-4">
-             {(sellerName || customer) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {sellerName && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3>
-                      <p>{sellerName}</p>
-                    </div>
-                  )}
-                  {customer && sellerName && <Separator />}
-                  {customer && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-muted-foreground">Client</h3>
-                      <p className="font-semibold">{customer.name}</p>
-                      {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
-                      {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
-                    </div>
-                  )}
-                </CardContent>
+          {sale.tableName && (
+                <Card>
+                  <CardHeader className="flex-row items-center gap-4 space-y-0">
+                      <Utensils className="h-6 w-6 text-muted-foreground" />
+                      <CardTitle>Origine</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <p>Cette pièce provient de la table : <span className="font-semibold">{sale.tableName}</span>.</p>
+                  </CardContent>
               </Card>
-            )}
-
-            {sale.tableName && (
-                 <Card>
-                    <CardHeader className="flex-row items-center gap-4 space-y-0">
-                        <Utensils className="h-6 w-6 text-muted-foreground" />
-                        <CardTitle>Origine</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>Cette pièce provient de la table : <span className="font-semibold">{sale.tableName}</span>.</p>
-                    </CardContent>
-                </Card>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -416,5 +407,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-
-    
