@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -78,25 +77,20 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const updatedItemId = searchParams.get('updatedItemId');
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
-  const config = docTypeConfig[documentType];
-  
-  const [editingDocType, setEditingDocType] = useState<DocumentType>(documentType);
-
-  const currentConfig = docTypeConfig[editingDocType];
-
   const isEditingExistingDoc = !!saleIdToEdit;
+  const config = docTypeConfig[documentType];
 
   useEffect(() => {
-    setCurrentSaleContext(prev => ({...prev, documentType: editingDocType}));
-  }, [editingDocType, setCurrentSaleContext]);
-
+    setCurrentSaleContext(prev => ({...prev, documentType: documentType}));
+  }, [documentType, setCurrentSaleContext]);
+  
   useEffect(() => {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
     } else {
       clearOrder();
     }
-  }, [saleIdToEdit, documentType, clearOrder, loadSaleForEditing]);
+  }, [saleIdToEdit, documentType, loadSaleForEditing, clearOrder]);
 
 
   useEffect(() => {
@@ -127,7 +121,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
     
-    if (editingDocType === 'invoice') {
+    if (documentType === 'invoice') {
       if (submitHandler) {
         submitHandler(); 
       }
@@ -139,12 +133,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       subtotal: totals.subtotal,
       tax: totals.tax,
       total: totals.total,
-      status: editingDocType,
+      status: documentType,
       payments: [],
       customerId: currentSaleContext.customerId,
     };
     
-    await recordCommercialDocument(doc, editingDocType, currentSaleId || undefined);
+    await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
   };
   
   const handleGenerateRandom = () => {
@@ -201,14 +195,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const pageTitle = isEditingExistingDoc ? (
     <div className="flex items-center gap-4">
-      <span>{currentConfig.editTitle}</span>
+      <span>{config.editTitle}</span>
       {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
     </div>
-  ) : currentConfig.title;
+  ) : config.title;
 
   const pageSubtitle = isEditingExistingDoc
     ? `Mise à jour du document.`
-    : currentConfig.subtitle;
+    : config.subtitle;
 
   return (
     <div className="h-full flex flex-col">
@@ -230,14 +224,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
               </Button>
             )}
 
-             <Button variant="outline" size="icon">
-                <Pencil className="h-4 w-4" />
-            </Button>
-
             <Button size="lg" onClick={handleSave} disabled={!isReady}>
               {isEditingExistingDoc
-                ? currentConfig.updateButton
-                : currentConfig.saveButton}
+                ? config.updateButton
+                : config.saveButton}
             </Button>
           </div>
         </PageHeader>
@@ -252,7 +242,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 setSubmitHandler={setSubmitHandler}
                 updateItemNote={updateItemNote}
                 setIsReady={setIsReady}
-                showAcompte={currentConfig.showAcompte}
+                showAcompte={config.showAcompte}
                 onTotalsChange={setTotals}
                 updateItemQuantityInOrder={updateItemQuantityInOrder}
             />
