@@ -84,9 +84,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   
   useEffect(() => {
     const saleId = searchParams.get('edit');
+    // We check fromConversion first to prevent resetting the page during a conversion
+    if (currentSaleContext?.fromConversion) {
+      return; 
+    }
     if (saleId) {
       loadSaleForEditing(saleId, documentType);
-    } else if (!currentSaleContext?.fromConversion) {
+    } else {
       resetCommercialPage(documentType);
     }
   }, [documentType, searchParams, loadSaleForEditing, resetCommercialPage, currentSaleContext?.fromConversion]);
