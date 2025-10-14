@@ -23,7 +23,6 @@ const docTypeConfig = {
     title: 'Gestion des Factures',
     subtitle: 'Créez une nouvelle facture ou éditez une facture existante.',
     editTitle: 'Modifier la facture',
-    editSubtitle: 'Modifiez les articles et finalisez la facture.',
     saveButton: 'Encaisser la facture',
     updateButton: 'Encaisser la facture',
     filterPrefix: 'Fact-',
@@ -33,7 +32,6 @@ const docTypeConfig = {
     title: 'Gestion des Devis',
     subtitle: 'Créez un nouveau devis.',
     editTitle: 'Modifier le devis',
-    editSubtitle: 'Modifiez les articles et finalisez le devis.',
     saveButton: 'Sauvegarder le devis',
     updateButton: 'Mettre à jour le devis',
     filterPrefix: 'Devis-',
@@ -43,7 +41,6 @@ const docTypeConfig = {
     title: 'Gestion des BL',
     subtitle: 'Créez un nouveau bon de livraison.',
     editTitle: 'Modifier le BL',
-    editSubtitle: 'Modifiez les articles et finalisez le bon.',
     saveButton: 'Sauvegarder le bon',
     updateButton: 'Mettre à jour le bon',
     filterPrefix: 'BL-',
@@ -199,7 +196,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   };
 
   const pageTitle = isEditingExistingDoc ? currentConfig.editTitle : currentConfig.title;
-  const pageSubtitle = isEditingExistingDoc ? `Modification #${currentSaleContext?.ticketNumber || '...'}` : currentConfig.subtitle;
+  const pageSubtitle = isEditingExistingDoc
+    ? `Modification #${currentSaleContext?.ticketNumber || '...'}`
+    : currentConfig.subtitle;
 
   return (
     <div className="h-full flex flex-col">
