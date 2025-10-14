@@ -72,8 +72,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -348,7 +348,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -1122,10 +1122,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setItems]);
 
     const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'> & {id: string}) => {
+        if (customers.some(c => c.id === customer.id)) {
+            throw new Error('Un client avec ce code existe déjà.');
+        }
         const newCustomer = { ...customer, isDefault: customers.length === 0 };
         setCustomers(prev => [...prev, newCustomer]);
         return newCustomer;
-    }, [customers.length, setCustomers]);
+    }, [customers, setCustomers]);
     const updateCustomer = useCallback((customer: Customer) => {
         setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
     }, [setCustomers]);
@@ -1137,10 +1140,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setCustomers]);
 
     const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'> & {id: string}) => {
+        if (suppliers.some(s => s.id === supplier.id)) {
+            throw new Error('Un fournisseur avec ce code existe déjà.');
+        }
         const newSupplier = { ...supplier, id: supplier.id || uuidv4() };
         setSuppliers(prev => [...prev, newSupplier]);
         return newSupplier;
-    }, [setSuppliers]);
+    }, [suppliers, setSuppliers]);
     const updateSupplier = useCallback((supplier: Supplier) => {
         setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
     }, [setSuppliers]);
@@ -1244,7 +1250,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'): Promise<boolean> => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
-        // Check if the sale should be read-only
         const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
 
         setOrder(saleToEdit.items);
@@ -1268,14 +1273,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
 
-        const newInvoiceData: Omit<Sale, 'id'> = {
+        // Create a new invoice object, but don't assign a ticketNumber
+        const newInvoiceData: Omit<Sale, 'id' | 'ticketNumber'> = {
             ...originalSale,
             date: new Date(),
             documentType: 'invoice',
             status: 'pending',
-            ticketNumber: '', // Will be generated by recordSale
             payments: [],
-            originalTotal: undefined, // Reset these fields for the new invoice
+            originalTotal: undefined, 
             originalPayments: undefined,
             change: undefined,
             modifiedAt: undefined,
@@ -1284,7 +1289,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const newInvoice = await recordSale(newInvoiceData);
         
         if(newInvoice) {
-            // Update original sale status
+            // Update original sale status in the local state
             setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'invoiced' } : s));
             toast({ title: 'Conversion réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
             return newInvoice.id;
