@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -187,14 +186,6 @@ export default function ReportsPage() {
             }
         }
     }, [loadSaleForEditing, router]);
-
-    const handleConvertToInvoice = useCallback(async (sale: Sale) => {
-        const newInvoiceId = await convertToInvoice(sale.id);
-        if (newInvoiceId) {
-            await loadSaleForEditing(newInvoiceId, 'invoice');
-            router.push('/commercial/invoices');
-        }
-    }, [convertToInvoice, loadSaleForEditing, router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -773,11 +764,6 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced' && (
-                                                <Button variant="ghost" size="icon" title="Transformer en Facture" onClick={() => handleConvertToInvoice(sale)}>
-                                                    <FileCog className="h-4 w-4 text-green-600" />
-                                                </Button>
-                                            )}
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>

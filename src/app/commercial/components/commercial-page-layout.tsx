@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -66,6 +65,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       resetCommercialPage,
+      convertToInvoice,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -76,6 +76,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const isEditingExistingDoc = !!currentSaleId;
   const config = docTypeConfig[documentType];
+  const canBeConverted = isEditingExistingDoc && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
+
   
   useEffect(() => {
     // This effect ensures that when the page is loaded for creating a new document,
@@ -109,6 +111,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     
     await recordCommercialDocument(doc, documentType, currentSaleId || undefined);
   }, [isReady, currentSaleContext, documentType, submitHandler, order, totals, recordCommercialDocument, currentSaleId]);
+
+  const handleConvertToInvoice = useCallback(async () => {
+    if (!currentSaleId) return;
+    const newInvoiceId = await convertToInvoice(currentSaleId);
+    if(newInvoiceId) {
+        router.push(`/commercial/invoices?edit=${newInvoiceId}`);
+    }
+  }, [currentSaleId, convertToInvoice, router]);
   
   const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {
@@ -191,6 +201,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
               >
                 <Sparkles className="h-4 w-4" />
               </Button>
+            )}
+
+            {canBeConverted && (
+                <Button variant="outline" onClick={handleConvertToInvoice}>
+                    <FileCog className="mr-2 h-4 w-4"/>
+                    Transformer en Facture
+                </Button>
             )}
 
             <Button size="lg" onClick={handleSave} disabled={!isReady}>
