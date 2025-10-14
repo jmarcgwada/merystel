@@ -86,7 +86,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, convertToInvoice } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
