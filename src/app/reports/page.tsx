@@ -93,9 +93,9 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const searchParams = useSearchParams();
-    initialFilter = searchParams.get('filter');
-    initialStatusFilter = searchParams.get('filterStatus');
-    dateFilterParam = searchParams.get('date');
+    const initialFilter = searchParams.get('filter');
+    const initialStatusFilter = searchParams.get('filterStatus');
+    const dateFilterParam = searchParams.get('date');
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
 
@@ -323,17 +323,17 @@ export default function ReportsPage() {
         setCurrentPage(1);
     }
     
-    const handleEdit = useCallback((sale: Sale) => {
+    const handleEdit = (sale: Sale) => {
         const type = sale.documentType === 'quote' ? 'quote'
                    : sale.documentType === 'delivery_note' ? 'delivery_note'
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
                    : 'invoice';
         loadSaleForEditing(sale.id, type);
-    }, [loadSaleForEditing]);
+    };
 
-    const handleConvertToInvoice = useCallback((sale: Sale) => {
+    const handleConvertToInvoice = (sale: Sale) => {
         loadSaleForEditing(sale.id, 'invoice');
-    }, [loadSaleForEditing]);
+    };
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -721,7 +721,7 @@ export default function ReportsPage() {
                         )) : null}
                         {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
-                            pieceType = sale.documentType === 'invoice' ? 'Facture'
+                            const pieceType = sale.documentType === 'invoice' ? 'Facture'
                                             : sale.documentType === 'quote' ? 'Devis'
                                             : sale.documentType === 'delivery_note' ? 'BL'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
@@ -784,5 +784,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
