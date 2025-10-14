@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -8,11 +9,12 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog } from 'lucide-react';
+import { Sparkles, FileCog, Lock } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
@@ -68,6 +70,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   } = usePos();
   
   const isEditing = !!currentSaleId;
+  const isReadOnly = currentSaleContext?.isReadOnly ?? false;
 
   const formRef = useRef<{ submit: () => void }>(null);
   const { toast } = useToast();
@@ -167,29 +170,39 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 </Button>
             )}
 
-            <Button size="lg" onClick={handleSave}>
-              {isEditing
-                ? config.updateButton
-                : config.saveButton}
+            <Button size="lg" onClick={handleSave} disabled={isReadOnly}>
+              {isReadOnly ? 'Facture Validée' : (isEditing ? config.updateButton : config.saveButton)}
             </Button>
           </div>
         </PageHeader>
+
+        {isReadOnly && (
+            <Alert variant="destructive" className="mt-4">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Mode Lecture Seule</AlertTitle>
+                <AlertDescription>
+                    Cette facture a été entièrement payée et ne peut plus être modifiée.
+                </AlertDescription>
+            </Alert>
+        )}
         
-        <div className="flex-1 flex flex-col min-h-0">
-            <CommercialOrderForm
-                ref={formRef}
-                order={order} 
-                setOrder={setOrder}
-                addToOrder={addToOrder}
-                updateQuantity={updateQuantity}
-                removeFromOrder={removeFromOrder}
-                updateItemNote={updateItemNote}
-                showAcompte={config.showAcompte}
-                onTotalsChange={setTotals}
-                updateItemQuantityInOrder={updateItemQuantityInOrder}
-                documentType={documentType}
-            />
-        </div>
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 mt-4 group">
+            <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
+                <CommercialOrderForm
+                    ref={formRef}
+                    order={order} 
+                    setOrder={setOrder}
+                    addToOrder={addToOrder}
+                    updateQuantity={updateQuantity}
+                    removeFromOrder={removeFromOrder}
+                    updateItemNote={updateItemNote}
+                    showAcompte={config.showAcompte}
+                    onTotalsChange={setTotals}
+                    updateItemQuantityInOrder={updateItemQuantityInOrder}
+                    documentType={documentType}
+                />
+            </div>
+        </fieldset>
       </div>
       <SerialNumberModal />
       <VariantSelectionModal />
@@ -204,3 +217,5 @@ export default function CommercialPageLayout({ documentType }: CommercialPageLay
         </Suspense>
     )
 }
+
+    
