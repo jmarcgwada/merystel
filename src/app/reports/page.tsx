@@ -86,7 +86,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing, convertToInvoice } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -177,7 +177,6 @@ export default function ReportsPage() {
       const docType = sale.documentType || 'invoice';
       const pathSegment = typeMap[docType] || 'invoices';
       
-      // Navigate first, then the destination page will handle the loading.
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
   }, [router]);
 
@@ -728,6 +727,7 @@ export default function ReportsPage() {
                                             : sale.documentType === 'delivery_note' ? 'BL'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
                                             : 'Ticket';
+                            const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
                             
                             return (
                                 <TableRow key={sale.id}>
@@ -758,6 +758,11 @@ export default function ReportsPage() {
                                     <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
+                                            {canBeConverted && (
+                                                <Button variant="ghost" size="icon" onClick={() => convertToInvoice(sale.id)}>
+                                                    <FileCog className="h-4 w-4 text-blue-600" />
+                                                </Button>
+                                            )}
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
