@@ -93,9 +93,9 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const searchParams = useSearchParams();
-    const initialFilter = searchParams.get('filter');
-    const initialStatusFilter = searchParams.get('filterStatus');
-    const dateFilterParam = searchParams.get('date');
+    initialFilter = searchParams.get('filter');
+    initialStatusFilter = searchParams.get('filterStatus');
+    dateFilterParam = searchParams.get('date');
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
 
@@ -329,17 +329,11 @@ export default function ReportsPage() {
                    : sale.documentType === 'supplier_order' ? 'supplier_order'
                    : 'invoice';
         loadSaleForEditing(sale.id, type);
-        const path = type === 'quote' ? '/commercial/quotes'
-                   : type === 'delivery_note' ? '/commercial/delivery-notes'
-                   : type === 'supplier_order' ? '/commercial/supplier-orders'
-                   : '/commercial/invoices';
-        router.push(`${path}?edit=${sale.id}`);
-    }, [loadSaleForEditing, router]);
+    }, [loadSaleForEditing]);
 
     const handleConvertToInvoice = useCallback((sale: Sale) => {
         loadSaleForEditing(sale.id, 'invoice');
-        router.push(`/commercial/invoices?edit=${sale.id}`);
-    }, [loadSaleForEditing, router]);
+    }, [loadSaleForEditing]);
 
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -727,7 +721,7 @@ export default function ReportsPage() {
                         )) : null}
                         {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
-                            const pieceType = sale.documentType === 'invoice' ? 'Facture'
+                            pieceType = sale.documentType === 'invoice' ? 'Facture'
                                             : sale.documentType === 'quote' ? 'Devis'
                                             : sale.documentType === 'delivery_note' ? 'BL'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
@@ -790,3 +784,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -57,7 +58,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateQuantity, 
       removeFromOrder, 
       updateItemNote, 
-      loadSaleForEditing,
       recordCommercialDocument,
       currentSaleContext,
       items,
@@ -81,12 +81,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const config = docTypeConfig[documentType];
 
   useEffect(() => {
-    if (saleIdToEdit) {
-      loadSaleForEditing(saleIdToEdit, documentType);
-    } else {
+    // This effect ensures that if we land on a page without an edit context,
+    // we reset it to a clean slate for the current document type.
+    if (!saleIdToEdit) {
       resetCommercialPage(documentType);
     }
-  }, [saleIdToEdit, documentType, loadSaleForEditing, resetCommercialPage]);
+  }, [saleIdToEdit, documentType, resetCommercialPage]);
 
 
   useEffect(() => {
