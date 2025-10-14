@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePos } from '@/contexts/pos-context';
