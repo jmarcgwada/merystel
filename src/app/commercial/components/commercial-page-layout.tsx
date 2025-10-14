@@ -83,10 +83,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // This effect ensures that when the page is loaded for creating a new document,
     // the context is correctly set. The loading for editing is now handled
     // by the component that triggers the navigation (e.g., reports page).
-    if (!currentSaleId) {
+    if (!currentSaleId && !currentSaleContext?.fromConversion) {
       resetCommercialPage(documentType);
     }
-  }, [documentType, resetCommercialPage, currentSaleId]);
+     // Cleanup conversion flag after setup
+    if (currentSaleContext?.fromConversion) {
+      setCurrentSaleContext(prev => ({ ...prev, fromConversion: false }));
+    }
+  }, [documentType, resetCommercialPage, currentSaleId, currentSaleContext?.fromConversion, setCurrentSaleContext]);
 
 
   const handleSave = useCallback(async () => {
@@ -114,10 +118,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const handleConvertToInvoice = useCallback(async () => {
     if (!currentSaleId) return;
-    const newInvoiceId = await convertToInvoice(currentSaleId);
-    if(newInvoiceId) {
-        router.push(`/commercial/invoices?edit=${newInvoiceId}`);
-    }
+    convertToInvoice(currentSaleId);
+    router.push(`/commercial/invoices`);
   }, [currentSaleId, convertToInvoice, router]);
   
   const handleGenerateRandom = () => {

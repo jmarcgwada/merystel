@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -72,8 +71,8 @@ interface PosContextType {
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -82,7 +81,7 @@ interface PosContextType {
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
   loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => Promise<boolean>;
-  convertToInvoice: (saleId: string) => Promise<string | null>;
+  convertToInvoice: (saleId: string) => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
@@ -348,7 +347,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -998,9 +997,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (currentSaleId && !currentSaleId.startsWith('table-')) {
             setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
         }
+
+        // Handle invoice conversion: update original doc status
+        if (currentSaleContext?.originalSaleId) {
+          setSales(currentSales =>
+            currentSales.map(s =>
+              s.id === currentSaleContext.originalSaleId
+                ? { ...s, status: 'invoiced' }
+                : s
+            )
+          );
+        }
+
+        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+           setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+        } else {
+           setSales(prev => [finalSale, ...prev]);
+        }
     
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
         const today = new Date();
@@ -1233,44 +1249,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
     }, [sales, toast]);
 
-    const convertToInvoice = useCallback(async (saleId: string) => {
+    const convertToInvoice = useCallback((saleId: string) => {
       const originalSale = sales.find(s => s.id === saleId);
       if (!originalSale) {
           toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
-          return null;
+          return;
       }
   
-      const newInvoiceData = {
-          ...originalSale,
-          date: new Date(),
-          documentType: 'invoice' as const,
-          status: 'pending' as const,
-          payments: [],
-          originalTotal: undefined,
-          originalPayments: undefined,
-          change: undefined,
-          modifiedAt: undefined,
-      };
-      
-      // Explicitly remove ticketNumber so recordSale generates a new one
-      delete (newInvoiceData as any).ticketNumber;
-
-      const newInvoiceRecord = await recordSale(newInvoiceData);
+      // Prepare the state for the new invoice page
+      setOrder(originalSale.items);
+      setCurrentSaleId(null); // It's a new invoice, so no ID yet
+      setCurrentSaleContext({
+        ...originalSale, // Copy customer, items, etc.
+        documentType: 'invoice',
+        status: 'pending',
+        ticketNumber: undefined, // Will be generated on save
+        date: new Date(), // Set to current date
+        payments: [],
+        originalTotal: undefined,
+        originalPayments: undefined,
+        change: undefined,
+        modifiedAt: undefined,
+        // Keep a reference to the original sale to update its status upon finalization
+        originalSaleId: originalSale.id, 
+        fromConversion: true, // A flag to indicate this is a conversion
+      });
   
-      if (newInvoiceRecord) {
-          setSales(currentSales => 
-              currentSales.map(s => 
-                  s.id === saleId 
-                      ? { ...s, status: 'invoiced' as const } 
-                      : s
-              )
-          );
-          toast({ title: 'Conversion réussie', description: `La facture ${newInvoiceRecord.ticketNumber} a été créée.` });
-          return newInvoiceRecord.id;
-      }
-      
-      return null;
-  }, [sales, recordSale, toast, setSales]);
+  }, [sales, toast, setOrder, setCurrentSaleId, setCurrentSaleContext]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1314,5 +1319,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
