@@ -15,20 +15,21 @@ function DocumentPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const { loadSaleForEditing, resetCommercialPage, currentSaleId } = usePos();
+  const { loadSaleForEditing, resetCommercialPage, currentSaleId, loadSaleForConversion } = usePos();
   
   const documentType = params.documentType as string;
   const docType = typeMap[documentType];
   
   const saleIdToEdit = searchParams.get('edit');
-  const fromConversion = searchParams.get('fromConversion');
+  const saleIdToConvert = searchParams.get('fromConversion');
 
   useEffect(() => {
     // This effect is the SINGLE SOURCE OF TRUTH for loading or resetting a commercial document.
     // It runs only when essential URL parameters change.
 
-    if (fromConversion) {
-      // If we just converted a document, the context is already set up correctly. Do nothing.
+    if (saleIdToConvert) {
+      // If we are converting, load the source document into the new invoice context
+      loadSaleForConversion(saleIdToConvert);
       return;
     }
     
@@ -43,7 +44,7 @@ function DocumentPageContent() {
       resetCommercialPage(docType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, docType, fromConversion]); // Use stable, primitive dependencies from URL.
+  }, [saleIdToEdit, saleIdToConvert, docType]); // Use stable, primitive dependencies from URL.
 
 
   if (!docType) {

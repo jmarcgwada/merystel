@@ -86,7 +86,7 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, loadSaleForEditing, convertToInvoice } = usePos();
+    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -759,8 +759,10 @@ export default function ReportsPage() {
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {canBeConverted && (
-                                                <Button variant="ghost" size="icon" onClick={() => convertToInvoice(sale.id)}>
+                                                <Button asChild variant="ghost" size="icon">
+                                                  <Link href={`/commercial/invoices?fromConversion=${sale.id}`} scroll={false}>
                                                     <FileCog className="h-4 w-4 text-blue-600" />
+                                                  </Link>
                                                 </Button>
                                             )}
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>

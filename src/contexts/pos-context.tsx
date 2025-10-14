@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -82,6 +81,7 @@ interface PosContextType {
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
   loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => Promise<boolean>;
+  loadSaleForConversion: (saleId: string) => void;
   convertToInvoice: (saleId: string) => void;
 
   users: User[];
@@ -1238,7 +1238,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
     }, [sales, toast]);
 
-    const convertToInvoice = useCallback((saleId: string) => {
+    const loadSaleForConversion = useCallback((saleId: string) => {
       const saleToConvert = sales.find(s => s.id === saleId);
       if (!saleToConvert) {
           toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
@@ -1246,7 +1246,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
   
       // Prepare the state for a NEW invoice, based on the quote/delivery note.
-      // Do NOT set currentSaleId, as this is a new document, not an edit.
       setOrder(saleToConvert.items);
       setCurrentSaleId(null); 
       
@@ -1254,28 +1253,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
       setCurrentSaleContext({
         ...restOfSale,
-        documentType: 'invoice', // This is now an invoice
-        status: 'pending',       // A new invoice is pending payment
-        date: new Date(),        // Set to current date
-        payments: [],            // No payments yet
+        documentType: 'invoice',
+        status: 'pending',
+        date: new Date(),
+        payments: [],            
         originalTotal: undefined,
         originalPayments: undefined,
         change: undefined,
         modifiedAt: undefined,
-        originalSaleId: saleToConvert.id, // Keep track of where it came from
-        fromConversion: true, // A flag to signal this is a conversion
+        originalSaleId: saleToConvert.id,
       });
+  }, [sales, toast]);
 
-      // Navigate to the invoice page. The page will pick up the context.
-      router.push('/commercial/invoices?fromConversion=true');
-  
-  }, [sales, toast, router]);
+    const convertToInvoice = useCallback((saleId: string) => {
+      loadSaleForConversion(saleId);
+      router.push('/commercial/invoices');
+  }, [loadSaleForConversion, router]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, convertToInvoice, users, addUser, updateUser, deleteUser,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
