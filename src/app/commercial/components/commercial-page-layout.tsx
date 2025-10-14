@@ -5,10 +5,10 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, FilePlus, Sparkles, FileCog } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,7 +35,7 @@ const docTypeConfig = {
     editTitle: 'Modifier le devis',
     editSubtitle: 'Modifiez les articles et finalisez le devis.',
     saveButton: 'Sauvegarder le devis',
-    updateButton: 'Transformer en Facture',
+    updateButton: 'Mettre à jour le devis',
     filterPrefix: 'Devis-',
     showAcompte: false,
   },
@@ -45,7 +45,7 @@ const docTypeConfig = {
     editTitle: 'Modifier le BL',
     editSubtitle: 'Modifiez les articles et finalisez le bon.',
     saveButton: 'Sauvegarder le bon',
-    updateButton: 'Transformer en Facture',
+    updateButton: 'Mettre à jour le bon',
     filterPrefix: 'BL-',
     showAcompte: false,
   },
@@ -62,7 +62,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       clearOrder,
       loadSaleForEditing,
       recordCommercialDocument,
-      transformToInvoice,
       currentSaleContext,
       items,
       customers,
@@ -87,7 +86,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const currentConfig = docTypeConfig[editingDocType];
 
   const isEditingExistingDoc = !!saleIdToEdit;
-  const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
 
   useEffect(() => {
     setCurrentSaleContext(prev => ({...prev, documentType: editingDocType}));
@@ -124,24 +122,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       router.replace(newUrl, { scroll: false });
     }
   }, [updatedItemId, items, setOrder, router]);
-  
-  const handleTransformToInvoice = () => {
-    if (!currentSaleId || !currentSaleContext) return;
-    
-    const saleToTransform: Sale = {
-        id: currentSaleId,
-        ...currentSaleContext,
-        items: order,
-        subtotal: totals.subtotal,
-        tax: totals.tax,
-        total: totals.total,
-        payments: [],
-        status: currentSaleContext.status || 'pending',
-        ticketNumber: currentSaleContext.ticketNumber || '',
-        date: currentSaleContext.date || new Date(),
-    };
-    transformToInvoice(saleToTransform);
-};
 
   const handleSave = async () => {
     if (!isReady || !currentSaleContext?.customerId) return;
@@ -237,18 +217,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
           subtitle={isEditingExistingDoc ? currentConfig.editSubtitle : currentConfig.subtitle}
         >
           <div className="flex items-center gap-2">
-            {isEditingExistingDoc && isQuoteOrDeliveryNote && (
-              <Button
-                size="lg"
-                onClick={handleTransformToInvoice}
-                disabled={!isReady}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <FileCog className="mr-2 h-4 w-4" />
-                {currentConfig.updateButton}
-              </Button>
-            )}
-
             {!isEditingExistingDoc && (
               <Button
                 variant="outline"
@@ -263,7 +231,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
             <Button size="lg" onClick={handleSave} disabled={!isReady}>
               {isEditingExistingDoc
-                ? (isQuoteOrDeliveryNote ? 'Sauvegarder les modifications' : currentConfig.updateButton)
+                ? currentConfig.updateButton
                 : currentConfig.saveButton}
             </Button>
           </div>

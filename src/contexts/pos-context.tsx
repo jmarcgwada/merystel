@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -80,7 +81,6 @@ interface PosContextType {
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
   loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
-  transformToInvoice: (sale: Sale) => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
@@ -1061,32 +1061,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : '/reports';
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router]);
-    
-    const transformToInvoice = useCallback(async (saleToTransform: Sale) => {
-        const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
-            ...saleToTransform,
-            documentType: 'invoice',
-            status: 'pending',
-            payments: [], // New invoice starts with no payments
-            change: 0,
-        };
-
-        const newInvoice = await recordSale(newInvoiceData);
-        
-        // Mark original document as invoiced
-        const originalDoc = sales.find(s => s.id === saleToTransform.id);
-        if (originalDoc) {
-            const updatedOriginalDoc = { ...originalDoc, status: 'invoiced' as 'paid' | 'pending' | 'quote' | 'delivery_note' | 'invoiced' };
-            setSales(prev => prev.map(s => s.id === saleToTransform.id ? updatedOriginalDoc : s));
-        }
-
-        if (newInvoice) {
-            toast({ title: 'Transformation réussie', description: `La facture ${newInvoice.ticketNumber} a été créée.` });
-            router.push(`/commercial/invoices?edit=${newInvoice.id}`);
-        }
-        
-    }, [recordSale, sales, setSales, toast, router]);
-
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
@@ -1243,7 +1217,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, transformToInvoice, users, addUser, updateUser, deleteUser,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
@@ -1280,3 +1254,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
