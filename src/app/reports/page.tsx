@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
 const ITEMS_PER_PAGE = 20;
@@ -92,6 +93,7 @@ export default function ReportsPage() {
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
     
     const initialFilter = searchParams.get('filter');
     const initialStatusFilter = searchParams.get('filterStatus');
