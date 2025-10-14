@@ -32,7 +32,7 @@ const docTypeConfig = {
   },
   quote: {
     title: 'Gestion des Devis',
-    subtitle: 'Créez un nouveau devis.',
+    subtitle: "peut-être que tu essaies de me mettre le numéro de la pièce au mauvaise endroit je vais t'indiquer à quel niveau il faut le mettre c'est ici",
     editTitle: 'Modifier le devis',
     saveButton: 'Sauvegarder le devis',
     updateButton: 'Mettre à jour le devis',
@@ -204,9 +204,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     <div className="flex items-center gap-4">
       <span>{currentConfig.editTitle}</span>
       {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
-      <Button variant="outline" size="icon">
-        <Pencil className="h-4 w-4" />
-      </Button>
     </div>
   ) : currentConfig.title;
 
@@ -233,6 +230,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 <Sparkles className="h-4 w-4" />
               </Button>
             )}
+
+             <Button variant="outline" size="icon">
+                <Pencil className="h-4 w-4" />
+            </Button>
 
             <Button size="lg" onClick={handleSave} disabled={!isReady}>
               {isEditingExistingDoc
