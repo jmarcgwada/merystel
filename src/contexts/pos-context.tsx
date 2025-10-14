@@ -81,7 +81,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
-  loadSaleForEditing: (saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
+  loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
@@ -378,7 +378,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     rehydrateDashboardButtonShowBorder();
     rehydrateDashboardButtonBorderColor();
     setIsHydrated(true);
-  }, []);
+  }, [
+    rehydrateEnableDynamicBg, rehydrateDynamicBgOpacity, rehydrateShowTicketImages, rehydrateShowItemImagesInGrid, rehydrateDescriptionDisplay,
+    rehydratePopularItemsCount, rehydrateItemCardOpacity, rehydratePaymentMethodImageOpacity, rehydrateItemDisplayMode,
+    rehydrateItemCardShowImageAsBackground, rehydrateItemCardImageOverlayOpacity, rehydrateItemCardTextColor, rehydrateItemCardShowPrice,
+    rehydrateExternalLinkModalEnabled, rehydrateExternalLinkUrl, rehydrateExternalLinkTitle, rehydrateExternalLinkModalWidth,
+    rehydrateExternalLinkModalHeight, rehydrateShowDashboardStats, rehydrateEnableRestaurantCategoryFilter, rehydrateShowNotifications,
+    rehydrateNotificationDuration, rehydrateEnableSerialNumber, rehydrateDefaultSalesMode, rehydrateIsForcedMode,
+    rehydrateDirectSaleBackgroundColor, rehydrateRestaurantModeBackgroundColor, rehydrateDirectSaleBgOpacity,
+    rehydrateRestaurantModeBgOpacity, rehydrateDashboardBgType, rehydrateDashboardBackgroundColor,
+    rehydrateDashboardBackgroundImage, rehydrateDashboardBgOpacity, rehydrateDashboardButtonBackgroundColor,
+    rehydrateDashboardButtonOpacity, rehydrateDashboardButtonShowBorder, rehydrateDashboardButtonBorderColor
+  ]);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -398,7 +409,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
-  // Data states, now managed locally
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
   const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
   const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
@@ -430,34 +440,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-
+  
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
-        clearOrder();
-        setCurrentSaleContext({ documentType: pageType });
+    clearOrder();
+    setCurrentSaleContext({ documentType: pageType });
   }, [clearOrder]);
-
-  const loadSaleForEditing = useCallback((saleId: string, type?: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+  
+  const loadSaleForEditing = useCallback((saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         setOrder(saleToEdit.items);
         setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          documentType: type,
-        });
+        setCurrentSaleContext({ ...saleToEdit, documentType: type });
 
-        let path = '';
-        switch(type) {
-            case 'invoice': path = '/commercial/invoices'; break;
-            case 'quote': path = '/commercial/quotes'; break;
-            case 'delivery_note': path = '/commercial/delivery-notes'; break;
-            case 'supplier_order': path = '/commercial/supplier-orders'; break;
-        }
-        if(path) {
+        const pathMap = {
+            'invoice': '/commercial/invoices',
+            'quote': '/commercial/quotes',
+            'delivery_note': '/commercial/delivery-notes',
+            'supplier_order': '/commercial/supplier-orders',
+        };
+        const path = pathMap[type];
+        if (path) {
             router.push(`${path}?edit=${saleId}`);
         }
+      } else {
+        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
       }
-    }, [sales, router]);
+    }, [sales, router, toast]);
 
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
@@ -1266,3 +1275,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
