@@ -30,7 +30,7 @@ function DocumentPageContent() {
     if (saleIdToConvert) {
       // If we are converting, load the source document into the new invoice context
       loadSaleForConversion(saleIdToConvert);
-      return;
+      return; // Stop further processing
     }
     
     if (saleIdToEdit) {
