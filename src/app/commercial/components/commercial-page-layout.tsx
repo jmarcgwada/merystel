@@ -67,6 +67,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateItemQuantityInOrder,
       resetCommercialPage,
       convertToInvoice,
+      loadSaleForEditing,
   } = usePos();
   const [submitHandler, setSubmitHandler] = useState<(() => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -74,23 +75,32 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
+  const saleIdToEdit = searchParams.get('edit');
 
-  const isEditingExistingDoc = !!currentSaleId;
+  const isEditingExistingDoc = !!currentSaleId && saleIdToEdit === currentSaleId;
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditingExistingDoc && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
 
   
   useEffect(() => {
-    // This effect ensures that when the page is loaded for creating a new document,
-    // the context is correctly set. It avoids resetting when converting a doc.
-    if (!currentSaleId && !currentSaleContext?.fromConversion) {
+    const saleId = searchParams.get('edit');
+    if (saleId) {
+      loadSaleForEditing(saleId, documentType);
+    } else if (!currentSaleContext?.fromConversion) {
       resetCommercialPage(documentType);
     }
-     // Cleanup conversion flag after setup
+  }, [documentType, searchParams, loadSaleForEditing, resetCommercialPage, currentSaleContext?.fromConversion]);
+
+  useEffect(() => {
+    // Cleanup conversion flag after setup
     if (currentSaleContext?.fromConversion) {
-      setCurrentSaleContext(prev => ({ ...prev, fromConversion: false }));
+      setCurrentSaleContext(prev => {
+        if (!prev) return null;
+        const { fromConversion, ...rest } = prev;
+        return rest;
+      });
     }
-  }, [documentType, resetCommercialPage, currentSaleId, currentSaleContext?.fromConversion, setCurrentSaleContext]);
+  }, [currentSaleContext?.fromConversion, setCurrentSaleContext]);
 
 
   const handleSave = useCallback(async () => {
