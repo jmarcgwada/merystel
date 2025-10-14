@@ -6,11 +6,11 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles, FileCog } from 'lucide-react';
-import type { OrderItem, Sale } from '@/lib/types';
+import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 

@@ -168,24 +168,23 @@ export default function ReportsPage() {
     }, [users]);
 
     const handleEdit = useCallback(async (sale: Sale) => {
-        const type = sale.documentType === 'quote' ? 'quote'
-                   : sale.documentType === 'delivery_note' ? 'delivery_note'
-                   : sale.documentType === 'supplier_order' ? 'supplier_order'
-                   : 'invoice';
-        
-        loadSaleForEditing(sale.id, type);
-        
-        const pathMap = {
-            'invoice': '/commercial/invoices',
-            'quote': '/commercial/quotes',
-            'delivery_note': '/commercial/delivery-notes',
-            'supplier_order': '/commercial/supplier-orders',
-        };
-        const path = pathMap[type];
-        if (path) {
-            router.push(`${path}?edit=${sale.id}`);
-        }
-    }, [loadSaleForEditing, router]);
+      const type = sale.documentType === 'quote' ? 'quote'
+                 : sale.documentType === 'delivery_note' ? 'delivery_note'
+                 : sale.documentType === 'supplier_order' ? 'supplier_order'
+                 : 'invoice';
+      
+      const pathMap = {
+          'invoice': '/commercial/invoices',
+          'quote': '/commercial/quotes',
+          'delivery_note': '/commercial/delivery-notes',
+          'supplier_order': '/commercial/supplier-orders',
+      };
+      const path = pathMap[type];
+      
+      if (path) {
+          router.push(`${path}?edit=${sale.id}`);
+      }
+  }, [router]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -785,4 +784,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

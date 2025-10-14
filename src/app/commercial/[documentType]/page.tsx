@@ -25,17 +25,26 @@ function DocumentPageContent() {
   const fromConversion = searchParams.get('fromConversion');
 
   useEffect(() => {
+    // This effect runs only once when the page loads or when the key parameters change.
+    // It decides whether to load an existing document for editing or reset for a new one.
+
     if (fromConversion === 'true') {
+      // If we are converting (e.g., from a quote to an invoice),
+      // the context is already prepared by the convertToInvoice function.
+      // We do nothing here to preserve that state.
       return;
     }
 
     if (saleIdToEdit) {
+      // If an 'edit' parameter is present in the URL, load the corresponding document.
       loadSaleForEditing(saleIdToEdit, docType);
     } else {
+      // If no 'edit' or 'fromConversion' parameter is found, it's a new document.
+      // Reset the commercial page context for the current document type.
       resetCommercialPage(docType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, fromConversion, docType]);
+  }, [saleIdToEdit, fromConversion, docType]); // Dependencies are stable URL params.
 
 
   if (!docType) {
