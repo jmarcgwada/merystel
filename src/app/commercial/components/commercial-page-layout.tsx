@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -77,7 +76,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const saleIdToEdit = searchParams.get('edit');
-  const initialFilter = searchParams.get('filter');
   const newItemId = searchParams.get('newItemId');
   const updatedItemId = searchParams.get('updatedItemId');
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
@@ -89,7 +87,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const currentConfig = docTypeConfig[editingDocType];
 
-  const pageTitle = saleIdToEdit ? currentConfig.editTitle : currentConfig.title;
+  const isEditingExistingDoc = !!saleIdToEdit;
+  const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
 
   useEffect(() => {
     // This effect now runs only once on mount to set up the context.
@@ -100,12 +99,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   useEffect(() => {
     if (saleIdToEdit) {
       loadSaleForEditing(saleIdToEdit, documentType);
-    } else if (!location.search.includes('edit=')) {
-      // If we are not editing, and there's no "edit" in the url, clear the order.
-      // This prevents order persistence when navigating between commercial doc types.
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, documentType]);
+  }, [saleIdToEdit, documentType, loadSaleForEditing]);
+
 
   useEffect(() => {
     if (newItemId) {
@@ -226,9 +222,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       description: `Préparation du document pour ${randomCustomer.name}.`,
     });
   };
-  
-  const isEditingExistingDoc = !!saleIdToEdit;
-  const isQuoteOrDeliveryNote = editingDocType === 'quote' || editingDocType === 'delivery_note';
+
+  const pageTitle = isEditingExistingDoc ? currentConfig.editTitle : currentConfig.title;
 
   return (
     <div className="h-full flex flex-col">
@@ -244,7 +239,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
               )}
             </div>
           }
-          subtitle={currentConfig.editSubtitle}
+          subtitle={isEditingExistingDoc ? currentConfig.editSubtitle : currentConfig.subtitle}
         >
           <div className="flex items-center gap-2">
             {isEditingExistingDoc && isQuoteOrDeliveryNote && (
