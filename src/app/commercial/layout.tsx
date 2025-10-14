@@ -29,7 +29,10 @@ const navLinks = [
 ]
 
 function TransformToInvoiceDialog() {
-  const { isTransformToInvoiceConfirmOpen, closeTransformToInvoiceConfirm, confirmTransformToInvoice } = usePos();
+  const { isTransformToInvoiceConfirmOpen, closeTransformToInvoiceConfirm, confirmTransformToInvoice, currentSaleId } = usePos();
+  
+  if (!currentSaleId) return null;
+
   return (
     <AlertDialog open={isTransformToInvoiceConfirmOpen} onOpenChange={closeTransformToInvoiceConfirm}>
       <AlertDialogContent>
@@ -41,7 +44,7 @@ function TransformToInvoiceDialog() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmTransformToInvoice}>
+          <AlertDialogAction onClick={() => confirmTransformToInvoice(currentSaleId)}>
             Transformer
           </AlertDialogAction>
         </AlertDialogFooter>
