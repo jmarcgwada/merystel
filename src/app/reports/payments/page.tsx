@@ -138,9 +138,12 @@ export default function PaymentsReportPage() {
             const sellerName = getUserName(payment.userId, payment.userName);
             const sellerMatch = !filterSellerName || (sellerName && sellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
             
-            const toJsDate = (d: Date | Timestamp | undefined): Date => {
-                if (!d) return new Date(0); // Return a very old date if undefined
-                return d instanceof Date ? d : (d as Timestamp).toDate();
+            const toJsDate = (d: Date | Timestamp | undefined | string): Date => {
+                if (!d) return new Date(0);
+                if (d instanceof Date) return d;
+                if (typeof (d as Timestamp)?.toDate === 'function') return (d as Timestamp).toDate();
+                const parsedDate = new Date(d);
+                return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
             };
             const paymentJsDate = toJsDate(payment.date);
             const saleJsDate = toJsDate(payment.saleDate);
@@ -184,9 +187,12 @@ export default function PaymentsReportPage() {
         if (sortConfig !== null) {
             filtered.sort((a, b) => {
                  let aValue: string | number | Date, bValue: string | number | Date;
-                const toJsDateSafe = (d: Date | Timestamp | undefined): Date => {
+                const toJsDateSafe = (d: Date | Timestamp | undefined | string): Date => {
                     if (!d) return new Date(0);
-                    return d instanceof Date ? d : (d as Timestamp).toDate();
+                    if (d instanceof Date) return d;
+                    if (typeof (d as Timestamp)?.toDate === 'function') return (d as Timestamp).toDate();
+                    const parsedDate = new Date(d);
+                    return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
                 };
                 switch (sortConfig.key) {
                     case 'date': aValue = toJsDateSafe(a.date); bValue = toJsDateSafe(b.date); break;
