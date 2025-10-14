@@ -366,17 +366,31 @@ function SaleDetailContent() {
           </Card>
 
           <div className="space-y-4">
-            {sellerName && (
-                <Card>
-                    <CardHeader className="flex-row items-center gap-4 space-y-0">
-                        <User className="h-6 w-6 text-muted-foreground" />
-                        <CardTitle>Vendeur</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>{sellerName}</p>
-                    </CardContent>
-                </Card>
+             {(sellerName || customer) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {sellerName && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3>
+                      <p>{sellerName}</p>
+                    </div>
+                  )}
+                  {customer && sellerName && <Separator />}
+                  {customer && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground">Client</h3>
+                      <p className="font-semibold">{customer.name}</p>
+                      {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
+                      {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
+
             {sale.tableName && (
                  <Card>
                     <CardHeader className="flex-row items-center gap-4 space-y-0">
@@ -388,20 +402,7 @@ function SaleDetailContent() {
                     </CardContent>
                 </Card>
             )}
-            {customer && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Client</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="font-semibold">{customer.name}</p>
-                        {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
-                        {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
-                    </CardContent>
-                </Card>
-            )}
           </div>
-
         </div>
       </div>
     </div>
@@ -415,3 +416,5 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
+
+    
