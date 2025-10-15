@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, CheckCircle, Lock, Save } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 function SupplierOrdersPageContent() {
@@ -34,11 +34,12 @@ function SupplierOrdersPageContent() {
       recordCommercialDocument,
   } = usePos();
   
-  const formRef = useRef<{ submit: () => void }>(null);
+  const formRef = useRef<{ submit: (validate?: boolean) => void }>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
+  const [isValidationConfirmOpen, setValidationConfirmOpen] = useState(false);
   const saleIdToEdit = searchParams.get('edit');
   const newItemId = searchParams.get('newItemId');
 
@@ -60,11 +61,12 @@ function SupplierOrdersPageContent() {
         loadSaleForEditing(saleIdToEdit, 'supplier_order');
       }
     } else {
-        if (!currentSaleId) {
+        if (!currentSaleId && !newItemId) {
              resetCommercialPage('supplier_order');
         }
     }
-  }, [saleIdToEdit, currentSaleId, loadSaleForEditing, resetCommercialPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleIdToEdit]);
 
   const handleSave = useCallback(async (andValidate = false) => {
     if (formRef.current) {
@@ -118,6 +120,7 @@ function SupplierOrdersPageContent() {
   }, [items, suppliers, resetCommercialPage, setCurrentSaleContext, setOrder, toast]);
 
   return (
+    <>
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
@@ -135,7 +138,7 @@ function SupplierOrdersPageContent() {
                  {isEditing ? 'Sauvegarder' : 'Sauvegarder'}
             </Button>
              {isEditing && (
-                <Button size="lg" onClick={() => handleSave(true)} disabled={isReadOnly}>
+                <Button size="lg" onClick={() => setValidationConfirmOpen(true)} disabled={isReadOnly}>
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Valider la commande
                 </Button>
@@ -171,6 +174,26 @@ function SupplierOrdersPageContent() {
       <SerialNumberModal />
       <VariantSelectionModal />
     </div>
+    <AlertDialog open={isValidationConfirmOpen} onOpenChange={setValidationConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la validation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Cette action est irréversible. Le stock des articles concernés sera mis à jour.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+                handleSave(true);
+                setValidationConfirmOpen(false);
+            }}>
+                Confirmer & Mettre à jour le stock
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

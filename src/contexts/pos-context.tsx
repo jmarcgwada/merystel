@@ -1037,16 +1037,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             };
             setSales(prev => [finalDoc, ...prev]);
         }
+
+        if (type === 'supplier_order' && docData.status === 'paid') { // 'paid' means validated for supplier orders
+            const updatedItems = items.map(item => {
+                const orderItem = docData.items.find(oi => oi.itemId === item.id);
+                if (orderItem && item.manageStock) {
+                    return { ...item, stock: (item.stock || 0) + orderItem.quantity };
+                }
+                return item;
+            });
+            setItems(updatedItems);
+        }
         
-        toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'facturé' : 'enregistré') });
+        toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'validé' : 'enregistré') });
         clearOrder();
 
         const reportPath = type === 'quote' ? '/reports?filter=Devis-'
                         : type === 'delivery_note' ? '/reports?filter=BL-'
-                        : type === 'supplier_order' ? '/reports?filter=CF-'
-                        : '/reports';
+                        : '/reports?filter=CF-';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router]);
+    }, [sales, setSales, user, clearOrder, toast, router, items, setItems]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
