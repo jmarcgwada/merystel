@@ -74,6 +74,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
+  const isCreditNote = totalAmount < 0;
 
   const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -147,8 +148,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setIsPaid(true);
         setTimeout(() => {
           toast({
-            title: 'Paiement réussi',
-            description: `Pièce de ${totalAmount.toFixed(2)}€ finalisée.`,
+            title: isCreditNote ? 'Remboursement réussi' : 'Paiement réussi',
+            description: `Pièce de ${Math.abs(totalAmount).toFixed(2)}€ finalisée.`,
           });
           
           const isTableSale = currentSaleContext?.isTableSale;
@@ -156,9 +157,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
-          } else if (currentSaleContext?.documentType === 'invoice') {
+          } else if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
               clearOrder();
-              router.push('/reports?filter=Fact-');
+              router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
           } else {
             clearOrder();
           }
@@ -176,7 +177,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?filter=Fact-');
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote]);
 
 
   useEffect(() => {
@@ -195,7 +196,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         
         if (!isPaid) {
             const newBalance = totalAmount - amountPaidFromPrevious;
-            setCurrentAmount(newBalance > 0 ? newBalance.toFixed(2) : '');
+            setCurrentAmount(newBalance !== 0 ? Math.abs(newBalance).toFixed(2) : '');
         }
         setPaymentDate(new Date());
     } else {
@@ -236,7 +237,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > balanceDue + 0.009) {
+    if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > Math.abs(balanceDue) + 0.009 && !isCreditNote) {
         setShowOverpaymentAlert(true);
         return;
     }
@@ -257,10 +258,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newTotalAmountPaid = totalAmountPaid + amountToAdd;
     const newBalance = totalAmount - newTotalAmountPaid;
     
-    if (newBalance > 0.009) { // More to pay
-        setCurrentAmount(newBalance.toFixed(2));
+    if (Math.abs(newBalance) > 0.009) {
+        setCurrentAmount(Math.abs(newBalance).toFixed(2));
         setShowCalculator(true);
-    } else { // Fully paid or overpaid
+    } else { 
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         setShowCalculator(false);
         if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
@@ -278,7 +279,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
         const newBalance = totalAmount - (amountPaidFromPrevious + newAmountPaid);
-        setCurrentAmount(newBalance.toFixed(2));
+        setCurrentAmount(Math.abs(newBalance).toFixed(2));
         return newPayments;
     });
     setShowCalculator(true);
@@ -316,7 +317,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
       if (method.type === 'indirect' && method.value) {
-        let amountToAdd = method.value > balanceDue ? balanceDue : method.value;
+        let amountToAdd = method.value > Math.abs(balanceDue) ? Math.abs(balanceDue) : method.value;
         setCurrentAmount(amountToAdd.toFixed(2));
       }
       handleAddPayment(method);
@@ -416,14 +417,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           <div className="mt-auto">
             <Separator className="my-4" />
             <div className="flex justify-between font-bold text-lg">
-                  <span className="text-secondary-foreground">Total Payé</span>
+                  <span className="text-secondary-foreground">Total {isCreditNote ? 'Remboursé' : 'Payé'}</span>
                   <span className="text-secondary-foreground">{totalAmountPaid.toFixed(2)}€</span>
               </div>
               <div className={cn(
                   "flex justify-between font-bold text-lg mt-2",
-                  balanceDue > 0 ? "text-primary" : "text-green-600"
+                  balanceDue !== 0 ? (isCreditNote ? "text-blue-600" : "text-primary") : "text-green-600"
               )}>
-                  <span>{balanceDue > 0 ? 'Solde Restant' : 'Rendu'}</span>
+                  <span>{balanceDue !== 0 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : 'Soldé'}</span>
                   <span>{Math.abs(balanceDue).toFixed(2)}€</span>
               </div>
           </div>
@@ -438,7 +439,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const renderPaymentView = () => (
     <>
       <DialogHeader>
-        <DialogTitle className="text-2xl font-headline">Paiement</DialogTitle>
+        <DialogTitle className="text-2xl font-headline">{isCreditNote ? 'Remboursement' : 'Paiement'}</DialogTitle>
         <div className="pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2">
             {currentSaleContext?.tableName ? (
                 <div className="text-sm text-muted-foreground">
@@ -450,7 +451,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             ) : (
                 <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total de la commande</p>
-                    <p className="text-xl font-semibold text-foreground">{totalAmount.toFixed(2)}€</p>
+                    <p className="text-xl font-semibold text-foreground">{Math.abs(totalAmount).toFixed(2)}€</p>
                 </div>
             )}
             <div className="flex flex-col items-end">
@@ -493,7 +494,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </fieldset>
             
             <div className="space-y-2 flex-1">
-                 <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue > 0 ? 'Montant à payer' : 'Rendu monnaie'}</Label>
+                 <Label htmlFor="amount-to-pay" className="text-sm text-muted-foreground">{balanceDue !== 0 ? (isCreditNote ? 'Montant à rembourser' : 'Montant à payer') : 'Montant'}</Label>
                 <div className="relative mt-1 w-full">
                     <Input
                         id="amount-to-pay"
@@ -515,7 +516,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                  <div className="flex gap-2">
                     {mainPaymentMethods.map((method) => {
                         const IconComponent = getIcon(method.icon);
-                        const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                        const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote) || 
                                             (!currentAmount && !method.value) || 
                                             (parseFloat(String(currentAmount)) <= 0 && !method.value);
 
@@ -525,7 +526,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                               variant="outline"
                               className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
                               onClick={() => handleAddPayment(method)}
-                              disabled={isDisabled || isOverpaid}
+                              disabled={isDisabled || (isOverpaid && !isCreditNote)}
                           >
                               {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100 }} />}
                               <IconComponent className="h-6 w-6 z-10" />
@@ -535,7 +536,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     })}
                 </div>
                 {otherPaymentMethod && (() => {
-                    const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0)) || 
+                    const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote) || 
                                         (!currentAmount && !otherPaymentMethod.value) || 
                                         (parseFloat(String(currentAmount)) <= 0 && !otherPaymentMethod.value);
                     return (
@@ -545,7 +546,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="outline"
                             className="h-12 flex-1 flex items-center justify-center gap-2"
                             onClick={() => handleAddPayment(otherPaymentMethod)}
-                            disabled={isDisabled || isOverpaid}
+                            disabled={isDisabled || (isOverpaid && !isCreditNote)}
                         >
                             <Landmark className="h-5 w-5" />
                             <span className="text-sm">{otherPaymentMethod.name}</span>
@@ -554,7 +555,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="secondary"
                             className="h-12"
                             onClick={() => setView('advanced')}
-                            disabled={advancedPaymentMethods.length === 0 || isOverpaid}
+                            disabled={advancedPaymentMethods.length === 0 || (isOverpaid && !isCreditNote)}
                          >
                             Avancé <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
@@ -577,7 +578,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
         {(balanceDue < 0.009 || isInvoiceMode) && (
           <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
-              Finaliser
+              {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
       </DialogFooter>
@@ -587,21 +588,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const renderAdvancedView = () => (
     <>
       <DialogHeader>
-        <DialogTitle className="text-2xl font-headline">Paiements avancés</DialogTitle>
+        <DialogTitle className="text-2xl font-headline">{isCreditNote ? 'Méthodes de remboursement avancées' : 'Paiements avancés'}</DialogTitle>
       </DialogHeader>
       <div className="py-4 h-[60vh]">
         <ScrollArea className="h-full">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pr-4">
                 {advancedPaymentMethods?.map(method => {
                     const IconComponent = getIcon(method.icon);
-                    const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0));
+                    const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote);
                     return (
                         <Button
                             key={method.id}
                             variant="outline"
                             className="h-24 flex-col gap-2 relative"
                             onClick={() => handleAdvancedPaymentSelect(method)}
-                            disabled={isDisabled || isOverpaid}
+                            disabled={isDisabled || (isOverpaid && !isCreditNote)}
                         >
                             {method.image && <Image src={method.image} alt={method.name} fill className="object-cover rounded-md" style={{ opacity: paymentMethodImageOpacity / 100 }} />}
                             <IconComponent className="h-6 w-6 z-10"/>
@@ -636,12 +637,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="sr-only">Paiement Confirmé</DialogTitle>
+              <DialogTitle className="sr-only">{isCreditNote ? 'Remboursement Confirmé' : 'Paiement Confirmé'}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <CheckCircle className="h-24 w-24 text-green-500 animate-pulse" />
-              <h2 className="text-2xl font-semibold">Paiement confirmé</h2>
-              <p className="text-muted-foreground">Merci pour votre achat !</p>
+              <h2 className="text-2xl font-semibold">{isCreditNote ? 'Remboursement confirmé' : 'Paiement confirmé'}</h2>
+              <p className="text-muted-foreground">{isCreditNote ? 'Remboursement effectué avec succès.' : 'Merci pour votre achat !'}</p>
             </div>
           </>
         )}
