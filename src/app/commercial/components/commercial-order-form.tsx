@@ -24,7 +24,7 @@ import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 import { useRouter } from 'next/navigation';
 import { EditItemDialog } from './edit-item-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 
 
 const orderItemSchema = z.object({
@@ -115,24 +115,29 @@ export const CommercialOrderForm = forwardRef<
   
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
 
-   useEffect(() => {
+
+    useEffect(() => {
         const storedColumns = localStorage.getItem('commercialOrderVisibleColumns');
+        const storedPriceType = localStorage.getItem('commercialOrderPriceType');
+        
         if (storedColumns) {
             setVisibleColumns(JSON.parse(storedColumns));
         } else {
-            // Default visibility
              setVisibleColumns({
                 reference: false,
                 designation: true,
                 quantity: true,
-                pu_ht: false,
-                pu_ttc: true,
                 vat_code: true,
                 discount: true,
-                total_ht: true,
-                total_ttc: true,
             });
+        }
+        
+        if (storedPriceType) {
+            setPriceDisplayType(storedPriceType as 'ht' | 'ttc');
+        } else {
+            setPriceDisplayType('ttc');
         }
     }, []);
 
@@ -141,17 +146,19 @@ export const CommercialOrderForm = forwardRef<
         setVisibleColumns(newVisibility);
         localStorage.setItem('commercialOrderVisibleColumns', JSON.stringify(newVisibility));
     };
+    
+    const handlePriceDisplayChange = (value: string) => {
+        const newType = value as 'ht' | 'ttc';
+        setPriceDisplayType(newType);
+        localStorage.setItem('commercialOrderPriceType', newType);
+    };
 
     const columns = [
         { id: 'reference', label: 'Référence' },
         { id: 'designation', label: 'Désignation' },
         { id: 'quantity', label: 'Qté' },
-        { id: 'pu_ht', label: 'P.U. HT' },
-        { id: 'pu_ttc', label: 'P.U. TTC' },
         { id: 'vat_code', label: 'Code TVA' },
         { id: 'discount', label: 'Remise %' },
-        { id: 'total_ht', label: 'Total HT' },
-        { id: 'total_ttc', label: 'Total TTC' },
     ];
 
 
@@ -493,6 +500,12 @@ export const CommercialOrderForm = forwardRef<
                                         {column.label}
                                     </DropdownMenuCheckboxItem>
                                 ))}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
+                                <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
+                                  <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
+                                  <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -510,12 +523,12 @@ export const CommercialOrderForm = forwardRef<
                         ${visibleColumns.reference ? '1fr' : ''} 
                         ${visibleColumns.designation ? '3fr' : ''} 
                         ${visibleColumns.quantity ? '0.5fr' : ''} 
-                        ${visibleColumns.pu_ht ? '1fr' : ''} 
-                        ${visibleColumns.pu_ttc ? '1fr' : ''} 
+                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                        ${priceDisplayType === 'ttc' ? '1fr' : ''} 
                         ${visibleColumns.vat_code ? '0.7fr' : ''} 
                         ${visibleColumns.discount ? '0.7fr' : ''} 
-                        ${visibleColumns.total_ht ? '1fr' : ''} 
-                        ${visibleColumns.total_ttc ? '1fr' : ''}
+                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                        ${priceDisplayType === 'ttc' ? '1fr' : ''}
                         min-content
                       `.replace(/\s+/g, ' ').trim()
                   }}
@@ -523,12 +536,12 @@ export const CommercialOrderForm = forwardRef<
                   {visibleColumns.reference && <span>Réf.</span>}
                   {visibleColumns.designation && <span>Désignation</span>}
                   {visibleColumns.quantity && <span className="text-right">Qté</span>}
-                  {visibleColumns.pu_ht && <span className="text-right">P.U. HT</span>}
-                  {visibleColumns.pu_ttc && <span className="text-right">P.U. TTC</span>}
+                  {priceDisplayType === 'ht' && <span className="text-right">P.U. HT</span>}
+                  {priceDisplayType === 'ttc' && <span className="text-right">P.U. TTC</span>}
                   {visibleColumns.vat_code && <span className="text-center">TVA</span>}
                   {visibleColumns.discount && <span className="text-center">Rem. %</span>}
-                  {visibleColumns.total_ht && <span className="text-right">Total HT</span>}
-                  {visibleColumns.total_ttc && <span className="text-right">Total TTC</span>}
+                  {priceDisplayType === 'ht' && <span className="text-right">Total HT</span>}
+                  {priceDisplayType === 'ttc' && <span className="text-right">Total TTC</span>}
                   <span />
                 </div>
                 <ScrollArea className="flex-1">
@@ -547,12 +560,12 @@ export const CommercialOrderForm = forwardRef<
                                 ${visibleColumns.reference ? '1fr' : ''} 
                                 ${visibleColumns.designation ? '3fr' : ''} 
                                 ${visibleColumns.quantity ? '0.5fr' : ''} 
-                                ${visibleColumns.pu_ht ? '1fr' : ''} 
-                                ${visibleColumns.pu_ttc ? '1fr' : ''} 
+                                ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                                ${priceDisplayType === 'ttc' ? '1fr' : ''} 
                                 ${visibleColumns.vat_code ? '0.7fr' : ''} 
                                 ${visibleColumns.discount ? '0.7fr' : ''} 
-                                ${visibleColumns.total_ht ? '1fr' : ''} 
-                                ${visibleColumns.total_ttc ? '1fr' : ''}
+                                ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                                ${priceDisplayType === 'ttc' ? '1fr' : ''}
                                 min-content
                               `.replace(/\s+/g, ' ').trim()
                           }}
@@ -619,12 +632,12 @@ export const CommercialOrderForm = forwardRef<
                           </div>
                           }
                         {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { controllerField.onChange(parseInt(e.target.value) || 1); updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);}} onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)} onFocus={(e) => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
-                        {visibleColumns.pu_ht && <div className="text-right">{priceHT.toFixed(2)}€</div>}
-                        {visibleColumns.pu_ttc && <div className="text-right font-medium">{field.price.toFixed(2)}€</div>}
+                        {priceDisplayType === 'ht' && <div className="text-right">{priceHT.toFixed(2)}€</div>}
+                        {priceDisplayType === 'ttc' && <div className="text-right font-medium">{field.price.toFixed(2)}€</div>}
                         {visibleColumns.vat_code && <div className="text-center font-mono">{vatInfo?.code || '-'}</div>}
                         {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} onFocus={(e) => e.target.select()} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
-                        {visibleColumns.total_ht && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
-                        {visibleColumns.total_ttc && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                        {priceDisplayType === 'ht' && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                        {priceDisplayType === 'ttc' && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
