@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -52,12 +51,6 @@ export default function SettingsPage() {
         title: "Gestion des utilisateurs",
         description: "Gérez les comptes et les autorisations des utilisateurs.",
         icon: UserCog,
-    },
-    {
-        href: '/settings/modes',
-        title: "Modes Forcés",
-        description: "Verrouillez l'application sur un mode de vente spécifique.",
-        icon: Lock,
     },
     {
         href: '/settings/audit-log',

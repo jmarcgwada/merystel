@@ -67,12 +67,12 @@ export default function ParametersPage() {
       <div className="mt-8 space-y-8">
         <Card>
             <CardHeader>
-            <CardTitle>Mode de vente par défaut</CardTitle>
+            <CardTitle>Mode de vente</CardTitle>
             <CardDescription>
-                Choisissez l'écran qui s'ouvrira lorsque vous cliquerez sur "Mode Caisse" depuis le tableau de bord (non applicable si un mode de vente est forcé pour un utilisateur).
+                Choisissez le mode de vente par défaut et configurez le verrouillage de l'application.
             </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
                  {isClient ? (
                     <RadioGroup 
                         value={defaultSalesMode} 
@@ -108,6 +108,21 @@ export default function ParametersPage() {
                         <Skeleton className="h-24 w-full" />
                     </div>
                 )}
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                    <Label htmlFor="forced-mode" className="text-base">Activer le mode forcé</Label>
+                    <p className="text-sm text-muted-foreground">
+                        Verrouille l'application sur le mode de vente par défaut défini ci-dessus.
+                    </p>
+                    </div>
+                    {isClient ? (
+                    <Switch 
+                        id="forced-mode" 
+                        checked={isForcedMode}
+                        onCheckedChange={setIsForcedMode}
+                    />
+                    ) : <Skeleton className="h-6 w-11" />}
+                </div>
             </CardContent>
         </Card>
         <Card>
