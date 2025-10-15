@@ -15,6 +15,16 @@ import { Badge } from '@/components/ui/badge';
 import { useSearchParams } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
@@ -77,6 +87,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
 
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditing && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
@@ -159,6 +170,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     : config.subtitle;
 
   return (
+    <>
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col min-h-0">
         <PageHeader
@@ -179,7 +191,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             )}
 
             {canBeConverted && (
-                <Button variant="outline" onClick={handleConvertToInvoice}>
+                <Button variant="outline" onClick={() => setConfirmOpen(true)}>
                     <FileCog className="mr-2 h-4 w-4"/>
                     Transformer en Facture
                 </Button>
@@ -229,6 +241,26 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       <SerialNumberModal />
       <VariantSelectionModal />
     </div>
+    <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                    handleConvertToInvoice();
+                    setConfirmOpen(false);
+                }}>
+                    Confirmer
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
