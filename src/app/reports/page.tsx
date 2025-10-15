@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,8 +40,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 const ITEMS_PER_PAGE = 20;
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -127,6 +128,50 @@ export default function ReportsPage() {
     const initialFilter = searchParams.get('filter');
     const initialStatusFilter = searchParams.get('filterStatus');
     const dateFilterParam = searchParams.get('date');
+
+    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        const storedColumns = localStorage.getItem('reportsVisibleColumns');
+        if (storedColumns) {
+            setVisibleColumns(JSON.parse(storedColumns));
+        } else {
+            // Default visibility
+             setVisibleColumns({
+                type: true,
+                ticketNumber: true,
+                date: true,
+                userName: true,
+                origin: false,
+                customerName: true,
+                itemCount: false,
+                subtotal: false,
+                tax: false,
+                total: true,
+                payment: true,
+            });
+        }
+    }, []);
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const columns = [
+        { id: 'type', label: 'Type' },
+        { id: 'ticketNumber', label: 'Numéro' },
+        { id: 'date', label: 'Date' },
+        { id: 'userName', label: 'Vendeur' },
+        { id: 'origin', label: 'Origine' },
+        { id: 'customerName', label: 'Client' },
+        { id: 'itemCount', label: 'Articles' },
+        { id: 'subtotal', label: 'Total HT' },
+        { id: 'tax', label: 'Total TVA' },
+        { id: 'total', label: 'Total TTC' },
+        { id: 'payment', label: 'Paiement' },
+    ];
 
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
@@ -302,6 +347,14 @@ export default function ReportsPage() {
                     case 'ticketNumber':
                         aValue = a.ticketNumber || '';
                         bValue = b.ticketNumber || '';
+                        break;
+                    case 'subtotal':
+                         aValue = a.subtotal;
+                         bValue = b.subtotal;
+                         break;
+                    case 'tax':
+                        aValue = a.tax;
+                        bValue = b.tax;
                         break;
                     default:
                         aValue = a[sortConfig.key as keyof Sale] as number || 0;
@@ -725,28 +778,50 @@ export default function ReportsPage() {
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <Columns className="mr-2 h-4 w-4" />
+                                    Affichage
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {columns.map(column => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={visibleColumns[column.id]}
+                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                    >
+                                        {column.label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
                         <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer toutes les ventes
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">
-                                Oui, supprimer les ventes
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer toutes les ventes
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">
+                                    Oui, supprimer les ventes
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
                         </AlertDialog>
                     </div>
                     <div className="flex items-center gap-2">
@@ -766,58 +841,24 @@ export default function ReportsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[120px]">
-                                <Button variant="ghost" onClick={() => requestSort('ticketNumber')}>
-                                    Type {getSortIcon('ticketNumber')}
-                                </Button>
-                            </TableHead>
-                            <TableHead>Numéro</TableHead>
-                            <TableHead>
-                               <Button variant="ghost" onClick={() => requestSort('date')}>
-                                    Date {getSortIcon('date')}
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" onClick={() => requestSort('userName')}>
-                                    Vendeur {getSortIcon('userName')}
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" onClick={() => requestSort('tableName')}>
-                                    Origine {getSortIcon('tableName')}
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" onClick={() => requestSort('customerName')}>
-                                    Client {getSortIcon('customerName')}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[80px] text-center">
-                                <Button variant="ghost" onClick={() => requestSort('itemCount')}>
-                                    Articles {getSortIcon('itemCount')}
-                                </Button>
-                            </TableHead>
-                            <TableHead>Paiement</TableHead>
-                            <TableHead className="text-right w-[120px]">
-                                <Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">
-                                    Total {getSortIcon('total')}
-                                </Button>
-                            </TableHead>
+                            {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
+                            {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
+                            {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
+                            {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
+                            {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
+                            {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
+                            {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
+                            {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
+                            {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
+                            {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total {getSortIcon('total')}</Button></TableHead>}
+                            {visibleColumns.payment && <TableHead>Paiement</TableHead>}
                             <TableHead className="w-[150px] text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
-                                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                                <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                                <TableCell><Skeleton className="h-6 w-32" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                {Object.values(visibleColumns).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
                                 <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                             </TableRow>
                         )) : null}
@@ -835,31 +876,17 @@ export default function ReportsPage() {
 
                             return (
                                 <TableRow key={sale.id} style={getRowStyle(sale)}>
-                                     <TableCell>
-                                        <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
-                                    </TableCell>
-                                     <TableCell className="font-mono text-muted-foreground text-xs">
-                                        {sale.ticketNumber}
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        <ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} />
-                                    </TableCell>
-                                    <TableCell>
-                                        {sellerName}
-                                    </TableCell>
-                                    <TableCell>
-                                        {sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}
-                                    </TableCell>
-                                    <TableCell>
-                                        {getCustomerName(sale.customerId)}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}
-                                    </TableCell>
-                                    <TableCell>
-                                         <PaymentBadges sale={sale} />
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>
+                                    {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
+                                    {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
+                                    {visibleColumns.date && <TableCell className="font-medium"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
+                                    {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
+                                    {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
+                                    {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
+                                    {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
+                                    {visibleColumns.subtotal && <TableCell className="text-right font-medium">{(sale.subtotal || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.tax && <TableCell className="text-right font-medium">{(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.total && <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
                                             {canBeConverted && (
@@ -910,3 +937,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
