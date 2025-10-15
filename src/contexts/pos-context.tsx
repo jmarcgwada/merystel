@@ -26,6 +26,7 @@ import type {
   AuditLog,
   SmtpConfig,
   FtpConfig,
+  TwilioConfig,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -276,6 +277,8 @@ interface PosContextType {
   setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
   ftpConfig: FtpConfig;
   setFtpConfig: React.Dispatch<React.SetStateAction<FtpConfig>>;
+  twilioConfig: TwilioConfig;
+  setTwilioConfig: React.Dispatch<React.SetStateAction<TwilioConfig>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -380,6 +383,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
   const [smtpConfig, setSmtpConfig, rehydrateSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig, rehydrateFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
+  const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -1452,7 +1456,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
       companyInfo, setCompanyInfo,
-      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
   };
 
   return (

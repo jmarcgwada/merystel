@@ -3,5 +3,6 @@
 import './flows/generate-image-flow';
 import './flows/send-email-flow';
 import './flows/upload-file-ftp-flow';
+import './flows/send-whatsapp-flow';
 
     

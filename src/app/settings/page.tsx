@@ -38,7 +38,7 @@ export default function SettingsPage() {
     {
         href: '/settings/connectivity',
         title: 'Connectivité',
-        description: 'Configurez les serveurs SMTP et FTP pour les e-mails et les fichiers.',
+        description: 'Configurez les serveurs SMTP, FTP et les services de messagerie.',
         icon: Server,
     },
     {

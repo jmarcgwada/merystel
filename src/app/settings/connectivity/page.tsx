@@ -1,34 +1,42 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Server, TestTube2 } from 'lucide-react';
+import { ArrowLeft, Mail, Server, TestTube2, MessageSquare } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import type { SmtpConfig, FtpConfig } from '@/lib/types';
+import type { SmtpConfig, FtpConfig, TwilioConfig } from '@/lib/types';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
+import { sendWhatsApp } from '@/ai/flows/send-whatsapp-flow';
+
 
 export default function ConnectivityPage() {
-    const { smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig } = usePos();
+    const { smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig } = usePos();
     const { toast } = useToast();
 
     const [localSmtp, setLocalSmtp] = useState<SmtpConfig>({});
     const [localFtp, setLocalFtp] = useState<FtpConfig>({});
+    const [localTwilio, setLocalTwilio] = useState<TwilioConfig>({});
+
     const [isTestingSmtp, setIsTestingSmtp] = useState(false);
     const [isTestingFtp, setIsTestingFtp] = useState(false);
+    const [isTestingTwilio, setIsTestingTwilio] = useState(false);
+    const [twilioTestNumber, setTwilioTestNumber] = useState('');
 
 
     useEffect(() => {
         setLocalSmtp(smtpConfig || {});
         setLocalFtp(ftpConfig || {});
-    }, [smtpConfig, ftpConfig]);
+        setLocalTwilio(twilioConfig || {});
+    }, [smtpConfig, ftpConfig, twilioConfig]);
 
     const handleSmtpChange = (field: keyof SmtpConfig, value: any) => {
         setLocalSmtp(prev => ({ ...prev, [field]: value }));
@@ -37,6 +45,10 @@ export default function ConnectivityPage() {
     const handleFtpChange = (field: keyof FtpConfig, value: any) => {
         setLocalFtp(prev => ({ ...prev, [field]: value }));
     };
+    
+    const handleTwilioChange = (field: keyof TwilioConfig, value: any) => {
+        setLocalTwilio(prev => ({...prev, [field]: value }));
+    }
 
     const handleSaveSmtp = () => {
         setSmtpConfig(localSmtp);
@@ -51,6 +63,13 @@ export default function ConnectivityPage() {
             title: 'Configuration FTP sauvegardée',
         });
     };
+
+    const handleSaveTwilio = () => {
+        setTwilioConfig(localTwilio);
+        toast({
+            title: 'Configuration Twilio sauvegardée',
+        });
+    }
     
     const handleTestSmtp = async () => {
         if (!localSmtp.host || !localSmtp.port || !localSmtp.user || !localSmtp.password || !localSmtp.senderEmail) {
@@ -113,12 +132,38 @@ export default function ConnectivityPage() {
         });
         setIsTestingFtp(false);
     };
+    
+    const handleTestTwilio = async () => {
+        if (!localTwilio.accountSid || !localTwilio.authToken || !localTwilio.from || !twilioTestNumber) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs Twilio et le numéro de test.' });
+            return;
+        }
+        setIsTestingTwilio(true);
+        toast({ title: 'Test d\'envoi WhatsApp en cours...' });
+        
+        const result = await sendWhatsApp({
+            twilioConfig: {
+                accountSid: localTwilio.accountSid,
+                authToken: localTwilio.authToken,
+                from: `whatsapp:${localTwilio.from}`,
+            },
+            to: `whatsapp:${twilioTestNumber}`,
+            body: 'Ceci est un message de test envoyé depuis Zenith POS.',
+        });
+
+        toast({
+            variant: result.success ? 'default' : 'destructive',
+            title: result.success ? 'Test WhatsApp réussi !' : 'Échec du test WhatsApp',
+            description: result.message,
+        });
+        setIsTestingTwilio(false);
+    }
 
     return (
         <>
             <PageHeader
                 title="Connectivité"
-                subtitle="Configurez les serveurs SMTP et FTP pour les e-mails et les fichiers."
+                subtitle="Configurez les serveurs SMTP, FTP et les services de messagerie."
             >
                 <Button asChild variant="outline" className="btn-back">
                     <Link href="/settings">
@@ -127,12 +172,12 @@ export default function ConnectivityPage() {
                     </Link>
                 </Button>
             </PageHeader>
-            <div className="mt-8 grid md:grid-cols-2 gap-8">
+            <div className="mt-8 grid md:grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Mail />Configuration SMTP</CardTitle>
                         <CardDescription>
-                            Paramètres pour l'envoi d'e-mails (factures, devis, etc.) depuis l'application.
+                            Paramètres pour l'envoi d'e-mails (factures, devis, etc.).
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -163,7 +208,7 @@ export default function ConnectivityPage() {
                         <div className="flex items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5">
                                 <Label htmlFor="smtp-secure" className="text-base">Connexion sécurisée (TLS)</Label>
-                                <p className="text-sm text-muted-foreground">Recommandé pour la plupart des serveurs SMTP modernes.</p>
+                                <p className="text-sm text-muted-foreground">Recommandé pour la plupart des serveurs.</p>
                             </div>
                             <Switch id="smtp-secure" checked={localSmtp.secure || false} onCheckedChange={(checked) => handleSmtpChange('secure', checked)} />
                         </div>
@@ -171,7 +216,7 @@ export default function ConnectivityPage() {
                     <CardFooter className="flex justify-end gap-2">
                         <Button variant="outline" onClick={handleTestSmtp} disabled={isTestingSmtp}>
                             <TestTube2 className="mr-2 h-4 w-4"/>
-                            {isTestingSmtp ? 'Test en cours...' : 'Tester la connexion'}
+                            {isTestingSmtp ? 'Test en cours...' : 'Tester'}
                         </Button>
                         <Button onClick={handleSaveSmtp}>Sauvegarder</Button>
                     </CardFooter>
@@ -181,7 +226,7 @@ export default function ConnectivityPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Server />Configuration FTP</CardTitle>
                         <CardDescription>
-                            Paramètres pour l'échange de fichiers (exports comptables, sauvegardes, etc.).
+                            Paramètres pour l'échange de fichiers (exports comptables, etc.).
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -220,9 +265,47 @@ export default function ConnectivityPage() {
                      <CardFooter className="flex justify-end gap-2">
                         <Button variant="outline" onClick={handleTestFtp} disabled={isTestingFtp}>
                             <TestTube2 className="mr-2 h-4 w-4"/>
-                            {isTestingFtp ? 'Test en cours...' : 'Tester la connexion'}
+                            {isTestingFtp ? 'Test en cours...' : 'Tester'}
                         </Button>
                         <Button onClick={handleSaveFtp}>Sauvegarder</Button>
+                    </CardFooter>
+                </Card>
+
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><MessageSquare />Configuration Twilio pour WhatsApp</CardTitle>
+                        <CardDescription>
+                            Paramètres pour l'envoi de messages via l'API Twilio.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                         <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="twilio-sid">Account SID</Label>
+                                <Input id="twilio-sid" placeholder="AC..." value={localTwilio.accountSid || ''} onChange={(e) => handleTwilioChange('accountSid', e.target.value)} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="twilio-token">Auth Token</Label>
+                                <Input id="twilio-token" type="password" value={localTwilio.authToken || ''} onChange={(e) => handleTwilioChange('authToken', e.target.value)} />
+                            </div>
+                        </div>
+                         <div className="grid gap-2">
+                            <Label htmlFor="twilio-from">Numéro d'expédition Twilio (WhatsApp)</Label>
+                            <Input id="twilio-from" placeholder="+14155238886" value={localTwilio.from || ''} onChange={(e) => handleTwilioChange('from', e.target.value)} />
+                        </div>
+                        <div className="p-4 border-l-4 border-amber-400 bg-amber-50">
+                            <p className="text-sm text-amber-800">Assurez-vous que votre numéro d'expéditeur est préfixé par "whatsapp:" lors de l'envoi (ex: <span className="font-mono">whatsapp:+14155238886</span>). Le numéro que vous enregistrez ici ne doit comporter que le signe + et les chiffres.</p>
+                        </div>
+                    </CardContent>
+                     <CardFooter className="flex flex-col sm:flex-row justify-end gap-2">
+                        <div className="flex-1 flex items-center gap-2">
+                            <Input placeholder="Numéro de test (ex: +336...)" value={twilioTestNumber} onChange={e => setTwilioTestNumber(e.target.value)} />
+                             <Button variant="outline" onClick={handleTestTwilio} disabled={isTestingTwilio}>
+                                <TestTube2 className="mr-2 h-4 w-4"/>
+                                {isTestingTwilio ? 'Test...' : 'Tester'}
+                            </Button>
+                        </div>
+                        <Button onClick={handleSaveTwilio} className="w-full sm:w-auto">Sauvegarder</Button>
                     </CardFooter>
                 </Card>
             </div>
