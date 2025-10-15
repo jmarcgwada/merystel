@@ -160,7 +160,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   return (
     <div className="h-full flex flex-col">
-       <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
+       <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col min-h-0">
         <PageHeader
           title={pageTitle}
           subtitle={pageSubtitle}
@@ -208,7 +208,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             </Alert>
         )}
         
-        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 mt-4 group">
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
             <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
                 <CommercialOrderForm
                     ref={formRef}

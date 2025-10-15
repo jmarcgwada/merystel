@@ -341,307 +341,307 @@ export const CommercialOrderForm = forwardRef<
 
 
   return (
-    <>
-    <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
-        <div className="w-full lg:flex-1">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                    ref={searchInputRef}
-                    placeholder="Rechercher ou scanner un article..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        performSearch(e.target.value, searchType);
-                    }}
-                    onKeyDown={handleKeyDown}
-                    className="h-14 text-xl pl-12 pr-40"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button
-                        variant="outline"
-                        onClick={handleChangeSearchType}
-                        className="h-12 text-xs w-28"
-                    >
-                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
-                        <List className="h-6 w-6" />
-                    </Button>
-                </div>
-            </div>
-            {listContent.length > 0 && (
-                <Card className="mt-2 absolute z-10 w-full max-w-2xl">
-                    <ScrollArea className="h-full max-h-80">
-                         <div className="space-y-px p-1">
-                            {listContent.map((item, index) => (
-                                <div
-                                key={item.id}
-                                ref={(el) => (itemRefs.current[index] = el)}
-                                className={cn(
-                                    "flex items-center justify-between p-2 rounded-md cursor-pointer",
-                                    index === highlightedIndex && "bg-secondary"
-                                )}
-                                onClick={() => {
-                                    handleAddItem(item);
-                                    setSearchTerm('');
-                                    setListContent([]);
-                                }}
-                                onMouseEnter={() => setHighlightedIndex(index)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-semibold text-sm">{item.name}</p>
-                                        <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>
-                                    </div>
-                                    <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </Card>
-            )}
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
+          <div className="w-full lg:flex-1">
+              <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Rechercher ou scanner un article..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          performSearch(e.target.value, searchType);
+                      }}
+                      onKeyDown={handleKeyDown}
+                      className="h-14 text-xl pl-12 pr-40"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <Button
+                          variant="outline"
+                          onClick={handleChangeSearchType}
+                          className="h-12 text-xs w-28"
+                      >
+                          {searchType === 'contains' ? 'Contient' : 'Commence par'}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
+                          <List className="h-6 w-6" />
+                      </Button>
+                  </div>
+              </div>
+              {listContent.length > 0 && (
+                  <Card className="mt-2 absolute z-10 w-full max-w-2xl">
+                      <ScrollArea className="h-full max-h-80">
+                           <div className="space-y-px p-1">
+                              {listContent.map((item, index) => (
+                                  <div
+                                  key={item.id}
+                                  ref={(el) => (itemRefs.current[index] = el)}
+                                  className={cn(
+                                      "flex items-center justify-between p-2 rounded-md cursor-pointer",
+                                      index === highlightedIndex && "bg-secondary"
+                                  )}
+                                  onClick={() => {
+                                      handleAddItem(item);
+                                      setSearchTerm('');
+                                      setListContent([]);
+                                  }}
+                                  onMouseEnter={() => setHighlightedIndex(index)}
+                                  >
+                                      <div className="flex items-center gap-2">
+                                          <p className="font-semibold text-sm">{item.name}</p>
+                                          <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>
+                                      </div>
+                                      <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
+                                  </div>
+                              ))}
+                          </div>
+                      </ScrollArea>
+                  </Card>
+              )}
+          </div>
+          <div className="w-full lg:w-auto">
+              <Card className="w-full lg:w-[350px]">
+                  <CardContent className="p-4 relative">
+                       <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      {selectedCustomer ? (
+                          <div className="space-y-1 text-sm">
+                              <p className="font-semibold text-base">{selectedCustomer.name}</p>
+                              <p className="text-muted-foreground">{selectedCustomer.address}</p>
+                              <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                          </div>
+                      ) : (
+                           <div className="text-center text-muted-foreground py-1">
+                              {selectedCustomer === null && <Label>Client</Label>}
+                              <p>Aucun client sélectionné.</p>
+                          </div>
+                      )}
+                  </CardContent>
+              </Card>
+          </div>
         </div>
-        <div className="w-full lg:w-auto">
-            <Card className="w-[350px]">
-                <CardContent className="p-4 relative">
-                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    {selectedCustomer ? (
-                        <div className="space-y-1 text-sm">
-                            <p className="font-semibold text-base">{selectedCustomer.name}</p>
-                            <p className="text-muted-foreground">{selectedCustomer.address}</p>
-                            <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                        </div>
-                    ) : (
-                         <div className="text-center text-muted-foreground py-1">
-                            {selectedCustomer === null && <Label>Client</Label>}
-                            <p>Aucun client sélectionné.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-      </div>
 
-    <Card className="mt-4 flex-1 flex flex-col">
-      <CardContent className="p-6 flex-1 flex flex-col">
-        <Form {...form}>
-          <form className="space-y-6 flex flex-col flex-1">
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Détails de la facture</h3>
-                  {order.length > 0 && (
-                    <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Tout effacer
-                    </Button>
+      <Card className="mt-4 flex-1 flex flex-col">
+        <CardContent className="p-6 flex-1 flex flex-col">
+          <Form {...form}>
+            <form className="space-y-6 flex flex-col flex-1 h-full">
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                    {order.length > 0 && (
+                      <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Tout effacer
+                      </Button>
+                    )}
+                </div>
+                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b">
+                  <span className="py-2">Désignation</span>
+                  <span className="text-right py-2">Qté</span>
+                  <span className="text-right py-2">P.U. HT</span>
+                  <span className="text-center py-2">Code TVA</span>
+                  <span className="text-right py-2">Remise %</span>
+                  <span className="text-right py-2">Total HT</span>
+                  <span className="py-2"></span>
+                </div>
+                <ScrollArea className="flex-1">
+                    <div className="space-y-2">
+                    {watchItems.map((field, index) => {
+                      const fullItem = allItems?.find(i => i.id === field.itemId);
+                      const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
+                      const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
+
+                      return (
+                      <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b group">
+                          <div className="flex flex-col">
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold">{field.name}</span>
+                                <Button 
+                                    type="button"
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
+                                    onClick={(e) => handleEditItemClick(e, field.itemId)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                </Button>
+                                 <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => setEditingNoteId(field.id)}
+                                    >
+                                      <StickyNote className="h-3 w-3" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80" align="start">
+                                    <NoteEditor 
+                                      orderItem={field}
+                                      onSave={(note) => {
+                                        updateItemNote(field.id, note);
+                                        setEditingNoteId(null);
+                                      }}
+                                      onCancel={() => setEditingNoteId(null)}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                                  {descriptionDisplay === 'first' && field.description}
+                                  {descriptionDisplay === 'both' && (
+                                      <>
+                                          {field.description}
+                                          {field.description && field.description2 && <br />}
+                                          {field.description2}
+                                      </>
+                                  )}
+                              </div>
+                              {field.selectedVariants && field.selectedVariants.length > 0 && (
+                                  <p className="text-xs text-muted-foreground capitalize mt-1">
+                                      {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                  </p>
+                              )}
+                              {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
+                              {field.serialNumbers && field.serialNumbers.length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
+                                </div>
+                              )}
+                          </div>
+                        <Controller
+                            control={form.control}
+                            name={`items.${index}.quantity`}
+                            render={({ field: controllerField }) => (
+                                <Input 
+                                    type="number" 
+                                    {...controllerField}
+                                    value={controllerField.value || 1}
+                                    onChange={e => {
+                                      controllerField.onChange(parseInt(e.target.value) || 1);
+                                      updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);
+                                    }}
+                                    onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
+                                    min={1} 
+                                    className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
+                                />
+                            )}
+                        />
+                        <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                        <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                         <Controller
+                            control={form.control}
+                            name={`items.${index}.remise`}
+                            render={({ field: controllerField }) => (
+                                <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                            )}
+                        />
+                      <div className="font-medium h-full flex items-center justify-end">
+                        {(() => {
+                            const item = watchItems[index];
+                            if(!item || !item.itemId) return '0.00€';
+                            const remise = item.remise || 0;
+                            const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
+                            return `${total.toFixed(2)}€`
+                        })()}
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )})}
+                  </div>
+                </ScrollArea>
+                {watchItems.length === 0 && (
+                    <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                        Aucun article dans la commande.
+                    </div>
                   )}
               </div>
-              <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b">
-                <span className="py-2">Désignation</span>
-                <span className="text-right py-2">Qté</span>
-                <span className="text-right py-2">P.U. HT</span>
-                <span className="text-center py-2">Code TVA</span>
-                <span className="text-right py-2">Remise %</span>
-                <span className="text-right py-2">Total HT</span>
-                <span className="py-2"></span>
-              </div>
-              <ScrollArea className="flex-1">
-                  <div className="space-y-2">
-                  {watchItems.map((field, index) => {
-                    const fullItem = allItems?.find(i => i.id === field.itemId);
-                    const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
-                    const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
-
-                    return (
-                    <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b group">
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <span className="font-semibold">{field.name}</span>
-                              <Button 
-                                  type="button"
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
-                                  onClick={(e) => handleEditItemClick(e, field.itemId)}
-                                >
-                                  <Pencil className="h-3 w-3" />
-                              </Button>
-                               <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => setEditingNoteId(field.id)}
-                                  >
-                                    <StickyNote className="h-3 w-3" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-80" align="start">
-                                  <NoteEditor 
-                                    orderItem={field}
-                                    onSave={(note) => {
-                                      updateItemNote(field.id, note);
-                                      setEditingNoteId(null);
-                                    }}
-                                    onCancel={() => setEditingNoteId(null)}
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                            <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                                {descriptionDisplay === 'first' && field.description}
-                                {descriptionDisplay === 'both' && (
-                                    <>
-                                        {field.description}
-                                        {field.description && field.description2 && <br />}
-                                        {field.description2}
-                                    </>
-                                )}
-                            </div>
-                            {field.selectedVariants && field.selectedVariants.length > 0 && (
-                                <p className="text-xs text-muted-foreground capitalize mt-1">
-                                    {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
-                                </p>
-                            )}
-                            {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
-                            {field.serialNumbers && field.serialNumbers.length > 0 && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
+              
+              <div className="mt-auto">
+                  <Separator className="my-6"/>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                      <div className="space-y-4">
+                          <h4 className="font-semibold">Taux de TVA</h4>
+                          <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
+                             <div className="text-sm font-medium">Code</div>
+                             <div className="text-sm font-medium text-right">Taux</div>
+                             <div className="text-sm font-medium text-right">Base HT</div>
+                             <div className="text-sm font-medium text-right">Montant</div>
+                              {Object.values(vatBreakdown).map(vat => (
+                                  <React.Fragment key={vat.rate}>
+                                      <div className="text-sm font-mono">{vat.code}</div>
+                                      <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
+                                      <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
+                                      <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
+                                  </React.Fragment>
+                              ))}
+                          </div>
+                      </div>
+                      <div className="space-y-4">
+                          <div className="space-y-2 max-w-sm ml-auto">
+                              <div className="flex justify-between items-center">
+                                  <Label>Total HT</Label>
+                                  <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
                               </div>
-                            )}
-                        </div>
-                      <Controller
-                          control={form.control}
-                          name={`items.${index}.quantity`}
-                          render={({ field: controllerField }) => (
-                              <Input 
-                                  type="number" 
-                                  {...controllerField}
-                                  value={controllerField.value || 1}
-                                  onChange={e => {
-                                    controllerField.onChange(parseInt(e.target.value) || 1);
-                                    updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);
-                                  }}
-                                  onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
-                                  min={1} 
-                                  className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
-                              />
-                          )}
-                      />
-                      <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                      <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                       <Controller
-                          control={form.control}
-                          name={`items.${index}.remise`}
-                          render={({ field: controllerField }) => (
-                              <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                          )}
-                      />
-                    <div className="font-medium h-full flex items-center justify-end">
-                      {(() => {
-                          const item = watchItems[index];
-                          if(!item || !item.itemId) return '0.00€';
-                          const remise = item.remise || 0;
-                          const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
-                          return `${total.toFixed(2)}€`
-                      })()}
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                              <div className="flex justify-between items-center">
+                                  <Label>Cumul TVA</Label>
+                                  <span className="font-medium">{totalTVA.toFixed(2)}€</span>
+                              </div>
+                               <Separator />
+                              <div className="flex justify-between items-center font-bold text-lg">
+                                  <span>Total TTC</span>
+                                  <span>{totalTTC.toFixed(2)}€</span>
+                              </div>
+                              {showAcompte && (
+                                  <div className="flex justify-between items-center">
+                                      <Label htmlFor="acompte">Acompte (€)</Label>
+                                      <Controller control={form.control} name="acompte" render={({ field }) => (
+                                          <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                      )}/>
+                                  </div>
+                              )}
+                               <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                                  <span>Net à Payer</span>
+                                  <span>{netAPayer.toFixed(2)}€</span>
+                              </div>
+                          </div>
+                      </div>
                   </div>
-                )})}
-                </div>
-              </ScrollArea>
-              {watchItems.length === 0 && (
-                  <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
-                      Aucun article dans la commande.
-                  </div>
-                )}
-            </div>
-            
-            <div className="mt-auto">
-                <Separator className="my-6"/>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Taux de TVA</h4>
-                        <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
-                           <div className="text-sm font-medium">Code</div>
-                           <div className="text-sm font-medium text-right">Taux</div>
-                           <div className="text-sm font-medium text-right">Base HT</div>
-                           <div className="text-sm font-medium text-right">Montant</div>
-                            {Object.values(vatBreakdown).map(vat => (
-                                <React.Fragment key={vat.rate}>
-                                    <div className="text-sm font-mono">{vat.code}</div>
-                                    <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
-                                    <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
-                                    <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="space-y-2 max-w-sm ml-auto">
-                            <div className="flex justify-between items-center">
-                                <Label>Total HT</Label>
-                                <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <Label>Cumul TVA</Label>
-                                <span className="font-medium">{totalTVA.toFixed(2)}€</span>
-                            </div>
-                             <Separator />
-                            <div className="flex justify-between items-center font-bold text-lg">
-                                <span>Total TTC</span>
-                                <span>{totalTTC.toFixed(2)}€</span>
-                            </div>
-                            {showAcompte && (
-                                <div className="flex justify-between items-center">
-                                    <Label htmlFor="acompte">Acompte (€)</Label>
-                                    <Controller control={form.control} name="acompte" render={({ field }) => (
-                                        <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
-                                    )}/>
-                                </div>
-                            )}
-                             <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
-                                <span>Net à Payer</span>
-                                <span>{netAPayer.toFixed(2)}€</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-    
-    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
-    <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={totalTTC} />
-    {isEditItemOpen && itemToEdit && (
-        <EditItemDialog
-            item={itemToEdit}
-            isOpen={isEditItemOpen}
-            onClose={() => {
-                setIsEditItemOpen(false);
-                setItemToEdit(null);
-            }}
-            onItemUpdated={(updatedItem) => {
-                 setOrder(currentOrder => 
-                  currentOrder.map(orderItem => 
-                    orderItem.itemId === updatedItem.id 
-                      ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
-                      : orderItem
-                  )
-                );
-            }}
-        />
-    )}
-    </>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+      
+      <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
+      <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={totalTTC} />
+      {isEditItemOpen && itemToEdit && (
+          <EditItemDialog
+              item={itemToEdit}
+              isOpen={isEditItemOpen}
+              onClose={() => {
+                  setIsEditItemOpen(false);
+                  setItemToEdit(null);
+              }}
+              onItemUpdated={(updatedItem) => {
+                   setOrder(currentOrder => 
+                    currentOrder.map(orderItem => 
+                      orderItem.itemId === updatedItem.id 
+                        ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+                        : orderItem
+                    )
+                  );
+              }}
+          />
+      )}
+    </div>
   );
 });
 
