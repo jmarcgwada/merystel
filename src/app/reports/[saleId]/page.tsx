@@ -186,8 +186,8 @@ function SaleDetailContent() {
         return { previousSaleId: null, nextSaleId: null };
     }
     
-    const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
-    const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
+    const previousSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
+    const nextSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
 
     return { 
         previousSaleId: previousSale ? previousSale.id : null,
