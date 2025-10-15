@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -431,6 +432,16 @@ export default function ReportsPage() {
               </Button>
           )
       }
+       if (initialFilter?.startsWith('CF-')) {
+          return (
+              <Button asChild>
+                  <Link href="/commercial/supplier-orders">
+                      <ShoppingBag className="mr-2 h-4 w-4" />
+                      Nouvelle Cde Fournisseur
+                  </Link>
+              </Button>
+          )
+      }
       return (
            <Button asChild>
               <Link href="/reports/popular-items">
@@ -743,7 +754,7 @@ export default function ReportsPage() {
                                             : 'Ticket';
                             const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
                             
-                            const originalDoc = sale.originalSaleId ? allSales.find(s => s.id === sale.originalSaleId) : null;
+                            const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
                             const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
 
                             return (

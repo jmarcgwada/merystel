@@ -953,6 +953,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
+                date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
         } else {
@@ -1042,6 +1043,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const reportPath = type === 'quote' ? '/reports?filter=Devis-'
                         : type === 'delivery_note' ? '/reports?filter=BL-'
+                        : type === 'supplier_order' ? '/reports?filter=CF-'
                         : '/reports';
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router]);
