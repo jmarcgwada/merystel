@@ -1210,6 +1210,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tableName: ticket.tableName,
       tableId: ticket.tableId,
       isReadOnly: true,
+      documentType: 'ticket',
     });
   }, []);
   
@@ -1310,3 +1311,4 @@ export function usePos() {
   }
   return context;
 }
+
