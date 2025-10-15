@@ -27,7 +27,15 @@ const sendWhatsAppFlow = ai.defineFlow(
         outputSchema: z.object({ success: z.boolean(), message: z.string() }),
     },
     async (input) => {
-        const client = twilio(input.twilioConfig.accountSid, input.twilioConfig.authToken);
+        const { accountSid, authToken } = input.twilioConfig;
+        
+        if (!accountSid || !authToken) {
+            const errorMessage = 'Les identifiants Twilio (Account SID et Auth Token) sont requis.';
+            console.error(errorMessage);
+            return { success: false, message: errorMessage };
+        }
+
+        const client = twilio(accountSid, authToken);
 
         try {
             const message = await client.messages.create({
