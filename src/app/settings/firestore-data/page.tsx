@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, LayoutDashboard, Send, Server } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, LayoutDashboard, Send, Server, Lock } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -31,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { format } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -56,6 +56,7 @@ export default function FirestoreDataPage() {
       ftpConfig,
       smtpConfig,
       requirePinForAdmin,
+      setRequirePinForAdmin,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -292,6 +293,30 @@ export default function FirestoreDataPage() {
         </PageHeader>
 
         <div className="space-y-8 mt-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Sécurité d'accès</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="require-pin-admin" className="text-base flex items-center gap-2">
+                                    <Lock />
+                                    Exiger le code PIN pour l'accès administrateur
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Si activé, un code PIN dynamique sera requis pour accéder à cette page.
+                                </p>
+                            </div>
+                            <Switch 
+                                id="require-pin-admin"
+                                checked={requirePinForAdmin}
+                                onCheckedChange={setRequirePinForAdmin}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
                     <Card>
