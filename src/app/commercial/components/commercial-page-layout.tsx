@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -9,12 +8,13 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock } from 'lucide-react';
+import { Sparkles, FileCog, Lock, Copy } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { v4 as uuidv4 } from 'uuid';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note';
 
@@ -67,6 +67,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       currentSaleId,
       updateItemQuantityInOrder,
       convertToInvoice,
+      clearOrder,
   } = usePos();
   
   const isEditing = !!currentSaleId;
@@ -74,6 +75,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const formRef = useRef<{ submit: () => void }>(null);
   const { toast } = useToast();
+  const router = useRouter();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
 
   const config = docTypeConfig[documentType];
@@ -89,6 +91,19 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     if (!currentSaleId) return;
     convertToInvoice(currentSaleId);
   }, [currentSaleId, convertToInvoice]);
+
+  const handleDuplicate = () => {
+    if (!order || order.length === 0) {
+        toast({ variant: "destructive", title: "Rien à dupliquer" });
+        return;
+    }
+    const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
+    clearOrder();
+    setOrder(duplicatedItems);
+    setCurrentSaleContext({ documentType: 'invoice' });
+    router.push('/commercial/invoices');
+    toast({ title: 'Pièce dupliquée', description: 'Une nouvelle facture a été créée avec les articles de la pièce précédente.' });
+  };
   
   const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length) {
@@ -170,9 +185,16 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 </Button>
             )}
 
-            <Button size="lg" onClick={handleSave} disabled={isReadOnly}>
-              {isReadOnly ? 'Facture Validée' : (isEditing ? config.updateButton : config.saveButton)}
-            </Button>
+            {isReadOnly ? (
+                 <Button size="lg" onClick={handleDuplicate}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Dupliquer
+                </Button>
+            ) : (
+                <Button size="lg" onClick={handleSave}>
+                    {isEditing ? config.updateButton : config.saveButton}
+                </Button>
+            )}
           </div>
         </PageHeader>
 
@@ -217,5 +239,3 @@ export default function CommercialPageLayout({ documentType }: CommercialPageLay
         </Suspense>
     )
 }
-
-    
