@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
 import { EditItemDialog } from '@/app/commercial/components/edit-item-dialog';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -509,7 +510,7 @@ export function OrderSummary() {
 
     const handleDuplicateTicket = () => {
         const sourceOrder = readOnlyOrder || order;
-        if (sourceOrder) {
+        if (sourceOrder.length > 0) {
             const itemsToDuplicate = sourceOrder.map(item => {
                 const { sourceSale, id, ...rest } = item;
                 return { ...rest, id: uuidv4() };
@@ -788,9 +789,9 @@ export function OrderSummary() {
                 <span>{(orderTotal + orderTax).toFixed(2)}€</span>
                 </div>
             </div>
-            <div className="mt-4 flex justify-between items-center gap-2 no-print">
+            <div className="mt-4 flex flex-col gap-2 no-print">
               {readOnlyOrder ? (
-                  <div className="grid grid-cols-3 gap-2 w-full">
+                  <div className="grid grid-cols-2 gap-2 w-full">
                       <Button size="lg" className="flex-1" onClick={handleEditTicket}>
                           <Edit className="mr-2" />
                           Modifier
@@ -799,12 +800,12 @@ export function OrderSummary() {
                           <Copy className="mr-2" />
                           Dupliquer
                       </Button>
-                      <Button size="lg" className="flex-1" onClick={() => clearOrder()}>
-                          Nouveau
+                      <Button size="lg" className="flex-1 col-span-2" onClick={() => clearOrder()}>
+                          Nouvelle Commande
                       </Button>
                   </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
-                <>
+                <div className="flex gap-2">
                   <Button
                     size="lg"
                     variant="outline"
@@ -824,13 +825,13 @@ export function OrderSummary() {
                     <CreditCard className="mr-2 h-4 w-4" />
                     Clôturer
                   </Button>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="flex gap-2">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full"
+                    className="flex-1"
                     disabled={order.length === 0 || isKeypadOpen}
                     onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
                   >
@@ -848,13 +849,13 @@ export function OrderSummary() {
                   </Button>
                   <Button
                     size="lg"
-                    className="w-full"
+                    className="flex-1"
                     disabled={order.length === 0 || isKeypadOpen}
                     onClick={() => setCheckoutOpen(true)}
                   >
-                    Payer maintenant
+                    Payer
                   </Button>
-                </>
+                </div>
               )}
             </div>
         </div>
@@ -880,6 +881,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
