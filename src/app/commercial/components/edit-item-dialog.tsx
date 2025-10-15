@@ -23,13 +23,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import type { Item } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -42,6 +43,9 @@ const formSchema = z.object({
   barcode: z.string().min(1, { message: 'Le code-barres est obligatoire.' }),
   marginPercentage: z.coerce.number().optional(),
   additionalCosts: z.coerce.number().optional(),
+  manageStock: z.boolean().default(false),
+  stock: z.coerce.number().optional(),
+  lowStockThreshold: z.coerce.number().optional(),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -70,6 +74,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
   const watchedAdditionalCosts = watch('additionalCosts');
   const watchedMarginPercentage = watch('marginPercentage');
   const watchedVatId = watch('vatId');
+  const watchedManageStock = watch('manageStock');
 
   const vatRateInfo = useMemo(() => vatRates?.find(v => v.id === watchedVatId), [watchedVatId, vatRates]);
   const costPrice = useMemo(() => {
@@ -118,6 +123,9 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
         barcode: item.barcode || '',
         marginPercentage: item.marginPercentage || 0,
         additionalCosts: item.additionalCosts || 0,
+        manageStock: item.manageStock || false,
+        stock: item.stock || 0,
+        lowStockThreshold: item.lowStockThreshold || 0,
       });
     }
   }, [item, reset]);
@@ -130,7 +138,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
       ...data,
     };
     
-    // As updateItem is async, we should await it.
     await updateItem(updatedItemData);
     onItemUpdated(updatedItemData);
     toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
@@ -152,6 +159,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
               <TabsList>
                 <TabsTrigger value="details">Détails</TabsTrigger>
                 <TabsTrigger value="pricing">Prix</TabsTrigger>
+                <TabsTrigger value="stock">Stock</TabsTrigger>
               </TabsList>
               <div className="flex-1 overflow-y-auto">
                 <TabsContent value="details" className="p-1">
@@ -183,6 +191,65 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
                         <FormItem><FormLabel>Prix de vente HT (€)</FormLabel><FormControl><Input type="number" value={priceHT.toFixed(2)} readOnly className="bg-muted" /></FormControl></FormItem>
                         <FormField control={control} name="price" render={({ field }) => <FormItem><FormLabel>Prix de vente TTC (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} onFocus={() => setIsManualPriceEdit(true)} onBlur={() => setIsManualPriceEdit(false)} className="bg-background text-base font-bold" /></FormControl><FormMessage /></FormItem>} />
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                 <TabsContent value="stock" className="p-1">
+                  <Card className="border-none shadow-none">
+                    <CardContent className="space-y-6 pt-6">
+                       <FormField
+                          control={form.control}
+                          name="manageStock"
+                          render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                      <FormLabel className="text-base">Gérer le stock</FormLabel>
+                                      <FormDescription>
+                                          Activer le suivi des quantités pour cet article.
+                                      </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                      <Switch
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                      />
+                                  </FormControl>
+                              </FormItem>
+                          )}
+                      />
+                      {watchedManageStock && (
+                          <div className="space-y-6 pt-4 border-t">
+                               <FormField
+                                  control={form.control}
+                                  name="stock"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                      <FormLabel>Quantité en stock</FormLabel>
+                                      <FormControl>
+                                          <Input type="number" placeholder="ex: 100" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                               <FormField
+                                  control={form.control}
+                                  name="lowStockThreshold"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                      <FormLabel>Seuil de stock bas</FormLabel>
+                                      <FormControl>
+                                          <Input type="number" placeholder="ex: 10" {...field} />
+                                      </FormControl>
+                                       <FormDescription>
+                                          Une alerte visuelle sera affichée lorsque le stock atteint ce seuil.
+                                      </FormDescription>
+                                      <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                          </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
