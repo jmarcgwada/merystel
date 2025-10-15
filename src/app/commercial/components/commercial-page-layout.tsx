@@ -78,6 +78,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateItemQuantityInOrder,
       convertToInvoice,
       clearOrder,
+      updateItemPrice,
   } = usePos();
   
   const isEditing = !!currentSaleId;
@@ -230,6 +231,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                     updateQuantity={updateQuantity}
                     removeFromOrder={removeFromOrder}
                     updateItemNote={updateItemNote}
+                    updateItemPrice={updateItemPrice}
                     showAcompte={config.showAcompte}
                     onTotalsChange={setTotals}
                     updateItemQuantityInOrder={updateItemQuantityInOrder}

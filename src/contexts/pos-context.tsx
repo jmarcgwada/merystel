@@ -55,10 +55,11 @@ interface PosContextType {
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
-  updateQuantity: (itemId: OrderItem['id'], quantity: number) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
   updateQuantityFromKeypad: (itemId: OrderItem['id'], quantity: number) => void;
   updateItemNote: (itemId: OrderItem['id'], note: string) => void;
+  updateItemPrice: (itemId: string, newPriceTTC: number) => void;
   updateOrderItem: (item: Item) => void;
   applyDiscount: (
     itemId: OrderItem['id'],
@@ -812,6 +813,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     );
     toast({ title: 'Note ajoutée à l\'article.' });
   }, [toast]);
+
+  const updateItemPrice = useCallback((itemId: string, newPriceTTC: number) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            price: newPriceTTC,
+            total: newPriceTTC * item.quantity - (item.discount || 0),
+          };
+        }
+        return item;
+      })
+    );
+  }, []);
 
   const updateOrderItem = useCallback((updatedItem: Item) => {
     setOrder(currentOrder => 
