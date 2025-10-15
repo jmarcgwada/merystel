@@ -51,7 +51,7 @@ export default function ConnectivityPage() {
     const handleTestSmtp = () => {
         toast({
             title: 'Test de connexion SMTP...',
-            description: 'Cette fonctionnalité est en cours de développement.'
+            description: 'La fonctionnalité de test est en cours de développement.'
         });
         // In a real scenario, you would call a server-side function here.
     };
@@ -59,7 +59,7 @@ export default function ConnectivityPage() {
     const handleTestFtp = () => {
         toast({
             title: 'Test de connexion FTP...',
-            description: 'Cette fonctionnalité est en cours de développement.'
+            description: 'La fonctionnalité de test est en cours de développement.'
         });
         // In a real scenario, you would call a server-side function here.
     };
