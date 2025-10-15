@@ -10,7 +10,16 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, List, LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const navLinks = [
     { href: '/commercial/invoices', value: 'invoices', label: 'Factures', reportLabel: 'Liste Factures', reportFilter: 'Fact-' },
@@ -42,6 +51,7 @@ export default function CommercialLayout({
   const router = useRouter();
   const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity } = usePos();
   const [isClient, setIsClient] = useState(false);
+  const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -71,10 +81,16 @@ export default function CommercialLayout({
   }, [isClient, activeTab, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity]);
 
 
-  const handleTabClick = (e: React.MouseEvent, href: string) => {
+  const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (order.length > 0 && !pathname.startsWith(href)) {
       e.preventDefault();
       showNavConfirm(href);
+      return;
+    }
+    if (href.includes('credit-notes')) {
+        e.preventDefault();
+        setCreditNoteConfirmOpen(true);
+        return;
     }
   };
 
@@ -103,6 +119,7 @@ export default function CommercialLayout({
   }
 
   return (
+    <>
     <div className="h-full flex flex-col" style={{ backgroundColor }}>
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -139,5 +156,22 @@ export default function CommercialLayout({
           </Suspense>
         </main>
     </div>
+     <AlertDialog open={isCreditNoteConfirmOpen} onOpenChange={setCreditNoteConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Créer un nouvel avoir ?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Cette action va initialiser une nouvelle pièce de type "Avoir". Êtes-vous sûr de vouloir continuer ?
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push('/commercial/credit-notes')}>
+                Confirmer
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
