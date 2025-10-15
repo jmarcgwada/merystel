@@ -471,6 +471,16 @@ export function OrderSummary() {
   const handleEditTicket = () => {
     if (readOnlyOrder && readOnlyOrder[0].sourceSale) {
         const sale = readOnlyOrder[0].sourceSale;
+        // Don't allow editing fully paid/invoiced tickets
+        if (sale.status === 'paid' || sale.status === 'invoiced') {
+            toast({
+                title: "Action non autorisée",
+                description: "Cette pièce a été entièrement réglée et ne peut plus être modifiée.",
+                variant: 'destructive',
+            });
+            return;
+        }
+
         const itemsToEdit = readOnlyOrder.map(item => {
             const { sourceSale, ...rest } = item;
             return rest;
@@ -498,21 +508,17 @@ export function OrderSummary() {
   }
 
     const handleDuplicateTicket = () => {
-        if (readOnlyOrder) {
-            const itemsToDuplicate = readOnlyOrder.map(item => {
-                const { sourceSale, ...rest } = item;
-                return rest;
+        const sourceOrder = readOnlyOrder || order;
+        if (sourceOrder) {
+            const itemsToDuplicate = sourceOrder.map(item => {
+                const { sourceSale, id, ...rest } = item;
+                return { ...rest, id: uuidv4() };
             });
             setOrder(itemsToDuplicate);
             setReadOnlyOrder(null);
             setCurrentSaleId(null);
             setCurrentSaleContext(null);
-            toast({ title: 'Ticket dupliqué', description: 'La commande est prête pour un nouvel encaissement.' });
-        } else if (currentSaleId) { // Duplicating an order being edited
-             setReadOnlyOrder(null);
-             setCurrentSaleId(null);
-             setCurrentSaleContext(null);
-             toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
+            toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
         }
     };
     
@@ -785,7 +791,7 @@ export function OrderSummary() {
             <div className="mt-4 flex justify-between items-center gap-2 no-print">
               {readOnlyOrder ? (
                 <>
-                    {readOnlyOrder[0]?.sourceSale && !readOnlyOrder[0].sourceSale.modifiedAt ? (
+                    {readOnlyOrder[0]?.sourceSale && (readOnlyOrder[0].sourceSale.status !== 'paid' && readOnlyOrder[0].sourceSale.status !== 'invoiced') ? (
                         <Button size="lg" className="flex-1" onClick={handleEditTicket}>
                             <Edit className="mr-2" />
                             Modifier
@@ -881,4 +887,5 @@ export function OrderSummary() {
     </>
   );
 }
+
 
