@@ -121,7 +121,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
     clearOrder();
     setOrder(duplicatedItems);
-    setCurrentSaleContext({ documentType: 'invoice' });
+    setCurrentSaleContext({ documentType: 'invoice', status: 'pending' });
     router.push('/commercial/invoices');
     toast({ title: 'Pièce dupliquée', description: 'Une nouvelle facture a été créée avec les articles de la pièce précédente.' });
   };
@@ -225,7 +225,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 <Lock className="h-4 w-4" />
                 <AlertTitle>Mode Lecture Seule</AlertTitle>
                 <AlertDescription>
-                    Cette facture a été entièrement payée et ne peut plus être modifiée.
+                    Cette pièce a été entièrement payée et ne peut plus être modifiée.
                 </AlertDescription>
             </Alert>
         )}
