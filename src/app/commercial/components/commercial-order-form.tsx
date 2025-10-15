@@ -57,6 +57,7 @@ interface CommercialOrderFormProps {
   updateQuantity: (itemId: string, quantity: number) => void;
   removeFromOrder: (itemId: string) => void;
   updateItemNote: (itemId: string, note: string) => void;
+  updateItemPrice: (itemId: string, newPriceTTC: number) => void;
   showAcompte?: boolean;
   onTotalsChange: (totals: { subtotal: number, tax: number, total: number }) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -97,8 +98,8 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 export const CommercialOrderForm = forwardRef<
   { submit: () => void },
   CommercialOrderFormProps
->(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId } = usePos();
+>(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -159,8 +160,6 @@ export const CommercialOrderForm = forwardRef<
         { id: 'reference', label: 'Référence' },
         { id: 'designation', label: 'Désignation' },
         { id: 'quantity', label: 'Qté' },
-        { id: 'vat_code', label: 'Code TVA' },
-        { id: 'discount', label: 'Remise %' },
     ];
 
 
@@ -301,10 +300,11 @@ export const CommercialOrderForm = forwardRef<
       if (!fullItem) return;
 
       const vatInfo = vatRates.find(v => v.id === fullItem.vatId);
+      const priceTTC = item.price;
+      const remisePercent = item.remise || 0;
       
-      const priceHT = vatInfo ? item.price / (1 + vatInfo.rate / 100) : item.price;
-      const remise = item.remise || 0;
-      const totalItemHT = priceHT * item.quantity * (1 - remise / 100);
+      const priceHT = vatInfo ? priceTTC / (1 + vatInfo.rate / 100) : priceTTC;
+      const totalItemHT = priceHT * item.quantity * (1 - remisePercent / 100);
       
       subTotalHT += totalItemHT;
 
@@ -504,6 +504,12 @@ export const CommercialOrderForm = forwardRef<
                                                     {column.label}
                                                 </DropdownMenuCheckboxItem>
                                             ))}
+                                            <DropdownMenuCheckboxItem
+                                                checked={visibleColumns.discount}
+                                                onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
+                                            >
+                                                Remise %
+                                            </DropdownMenuCheckboxItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
                                             <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
@@ -641,13 +647,20 @@ export const CommercialOrderForm = forwardRef<
                               )}
                           </div>
                           }
-                        {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { controllerField.onChange(parseInt(e.target.value) || 1); updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);}} onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)} onFocus={(e) => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
-                        {priceDisplayType === 'ht' && <div className="text-right">{priceHT.toFixed(2)}€</div>}
-                        {priceDisplayType === 'ttc' && <div className="text-right font-medium">{field.price.toFixed(2)}€</div>}
+                        {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" />)}/>}
+                        
+                        {priceDisplayType === 'ht' 
+                            ? <Controller control={form.control} name={`items.${index}.price`} render={({ field: { onChange, ...restField } }) => <Input type="number" {...restField} value={priceHT.toFixed(2)} onBlur={e => { const htValue = parseFloat(e.target.value) || 0; if (vatInfo) { const ttcValue = htValue * (1 + vatInfo.rate / 100); updateItemPrice(field.id, ttcValue); } }} onChange={() => {}} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />} />
+                            : <Controller control={form.control} name={`items.${index}.price`} render={({ field: controllerField }) => <Input type="number" {...controllerField} value={Number(controllerField.value).toFixed(2)} onBlur={e => updateItemPrice(field.id, parseFloat(e.target.value) || 0)} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto font-medium no-spinner" step="0.01" />} />
+                        }
+
                         {visibleColumns.vat_code && <div className="text-center font-mono">{vatInfo?.code || '-'}</div>}
-                        {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} onFocus={(e) => e.target.select()} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
+                        
+                        {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onBlur={e => { const discountValue = parseFloat(e.target.value) || 0; applyDiscount(field.id, discountValue, 'percentage'); }} onChange={(e) => controllerField.onChange(e.target.value)} onFocus={e => e.target.select()} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />)}/>}
+                        
                         {priceDisplayType === 'ht' && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
                         {priceDisplayType === 'ttc' && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                      
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
