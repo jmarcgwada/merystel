@@ -4,6 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import * as ftp from 'basic-ftp';
+import { Readable } from 'stream';
 
 const UploadFileFtpInputSchema = z.object({
   ftpConfig: z.object({
@@ -41,9 +42,10 @@ const uploadFileFtpFlow = ai.defineFlow(
         });
 
         const buffer = Buffer.from(input.fileContent, 'base64');
+        const readableStream = Readable.from(buffer);
         const remotePath = `${input.ftpConfig.path.endsWith('/') ? input.ftpConfig.path : input.ftpConfig.path + '/'}${input.fileName}`;
         
-        await client.uploadFrom(buffer, remotePath);
+        await client.uploadFrom(readableStream, remotePath);
         
         return { success: true, message: 'Fichier envoyé avec succès sur le serveur FTP.' };
     } catch (error: any) {
