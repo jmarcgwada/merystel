@@ -12,7 +12,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, CheckCircle, Lock, Save } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription as AlertDialogDescriptionComponent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle as AlertDialogTitleComponent,
+} from '@/components/ui/alert-dialog';
 
 
 function SupplierOrdersPageContent() {
@@ -177,10 +187,10 @@ function SupplierOrdersPageContent() {
     <AlertDialog open={isValidationConfirmOpen} onOpenChange={setValidationConfirmOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la validation ?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitleComponent>Confirmer la validation ?</AlertDialogTitleComponent>
+            <AlertDialogDescriptionComponent>
                 Cette action est irréversible. Le stock des articles concernés sera mis à jour.
-            </AlertDialogDescription>
+            </AlertDialogDescriptionComponent>
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
