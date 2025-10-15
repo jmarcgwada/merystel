@@ -1,5 +1,3 @@
-
-
 {
   "entities": {
     "User": {
@@ -166,7 +164,7 @@
         "customerId": { "type": "string" },
         "tableId": { "type": "string" },
         "tableName": { "type": "string" },
-        "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note"] }
+        "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note", "credit_note"] }
       },
       "required": ["ticketNumber", "date", "items", "subtotal", "tax", "total", "status"]
     },
@@ -281,5 +279,3 @@
     }
   }
 }
-
-    
