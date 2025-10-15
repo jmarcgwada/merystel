@@ -123,7 +123,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
     const change = totalPaidForSale > totalAmount ? totalPaidForSale - totalAmount : 0;
   
-    const saleInfo: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'userId' | 'userName'> = {
+    const saleInfo: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
@@ -137,6 +137,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
       ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
       documentType: currentSaleContext?.documentType || 'ticket',
+      userId: user?.id,
+      userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
     };
   
     recordSale(saleInfo, currentSaleId ?? undefined);
@@ -161,7 +163,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             clearOrder();
           }
       
-          handleOpenChange(false);
+          onClose();
         }, 500);
     } else {
         toast({
@@ -169,12 +171,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             description: `La pièce est en attente de paiement.`
         })
         clearOrder();
-        handleOpenChange(false);
+        onClose();
         if (currentSaleContext?.documentType === 'invoice') {
           router.push('/reports?filter=Fact-');
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate]);
 
 
   useEffect(() => {
@@ -218,12 +220,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setView('payment');
     setShowCalculator(false);
     setPaymentDate(new Date());
+    onClose();
   }
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      onClose();
-      setTimeout(handleReset, 300);
+      handleReset();
     }
   };
   
@@ -567,7 +569,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         <Button
             type="button"
             variant="outline"
-            onClick={isInvoiceMode ? handleSaveAsPending : () => handleOpenChange(false)}
+            onClick={isInvoiceMode ? handleSaveAsPending : handleReset}
             className="w-full sm:w-auto"
         >
             {isInvoiceMode && balanceDue > 0.009 ? 'Enregistrer en attente' : 'Annuler'}
