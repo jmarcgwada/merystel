@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 const hexToRgba = (hex: string, opacity: number) => {
     let c: any;
@@ -33,23 +34,25 @@ const ColorSetting = ({ title, color, setColor, opacity, setOpacity }: { title: 
     const previewStyle = isClient ? { backgroundColor: hexToRgba(color, opacity) } : {};
 
     return (
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="p-4 rounded-lg border space-y-4">
-                <h3 className="font-semibold">{title}</h3>
-                <div className="grid gap-2">
-                    <Label htmlFor={`${title}-color`}>Couleur de fond</Label>
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="grid gap-2">
+                    <Label htmlFor={`${title}-color`}>Couleur</Label>
                     <div className="flex items-center gap-4">
                         <Input
                             id={`${title}-color`}
                             type="color"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
-                            className="w-16 h-12 p-1"
+                            className="w-12 h-10 p-1"
                         />
                         {isClient ? <span className="font-mono text-sm text-muted-foreground">{color}</span> : <Skeleton className="h-5 w-20" />}
                     </div>
                 </div>
-                <div className="grid gap-2">
+                 <div className="grid gap-2">
                     <div className="flex justify-between items-center">
                         <Label htmlFor={`${title}-opacity`}>Opacité</Label>
                         {isClient ? <span className="text-sm font-bold text-primary">{opacity}%</span> : <Skeleton className="h-5 w-10" />}
@@ -63,14 +66,14 @@ const ColorSetting = ({ title, color, setColor, opacity, setOpacity }: { title: 
                         />
                     ) : <Skeleton className="h-5 w-full" />}
                 </div>
-            </div>
-            <div 
-                className="p-4 rounded-lg border bg-card flex items-center justify-center h-40"
-                style={previewStyle}
-            >
-                <p className="font-semibold text-muted-foreground">Aperçu {title}</p>
-            </div>
-        </div>
+                 <div 
+                    className="p-4 rounded-lg border bg-card flex items-center justify-center h-20 mt-2"
+                    style={previewStyle}
+                >
+                    <p className="font-semibold text-muted-foreground text-xs">Aperçu</p>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -104,7 +107,7 @@ export default function DocumentColorsPage() {
               Choisissez une couleur et une opacité pour l'arrière-plan de chaque page de document.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8 pt-4">
+          <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
             <ColorSetting 
                 title="Factures"
                 color={invoiceBgColor}
