@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +22,12 @@ export default function SettingsPage() {
         title: "Apparence & Couleurs",
         description: "Changez les couleurs des différents modes de l'application.",
         icon: Palette,
+    },
+    {
+        href: '/settings/document-colors',
+        title: "Couleurs des Documents",
+        description: "Attribuez une couleur de fond pour chaque type de document.",
+        icon: FileSignature,
     },
     {
         href: '/settings/parameters',
@@ -88,5 +94,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';
@@ -12,12 +13,24 @@ import { usePos } from '@/contexts/pos-context';
 
 
 const navLinks = [
-    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText, reportLabel: 'Liste Factures', reportFilter: 'Fact-' },
-    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText, reportLabel: 'Liste Devis', reportFilter: 'Devis-' },
-    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', icon: Truck, reportLabel: 'Liste BL', reportFilter: 'BL-' },
-    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
+    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', reportLabel: 'Liste Factures', reportFilter: 'Fact-' },
+    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', reportLabel: 'Liste Devis', reportFilter: 'Devis-' },
+    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', reportLabel: 'Liste BL', reportFilter: 'BL-' },
+    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
 ]
 
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--background), ${opacity / 100})`;
+};
 
 export default function CommercialLayout({
   children,
@@ -26,7 +39,7 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { order, showNavConfirm } = usePos();
+  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity } = usePos();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -36,6 +49,23 @@ export default function CommercialLayout({
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   const activeReportInfo = navLinks.find(link => link.value === activeTab);
   
+  const backgroundColor = useMemo(() => {
+    if (!isClient) return 'transparent';
+
+    switch (activeTab) {
+      case 'invoices':
+        return hexToRgba(invoiceBgColor, invoiceBgOpacity);
+      case 'quotes':
+        return hexToRgba(quoteBgColor, quoteBgOpacity);
+      case 'delivery-notes':
+        return hexToRgba(deliveryNoteBgColor, deliveryNoteBgOpacity);
+      case 'supplier-orders':
+        return hexToRgba(supplierOrderBgColor, supplierOrderBgOpacity);
+      default:
+        return 'transparent';
+    }
+  }, [isClient, activeTab, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity]);
+
 
   const handleTabClick = (e: React.MouseEvent, href: string) => {
     if (order.length > 0 && !pathname.startsWith(href)) {
@@ -69,7 +99,7 @@ export default function CommercialLayout({
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={{ backgroundColor }}>
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <Tabs value={activeTab} className="w-full">
@@ -77,7 +107,7 @@ export default function CommercialLayout({
                         {navLinks.map(link => (
                             <TabsTrigger value={link.value} asChild key={link.href}>
                                 <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
-                                     <link.icon className="h-4 w-4" />
+                                     <FileText className="h-4 w-4" />
                                     <span className="hidden sm:inline-block">{link.label}</span>
                                 </Link>
                             </TabsTrigger>

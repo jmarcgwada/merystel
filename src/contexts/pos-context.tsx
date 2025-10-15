@@ -247,6 +247,22 @@ interface PosContextType {
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
   setDashboardButtonBorderColor: React.Dispatch<React.SetStateAction<string>>;
+  invoiceBgColor: string;
+  setInvoiceBgColor: React.Dispatch<React.SetStateAction<string>>;
+  invoiceBgOpacity: number;
+  setInvoiceBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  quoteBgColor: string;
+  setQuoteBgColor: React.Dispatch<React.SetStateAction<string>>;
+  quoteBgOpacity: number;
+  setQuoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  deliveryNoteBgColor: string;
+  setDeliveryNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
+  deliveryNoteBgOpacity: number;
+  setDeliveryNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  supplierOrderBgColor: string;
+  setSupplierOrderBgColor: React.Dispatch<React.SetStateAction<string>>;
+  supplierOrderBgOpacity: number;
+  setSupplierOrderBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
 }
@@ -341,6 +357,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
+  const [invoiceBgColor, setInvoiceBgColor] = usePersistentState('settings.invoiceBgColor', '#eef2ff');
+  const [invoiceBgOpacity, setInvoiceBgOpacity] = usePersistentState('settings.invoiceBgOpacity', 100);
+  const [quoteBgColor, setQuoteBgColor] = usePersistentState('settings.quoteBgColor', '#f0fdf4');
+  const [quoteBgOpacity, setQuoteBgOpacity] = usePersistentState('settings.quoteBgOpacity', 100);
+  const [deliveryNoteBgColor, setDeliveryNoteBgColor] = usePersistentState('settings.deliveryNoteBgColor', '#fefce8');
+  const [deliveryNoteBgOpacity, setDeliveryNoteBgOpacity] = usePersistentState('settings.deliveryNoteBgOpacity', 100);
+  const [supplierOrderBgColor, setSupplierOrderBgColor] = usePersistentState('settings.supplierOrderBgColor', '#faf5ff');
+  const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -1295,7 +1319,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
       dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
       setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      companyInfo, setCompanyInfo,
   };
 
   return (

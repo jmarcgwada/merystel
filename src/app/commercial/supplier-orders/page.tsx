@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +7,7 @@ import { SupplierOrderForm } from '../components/supplier-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, CheckCircle, Lock, Save } from 'lucide-react';
@@ -23,6 +24,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle as AlertDialogTitleComponent,
 } from '@/components/ui/alert-dialog';
+
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--background), ${opacity / 100})`;
+};
 
 
 function SupplierOrdersPageContent() {
@@ -42,6 +56,8 @@ function SupplierOrdersPageContent() {
       currentSaleId,
       currentSaleContext,
       recordCommercialDocument,
+      supplierOrderBgColor,
+      supplierOrderBgOpacity,
   } = usePos();
   
   const formRef = useRef<{ submit: (validate?: boolean) => void }>(null);
@@ -55,6 +71,11 @@ function SupplierOrdersPageContent() {
 
   const isEditing = !!currentSaleId;
   const isReadOnly = currentSaleContext?.isReadOnly ?? false;
+  
+   const [isClient, setIsClient] = useState(false);
+   useEffect(() => { setIsClient(true); }, []);
+   const backgroundColor = useMemo(() => isClient ? hexToRgba(supplierOrderBgColor, supplierOrderBgOpacity) : 'transparent', [isClient, supplierOrderBgColor, supplierOrderBgOpacity]);
+
 
    useEffect(() => {
     if (newItemId) {
@@ -131,7 +152,7 @@ function SupplierOrdersPageContent() {
 
   return (
     <>
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={{ backgroundColor }}>
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
             title={isEditing ? "Modifier la commande fournisseur" : "Gestion des Commandes Fournisseur"}
