@@ -1016,6 +1016,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
         let finalSale: Sale;
+
+        if (saleData.documentType === 'credit_note') {
+            saleData.total = -Math.abs(saleData.total);
+            saleData.subtotal = -Math.abs(saleData.subtotal);
+            saleData.tax = -Math.abs(saleData.tax);
+            saleData.payments = saleData.payments.map(p => ({ ...p, amount: -Math.abs(p.amount) }));
+        }
     
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
             const existingSale = sales.find(s => s.id === saleIdToUpdate);
@@ -1453,6 +1460,3 @@ export function usePos() {
   }
   return context;
 }
-
-
-    
