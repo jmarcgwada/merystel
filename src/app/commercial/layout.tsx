@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3 } from 'lucide-react';
+import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3, LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
 
@@ -97,9 +97,8 @@ export default function CommercialLayout({
                             </Link>
                         </Button>
                     )}
-                    <Button onClick={handleBackToDashboard} variant="outline" className="btn-back">
-                        <ArrowLeft />
-                        Retour au tableau de bord
+                    <Button onClick={handleBackToDashboard} variant="outline" size="icon" className="btn-back">
+                        <LayoutDashboard />
                     </Button>
                 </div>
             </div>

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { helpData } from './help-data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 
 export default function HelpLayout({
@@ -22,10 +22,9 @@ export default function HelpLayout({
             title="Assistance et Aide"
             subtitle="Trouvez les réponses à vos questions sur l'utilisation de l'application."
         >
-            <Button asChild variant="outline" className="btn-back">
+            <Button asChild variant="outline" size="icon" className="btn-back">
                 <Link href="/dashboard">
-                    <ArrowLeft />
-                    Retour au tableau de bord
+                    <LayoutDashboard />
                 </Link>
             </Button>
         </PageHeader>

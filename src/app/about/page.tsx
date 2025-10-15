@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import Link from 'next/link';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail, LayoutDashboard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 
 export default function AboutPage() {

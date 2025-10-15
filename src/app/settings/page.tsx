@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
@@ -58,10 +58,9 @@ export default function SettingsPage() {
             subtitle="Configurez et personnalisez l'application selon vos besoins."
         >
             <div className="flex items-center gap-2">
-                 <Button asChild variant="outline" className="btn-back">
+                 <Button asChild variant="outline" size="icon" className="btn-back">
                     <Link href="/dashboard">
-                        <ArrowLeft />
-                        Retour au tableau de bord
+                        <LayoutDashboard />
                     </Link>
                 </Button>
             </div>

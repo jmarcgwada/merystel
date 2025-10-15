@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/firebase/auth/use-user';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -105,8 +105,7 @@ function UserForm() {
       >
         <Button variant="outline" asChild className="btn-back">
           <Link href="/settings/users">
-            <ArrowLeft />
-            Retour à la liste
+            <LayoutDashboard />
           </Link>
         </Button>
       </PageHeader>

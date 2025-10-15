@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils, Lock } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils, Lock, LayoutDashboard } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -60,8 +60,7 @@ export default function ParametersPage() {
       >
         <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
-            <ArrowLeft />
-            Retour aux paramètres
+            <LayoutDashboard />
           </Link>
         </Button>
       </PageHeader>
