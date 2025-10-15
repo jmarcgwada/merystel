@@ -479,10 +479,9 @@ export const CommercialOrderForm = forwardRef<
       <Card className="mt-4 flex-1 flex flex-col">
         <CardContent className="p-6 flex-1 flex flex-col">
           <Form {...form}>
-            <form className="space-y-6 flex flex-col flex-1 h-full">
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2">
+            <form className="flex-1 flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
                          <h3 className="text-lg font-semibold">Détails de la pièce</h3>
                          <TooltipProvider>
                             <Tooltip>
@@ -533,7 +532,7 @@ export const CommercialOrderForm = forwardRef<
                       </Button>
                     )}
                 </div>
-                <div className="flex-1 min-h-[300px] flex flex-col">
+              <div className="flex-1 min-h-0 flex flex-col">
                   {watchItems.length === 0 ? (
                       <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
                           Aucun article dans la commande.
@@ -679,7 +678,6 @@ export const CommercialOrderForm = forwardRef<
                       </>
                     )}
                 </div>
-              </div>
               
               <div className="mt-auto">
                   <Separator className="my-6"/>
