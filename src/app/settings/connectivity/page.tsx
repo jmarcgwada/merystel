@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -128,7 +127,7 @@ export default function ConnectivityPage() {
                     </Link>
                 </Button>
             </PageHeader>
-            <div className="mt-8 space-y-8">
+            <div className="mt-8 grid md:grid-cols-2 gap-8">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Mail />Configuration SMTP</CardTitle>
