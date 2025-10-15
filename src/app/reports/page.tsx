@@ -10,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -248,6 +248,7 @@ export default function ReportsPage() {
           'delivery_note': 'delivery-notes',
           'supplier_order': 'supplier-orders',
           'invoice': 'invoices',
+          'credit_note': 'credit-notes',
       };
       
       const docType = sale.documentType || (sale.ticketNumber?.startsWith('Fact-') ? 'invoice' : 'ticket');
@@ -590,6 +591,11 @@ export default function ReportsPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
             </Button>
+             <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
             {!isCashier && renderHeaderActions()}
         </div>
       </PageHeader>
@@ -866,6 +872,7 @@ export default function ReportsPage() {
                                             : sale.documentType === 'quote' ? 'Devis'
                                             : sale.documentType === 'delivery_note' ? 'BL'
                                             : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
+                                            : sale.documentType === 'credit_note' ? 'Avoir'
                                             : 'Ticket';
                             const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
                             

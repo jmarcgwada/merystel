@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -72,8 +70,11 @@ export default function UsersPage() {
     <>
       <PageHeader title="Gérer les utilisateurs" subtitle={isClient && users ? `Vous avez ${users.length} utilisateurs au total.` : "Ajoutez, modifiez ou supprimez des utilisateurs."}>
         <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="btn-back">
-                <Link href="/settings">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>
             </Button>

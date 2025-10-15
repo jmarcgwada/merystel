@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, Utensils, RefreshCw, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Utensils, RefreshCw, X, LayoutDashboard } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
 import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function CategoriesPage() {
   const { categories, items, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
@@ -75,13 +76,20 @@ export default function CategoriesPage() {
   return (
     <>
       <PageHeader title="Gérer les catégories" subtitle={isClient && categories ? `Vous avez ${categories.length} catégories au total.` : "Organisez vos articles en catégories."}>
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        <Button onClick={() => setAddCategoryOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter une catégorie
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+             <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
+            <Button onClick={() => setAddCategoryOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter une catégorie
+            </Button>
+        </div>
       </PageHeader>
       <div className="mt-8">
         <Card>

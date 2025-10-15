@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Eraser, Users, RefreshCw, Lock, User as UserIcon, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Eraser, Users, RefreshCw, Lock, User as UserIcon, Clock, LayoutDashboard } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -25,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
+import Link from 'next/link';
 
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined}) => {
@@ -92,13 +92,20 @@ export default function TablesPage() {
   return (
     <>
       <PageHeader title="Gérer les tables" subtitle={isClient && tablesWithoutTakeaway ? `Vous avez ${tablesWithoutTakeaway.length} tables au total.` : "Ajoutez, modifiez ou supprimez des tables."}>
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        <Button onClick={() => router.push('/management/tables/form')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter une table
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
+            <Button onClick={() => router.push('/management/tables/form')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter une table
+            </Button>
+        </div>
       </PageHeader>
        <div className="mt-8">
         <Card>

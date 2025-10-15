@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Wallet, Landmark, Plus, StickyNote, Edit, Trash2, Icon } from 'lucide-react';
+import { CreditCard, Wallet, Landmark, Plus, StickyNote, Edit, Trash2, Icon, LayoutDashboard } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { AddPaymentMethodDialog } from './components/add-payment-method-dialog';
@@ -25,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const iconMap: { [key: string]: Icon } = {
   card: CreditCard,
@@ -71,10 +71,17 @@ export default function PaymentMethodsPage() {
   return (
     <>
       <PageHeader title="Gérer les moyens de paiement" subtitle="Configurez les options de paiement disponibles lors de l'encaissement.">
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un moyen de paiement
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter un moyen de paiement
+            </Button>
+        </div>
       </PageHeader>
        <div className="mt-8">
         <Card>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -10,13 +9,14 @@ import type { Item, Sale } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Star } from 'lucide-react';
+import { Star, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
+import Link from 'next/link';
 
 export default function PopularItemsPage() {
     const firestore = useFirestore();
@@ -36,13 +36,13 @@ export default function PopularItemsPage() {
 
         relevantSales.forEach(sale => {
             sale.items.forEach(orderItem => {
-                if(itemCounts[orderItem.id]) {
-                    itemCounts[orderItem.id].count += orderItem.quantity;
-                    itemCounts[orderItem.id].revenue += orderItem.total;
+                if(itemCounts[orderItem.itemId]) {
+                    itemCounts[orderItem.itemId].count += orderItem.quantity;
+                    itemCounts[orderItem.itemId].revenue += orderItem.total;
                 } else {
-                    const itemDetails = items.find(i => i.id === orderItem.id);
+                    const itemDetails = items.find(i => i.id === orderItem.itemId);
                     if(itemDetails) {
-                         itemCounts[orderItem.id] = { 
+                         itemCounts[orderItem.itemId] = { 
                             item: itemDetails, 
                             count: orderItem.quantity,
                             revenue: orderItem.total
@@ -77,12 +77,19 @@ export default function PopularItemsPage() {
         title="Articles populaires"
         subtitle="Classement des articles les plus vendus sur la base des factures et tickets."
       >
-        {!isCashier && (
-            <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>
-                <Star className="mr-2 h-4 w-4" />
-                {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
             </Button>
-        )}
+            {!isCashier && (
+                <Button onClick={handleToggleAllFavorites} disabled={popularItems.length === 0}>
+                    <Star className="mr-2 h-4 w-4" />
+                    {allItemsAreFavorites ? 'Tout retirer des favoris' : 'Tout mettre en favori'}
+                </Button>
+            )}
+        </div>
       </PageHeader>
       <div className="mt-8">
         <Card>

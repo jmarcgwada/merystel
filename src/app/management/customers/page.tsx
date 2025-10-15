@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -97,13 +98,20 @@ export default function CustomersPage() {
         title="Gérer les clients" 
         subtitle={isClient && customers ? `Page ${currentPage} sur ${totalPages} (${filteredCustomers.length} clients sur ${customers.length} au total)` : "Affichez et gérez votre liste de clients."}
       >
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        <Button onClick={() => setAddCustomerOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un client
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
+            <Button onClick={() => setAddCustomerOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter un client
+            </Button>
+        </div>
       </PageHeader>
        <div className="mt-8">
         <Card>
