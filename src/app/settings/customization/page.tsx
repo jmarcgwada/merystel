@@ -17,7 +17,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 
-
 export default function CustomizationPage() {
   const { 
     showTicketImages, 
@@ -98,6 +97,7 @@ export default function CustomizationPage() {
         </Button>
       </PageHeader>
       <div className="mt-8 space-y-8">
+        
         <Card>
           <CardHeader>
             <CardTitle>Fenêtre Modale Externe</CardTitle>
@@ -207,8 +207,18 @@ export default function CustomizationPage() {
                     <Label className="text-base">Couleur du texte sur image</Label>
                     {isClient ? (
                         <RadioGroup value={itemCardTextColor} onValueChange={(value) => setItemCardTextColor(value as 'light' | 'dark')} className="grid sm:grid-cols-2 gap-4 pt-2">
-                            <div><RadioGroupItem value="light" id="text-light" className="peer sr-only" /><Label htmlFor="text-light" className="cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"><p className="text-base font-semibold">Texte clair</p></Label></div>
-                            <div><RadioGroupItem value="dark" id="text-dark" className="peer sr-only" /><Label htmlFor="text-dark" className="cursor-pointer w-full rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"><p className="text-base font-semibold">Texte foncé</p></Label></div>
+                            <div>
+                                <RadioGroupItem value="light" id="text-light" className="peer sr-only" />
+                                <Label htmlFor="text-light" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <p className="text-base font-semibold">Texte clair</p>
+                                </Label>
+                            </div>
+                            <div>
+                                <RadioGroupItem value="dark" id="text-dark" className="peer sr-only" />
+                                <Label htmlFor="text-dark" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <p className="text-base font-semibold">Texte foncé</p>
+                                </Label>
+                            </div>
                         </RadioGroup>
                     ) : (<div className="grid sm:grid-cols-2 gap-4 pt-2"><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div>)}
                 </div>
@@ -222,78 +232,82 @@ export default function CustomizationPage() {
             </CardContent>
         </Card>
 
-        <Card>
-            <CardHeader>
-            <CardTitle>Visibilité des Éléments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="show-dashboard-stats" className="text-base flex items-center gap-2"><BarChart3/>Afficher les statistiques</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+                <CardHeader>
+                <CardTitle>Visibilité des Éléments</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-4">
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="show-dashboard-stats" className="text-base flex items-center gap-2"><BarChart3/>Afficher les statistiques</Label>
+                        </div>
+                        {isClient ? <Switch id="show-dashboard-stats" checked={showDashboardStats} onCheckedChange={setShowDashboardStats} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                    {isClient ? <Switch id="show-dashboard-stats" checked={showDashboardStats} onCheckedChange={setShowDashboardStats} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="ticket-images" className="text-base">Images dans la commande</Label>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="ticket-images" className="text-base">Images dans la commande</Label>
+                        </div>
+                        {isClient ? <Switch id="ticket-images" checked={showTicketImages} onCheckedChange={setShowTicketImages} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                    {isClient ? <Switch id="ticket-images" checked={showTicketImages} onCheckedChange={setShowTicketImages} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="item-images-grid" className="text-base flex items-center gap-2"><Image />Images des articles</Label>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="item-images-grid" className="text-base flex items-center gap-2"><Image />Images des articles</Label>
+                        </div>
+                        {isClient ? <Switch id="item-images-grid" checked={showItemImagesInGrid} onCheckedChange={setShowItemImagesInGrid} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                    {isClient ? <Switch id="item-images-grid" checked={showItemImagesInGrid} onCheckedChange={setShowItemImagesInGrid} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="item-card-show-price" className="text-base">Prix sur les articles</Label>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="item-card-show-price" className="text-base">Prix sur les articles</Label>
+                        </div>
+                        {isClient ? <Switch id="item-card-show-price" checked={itemCardShowPrice} onCheckedChange={setItemCardShowPrice} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                    {isClient ? <Switch id="item-card-show-price" checked={itemCardShowPrice} onCheckedChange={setItemCardShowPrice} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="dynamic-bg" className="text-base flex items-center gap-2"><Wallpaper />Fond d'écran dynamique</Label>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="dynamic-bg" className="text-base flex items-center gap-2"><Wallpaper />Fond d'écran dynamique</Label>
+                        </div>
+                        {isClient ? <Switch id="dynamic-bg" checked={enableDynamicBg} onCheckedChange={setEnableDynamicBg} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                    {isClient ? <Switch id="dynamic-bg" checked={enableDynamicBg} onCheckedChange={setEnableDynamicBg} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                {isClient && (
-                    <div className="grid gap-2 pt-2 transition-opacity" style={{ opacity: enableDynamicBg ? 1 : 0.5 }}>
-                        <div className="flex justify-between items-center"><Label htmlFor="dynamic-bg-opacity">Opacité du fond</Label><span className="text-sm font-bold text-primary">{dynamicBgOpacity}%</span></div>
-                        <Slider id="dynamic-bg-opacity" value={[dynamicBgOpacity]} onValueChange={(v) => setDynamicBgOpacity(v[0])} min={0} max={100} step={5} disabled={!enableDynamicBg} />
+                    {isClient && (
+                        <div className="grid gap-2 pt-2 transition-opacity" style={{ opacity: enableDynamicBg ? 1 : 0.5 }}>
+                            <div className="flex justify-between items-center"><Label htmlFor="dynamic-bg-opacity">Opacité du fond</Label><span className="text-sm font-bold text-primary">{dynamicBgOpacity}%</span></div>
+                            <Slider id="dynamic-bg-opacity" value={[dynamicBgOpacity]} onValueChange={(v) => setDynamicBgOpacity(v[0])} min={0} max={100} step={5} disabled={!enableDynamicBg} />
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="restaurant-filter" className="text-base">Filtre restaurant</Label>
+                        </div>
+                        {isClient ? <Switch id="restaurant-filter" checked={enableRestaurantCategoryFilter} onCheckedChange={setEnableRestaurantCategoryFilter} /> : <Skeleton className="h-6 w-11" />}
                     </div>
-                )}
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="restaurant-filter" className="text-base">Filtre restaurant</Label>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Fonctionnalités & Données</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-4">
+                    <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="popular-items-count">Articles populaires</Label>
+                            {isClient ? <span className="text-sm font-bold text-primary">{currentPopularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
+                        </p>
+                        {isClient ? <Slider id="popular-items-count" value={[currentPopularItemsCount]} onValueChange={handlePopularItemsChange} onValueCommit={handlePopularItemsCommit} min={1} max={50} step={1} /> : <Skeleton className="h-5 w-full" />}
                     </div>
-                    {isClient ? <Switch id="restaurant-filter" checked={enableRestaurantCategoryFilter} onCheckedChange={setEnableRestaurantCategoryFilter} /> : <Skeleton className="h-6 w-11" />}
-                </div>
-                  <div className="grid gap-2 pt-2">
-                    <div className="flex justify-between items-center"><Label htmlFor="payment-method-image-opacity">Opacité image des paiements</Label>{isClient ? <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span> : <Skeleton className="h-5 w-10" />}</div>
-                    {isClient ? <Slider id="payment-method-image-opacity" value={[paymentMethodImageOpacity]} onValueChange={(value) => setPaymentMethodImageOpacity(value[0])} min={0} max={100} step={5} /> : <Skeleton className="h-5 w-full" />}
-                </div>
-            </CardContent>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle>Fonctionnalités & Données</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-                <div className="grid gap-2">
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="popular-items-count">Articles populaires</Label>
-                        {isClient ? <span className="text-sm font-bold text-primary">{currentPopularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
+                    <Separator/>
+                     <div className="grid gap-2 pt-2">
+                        <div className="flex justify-between items-center"><Label htmlFor="payment-method-image-opacity">Opacité image des paiements</Label>{isClient ? <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span> : <Skeleton className="h-5 w-10" />}</div>
+                        {isClient ? <Slider id="payment-method-image-opacity" value={[paymentMethodImageOpacity]} onValueChange={(value) => setPaymentMethodImageOpacity(value[0])} min={0} max={100} step={5} /> : <Skeleton className="h-5 w-full" />}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
-                    </p>
-                    {isClient ? <Slider id="popular-items-count" value={[currentPopularItemsCount]} onValueChange={handlePopularItemsChange} onValueCommit={handlePopularItemsCommit} min={1} max={50} step={1} /> : <Skeleton className="h-5 w-full" />}
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </>
   );
 }
+
