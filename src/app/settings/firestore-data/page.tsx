@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, LayoutDashboard, Send, Server, Lock } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, Send, Server, Lock } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -286,7 +287,8 @@ export default function FirestoreDataPage() {
             <div className="flex items-center gap-2">
                  <Button asChild variant="outline" className="btn-back">
                     <Link href="/settings">
-                        <LayoutDashboard />
+                        <ArrowLeft />
+                        Retour aux paramètres
                     </Link>
                 </Button>
             </div>

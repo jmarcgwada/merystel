@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { ArrowLeft, Lock, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -84,7 +84,8 @@ export default function CompanyPage() {
       >
         <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
-            <LayoutDashboard />
+            <ArrowLeft />
+            Retour aux paramètres
           </Link>
         </Button>
       </PageHeader>

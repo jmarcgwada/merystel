@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -84,7 +85,7 @@ export default function AuditLogPage() {
                     <Button asChild variant="outline" className="btn-back">
                         <Link href="/settings">
                             <ArrowLeft />
-                            Retour
+                            Retour aux paramètres
                         </Link>
                     </Button>
                 </div>

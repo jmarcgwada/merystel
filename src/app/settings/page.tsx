@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -75,9 +76,10 @@ export default function SettingsPage() {
             subtitle="Configurez et personnalisez l'application selon vos besoins."
         >
             <div className="flex items-center gap-2">
-                 <Button asChild variant="outline" size="icon" className="btn-back">
+                 <Button asChild variant="outline" className="btn-back">
                     <Link href="/dashboard">
-                        <LayoutDashboard />
+                        <ArrowLeft />
+                        Retour au tableau de bord
                     </Link>
                 </Button>
             </div>

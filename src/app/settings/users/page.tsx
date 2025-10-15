@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut, ArrowLeft } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -73,9 +74,10 @@ export default function UsersPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button asChild variant="outline" size="icon" className="btn-back">
-                <Link href="/dashboard">
-                    <LayoutDashboard />
+            <Button asChild variant="outline" className="btn-back">
+                <Link href="/settings">
+                    <ArrowLeft />
+                    Retour aux paramètres
                 </Link>
             </Button>
             <Button onClick={() => router.push('/settings/users/form')}>
