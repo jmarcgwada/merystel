@@ -6,15 +6,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, BarChart3, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, List, LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
 
 
 const navLinks = [
-    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText, reportLabel: 'Rapport Factures', reportFilter: 'Fact-' },
-    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText, reportLabel: 'Rapport Devis', reportFilter: 'Devis-' },
-    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', icon: Truck, reportLabel: 'Rapport BL', reportFilter: 'BL-' },
+    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText, reportLabel: 'Liste Factures', reportFilter: 'Fact-' },
+    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText, reportLabel: 'Liste Devis', reportFilter: 'Devis-' },
+    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', icon: Truck, reportLabel: 'Liste BL', reportFilter: 'BL-' },
     { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
 ]
 
@@ -92,7 +92,7 @@ export default function CommercialLayout({
                     {activeReportInfo && (
                         <Button asChild variant="outline">
                             <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
-                                <BarChart3 />
+                                <List className="mr-2 h-4 w-4"/>
                                 {activeReportInfo.reportLabel}
                             </Link>
                         </Button>
