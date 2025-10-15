@@ -20,7 +20,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -78,7 +77,7 @@ function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
   const fromPos = searchParams.get('from') === 'pos';
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, setOrder, setReadOnlyOrder, setCurrentSaleId, setCurrentSaleContext, toast } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
   const router = useRouter();
   const { user } = useUser();
 
@@ -167,20 +166,6 @@ function SaleDetailContent() {
     }
   }
 
-  const handleDuplicateTicket = () => {
-    if (!sale) return;
-    const itemsToDuplicate = sale.items.map(item => {
-        const { sourceSale, id, ...rest } = item;
-        return { ...rest, id: uuidv4() };
-    });
-    setOrder(itemsToDuplicate);
-    setReadOnlyOrder(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
-    router.push('/pos');
-};
-  
   const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'BL' : 'Ticket';
 
   if (isLoading) {
@@ -243,10 +228,6 @@ function SaleDetailContent() {
             </Button>
             {user?.role !== 'cashier' && (
               <>
-                <Button variant="outline" onClick={handleDuplicateTicket}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Dupliquer
-                </Button>
                 <Button variant="outline">
                     <FileText className="mr-2 h-4 w-4" />
                     Avoir
