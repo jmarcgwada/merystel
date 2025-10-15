@@ -15,7 +15,7 @@ const navLinks = [
     { href: '/commercial/invoices', value: 'invoices', label: 'Factures', icon: FileText, reportLabel: 'Rapport Factures', reportFilter: 'Fact-' },
     { href: '/commercial/quotes', value: 'quotes', label: 'Devis', icon: FileText, reportLabel: 'Rapport Devis', reportFilter: 'Devis-' },
     { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', icon: Truck, reportLabel: 'Rapport BL', reportFilter: 'BL-' },
-    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Rapport Cdes Fournisseur', reportFilter: 'CF-' },
+    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', icon: ShoppingBag, reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
 ]
 
 
