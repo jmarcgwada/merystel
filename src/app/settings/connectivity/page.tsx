@@ -2,10 +2,10 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Server } from 'lucide-react';
+import { ArrowLeft, Mail, Server, TestTube2 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -34,13 +34,34 @@ export default function ConnectivityPage() {
         setLocalFtp(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSave = () => {
+    const handleSaveSmtp = () => {
         setSmtpConfig(localSmtp);
+        toast({
+            title: 'Configuration SMTP sauvegardée',
+        });
+    };
+    
+    const handleSaveFtp = () => {
         setFtpConfig(localFtp);
         toast({
-            title: 'Configurations sauvegardées',
-            description: 'Vos paramètres SMTP et FTP ont été mis à jour.',
+            title: 'Configuration FTP sauvegardée',
         });
+    };
+    
+    const handleTestSmtp = () => {
+        toast({
+            title: 'Test de connexion SMTP...',
+            description: 'Cette fonctionnalité est en cours de développement.'
+        });
+        // In a real scenario, you would call a server-side function here.
+    };
+
+    const handleTestFtp = () => {
+        toast({
+            title: 'Test de connexion FTP...',
+            description: 'Cette fonctionnalité est en cours de développement.'
+        });
+        // In a real scenario, you would call a server-side function here.
     };
 
     return (
@@ -97,6 +118,13 @@ export default function ConnectivityPage() {
                             <Switch id="smtp-secure" checked={localSmtp.secure || false} onCheckedChange={(checked) => handleSmtpChange('secure', checked)} />
                         </div>
                     </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={handleTestSmtp}>
+                            <TestTube2 className="mr-2 h-4 w-4"/>
+                            Tester la connexion
+                        </Button>
+                        <Button onClick={handleSaveSmtp}>Sauvegarder</Button>
+                    </CardFooter>
                 </Card>
 
                 <Card>
@@ -139,10 +167,14 @@ export default function ConnectivityPage() {
                             <Switch id="ftp-secure" checked={localFtp.secure || false} onCheckedChange={(checked) => handleFtpChange('secure', checked)} />
                         </div>
                     </CardContent>
+                     <CardFooter className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={handleTestFtp}>
+                            <TestTube2 className="mr-2 h-4 w-4"/>
+                            Tester la connexion
+                        </Button>
+                        <Button onClick={handleSaveFtp}>Sauvegarder</Button>
+                    </CardFooter>
                 </Card>
-                <div className="flex justify-end">
-                    <Button size="lg" onClick={handleSave}>Sauvegarder les configurations</Button>
-                </div>
             </div>
         </>
     );
