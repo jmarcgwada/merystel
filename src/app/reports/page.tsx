@@ -44,6 +44,19 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
 const ITEMS_PER_PAGE = 20;
 
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--background), ${opacity / 100})`;
+};
+
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -89,7 +102,22 @@ const getDateFromSale = (sale: Sale): Date => {
 
 
 export default function ReportsPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, deleteAllSales, convertToInvoice } = usePos();
+    const { 
+        sales: allSales, 
+        customers, 
+        users, 
+        isLoading: isPosLoading, 
+        deleteAllSales, 
+        convertToInvoice,
+        invoiceBgColor, 
+        invoiceBgOpacity, 
+        quoteBgColor, 
+        quoteBgOpacity, 
+        deliveryNoteBgColor, 
+        deliveryNoteBgOpacity, 
+        supplierOrderBgColor, 
+        supplierOrderBgOpacity
+    } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
     const router = useRouter();
@@ -463,6 +491,36 @@ export default function ReportsPage() {
       }
       return null;
     }
+    
+    const getRowStyle = (sale: Sale) => {
+        if (!isClient) return {};
+        const docType = sale.documentType;
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice':
+                color = invoiceBgColor;
+                opacity = invoiceBgOpacity;
+                break;
+            case 'quote':
+                color = quoteBgColor;
+                opacity = quoteBgOpacity;
+                break;
+            case 'delivery_note':
+                color = deliveryNoteBgColor;
+                opacity = deliveryNoteBgOpacity;
+                break;
+            case 'supplier_order':
+                color = supplierOrderBgColor;
+                opacity = supplierOrderBgOpacity;
+                break;
+        }
+
+        return {
+            backgroundColor: hexToRgba(color, opacity),
+        };
+    };
 
   return (
     <>
@@ -776,7 +834,7 @@ export default function ReportsPage() {
                             const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
 
                             return (
-                                <TableRow key={sale.id}>
+                                <TableRow key={sale.id} style={getRowStyle(sale)}>
                                      <TableCell>
                                         <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
                                     </TableCell>
