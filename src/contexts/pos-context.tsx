@@ -784,7 +784,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateQuantity = useCallback(
-    (itemId: OrderItem['id'], quantity: number) => {
+    (itemId: string, quantity: number) => {
       const itemToUpdate = order.find((item) => item.id === itemId);
       if (!itemToUpdate) return;
       
@@ -1024,7 +1024,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date,
+                date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
              addAuditLog({
@@ -1453,3 +1453,6 @@ export function usePos() {
   }
   return context;
 }
+
+
+    

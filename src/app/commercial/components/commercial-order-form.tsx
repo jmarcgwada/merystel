@@ -358,12 +358,13 @@ export const CommercialOrderForm = forwardRef<
       if (documentType === 'invoice' || documentType === 'credit_note') {
         setCurrentSaleContext(prev => ({
           ...prev,
-          isInvoice: true, // This flag can be used to signify it goes through checkout
+          isInvoice: true,
           customerId: selectedCustomer?.id,
           acompte,
           subtotal: subTotalHT,
           tax: totalTVA,
           total: totalTTC,
+          documentType: documentType
         }));
         setCheckoutOpen(true);
       } else {
@@ -757,5 +758,7 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
+
+    
 
     
