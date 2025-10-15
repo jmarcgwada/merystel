@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -25,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { EditItemDialog } from './edit-item-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const orderItemSchema = z.object({
@@ -479,35 +481,43 @@ export const CommercialOrderForm = forwardRef<
             <form className="space-y-6 flex flex-col flex-1 h-full">
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                          <h3 className="text-lg font-semibold">Détails de la facture</h3>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <Columns className="mr-2 h-4 w-4" />
-                                    Affichage
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {columns.map(column => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        checked={visibleColumns[column.id]}
-                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                    >
-                                        {column.label}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
-                                <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
-                                  <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
-                                  <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <Columns className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {columns.map(column => (
+                                                <DropdownMenuCheckboxItem
+                                                    key={column.id}
+                                                    checked={visibleColumns[column.id]}
+                                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                                >
+                                                    {column.label}
+                                                </DropdownMenuCheckboxItem>
+                                            ))}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
+                                            <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
+                                            <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
+                                            </DropdownMenuRadioGroup>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Options d'affichage</p>
+                                </TooltipContent>
+                            </Tooltip>
+                         </TooltipProvider>
                     </div>
                     {order.length > 0 && (
                       <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
@@ -734,3 +744,5 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
+
+    
