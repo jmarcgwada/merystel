@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -442,14 +443,7 @@ export default function ReportsPage() {
               </Button>
           )
       }
-      return (
-           <Button asChild>
-              <Link href="/reports/popular-items">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Voir les articles populaires
-              </Link>
-          </Button>
-      )
+      return null;
     }
 
   return (
