@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,11 @@ export default function CommercialLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { order, showNavConfirm } = usePos();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   const activeReportInfo = navLinks.find(link => link.value === activeTab);
@@ -47,6 +52,21 @@ export default function CommercialLayout({
       router.push('/dashboard');
     }
   };
+
+  if (!isClient) {
+    return (
+        <div className="h-full flex flex-col">
+            <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    {/* Skeleton or minimal header for SSR */}
+                </div>
+            </header>
+            <main className="flex-1 flex flex-col">
+                <div className="flex-1 flex items-center justify-center">Chargement...</div>
+            </main>
+        </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">
