@@ -165,7 +165,7 @@ interface PosContextType {
   confirmNavigation: () => void;
   seedInitialData: () => void;
   resetAllData: () => Promise<void>;
-  exportConfiguration: () => void;
+  exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
@@ -381,8 +381,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
-  const [smtpConfig, setSmtpConfig, rehydrateSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
-  const [ftpConfig, setFtpConfig, rehydrateFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
+  const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
+  const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -617,27 +617,48 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const exportConfiguration = useCallback(() => {
     const config = {
-        items,
-        categories,
-        customers,
-        suppliers,
-        tables: tablesData,
-        paymentMethods,
-        vatRates,
-        companyInfo,
+      items,
+      categories,
+      customers,
+      suppliers,
+      tables: tablesData,
+      paymentMethods,
+      vatRates,
+      companyInfo,
+      users,
+      settings: {
+        showNotifications, notificationDuration, enableDynamicBg, dynamicBgOpacity, showTicketImages,
+        showItemImagesInGrid, descriptionDisplay, popularItemsCount, itemCardOpacity,
+        paymentMethodImageOpacity, itemDisplayMode, itemCardShowImageAsBackground,
+        itemCardImageOverlayOpacity, itemCardTextColor, itemCardShowPrice,
+        externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth,
+        externalLinkModalHeight, showDashboardStats, enableRestaurantCategoryFilter,
+        enableSerialNumber, defaultSalesMode, isForcedMode, directSaleBackgroundColor,
+        restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity,
+        dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity,
+        dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
+        dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
+        deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
+        creditNoteBgColor, creditNoteBgOpacity
+      }
     };
-    const jsonString = JSON.stringify(config, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'zenith-pos-config-' + format(new Date(), 'yyyy-MM-dd') + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({ title: 'Exportation réussie' });
-  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, toast]);
+    return JSON.stringify(config, null, 2);
+  }, [
+    items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users,
+    showNotifications, notificationDuration, enableDynamicBg, dynamicBgOpacity, showTicketImages,
+    showItemImagesInGrid, descriptionDisplay, popularItemsCount, itemCardOpacity,
+    paymentMethodImageOpacity, itemDisplayMode, itemCardShowImageAsBackground,
+    itemCardImageOverlayOpacity, itemCardTextColor, itemCardShowPrice,
+    externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth,
+    externalLinkModalHeight, showDashboardStats, enableRestaurantCategoryFilter,
+    enableSerialNumber, defaultSalesMode, isForcedMode, directSaleBackgroundColor,
+    restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity,
+    dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity,
+    dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
+    dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
+    deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
+    creditNoteBgColor, creditNoteBgOpacity
+  ]);
 
   const importConfiguration = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -652,13 +673,78 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
             if (config.vatRates) setVatRates(config.vatRates);
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
+            if (config.users) setUsers(config.users);
+            if (config.settings) {
+                // Ugly but necessary
+                setShowNotifications(config.settings.showNotifications);
+                setNotificationDuration(config.settings.notificationDuration);
+                setEnableDynamicBg(config.settings.enableDynamicBg);
+                setDynamicBgOpacity(config.settings.dynamicBgOpacity);
+                setShowTicketImages(config.settings.showTicketImages);
+                setShowItemImagesInGrid(config.settings.showItemImagesInGrid);
+                setDescriptionDisplay(config.settings.descriptionDisplay);
+                setPopularItemsCount(config.settings.popularItemsCount);
+                setItemCardOpacity(config.settings.itemCardOpacity);
+                setPaymentMethodImageOpacity(config.settings.paymentMethodImageOpacity);
+                setItemDisplayMode(config.settings.itemDisplayMode);
+                setItemCardShowImageAsBackground(config.settings.itemCardShowImageAsBackground);
+                setItemCardImageOverlayOpacity(config.settings.itemCardImageOverlayOpacity);
+                setItemCardTextColor(config.settings.itemCardTextColor);
+                setItemCardShowPrice(config.settings.itemCardShowPrice);
+                setExternalLinkModalEnabled(config.settings.externalLinkModalEnabled);
+                setExternalLinkUrl(config.settings.externalLinkUrl);
+                setExternalLinkTitle(config.settings.externalLinkTitle);
+                setExternalLinkModalWidth(config.settings.externalLinkModalWidth);
+                setExternalLinkModalHeight(config.settings.externalLinkModalHeight);
+                setShowDashboardStats(config.settings.showDashboardStats);
+                setEnableRestaurantCategoryFilter(config.settings.enableRestaurantCategoryFilter);
+                setEnableSerialNumber(config.settings.enableSerialNumber);
+                setDefaultSalesMode(config.settings.defaultSalesMode);
+                setIsForcedMode(config.settings.isForcedMode);
+                setDirectSaleBackgroundColor(config.settings.directSaleBackgroundColor);
+                setRestaurantModeBackgroundColor(config.settings.restaurantModeBackgroundColor);
+                setDirectSaleBgOpacity(config.settings.directSaleBgOpacity);
+                setRestaurantModeBgOpacity(config.settings.restaurantModeBgOpacity);
+                setDashboardBgType(config.settings.dashboardBgType);
+                setDashboardBackgroundColor(config.settings.dashboardBackgroundColor);
+                setDashboardBackgroundImage(config.settings.dashboardBackgroundImage);
+                setDashboardBgOpacity(config.settings.dashboardBgOpacity);
+                setDashboardButtonBackgroundColor(config.settings.dashboardButtonBackgroundColor);
+                setDashboardButtonOpacity(config.settings.dashboardButtonOpacity);
+                setDashboardButtonShowBorder(config.settings.dashboardButtonShowBorder);
+                setDashboardButtonBorderColor(config.settings.dashboardButtonBorderColor);
+                setInvoiceBgColor(config.settings.invoiceBgColor);
+                setInvoiceBgOpacity(config.settings.invoiceBgOpacity);
+                setQuoteBgColor(config.settings.quoteBgColor);
+                setQuoteBgOpacity(config.settings.quoteBgOpacity);
+                setDeliveryNoteBgColor(config.settings.deliveryNoteBgColor);
+                setDeliveryNoteBgOpacity(config.settings.deliveryNoteBgOpacity);
+                setSupplierOrderBgColor(config.settings.supplierOrderBgColor);
+                setSupplierOrderBgOpacity(config.settings.supplierOrderBgOpacity);
+                setCreditNoteBgColor(config.settings.creditNoteBgColor);
+                setCreditNoteBgOpacity(config.settings.creditNoteBgOpacity);
+            }
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, toast,
+      setShowNotifications, setNotificationDuration, setEnableDynamicBg, setDynamicBgOpacity, setShowTicketImages,
+      setShowItemImagesInGrid, setDescriptionDisplay, setPopularItemsCount, setItemCardOpacity,
+      setPaymentMethodImageOpacity, setItemDisplayMode, setItemCardShowImageAsBackground,
+      setItemCardImageOverlayOpacity, setItemCardTextColor, setItemCardShowPrice,
+      setExternalLinkModalEnabled, setExternalLinkUrl, setExternalLinkTitle, setExternalLinkModalWidth,
+      setExternalLinkModalHeight, setShowDashboardStats, setEnableRestaurantCategoryFilter,
+      setEnableSerialNumber, setDefaultSalesMode, setIsForcedMode, setDirectSaleBackgroundColor,
+      setRestaurantModeBackgroundColor, setDirectSaleBgOpacity, setRestaurantModeBgOpacity,
+      setDashboardBgType, setDashboardBackgroundColor, setDashboardBackgroundImage, setDashboardBgOpacity,
+      setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
+      setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, setQuoteBgOpacity,
+      setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity,
+      setCreditNoteBgColor, setCreditNoteBgOpacity
+  ]);
   
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {

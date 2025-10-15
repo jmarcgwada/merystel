@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, LayoutDashboard, Send, Server } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -28,6 +28,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
+import { sendEmail } from '@/ai/flows/send-email-flow';
+import { format } from 'date-fns';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -44,13 +47,14 @@ export default function FirestoreDataPage() {
   const { user, loading: userLoading } = useUser();
   const { 
       resetAllData, 
-      isLoading, 
       exportConfiguration, 
       importConfiguration, 
       importDemoData, 
       deleteAllSales,
       importDemoCustomers,
       importDemoSuppliers,
+      ftpConfig,
+      smtpConfig,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -59,6 +63,7 @@ export default function FirestoreDataPage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
   const [isPinDialogOpen, setPinDialogOpen] = useState(true);
   const [pin, setPin] = useState('');
@@ -140,6 +145,79 @@ export default function FirestoreDataPage() {
     
     if(fileInputRef.current) {
         fileInputRef.current.value = '';
+    }
+  };
+  
+  const handleDownload = () => {
+    const jsonString = exportConfiguration();
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: 'Exportation réussie' });
+  };
+  
+  const handleExportToFtp = async () => {
+    if (!ftpConfig?.host || !smtpConfig?.host) {
+      toast({
+        variant: 'destructive',
+        title: 'Configuration requise',
+        description: 'Veuillez configurer vos serveurs FTP et SMTP dans la page "Connectivité".',
+      });
+      return;
+    }
+    setIsExportingToFtp(true);
+    toast({ title: 'Préparation de l\'exportation FTP...' });
+
+    try {
+      const jsonString = exportConfiguration();
+      const fileContentBase64 = Buffer.from(jsonString).toString('base64');
+      const fileName = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.json`;
+
+      const ftpResult = await uploadFileFtp({
+        ftpConfig: {
+            host: ftpConfig.host,
+            port: ftpConfig.port || 21,
+            user: ftpConfig.user || '',
+            password: ftpConfig.password || '',
+            secure: ftpConfig.secure || false,
+            path: ftpConfig.path || '/',
+        },
+        fileName: fileName,
+        fileContent: fileContentBase64,
+      });
+
+      if (ftpResult.success) {
+        toast({ title: 'Exportation FTP réussie', description: 'Le fichier de configuration a été envoyé.' });
+
+        // Send email notification
+        await sendEmail({
+          smtpConfig: {
+            host: smtpConfig.host,
+            port: smtpConfig.port || 587,
+            secure: smtpConfig.secure || false,
+            auth: { user: smtpConfig.user || '', pass: smtpConfig.password || '' },
+            senderEmail: smtpConfig.senderEmail || '',
+          },
+          to: 'datamonetik@gmail.com',
+          subject: `Sauvegarde Zenith POS réussie - ${format(new Date(), 'd MMM yyyy HH:mm')}`,
+          text: `La sauvegarde de la configuration de Zenith POS a été effectuée avec succès sur le serveur FTP.\nNom du fichier : ${fileName}`,
+          html: `<p>La sauvegarde de la configuration de <b>Zenith POS</b> a été effectuée avec succès sur le serveur FTP.</p><p><b>Nom du fichier :</b> ${fileName}</p>`,
+        });
+
+      } else {
+        toast({ variant: 'destructive', title: 'Échec de l\'exportation FTP', description: ftpResult.message });
+      }
+    } catch (error: any) {
+      console.error("FTP/Email export error:", error);
+      toast({ variant: 'destructive', title: 'Erreur critique', description: error.message || 'Une erreur inattendue est survenue.' });
+    } finally {
+      setIsExportingToFtp(false);
     }
   };
   
@@ -252,13 +330,17 @@ export default function FirestoreDataPage() {
                         <CardHeader>
                             <CardTitle>Gestion de la configuration</CardTitle>
                             <CardDescription>
-                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, TVA, etc.).
+                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row gap-4">
-                            <Button onClick={exportConfiguration} variant="outline">
+                            <Button onClick={handleDownload} variant="outline">
                                 <Download className="mr-2" />
                                 Exporter la configuration
+                            </Button>
+                             <Button onClick={handleExportToFtp} variant="secondary" disabled={isExportingToFtp}>
+                                <Server className="mr-2 h-4 w-4"/>
+                                {isExportingToFtp ? 'Export en cours...' : 'Exporter vers FTP'}
                             </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
