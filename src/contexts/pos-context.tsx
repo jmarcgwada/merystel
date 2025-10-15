@@ -583,7 +583,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
-    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
+    
+    // Clear only app-specific data, not all settings
+    localStorage.removeItem('data.items');
+    localStorage.removeItem('data.categories');
+    localStorage.removeItem('data.customers');
+    localStorage.removeItem('data.suppliers');
+    localStorage.removeItem('data.tables');
+    localStorage.removeItem('data.sales');
+    localStorage.removeItem('data.heldOrders');
+    localStorage.removeItem('data.paymentMethods');
+    localStorage.removeItem('data.vatRates');
+    localStorage.removeItem('data.auditLogs');
+    localStorage.removeItem('data.companyInfo');
+    localStorage.removeItem('data.users');
+
+    toast({ title: 'Données de l\'application réinitialisées', description: 'Les configurations serveur sont conservées.' });
+    
     setTimeout(() => {
       seedInitialData();
       importDemoData();
