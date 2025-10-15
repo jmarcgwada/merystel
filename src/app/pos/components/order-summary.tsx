@@ -790,26 +790,19 @@ export function OrderSummary() {
             </div>
             <div className="mt-4 flex justify-between items-center gap-2 no-print">
               {readOnlyOrder ? (
-                <>
-                    {readOnlyOrder[0]?.sourceSale && (readOnlyOrder[0].sourceSale.status !== 'paid' && readOnlyOrder[0].sourceSale.status !== 'invoiced') ? (
-                        <Button size="lg" className="flex-1" onClick={handleEditTicket}>
-                            <Edit className="mr-2" />
-                            Modifier
-                        </Button>
-                    ) : (
-                        <Button size="lg" className="flex-1" onClick={handleDuplicateTicket}>
-                            <Copy className="mr-2" />
-                            Dupliquer
-                        </Button>
-                    )}
-                    <Button size="lg" className="flex-1" onClick={handlePrint}>
-                        <Printer className="mr-2" />
-                        Imprimer
-                    </Button>
-                    <Button size="lg" className="flex-1" onClick={() => clearOrder()}>
-                        Nouveau
-                    </Button>
-                </>
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                      <Button size="lg" className="flex-1" onClick={handleEditTicket}>
+                          <Edit className="mr-2" />
+                          Modifier
+                      </Button>
+                      <Button size="lg" className="flex-1" onClick={handleDuplicateTicket}>
+                          <Copy className="mr-2" />
+                          Dupliquer
+                      </Button>
+                      <Button size="lg" className="flex-1" onClick={() => clearOrder()}>
+                          Nouveau
+                      </Button>
+                  </div>
               ) : selectedTable && selectedTable.id !== 'takeaway' && !isClosingTable ? (
                 <>
                   <Button
@@ -887,5 +880,6 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
