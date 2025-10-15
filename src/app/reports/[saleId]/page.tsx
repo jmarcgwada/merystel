@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -100,7 +100,7 @@ function SaleDetailContent() {
     const sortedSales = [...allSales].sort((a, b) => {
         const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
         const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-        return dateB.getTime() - a.getTime();
+        return dateB.getTime() - dateA.getTime();
     });
 
     const currentIndex = sortedSales.findIndex(s => s.id === saleId);
@@ -138,9 +138,9 @@ function SaleDetailContent() {
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         if (vatInfo) {
-            const priceHT = item.price / (1 + vatInfo.rate / 100);
-            const totalHT = priceHT * item.quantity;
-            const vatAmount = totalHT * (vatInfo.rate / 100);
+            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const totalHT = priceHT;
+            const vatAmount = item.total - totalHT;
             
             if (breakdown[vatInfo.rate]) {
                 breakdown[vatInfo.rate].total += vatAmount;
