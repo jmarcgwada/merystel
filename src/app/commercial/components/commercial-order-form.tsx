@@ -477,7 +477,11 @@ export const CommercialOrderForm = forwardRef<
         </div>
 
       <div className="flex justify-between items-center mt-4 mb-2">
-          <div className="flex items-center gap-2">
+          
+        </div>
+      <Card className="flex-1 flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between">
+           <div className="flex items-center gap-2">
                  <h3 className="text-lg font-semibold">Détails de la pièce</h3>
                  <TooltipProvider>
                     <Tooltip>
@@ -527,8 +531,7 @@ export const CommercialOrderForm = forwardRef<
                 Tout effacer
               </Button>
             )}
-        </div>
-      <Card className="flex-1 flex flex-col">
+        </CardHeader>
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
           <Form {...form}>
             <form className="flex-1 flex flex-col h-full">
@@ -654,7 +657,7 @@ export const CommercialOrderForm = forwardRef<
                                       )}
                                   </div>
                                   }
-                                {visibleColumns.quantity && <div className="flex justify-end"><Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner w-12" />)} /></div>}
+                                {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner w-12 ml-auto block" />)} />}
                                 
                                 {priceDisplayType === 'ht' 
                                     ? <Controller control={form.control} name={`items.${index}.price`} render={({ field: { onChange, ...restField } }) => <Input type="number" {...restField} value={priceHT.toFixed(2)} onBlur={e => { const htValue = parseFloat(e.target.value) || 0; if (vatInfo) { const ttcValue = htValue * (1 + vatInfo.rate / 100); updateItemPrice(field.id, ttcValue); } }} onChange={() => {}} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />} />
@@ -761,9 +764,3 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
-
-    
-
-    
-
-    
