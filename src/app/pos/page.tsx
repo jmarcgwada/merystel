@@ -41,6 +41,7 @@ export default function PosPage() {
     setSelectedTableById, 
     heldOrders, 
     order,
+    readOnlyOrder,
     isKeypadOpen, 
     popularItemsCount, 
     selectedTable, 
@@ -179,10 +180,10 @@ export default function PosPage() {
                   <Button 
                       variant="outline" 
                       onClick={() => setHeldOpen(true)}
-                      disabled={order.length > 0}
+                      disabled={order.length > 0 || !!readOnlyOrder}
                       className={cn(
                           "flex-shrink-0",
-                          (heldOrders?.length || 0) > 0 && order.length === 0 && 'animate-pulse-button'
+                          (heldOrders?.length || 0) > 0 && order.length === 0 && !readOnlyOrder && 'animate-pulse-button'
                       )}
                   >
                       <Hand className="mr-2 h-4 w-4"/>
