@@ -9,7 +9,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 import { useRouter } from 'next/navigation';
 import { EditItemDialog } from './edit-item-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 const orderItemSchema = z.object({
@@ -36,6 +37,7 @@ const orderItemSchema = z.object({
   description: z.string().optional(),
   description2: z.string().optional(),
   note: z.string().optional(),
+  barcode: z.string().optional(),
 });
 
 const FormSchema = z.object({
@@ -112,6 +114,46 @@ export const CommercialOrderForm = forwardRef<
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+
+   useEffect(() => {
+        const storedColumns = localStorage.getItem('commercialOrderVisibleColumns');
+        if (storedColumns) {
+            setVisibleColumns(JSON.parse(storedColumns));
+        } else {
+            // Default visibility
+             setVisibleColumns({
+                reference: false,
+                designation: true,
+                quantity: true,
+                pu_ht: false,
+                pu_ttc: true,
+                vat_code: true,
+                discount: true,
+                total_ht: true,
+                total_ttc: true,
+            });
+        }
+    }, []);
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('commercialOrderVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const columns = [
+        { id: 'reference', label: 'Référence' },
+        { id: 'designation', label: 'Désignation' },
+        { id: 'quantity', label: 'Qté' },
+        { id: 'pu_ht', label: 'P.U. HT' },
+        { id: 'pu_ttc', label: 'P.U. TTC' },
+        { id: 'vat_code', label: 'Code TVA' },
+        { id: 'discount', label: 'Remise %' },
+        { id: 'total_ht', label: 'Total HT' },
+        { id: 'total_ttc', label: 'Total TTC' },
+    ];
+
 
   const form = useForm<CommercialOrderFormValues>({
     resolver: zodResolver(FormSchema),
@@ -430,7 +472,30 @@ export const CommercialOrderForm = forwardRef<
             <form className="space-y-6 flex flex-col flex-1 h-full">
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                    <div className="flex items-center gap-4">
+                         <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <Columns className="mr-2 h-4 w-4" />
+                                    Affichage
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {columns.map(column => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={visibleColumns[column.id]}
+                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                    >
+                                        {column.label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                     {order.length > 0 && (
                       <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -438,14 +503,33 @@ export const CommercialOrderForm = forwardRef<
                       </Button>
                     )}
                 </div>
-                <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b">
-                  <span className="py-2">Désignation</span>
-                  <span className="text-right py-2">Qté</span>
-                  <span className="text-right py-2">P.U. HT</span>
-                  <span className="text-center py-2">Code TVA</span>
-                  <span className="text-right py-2">Remise %</span>
-                  <span className="text-right py-2">Total HT</span>
-                  <span className="py-2"></span>
+                <div 
+                  className="grid items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b gap-x-4"
+                  style={{
+                    gridTemplateColumns: `
+                        ${visibleColumns.reference ? '1fr' : ''} 
+                        ${visibleColumns.designation ? '3fr' : ''} 
+                        ${visibleColumns.quantity ? '0.5fr' : ''} 
+                        ${visibleColumns.pu_ht ? '1fr' : ''} 
+                        ${visibleColumns.pu_ttc ? '1fr' : ''} 
+                        ${visibleColumns.vat_code ? '0.7fr' : ''} 
+                        ${visibleColumns.discount ? '0.7fr' : ''} 
+                        ${visibleColumns.total_ht ? '1fr' : ''} 
+                        ${visibleColumns.total_ttc ? '1fr' : ''}
+                        min-content
+                      `.replace(/\s+/g, ' ').trim()
+                  }}
+                >
+                  {visibleColumns.reference && <span>Réf.</span>}
+                  {visibleColumns.designation && <span>Désignation</span>}
+                  {visibleColumns.quantity && <span className="text-right">Qté</span>}
+                  {visibleColumns.pu_ht && <span className="text-right">P.U. HT</span>}
+                  {visibleColumns.pu_ttc && <span className="text-right">P.U. TTC</span>}
+                  {visibleColumns.vat_code && <span className="text-center">TVA</span>}
+                  {visibleColumns.discount && <span className="text-center">Rem. %</span>}
+                  {visibleColumns.total_ht && <span className="text-right">Total HT</span>}
+                  {visibleColumns.total_ttc && <span className="text-right">Total TTC</span>}
+                  <span />
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="space-y-2">
@@ -455,7 +539,26 @@ export const CommercialOrderForm = forwardRef<
                       const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
                       return (
-                      <div key={field.id} className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_min-content] gap-x-4 items-center py-2 border-b group">
+                      <div 
+                        key={field.id} 
+                        className="grid items-center py-2 border-b group gap-x-4"
+                        style={{
+                            gridTemplateColumns: `
+                                ${visibleColumns.reference ? '1fr' : ''} 
+                                ${visibleColumns.designation ? '3fr' : ''} 
+                                ${visibleColumns.quantity ? '0.5fr' : ''} 
+                                ${visibleColumns.pu_ht ? '1fr' : ''} 
+                                ${visibleColumns.pu_ttc ? '1fr' : ''} 
+                                ${visibleColumns.vat_code ? '0.7fr' : ''} 
+                                ${visibleColumns.discount ? '0.7fr' : ''} 
+                                ${visibleColumns.total_ht ? '1fr' : ''} 
+                                ${visibleColumns.total_ttc ? '1fr' : ''}
+                                min-content
+                              `.replace(/\s+/g, ' ').trim()
+                          }}
+                        >
+                          {visibleColumns.reference && <span className="text-xs text-muted-foreground font-mono">{field.barcode}</span>}
+                          {visibleColumns.designation && 
                           <div className="flex flex-col">
                               <div className="flex items-center gap-1">
                                 <span className="font-semibold">{field.name}</span>
@@ -514,42 +617,14 @@ export const CommercialOrderForm = forwardRef<
                                 </div>
                               )}
                           </div>
-                        <Controller
-                            control={form.control}
-                            name={`items.${index}.quantity`}
-                            render={({ field: controllerField }) => (
-                                <Input 
-                                    type="number" 
-                                    {...controllerField}
-                                    value={controllerField.value || 1}
-                                    onChange={e => {
-                                      controllerField.onChange(parseInt(e.target.value) || 1);
-                                      updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);
-                                    }}
-                                    onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
-                                    min={1} 
-                                    className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
-                                />
-                            )}
-                        />
-                        <Input type="number" readOnly value={priceHT.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                        <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                         <Controller
-                            control={form.control}
-                            name={`items.${index}.remise`}
-                            render={({ field: controllerField }) => (
-                                <Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
-                            )}
-                        />
-                      <div className="font-medium h-full flex items-center justify-end">
-                        {(() => {
-                            const item = watchItems[index];
-                            if(!item || !item.itemId) return '0.00€';
-                            const remise = item.remise || 0;
-                            const total = priceHT * item.quantity * (1 - (remise || 0) / 100);
-                            return `${total.toFixed(2)}€`
-                        })()}
-                      </div>
+                          }
+                        {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { controllerField.onChange(parseInt(e.target.value) || 1); updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1);}} onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
+                        {visibleColumns.pu_ht && <div className="text-right">{priceHT.toFixed(2)}€</div>}
+                        {visibleColumns.pu_ttc && <div className="text-right font-medium">{field.price.toFixed(2)}€</div>}
+                        {visibleColumns.vat_code && <div className="text-center font-mono">{vatInfo?.code || '-'}</div>}
+                        {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onChange={e => controllerField.onChange(parseFloat(e.target.value) || 0)} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)}/>}
+                        {visibleColumns.total_ht && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                        {visibleColumns.total_ttc && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -634,7 +709,7 @@ export const CommercialOrderForm = forwardRef<
                    setOrder(currentOrder => 
                     currentOrder.map(orderItem => 
                       orderItem.itemId === updatedItem.id 
-                        ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2 }
+                        ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2, barcode: updatedItem.barcode }
                         : orderItem
                     )
                   );

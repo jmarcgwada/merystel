@@ -125,12 +125,14 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
   async function onSubmit(data: ItemFormValues) {
     if (!item) return;
 
-    const updatedItem = {
+    const updatedItemData: Item = {
       ...item,
       ...data,
     };
-    await updateItem(updatedItem);
-    onItemUpdated(updatedItem);
+    
+    // As updateItem is async, we should await it.
+    await updateItem(updatedItemData);
+    onItemUpdated(updatedItemData);
     toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
     onClose();
   }
