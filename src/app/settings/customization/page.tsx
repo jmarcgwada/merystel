@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -96,9 +97,9 @@ export default function CustomizationPage() {
           </Link>
         </Button>
       </PageHeader>
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-8">
-            <Card>
+             <Card>
               <CardHeader>
                 <CardTitle>Fenêtre Modale Externe</CardTitle>
                 <CardDescription>
@@ -181,9 +182,26 @@ export default function CustomizationPage() {
                 )}
               </CardContent>
             </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Fonctionnalités & Données</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-4">
+                    <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="popular-items-count">Articles populaires</Label>
+                            {isClient ? <span className="text-sm font-bold text-primary">{currentPopularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
+                        </p>
+                        {isClient ? <Slider id="popular-items-count" value={[currentPopularItemsCount]} onValueChange={handlePopularItemsChange} onValueCommit={handlePopularItemsCommit} min={1} max={50} step={1} /> : <Skeleton className="h-5 w-full" />}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
         <div className="space-y-8">
-            <Card>
+           <Card>
                 <CardHeader>
                     <CardTitle>Apparence des Articles (POS)</CardTitle>
                     <CardDescription>
@@ -223,25 +241,6 @@ export default function CustomizationPage() {
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader>
-                    <CardTitle>Fonctionnalités & Données</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-4">
-                    <div className="grid gap-2">
-                        <div className="flex justify-between items-center">
-                            <Label htmlFor="popular-items-count">Articles populaires</Label>
-                            {isClient ? <span className="text-sm font-bold text-primary">{currentPopularItemsCount} articles</span> : <Skeleton className="h-5 w-20" />}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                            Définissez le nombre d'articles à afficher dans la catégorie "Populaire".
-                        </p>
-                        {isClient ? <Slider id="popular-items-count" value={[currentPopularItemsCount]} onValueChange={handlePopularItemsChange} onValueCommit={handlePopularItemsCommit} min={1} max={50} step={1} /> : <Skeleton className="h-5 w-full" />}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-        <div className="space-y-8">
-             <Card>
                 <CardHeader>
                 <CardTitle>Visibilité des Éléments</CardTitle>
                 </CardHeader>
