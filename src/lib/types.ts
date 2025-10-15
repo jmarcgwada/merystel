@@ -211,3 +211,21 @@ export interface AuditLog {
     documentNumber: string;
     details: string;
 }
+
+export interface SmtpConfig {
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  secure?: boolean;
+  senderEmail?: string;
+}
+
+export interface FtpConfig {
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  path?: string;
+  secure?: boolean;
+}

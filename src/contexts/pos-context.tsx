@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -24,6 +25,8 @@ import type {
   SelectedVariant,
   Supplier,
   AuditLog,
+  SmtpConfig,
+  FtpConfig,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -270,6 +273,10 @@ interface PosContextType {
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
+  smtpConfig: SmtpConfig;
+  setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
+  ftpConfig: FtpConfig;
+  setFtpConfig: React.Dispatch<React.SetStateAction<FtpConfig>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -372,6 +379,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
+  const [smtpConfig, setSmtpConfig, rehydrateSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
+  const [ftpConfig, setFtpConfig, rehydrateFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -1444,6 +1453,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
       companyInfo, setCompanyInfo,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig,
   };
 
   return (
