@@ -67,15 +67,15 @@ interface PosContextType {
     type: 'percentage' | 'fixed'
   ) => void;
   clearOrder: () => void;
-  resetCommercialPage: (pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => void;
+  resetCommercialPage: (pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => void;
   orderTotal: number;
   orderTax: number;
   isKeypadOpen: boolean;
   setIsKeypadOpen: React.Dispatch<React.SetStateAction<boolean>>;
   currentSaleId: string | null;
   setCurrentSaleId: React.Dispatch<React.SetStateAction<string | null>>;
-  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string; } | null;
-  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string;} | null>>;
+  currentSaleContext: Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order' | 'credit_note'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string; } | null;
+  setCurrentSaleContext: React.Dispatch<React.SetStateAction<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order' | 'credit_note'; fromConversion?: boolean; originalTotal?: number; originalPayments?: Payment[], change?:number; originalSaleId?: string;} | null>>;
   serialNumberItem: { item: Item | OrderItem; quantity: number } | null;
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
@@ -83,7 +83,7 @@ interface PosContextType {
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
-  loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => Promise<boolean>;
+  loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => Promise<boolean>;
   loadSaleForConversion: (saleId: string) => void;
   convertToInvoice: (saleId: string) => void;
 
@@ -140,7 +140,7 @@ interface PosContextType {
   ) => Promise<Sale | null>;
    recordCommercialDocument: (
     doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note' | 'supplier_order',
+    type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note',
     docIdToUpdate?: string,
   ) => void,
   deleteAllSales: () => Promise<void>;
@@ -375,7 +375,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
     
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
-  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order'; fromConversion?: boolean; originalSaleId?: string; } | null>(
+  const [currentSaleContext, setCurrentSaleContext] = useState<Partial<Sale> & { isTableSale?: boolean; isInvoice?: boolean; isReadOnly?: boolean; acompte?: number; documentType?: 'invoice' | 'quote' | 'delivery_note' | 'ticket' | 'supplier_order' | 'credit_note'; fromConversion?: boolean; originalSaleId?: string; } | null>(
     null
   );
   const [isNavConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -445,7 +445,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
 
-  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order') => {
+  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
     clearOrder();
     setCurrentSaleId(null);
     setCurrentSaleContext({ documentType: pageType });
@@ -766,11 +766,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
-      setOrder(currentOrder => currentOrder.map(item => 
-          item.id === itemId 
-              ? { ...item, quantity: quantity, total: item.price * quantity - (item.discount || 0) } 
-              : item
-      ));
+      setOrder(currentOrder => currentOrder.map(item => {
+          if (item.id === itemId) {
+              const newTotal = item.price * quantity;
+              const discountAmount = item.discountPercent ? newTotal * (item.discountPercent / 100) : item.discount;
+              return { ...item, quantity: quantity, total: newTotal - discountAmount, discount: discountAmount };
+          }
+          return item;
+      }));
   }, []);
 
   const updateQuantity = useCallback(
@@ -835,10 +838,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setOrder(currentOrder =>
       currentOrder.map(item => {
         if (item.id === itemId) {
+          const newTotal = newPriceTTC * item.quantity;
+          const discountAmount = item.discountPercent ? newTotal * (item.discountPercent / 100) : item.discount;
           return {
             ...item,
             price: newPriceTTC,
-            total: newPriceTTC * item.quantity - (item.discount || 0),
+            total: newTotal - discountAmount,
+            discount: discountAmount,
           };
         }
         return item;
@@ -1093,9 +1099,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return finalSale;
     }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
     
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
-        const prefix = type === 'quote' ? 'Devis' : type === 'delivery_note' ? 'BL' : 'CF';
+        const prefix = type === 'quote' ? 'Devis' : type === 'delivery_note' ? 'BL' : type === 'supplier_order' ? 'CF' : 'AVOIR';
         
         let finalDoc: Sale;
 
@@ -1166,7 +1172,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const reportPath = type === 'quote' ? '/reports?filter=Devis-'
                         : type === 'delivery_note' ? '/reports?filter=BL-'
-                        : '/reports?filter=CF-';
+                        : type === 'supplier_order' ? '/reports?filter=CF-'
+                        : type === 'credit_note' ? '/reports?filter=Avoir-'
+                        : '/reports';
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, items, setItems, addAuditLog]);
 
@@ -1326,7 +1334,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
   
-  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order'): Promise<boolean> => {
+  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note'): Promise<boolean> => {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';

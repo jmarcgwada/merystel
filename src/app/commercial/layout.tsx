@@ -17,6 +17,7 @@ const navLinks = [
     { href: '/commercial/quotes', value: 'quotes', label: 'Devis', reportLabel: 'Liste Devis', reportFilter: 'Devis-' },
     { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', reportLabel: 'Liste BL', reportFilter: 'BL-' },
     { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
+    { href: '/commercial/credit-notes', value: 'credit-notes', label: 'Avoirs', reportLabel: 'Liste Avoirs', reportFilter: 'Avoir-' },
 ]
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -48,6 +49,7 @@ export default function CommercialLayout({
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   const activeReportInfo = navLinks.find(link => link.value === activeTab);
+  const isCreditNotePage = activeTab === 'credit-notes';
   
   const backgroundColor = useMemo(() => {
     if (!isClient) return 'transparent';
@@ -61,6 +63,8 @@ export default function CommercialLayout({
         return hexToRgba(deliveryNoteBgColor, deliveryNoteBgOpacity);
       case 'supplier-orders':
         return hexToRgba(supplierOrderBgColor, supplierOrderBgOpacity);
+      case 'credit-notes':
+        return 'transparent'; // Avoirs have a neutral background
       default:
         return 'transparent';
     }
@@ -105,17 +109,13 @@ export default function CommercialLayout({
                 <Tabs value={activeTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-5">
                         {navLinks.map(link => (
-                            <TabsTrigger value={link.value} asChild key={link.href}>
+                             <TabsTrigger value={link.value} asChild key={link.href} disabled={isCreditNotePage && link.value !== 'credit-notes'}>
                                 <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
                                      <FileText className="h-4 w-4" />
                                     <span className="hidden sm:inline-block">{link.label}</span>
                                 </Link>
                             </TabsTrigger>
                         ))}
-                         <TabsTrigger value="customer-orders" disabled>
-                           <UserCheck className="h-4 w-4 mr-2" />
-                           <span className="hidden sm:inline-block">Cdes Client</span>
-                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
                 <div className="pl-4 flex items-center gap-2">
