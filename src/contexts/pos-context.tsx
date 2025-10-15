@@ -468,10 +468,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
 
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
-    clearOrder();
+    setOrder([]);
     setCurrentSaleId(null);
     setCurrentSaleContext({ documentType: pageType, status: 'pending' });
-  }, [clearOrder]);
+  }, []);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
