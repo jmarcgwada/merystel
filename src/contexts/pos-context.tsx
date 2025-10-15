@@ -24,6 +24,7 @@ import type {
   User,
   SelectedVariant,
   Supplier,
+  AuditLog,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -394,6 +395,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
   const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
   const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
   const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
   const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
@@ -407,6 +409,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
+
+  const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
+    const newLog: AuditLog = {
+      ...logData,
+      id: uuidv4(),
+      date: new Date(),
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  }, [setAuditLogs]);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -551,6 +562,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setHeldOrders([]);
     setPaymentMethods([]);
     setVatRates([]);
+    setAuditLogs([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -559,7 +571,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoData();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setAuditLogs, setCompanyInfo, toast, seedInitialData, importDemoData]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -784,15 +796,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setOrder((currentOrder) =>
-        currentOrder.map((item) =>
-          item.id === itemId
-            ? {
+        currentOrder.map((item) => {
+          if (item.id === itemId) {
+             const newTotal = item.price * quantity;
+             const discountAmount = item.discountPercent 
+                ? newTotal * (item.discountPercent / 100)
+                : item.discount;
+             return {
                 ...item,
                 quantity,
-                total: item.price * quantity - (item.discount || 0),
+                total: newTotal - discountAmount,
+                discount: discountAmount,
               }
-            : item
-        )
+          }
+          return item;
+        })
       );
     },
     [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
@@ -997,6 +1015,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
+             addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'update',
+                documentType: finalSale.documentType || 'ticket',
+                documentId: finalSale.id,
+                documentNumber: finalSale.ticketNumber,
+                details: `Pièce modifiée, total: ${finalSale.total.toFixed(2)}€`
+            });
         } else {
             const dayMonth = format(today, 'ddMM');
             let ticketNumber: string;
@@ -1019,6 +1046,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 date: today
             };
+            addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'create',
+                documentType: finalSale.documentType || 'ticket',
+                documentId: finalSale.id,
+                documentNumber: finalSale.ticketNumber,
+                details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€`
+            });
         }
         
         if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
@@ -1029,7 +1065,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
         }
 
-        // Handle invoice conversion: update original doc status
         if (currentSaleContext?.originalSaleId) {
           setSales(currentSales =>
             currentSales.map(s =>
@@ -1038,6 +1073,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 : s
             )
           );
+           addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'transform',
+                documentType: finalSale.documentType || 'ticket',
+                documentId: finalSale.id,
+                documentNumber: finalSale.ticketNumber,
+                details: `Pièce transformée depuis ${currentSaleContext.documentType} #${currentSaleContext.ticketNumber}`
+            });
         }
 
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
@@ -1047,7 +1091,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order', docIdToUpdate?: string) => {
         const today = new Date();
@@ -1064,6 +1108,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 modifiedAt: today,
             };
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
+            addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'update',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Pièce modifiée: ${finalDoc.ticketNumber}`
+            });
         } else {
              const count = sales.filter(s => s.documentType === type).length;
              const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
@@ -1077,6 +1130,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...docData,
             };
             setSales(prev => [finalDoc, ...prev]);
+             addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'create',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Pièce créée: ${finalDoc.ticketNumber}`
+            });
         }
 
         if (type === 'supplier_order' && docData.status === 'paid') { // 'paid' means validated for supplier orders
@@ -1097,7 +1159,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : type === 'delivery_note' ? '/reports?filter=BL-'
                         : '/reports?filter=CF-';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, items, setItems]);
+    }, [sales, setSales, user, clearOrder, toast, router, items, setItems, addAuditLog]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
@@ -1312,7 +1374,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
