@@ -468,10 +468,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
 
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
-    setOrder([]);
+    clearOrder();
     setCurrentSaleId(null);
     setCurrentSaleContext({ documentType: pageType, status: 'pending' });
-  }, []);
+  }, [clearOrder]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -1454,7 +1454,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
-        
         const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
         setOrder(saleToEdit.items);
