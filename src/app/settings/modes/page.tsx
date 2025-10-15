@@ -1,3 +1,6 @@
+
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -5,8 +8,18 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { usePos } from '@/contexts/pos-context';
+import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ModesPage() {
+  const { isForcedMode, setIsForcedMode } = usePos();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <>
       <PageHeader
@@ -24,27 +37,24 @@ export default function ModesPage() {
         <CardHeader>
           <CardTitle>Configuration du mode</CardTitle>
           <CardDescription>
-            Activez un mode pour verrouiller l'application. Une combinaison de touches spéciale sera requise pour déverrouiller.
+            Activez un mode pour verrouiller l'application. Une combinaison de touches spéciale ou un code PIN sera requis pour déverrouiller.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label htmlFor="touch-mode" className="text-base">Forcer le mode écran tactile</Label>
+              <Label htmlFor="forced-mode" className="text-base">Activer le mode forcé</Label>
               <p className="text-sm text-muted-foreground">
-                Verrouille l'application sur l'écran principal du point de vente.
+                Verrouille l'application sur le mode de vente par défaut défini dans les paramètres.
               </p>
             </div>
-            <Switch id="touch-mode" />
-          </div>
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <Label htmlFor="restaurant-mode" className="text-base">Forcer le mode restaurant</Label>
-               <p className="text-sm text-muted-foreground">
-                Verrouille l'application sur la vue de gestion des tables du restaurant.
-              </p>
-            </div>
-            <Switch id="restaurant-mode" />
+            {isClient ? (
+              <Switch 
+                id="forced-mode" 
+                checked={isForcedMode}
+                onCheckedChange={setIsForcedMode}
+              />
+            ) : <Skeleton className="h-6 w-11" />}
           </div>
         </CardContent>
       </Card>
