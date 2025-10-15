@@ -19,6 +19,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -57,6 +67,7 @@ export default function DashboardPage() {
 
     const [formattedDate, setFormattedDate] = useState('');
     const [isMounted, setIsMounted] = useState(false);
+    const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
     
     useEffect(() => {
         setIsMounted(true);
@@ -211,6 +222,7 @@ export default function DashboardPage() {
 
 
   return (
+    <>
     <div className="relative isolate min-h-full">
       {isMounted && <div style={backgroundStyle} />}
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -363,7 +375,7 @@ export default function DashboardPage() {
                                   <Button asChild variant="secondary" size="sm"><Link href="/commercial/quotes">Devis</Link></Button>
                                   <Button asChild variant="secondary" size="sm"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
                                   <Button asChild variant="secondary" size="sm"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
-                                  <Button asChild variant="secondary" size="sm"><Link href="/commercial/credit-notes">Avoirs</Link></Button>
+                                  <Button variant="secondary" size="sm" onClick={() => setCreditNoteConfirmOpen(true)}>Avoirs</Button>
                           </div>
                       </CardContent>
                   </Card>
@@ -447,5 +459,22 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    <AlertDialog open={isCreditNoteConfirmOpen} onOpenChange={setCreditNoteConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Créer un nouvel avoir ?</AlertDialogTitle>
+            <AlertDialogDescription>
+                Cette action va initialiser une nouvelle pièce de type "Avoir". Êtes-vous sûr de vouloir continuer ?
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push('/commercial/credit-notes')}>
+                Confirmer
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
