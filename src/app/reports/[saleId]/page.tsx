@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -12,13 +13,14 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -76,7 +78,7 @@ function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
   const fromPos = searchParams.get('from') === 'pos';
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, setOrder, setReadOnlyOrder, setCurrentSaleId, setCurrentSaleContext, toast } = usePos();
   const router = useRouter();
   const { user } = useUser();
 
@@ -98,7 +100,7 @@ function SaleDetailContent() {
     const sortedSales = [...allSales].sort((a, b) => {
         const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
         const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
+        return dateB.getTime() - a.getTime();
     });
 
     const currentIndex = sortedSales.findIndex(s => s.id === saleId);
@@ -164,6 +166,20 @@ function SaleDetailContent() {
         router.push('/reports');
     }
   }
+
+  const handleDuplicateTicket = () => {
+    if (!sale) return;
+    const itemsToDuplicate = sale.items.map(item => {
+        const { sourceSale, id, ...rest } = item;
+        return { ...rest, id: uuidv4() };
+    });
+    setOrder(itemsToDuplicate);
+    setReadOnlyOrder(null);
+    setCurrentSaleId(null);
+    setCurrentSaleContext(null);
+    toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
+    router.push('/pos');
+};
   
   const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'BL' : 'Ticket';
 
@@ -227,6 +243,10 @@ function SaleDetailContent() {
             </Button>
             {user?.role !== 'cashier' && (
               <>
+                <Button variant="outline" onClick={handleDuplicateTicket}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Dupliquer
+                </Button>
                 <Button variant="outline">
                     <FileText className="mr-2 h-4 w-4" />
                     Avoir

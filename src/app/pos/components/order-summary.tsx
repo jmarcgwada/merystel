@@ -507,21 +507,6 @@ export function OrderSummary() {
   const handlePrint = () => {
     window.print();
   }
-
-    const handleDuplicateTicket = () => {
-        const sourceOrder = readOnlyOrder || order;
-        if (sourceOrder.length > 0) {
-            const itemsToDuplicate = sourceOrder.map(item => {
-                const { sourceSale, id, ...rest } = item;
-                return { ...rest, id: uuidv4() };
-            });
-            setOrder(itemsToDuplicate);
-            setReadOnlyOrder(null);
-            setCurrentSaleId(null);
-            setCurrentSaleContext(null);
-            toast({ title: 'Commande dupliquée', description: 'La commande est prête pour un nouvel encaissement.' });
-        }
-    };
     
     const handleEditItemClick = (e?: React.MouseEvent, item?: OrderItem) => {
         e?.stopPropagation();
@@ -791,16 +776,12 @@ export function OrderSummary() {
             </div>
             <div className="mt-4 flex flex-col gap-2 no-print">
               {readOnlyOrder ? (
-                  <div className="grid grid-cols-2 gap-2 w-full">
+                  <div className="grid grid-cols-1 gap-2 w-full">
                       <Button size="lg" className="flex-1" onClick={handleEditTicket}>
                           <Edit className="mr-2" />
                           Modifier
                       </Button>
-                      <Button size="lg" className="flex-1" onClick={handleDuplicateTicket}>
-                          <Copy className="mr-2" />
-                          Dupliquer
-                      </Button>
-                      <Button size="lg" className="flex-1 col-span-2" onClick={() => clearOrder()}>
+                      <Button size="lg" className="flex-1 col-span-1" onClick={() => clearOrder()}>
                           Nouvelle Commande
                       </Button>
                   </div>
@@ -833,19 +814,10 @@ export function OrderSummary() {
                     variant="outline"
                     className="flex-1"
                     disabled={order.length === 0 || isKeypadOpen}
-                    onClick={currentSaleId ? handleDuplicateTicket : holdOrder}
+                    onClick={holdOrder}
                   >
-                    {currentSaleId ? (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Dupliquer
-                        </>
-                    ) : (
-                        <>
-                          <Hand className="mr-2 h-4 w-4" />
-                          Mettre en attente
-                        </>
-                    )}
+                    <Hand className="mr-2 h-4 w-4" />
+                    Mettre en attente
                   </Button>
                   <Button
                     size="lg"
@@ -881,6 +853,7 @@ export function OrderSummary() {
     </>
   );
 }
+
 
 
 
