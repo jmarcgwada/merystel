@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -1012,7 +1011,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date, // Preserve original date on update
+                date: existingSale.date,
                 modifiedAt: today, 
             };
              addAuditLog({
@@ -1066,6 +1065,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (currentSaleContext?.originalSaleId) {
+          const originalDoc = sales.find(s => s.id === currentSaleContext.originalSaleId);
           setSales(currentSales =>
             currentSales.map(s =>
               s.id === currentSaleContext.originalSaleId
@@ -1080,7 +1080,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: `Pièce transformée depuis ${currentSaleContext.documentType} #${currentSaleContext.ticketNumber}`
+                details: `Pièce transformée depuis ${originalDoc?.documentType || 'document'} #${originalDoc?.ticketNumber}`
             });
         }
 
@@ -1141,7 +1141,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
-        if (type === 'supplier_order' && docData.status === 'paid') { // 'paid' means validated for supplier orders
+        if (type === 'supplier_order' && docData.status === 'paid') {
             const updatedItems = items.map(item => {
                 const orderItem = docData.items.find(oi => oi.itemId === item.id);
                 if (orderItem && item.manageStock) {
@@ -1150,6 +1150,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 return item;
             });
             setItems(updatedItems);
+            addAuditLog({
+                userId: user?.id,
+                userName: `${user?.firstName} ${user?.lastName}`,
+                action: 'update',
+                documentType: 'Stock',
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Stock mis à jour via Cde Fournisseur`
+            });
         }
         
         toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'validé' : 'enregistré') });
