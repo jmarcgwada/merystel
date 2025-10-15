@@ -476,62 +476,62 @@ export const CommercialOrderForm = forwardRef<
           </div>
         </div>
 
-      <Card className="mt-4 flex-1 flex flex-col">
+      <div className="flex justify-between items-center mt-4 mb-2">
+          <div className="flex items-center gap-2">
+                 <h3 className="text-lg font-semibold">Détails de la pièce</h3>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <Columns className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {columns.map(column => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            checked={visibleColumns[column.id]}
+                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                        >
+                                            {column.label}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                    <DropdownMenuCheckboxItem
+                                        checked={visibleColumns.discount}
+                                        onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
+                                    >
+                                        Remise %
+                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
+                                    <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Options d'affichage</p>
+                        </TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
+            </div>
+            {order.length > 0 && (
+              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Tout effacer
+              </Button>
+            )}
+        </div>
+      <Card className="flex-1 flex flex-col">
         <CardContent className="p-6 flex-1 flex flex-col">
           <Form {...form}>
             <form className="flex-1 flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                         <h3 className="text-lg font-semibold">Détails de la pièce</h3>
-                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <Columns className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {columns.map(column => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={column.id}
-                                                    checked={visibleColumns[column.id]}
-                                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                                >
-                                                    {column.label}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                            <DropdownMenuCheckboxItem
-                                                checked={visibleColumns.discount}
-                                                onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
-                                            >
-                                                Remise %
-                                            </DropdownMenuCheckboxItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
-                                            <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
-                                            <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
-                                            <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
-                                            </DropdownMenuRadioGroup>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Options d'affichage</p>
-                                </TooltipContent>
-                            </Tooltip>
-                         </TooltipProvider>
-                    </div>
-                    {order.length > 0 && (
-                      <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Tout effacer
-                      </Button>
-                    )}
-                </div>
               <div className="flex-1 min-h-0 flex flex-col">
                   {watchItems.length === 0 ? (
                       <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
