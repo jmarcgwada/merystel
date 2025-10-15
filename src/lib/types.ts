@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -197,4 +198,16 @@ export interface User {
   sessionToken?: string;
   isDisabled?: boolean;
   sessionDuration?: number; // in minutes, 0 for unlimited
+}
+
+export interface AuditLog {
+    id: string;
+    date: Date | Timestamp;
+    userId: string;
+    userName: string;
+    action: 'create' | 'update' | 'delete' | 'transform';
+    documentType: string;
+    documentId: string;
+    documentNumber: string;
+    details: string;
 }

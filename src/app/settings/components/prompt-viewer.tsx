@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { 
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import dbStructure from '../../../../docs/backend.json';
-import { Copy, Download } from 'lucide-react';
+import { Copy, Download, History } from 'lucide-react';
 
 interface PromptViewerProps {
   isOpen: boolean;

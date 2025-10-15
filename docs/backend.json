@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "User": {
@@ -207,6 +208,23 @@
         "tableId": { "type": "string" }
       },
       "required": ["date", "items", "total"]
+    },
+    "AuditLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "AuditLog",
+        "type": "object",
+        "description": "Represents a log entry for a significant operation.",
+        "properties": {
+            "date": { "type": "string", "format": "date-time" },
+            "userId": { "type": "string" },
+            "userName": { "type": "string" },
+            "action": { "type": "string", "enum": ["create", "update", "delete", "transform"] },
+            "documentType": { "type": "string" },
+            "documentId": { "type": "string" },
+            "documentNumber": { "type": "string" },
+            "details": { "type": "string" }
+        },
+        "required": ["date", "userId", "userName", "action", "documentType", "documentId", "documentNumber", "details"]
     }
   },
   "auth": {
@@ -256,6 +274,10 @@
     "/companies/{companyId}/heldOrders/{orderId}": {
       "schema": { "$ref": "#/entities/HeldOrder" },
       "description": "Temporarily held orders for a company."
+    },
+    "/companies/{companyId}/auditLogs/{logId}": {
+        "schema": { "$ref": "#/entities/AuditLog" },
+        "description": "Audit trail of major operations."
     }
   }
 }
