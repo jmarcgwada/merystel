@@ -227,6 +227,8 @@ interface PosContextType {
   setDefaultSalesMode: React.Dispatch<React.SetStateAction<'pos' | 'supermarket' | 'restaurant'>>;
   isForcedMode: boolean;
   setIsForcedMode: React.Dispatch<React.SetStateAction<boolean>>;
+  requirePinForAdmin: boolean;
+  setRequirePinForAdmin: React.Dispatch<React.SetStateAction<boolean>>;
   directSaleBackgroundColor: string;
   setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   restaurantModeBackgroundColor: string;
@@ -359,6 +361,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
   const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
   const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
+  const [requirePinForAdmin, setRequirePinForAdmin] = usePersistentState('settings.requirePinForAdmin', true);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
   const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
@@ -578,18 +581,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setTablesData([]);
     setSales([]);
     setHeldOrders([]);
-    setPaymentMethods([]);
-    setVatRates([]);
     setAuditLogs([]);
-    setCompanyInfo(null);
-    setUsers([]);
-
-    const keysToClear = Object.keys(localStorage).filter(key => key.startsWith('data.'));
-    keysToClear.forEach(key => localStorage.removeItem(key));
-    
     toast({ title: 'Données de l\'application réinitialisées' });
-
-}, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setAuditLogs, setCompanyInfo, setUsers, toast]);
+}, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, toast]);
 
   
   useEffect(() => {
@@ -634,7 +628,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         itemCardImageOverlayOpacity, itemCardTextColor, itemCardShowPrice,
         externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth,
         externalLinkModalHeight, showDashboardStats, enableRestaurantCategoryFilter,
-        enableSerialNumber, defaultSalesMode, isForcedMode, directSaleBackgroundColor,
+        enableSerialNumber, defaultSalesMode, isForcedMode, requirePinForAdmin, directSaleBackgroundColor,
         restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity,
         dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity,
         dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
@@ -652,7 +646,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     itemCardImageOverlayOpacity, itemCardTextColor, itemCardShowPrice,
     externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth,
     externalLinkModalHeight, showDashboardStats, enableRestaurantCategoryFilter,
-    enableSerialNumber, defaultSalesMode, isForcedMode, directSaleBackgroundColor,
+    enableSerialNumber, defaultSalesMode, isForcedMode, requirePinForAdmin, directSaleBackgroundColor,
     restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity,
     dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity,
     dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
@@ -676,7 +670,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.settings) {
-                // Ugly but necessary
                 setShowNotifications(config.settings.showNotifications);
                 setNotificationDuration(config.settings.notificationDuration);
                 setEnableDynamicBg(config.settings.enableDynamicBg);
@@ -702,6 +695,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 setEnableSerialNumber(config.settings.enableSerialNumber);
                 setDefaultSalesMode(config.settings.defaultSalesMode);
                 setIsForcedMode(config.settings.isForcedMode);
+                setRequirePinForAdmin(config.settings.requirePinForAdmin);
                 setDirectSaleBackgroundColor(config.settings.directSaleBackgroundColor);
                 setRestaurantModeBackgroundColor(config.settings.restaurantModeBackgroundColor);
                 setDirectSaleBgOpacity(config.settings.directSaleBgOpacity);
@@ -738,7 +732,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItemCardImageOverlayOpacity, setItemCardTextColor, setItemCardShowPrice,
       setExternalLinkModalEnabled, setExternalLinkUrl, setExternalLinkTitle, setExternalLinkModalWidth,
       setExternalLinkModalHeight, setShowDashboardStats, setEnableRestaurantCategoryFilter,
-      setEnableSerialNumber, setDefaultSalesMode, setIsForcedMode, setDirectSaleBackgroundColor,
+      setEnableSerialNumber, setDefaultSalesMode, setIsForcedMode, setRequirePinForAdmin, setDirectSaleBackgroundColor,
       setRestaurantModeBackgroundColor, setDirectSaleBgOpacity, setRestaurantModeBgOpacity,
       setDashboardBgType, setDashboardBackgroundColor, setDashboardBackgroundImage, setDashboardBgOpacity,
       setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
@@ -1532,7 +1526,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
       externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
       dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
       setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,

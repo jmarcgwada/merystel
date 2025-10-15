@@ -44,6 +44,8 @@ export default function ParametersPage() {
     setDefaultSalesMode,
     isForcedMode,
     setIsForcedMode,
+    requirePinForAdmin,
+    setRequirePinForAdmin,
   } = usePos();
   
   const [isClient, setIsClient] = useState(false);
@@ -112,9 +114,9 @@ export default function ParametersPage() {
         </Card>
         <Card>
             <CardHeader>
-            <CardTitle>Fonctionnalités</CardTitle>
+            <CardTitle>Fonctionnalités & Sécurité</CardTitle>
             <CardDescription>
-                Activez ou désactivez certaines fonctionnalités de l'application.
+                Activez ou désactivez certaines fonctionnalités et sécurités de l'application.
             </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
@@ -133,6 +135,26 @@ export default function ParametersPage() {
                             id="enable-serial-number"
                             checked={enableSerialNumber}
                             onCheckedChange={setEnableSerialNumber}
+                        />
+                    ) : (
+                        <Skeleton className="h-6 w-11" />
+                    )}
+                </div>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="require-pin-admin" className="text-base flex items-center gap-2">
+                            <Lock />
+                            Exiger le code PIN pour l'accès administrateur
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                            Si activé, un code PIN dynamique sera requis pour accéder aux zones de données sensibles.
+                        </p>
+                    </div>
+                    {isClient ? (
+                        <Switch 
+                            id="require-pin-admin"
+                            checked={requirePinForAdmin}
+                            onCheckedChange={setRequirePinForAdmin}
                         />
                     ) : (
                         <Skeleton className="h-6 w-11" />

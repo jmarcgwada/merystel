@@ -55,6 +55,7 @@ export default function FirestoreDataPage() {
       importDemoSuppliers,
       ftpConfig,
       smtpConfig,
+      requirePinForAdmin,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -65,7 +66,7 @@ export default function FirestoreDataPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
-  const [isPinDialogOpen, setPinDialogOpen] = useState(true);
+  const [isPinDialogOpen, setPinDialogOpen] = useState(requirePinForAdmin);
   const [pin, setPin] = useState('');
   const { toast } = useToast();
   const router = useRouter();
