@@ -35,27 +35,27 @@ const ColorSetting = ({ title, color, setColor, opacity, setOpacity }: { title: 
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">{title}</CardTitle>
+            <CardHeader className="pb-4">
+                <CardTitle className="text-base">{title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid gap-2">
-                    <Label htmlFor={`${title}-color`}>Couleur</Label>
+                    <Label htmlFor={`${title}-color`} className="text-xs">Couleur</Label>
                     <div className="flex items-center gap-4">
                         <Input
                             id={`${title}-color`}
                             type="color"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
-                            className="w-12 h-10 p-1"
+                            className="w-10 h-8 p-1"
                         />
-                        {isClient ? <span className="font-mono text-sm text-muted-foreground">{color}</span> : <Skeleton className="h-5 w-20" />}
+                        {isClient ? <span className="font-mono text-xs text-muted-foreground">{color}</span> : <Skeleton className="h-5 w-20" />}
                     </div>
                 </div>
                  <div className="grid gap-2">
                     <div className="flex justify-between items-center">
-                        <Label htmlFor={`${title}-opacity`}>Opacité</Label>
-                        {isClient ? <span className="text-sm font-bold text-primary">{opacity}%</span> : <Skeleton className="h-5 w-10" />}
+                        <Label htmlFor={`${title}-opacity`} className="text-xs">Opacité</Label>
+                        {isClient ? <span className="text-xs font-bold text-primary">{opacity}%</span> : <Skeleton className="h-4 w-10" />}
                     </div>
                     {isClient ? (
                         <Slider 
@@ -67,7 +67,7 @@ const ColorSetting = ({ title, color, setColor, opacity, setOpacity }: { title: 
                     ) : <Skeleton className="h-5 w-full" />}
                 </div>
                  <div 
-                    className="p-4 rounded-lg border bg-card flex items-center justify-center h-20 mt-2"
+                    className="p-2 rounded-lg border bg-card flex items-center justify-center h-12 mt-2"
                     style={previewStyle}
                 >
                     <p className="font-semibold text-muted-foreground text-xs">Aperçu</p>
