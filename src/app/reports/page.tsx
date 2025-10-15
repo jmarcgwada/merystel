@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -394,8 +395,13 @@ export default function ReportsPage() {
         }
         if (generalFilter) params.set('filter', generalFilter);
         if (filterStatus !== 'all') params.set('filterStatus', filterStatus);
-        if (dateRange?.from) params.set('date', format(dateRange.from, 'yyyy-MM-dd'));
-        // Add other filters if you want them preserved
+        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
+        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
+        if (filterCustomerName) params.set('customer', filterCustomerName);
+        if (filterSellerName) params.set('seller', filterSellerName);
+        if (filterOrigin) params.set('origin', filterOrigin);
+        if (filterArticleRef) params.set('article', filterArticleRef);
+        
         return `/reports/${saleId}?${params.toString()}`;
     }
 

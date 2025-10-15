@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -92,6 +93,7 @@ function SaleDetailContent() {
   const router = useRouter();
   
   const fromPos = searchParams.get('from') === 'pos';
+  const mode = searchParams.get('mode');
   
   const sortKey = searchParams.get('sortKey') as SortKey | null;
   const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
@@ -164,8 +166,10 @@ function SaleDetailContent() {
             (s.ticketNumber && s.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
             (s.items.some(item => (item.name.toLowerCase().includes(generalFilter.toLowerCase()))))
         );
+        
+        const modeMatch = !mode || (mode === 'ticket' && s.ticketNumber?.startsWith('Tick-'));
 
-        return customerNameMatch && sellerNameMatch && originMatch && articleMatch && dateMatch && statusMatch && generalMatch;
+        return customerNameMatch && sellerNameMatch && originMatch && articleMatch && dateMatch && statusMatch && generalMatch && modeMatch;
     });
 
     const sortedSales = [...filteredSales].sort((a, b) => {
@@ -230,7 +234,7 @@ function SaleDetailContent() {
         previousSaleId: previousSale ? previousSale.id : null,
         nextSaleId: nextSale ? nextSale.id : null
     };
-  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter]);
+  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter, mode]);
   
   const navigationParams = useMemo(() => {
     return new URLSearchParams(Array.from(searchParams.entries()));
@@ -290,7 +294,10 @@ function SaleDetailContent() {
     return sale.total - sale.tax;
   }, [sale]);
 
-  const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'BL' : 'Ticket';
+  const pieceType = sale?.documentType === 'invoice' ? 'Facture'
+                  : sale?.documentType === 'quote' ? 'Devis'
+                  : sale?.documentType === 'delivery_note' ? 'BL'
+                  : 'Ticket';
 
   if (isLoading) {
       return (

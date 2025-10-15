@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -1210,7 +1211,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tableName: ticket.tableName,
       tableId: ticket.tableId,
       isReadOnly: true,
-      documentType: 'ticket',
+      documentType: ticket.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice',
     });
   }, []);
   
@@ -1311,4 +1312,3 @@ export function usePos() {
   }
   return context;
 }
-
