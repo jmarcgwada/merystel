@@ -5,10 +5,11 @@ import { useSearchParams, useParams } from 'next/navigation';
 import React, { useEffect, Suspense } from 'react';
 import CommercialPageLayout from '../components/commercial-page-layout';
 
-const typeMap: Record<string, 'invoice' | 'quote' | 'delivery_note'> = {
+const typeMap: Record<string, 'invoice' | 'quote' | 'delivery_note' | 'credit_note'> = {
   invoices: 'invoice',
   quotes: 'quote',
   'delivery-notes': 'delivery_note',
+  'credit-notes': 'credit_note',
 };
 
 function DocumentPageContent() {
@@ -37,10 +38,11 @@ function DocumentPageContent() {
       if (currentSaleId !== saleIdToEdit) {
         loadSaleForEditing(saleIdToEdit, docType);
       }
+    } else {
+        // A new document is only created via an explicit user action (e.g., clicking a "New" button
+        // which would call resetCommercialPage before navigating).
+        resetCommercialPage(docType);
     }
-    // No 'else' block: The page will no longer reset itself automatically.
-    // A new document is only created via an explicit user action (e.g., clicking a "New" button
-    // which would call resetCommercialPage before navigating).
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleIdToEdit, saleIdToConvert, docType]); // Use stable, primitive dependencies from URL.

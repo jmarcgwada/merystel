@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type DocumentType = 'invoice' | 'quote' | 'delivery_note';
+type DocumentType = 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 
 interface CommercialPageLayoutProps {
   documentType: DocumentType;
@@ -60,6 +60,15 @@ const docTypeConfig = {
     filterPrefix: 'BL-',
     showAcompte: false,
   },
+  credit_note: {
+    title: 'Gestion des Avoirs',
+    subtitle: 'Créez un nouvel avoir.',
+    editTitle: "Modifier l'avoir",
+    saveButton: "Générer l'avoir",
+    updateButton: "Mettre à jour l'avoir",
+    filterPrefix: 'Avoir-',
+    showAcompte: false,
+  }
 };
 
 function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
@@ -76,9 +85,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       setCurrentSaleContext,
       currentSaleId,
       updateItemQuantityInOrder,
+      updateItemPrice,
       convertToInvoice,
       clearOrder,
-      updateItemPrice,
   } = usePos();
   
   const isEditing = !!currentSaleId;
