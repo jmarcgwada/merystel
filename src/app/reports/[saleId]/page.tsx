@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -186,8 +185,8 @@ function SaleDetailContent() {
         return { previousSaleId: null, nextSaleId: null };
     }
     
-    const previousSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
-    const nextSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
+    const nextSale = currentIndex > 0 ? sortedSales[currentIndex - 1] : null;
+    const previousSale = currentIndex < sortedSales.length - 1 ? sortedSales[currentIndex + 1] : null;
 
     return { 
         previousSaleId: previousSale ? previousSale.id : null,
@@ -196,12 +195,22 @@ function SaleDetailContent() {
   }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName]);
   
   const navigationParams = useMemo(() => {
-    const params = new URLSearchParams(searchParams);
-    if(fromPos) params.set('from', 'pos');
-    if(sortKey) params.set('sortKey', sortKey);
-    if(sortDirection) params.set('sortDirection', sortDirection);
-    return params.toString();
-  }, [searchParams, fromPos, sortKey, sortDirection]);
+    return new URLSearchParams(Array.from(searchParams.entries()));
+  }, [searchParams]);
+
+  const handleBack = () => {
+    if (fromPos && sale) {
+        loadTicketForViewing(sale);
+        router.push('/pos');
+    } else {
+        router.push(`/reports?${navigationParams.toString()}`);
+    }
+  }
+
+  const getDetailLink = (id: string | null) => {
+    if (!id) return '#';
+    return `/reports/${id}?${navigationParams.toString()}`;
+  };
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -242,15 +251,6 @@ function SaleDetailContent() {
     if (!sale) return 0;
     return sale.total - sale.tax;
   }, [sale]);
-
-  const handleBack = () => {
-    if (fromPos && sale) {
-        loadTicketForViewing(sale);
-        router.push('/pos');
-    } else {
-        router.push('/reports');
-    }
-  }
 
   const pieceType = sale?.ticketNumber?.startsWith('Fact-') ? 'Facture' : sale?.ticketNumber?.startsWith('Devis-') ? 'Devis' : sale?.ticketNumber?.startsWith('BL-') ? 'BL' : 'Ticket';
 
@@ -315,13 +315,13 @@ function SaleDetailContent() {
             {user?.role !== 'cashier' && (
               <>
                 <div className="flex items-center">
-                    <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
-                        <Link href={`/reports/${previousSaleId}?${navigationParams}`} scroll={false}>
+                    <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
+                        <Link href={getDetailLink(nextSaleId)} scroll={false}>
                             <ArrowLeft />
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
-                        <Link href={`/reports/${nextSaleId}?${navigationParams}`} scroll={false}>
+                    <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
+                        <Link href={getDetailLink(previousSaleId)} scroll={false}>
                             <ArrowRight />
                         </Link>
                     </Button>

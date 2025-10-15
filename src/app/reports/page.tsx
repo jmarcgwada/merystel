@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -386,6 +385,15 @@ export default function ReportsPage() {
 
         return <Badge variant="destructive" className="font-normal">En attente</Badge>;
     };
+
+    const getDetailLink = (saleId: string) => {
+        const params = new URLSearchParams();
+        if (sortConfig) {
+            params.set('sortKey', sortConfig.key);
+            params.set('sortDirection', sortConfig.direction);
+        }
+        return `/reports/${saleId}?${params.toString()}`;
+    }
 
     if (isCashier) {
         return (
@@ -789,7 +797,7 @@ export default function ReportsPage() {
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
                                             <Button asChild variant="ghost" size="icon">
-                                                <Link href={`/reports/${sale.id}`}>
+                                                <Link href={getDetailLink(sale.id)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
                                             </Button>
