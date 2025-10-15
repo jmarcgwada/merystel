@@ -74,12 +74,29 @@ const PaymentsList = ({ payments, title }: { payments: Payment[], title: string 
     </div>
 );
 
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
+
+const getDateFromSale = (sale: Sale): Date => {
+    if (!sale.date) return new Date(0);
+    if (sale.date instanceof Date) return sale.date;
+    if (typeof (sale.date as Timestamp)?.toDate === 'function') {
+        return (sale.date as Timestamp).toDate();
+    }
+    const d = new Date(sale.date as any);
+    return isNaN(d.getTime()) ? new Date(0) : d;
+};
+
+
 function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
-  const fromPos = searchParams.get('from') === 'pos';
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
   const router = useRouter();
+  
+  const fromPos = searchParams.get('from') === 'pos';
+  const sortKey = searchParams.get('sortKey') as SortKey | null;
+  const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
+
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
   const { user } = useUser();
 
   const [sale, setSale] = useState<Sale | null>(null);
@@ -90,6 +107,22 @@ function SaleDetailContent() {
       setSale(foundSale || null);
     }
   }, [allSales, saleId]);
+  
+  const getCustomerName = useCallback((customerId?: string) => {
+      if (!customerId || !customers) return 'Client au comptoir';
+      return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
+  }, [customers]);
+
+   const getUserName = useCallback((userId?: string, fallbackName?: string) => {
+    if (!userId) return fallbackName || 'N/A';
+    if (!users) return fallbackName || 'Chargement...';
+    const saleUser = users.find(u => u.id === userId);
+    if (saleUser?.firstName && saleUser?.lastName) {
+        return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
+    }
+    return fallbackName || saleUser?.email || 'Utilisateur supprimé';
+  }, [users]);
+
 
   const isLoading = isPosLoading || (saleId && !sale);
 
@@ -97,13 +130,58 @@ function SaleDetailContent() {
     if (!allSales || allSales.length === 0 || !saleId) {
       return { previousSaleId: null, nextSaleId: null };
     }
+
     const sortedSales = [...allSales].sort((a, b) => {
-        const dateA = (a.date as Timestamp)?.toDate ? (a.date as Timestamp).toDate() : new Date(a.date);
-        const dateB = (b.date as Timestamp)?.toDate ? (b.date as Timestamp).toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
+      const sortConfig = { key: sortKey || 'date', direction: sortDirection || 'desc' };
+      
+      let aValue: string | number | Date, bValue: string | number | Date;
+                
+        switch (sortConfig.key) {
+            case 'date':
+                aValue = getDateFromSale(a);
+                bValue = getDateFromSale(b);
+                break;
+            case 'tableName':
+                aValue = a.tableName || '';
+                bValue = b.tableName || '';
+                break;
+            case 'customerName':
+                aValue = getCustomerName(a.customerId);
+                bValue = getCustomerName(b.customerId);
+                break;
+            case 'itemCount':
+                aValue = Array.isArray(a.items) ? a.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
+                bValue = Array.isArray(b.items) ? b.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
+                break;
+            case 'userName':
+                aValue = getUserName(a.userId, a.userName);
+                bValue = getUserName(b.userId, b.userName);
+                break;
+            case 'ticketNumber':
+                aValue = a.ticketNumber || '';
+                bValue = b.ticketNumber || '';
+                break;
+            default:
+                aValue = a[sortConfig.key as keyof Sale] as number || 0;
+                bValue = b[sortConfig.key as keyof Sale] as number || 0;
+                break;
+        }
+
+        if (aValue instanceof Date && bValue instanceof Date) {
+            return sortConfig.direction === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+            return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
     });
 
     const currentIndex = sortedSales.findIndex(s => s.id === saleId);
+    
     if (currentIndex === -1) {
         return { previousSaleId: null, nextSaleId: null };
     }
@@ -115,8 +193,15 @@ function SaleDetailContent() {
         previousSaleId: previousSale ? previousSale.id : null,
         nextSaleId: nextSale ? nextSale.id : null
     };
-
-  }, [allSales, saleId]);
+  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName]);
+  
+  const navigationParams = useMemo(() => {
+    const params = new URLSearchParams(searchParams);
+    if(fromPos) params.set('from', 'pos');
+    if(sortKey) params.set('sortKey', sortKey);
+    if(sortDirection) params.set('sortDirection', sortDirection);
+    return params.toString();
+  }, [searchParams, fromPos, sortKey, sortDirection]);
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -229,18 +314,14 @@ function SaleDetailContent() {
             </Button>
             {user?.role !== 'cashier' && (
               <>
-                <Button variant="outline">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Avoir
-                </Button>
                 <div className="flex items-center">
                     <Button asChild variant="outline" size="icon" disabled={!previousSaleId}>
-                        <Link href={`/reports/${previousSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                        <Link href={`/reports/${previousSaleId}?${navigationParams}`} scroll={false}>
                             <ArrowLeft />
                         </Link>
                     </Button>
                     <Button asChild variant="outline" size="icon" disabled={!nextSaleId}>
-                        <Link href={`/reports/${nextSaleId}${fromPos ? '?from=pos' : ''}`} scroll={false}>
+                        <Link href={`/reports/${nextSaleId}?${navigationParams}`} scroll={false}>
                             <ArrowRight />
                         </Link>
                     </Button>
