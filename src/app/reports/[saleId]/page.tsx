@@ -8,8 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -92,8 +91,18 @@ function SaleDetailContent() {
   const router = useRouter();
   
   const fromPos = searchParams.get('from') === 'pos';
+  
   const sortKey = searchParams.get('sortKey') as SortKey | null;
   const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
+  const generalFilter = searchParams.get('filter');
+  const statusFilter = searchParams.get('filterStatus');
+  const dateFromFilter = searchParams.get('dateFrom');
+  const dateToFilter = searchParams.get('dateTo');
+  const customerFilter = searchParams.get('customer');
+  const sellerFilter = searchParams.get('seller');
+  const originFilter = searchParams.get('origin');
+  const articleFilter = searchParams.get('article');
+
 
   const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
   const { user } = useUser();
@@ -130,7 +139,35 @@ function SaleDetailContent() {
       return { previousSaleId: null, nextSaleId: null };
     }
 
-    const sortedSales = [...allSales].sort((a, b) => {
+    const filteredSales = allSales.filter(s => {
+        const customerNameMatch = !customerFilter || getCustomerName(s.customerId).toLowerCase().includes(customerFilter.toLowerCase());
+        const sellerNameMatch = !sellerFilter || getUserName(s.userId, s.userName).toLowerCase().includes(sellerFilter.toLowerCase());
+        const originMatch = !originFilter || (s.tableName && s.tableName.toLowerCase().includes(originFilter.toLowerCase()));
+        const articleMatch = !articleFilter || s.items.some(item => (allItems.find(i => i.id === item.itemId)?.name || '').toLowerCase().includes(articleFilter.toLowerCase()));
+        
+        let dateMatch = true;
+        const saleDate = getDateFromSale(s);
+        if (dateFromFilter) dateMatch = saleDate >= startOfDay(new Date(dateFromFilter));
+        if (dateToFilter) dateMatch = dateMatch && saleDate <= endOfDay(new Date(dateToFilter));
+
+        let statusMatch = true;
+        if (statusFilter && statusFilter !== 'all') {
+            const totalPaid = (s.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            if (statusFilter === 'paid') statusMatch = s.status === 'paid';
+            else if (statusFilter === 'pending') statusMatch = s.status === 'pending' && totalPaid === 0;
+            else if (statusFilter === 'partial') statusMatch = s.status === 'pending' && totalPaid > 0 && totalPaid < s.total;
+            else statusMatch = s.status === statusFilter;
+        }
+
+        const generalMatch = !generalFilter || (
+            (s.ticketNumber && s.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
+            (s.items.some(item => (item.name.toLowerCase().includes(generalFilter.toLowerCase()))))
+        );
+
+        return customerNameMatch && sellerNameMatch && originMatch && articleMatch && dateMatch && statusMatch && generalMatch;
+    });
+
+    const sortedSales = [...filteredSales].sort((a, b) => {
       const sortConfig = { key: sortKey || 'date', direction: sortDirection || 'desc' };
       
       let aValue: string | number | Date, bValue: string | number | Date;
@@ -192,7 +229,7 @@ function SaleDetailContent() {
         previousSaleId: previousSale ? previousSale.id : null,
         nextSaleId: nextSale ? nextSale.id : null
     };
-  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName]);
+  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter]);
   
   const navigationParams = useMemo(() => {
     return new URLSearchParams(Array.from(searchParams.entries()));
