@@ -13,6 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import type { SmtpConfig, FtpConfig } from '@/lib/types';
+import { sendEmail } from '@/ai/flows/send-email-flow';
+import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 
 export default function ConnectivityPage() {
     const { smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig } = usePos();
@@ -20,6 +22,9 @@ export default function ConnectivityPage() {
 
     const [localSmtp, setLocalSmtp] = useState<SmtpConfig>({});
     const [localFtp, setLocalFtp] = useState<FtpConfig>({});
+    const [isTestingSmtp, setIsTestingSmtp] = useState(false);
+    const [isTestingFtp, setIsTestingFtp] = useState(false);
+
 
     useEffect(() => {
         setLocalSmtp(smtpConfig || {});
@@ -48,20 +53,66 @@ export default function ConnectivityPage() {
         });
     };
     
-    const handleTestSmtp = () => {
-        toast({
-            title: 'Test de connexion SMTP...',
-            description: 'La fonctionnalité de test est en cours de développement.'
+    const handleTestSmtp = async () => {
+        if (!localSmtp.host || !localSmtp.port || !localSmtp.user || !localSmtp.password || !localSmtp.senderEmail) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs SMTP.' });
+            return;
+        }
+        setIsTestingSmtp(true);
+        toast({ title: 'Test de connexion SMTP en cours...' });
+        
+        const result = await sendEmail({
+            smtpConfig: {
+                host: localSmtp.host,
+                port: localSmtp.port,
+                secure: localSmtp.secure || false,
+                auth: { user: localSmtp.user, pass: localSmtp.password },
+                senderEmail: localSmtp.senderEmail,
+            },
+            to: localSmtp.senderEmail,
+            subject: 'Test de connexion SMTP - Zenith POS',
+            text: 'Ceci est un e-mail de test envoyé depuis Zenith POS.',
+            html: '<p>Ceci est un e-mail de test envoyé depuis <b>Zenith POS</b>.</p>',
         });
-        // In a real scenario, you would call a server-side function here.
+
+        toast({
+            variant: result.success ? 'default' : 'destructive',
+            title: result.success ? 'Test SMTP réussi !' : 'Échec du test SMTP',
+            description: result.message,
+        });
+        setIsTestingSmtp(false);
     };
 
-    const handleTestFtp = () => {
-        toast({
-            title: 'Test de connexion FTP...',
-            description: 'La fonctionnalité de test est en cours de développement.'
+    const handleTestFtp = async () => {
+        if (!localFtp.host || !localFtp.port || !localFtp.user || !localFtp.password || !localFtp.path) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs FTP.' });
+            return;
+        }
+        setIsTestingFtp(true);
+        toast({ title: 'Test de connexion FTP en cours...' });
+
+        const testContent = `Fichier de test de connexion FTP depuis Zenith POS - ${new Date().toISOString()}`;
+        const testContentBase64 = Buffer.from(testContent).toString('base64');
+        
+        const result = await uploadFileFtp({
+            ftpConfig: {
+                host: localFtp.host,
+                port: localFtp.port,
+                user: localFtp.user,
+                password: localFtp.password,
+                secure: localFtp.secure || false,
+                path: localFtp.path,
+            },
+            fileName: 'zenith_pos_test.txt',
+            fileContent: testContentBase64,
         });
-        // In a real scenario, you would call a server-side function here.
+
+        toast({
+            variant: result.success ? 'default' : 'destructive',
+            title: result.success ? 'Test FTP réussi !' : 'Échec du test FTP',
+            description: result.message,
+        });
+        setIsTestingFtp(false);
     };
 
     return (
@@ -119,9 +170,9 @@ export default function ConnectivityPage() {
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={handleTestSmtp}>
+                        <Button variant="outline" onClick={handleTestSmtp} disabled={isTestingSmtp}>
                             <TestTube2 className="mr-2 h-4 w-4"/>
-                            Tester la connexion
+                            {isTestingSmtp ? 'Test en cours...' : 'Tester la connexion'}
                         </Button>
                         <Button onClick={handleSaveSmtp}>Sauvegarder</Button>
                     </CardFooter>
@@ -168,9 +219,9 @@ export default function ConnectivityPage() {
                         </div>
                     </CardContent>
                      <CardFooter className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={handleTestFtp}>
+                        <Button variant="outline" onClick={handleTestFtp} disabled={isTestingFtp}>
                             <TestTube2 className="mr-2 h-4 w-4"/>
-                            Tester la connexion
+                            {isTestingFtp ? 'Test en cours...' : 'Tester la connexion'}
                         </Button>
                         <Button onClick={handleSaveFtp}>Sauvegarder</Button>
                     </CardFooter>
