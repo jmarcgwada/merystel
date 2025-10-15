@@ -49,7 +49,7 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity } = usePos();
+  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity } = usePos();
   const [isClient, setIsClient] = useState(false);
   const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
 
@@ -74,11 +74,11 @@ export default function CommercialLayout({
       case 'supplier-orders':
         return hexToRgba(supplierOrderBgColor, supplierOrderBgOpacity);
       case 'credit-notes':
-        return 'transparent'; // Avoirs have a neutral background
+        return hexToRgba(creditNoteBgColor, creditNoteBgOpacity);
       default:
         return 'transparent';
     }
-  }, [isClient, activeTab, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity]);
+  }, [isClient, activeTab, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity]);
 
 
   const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {

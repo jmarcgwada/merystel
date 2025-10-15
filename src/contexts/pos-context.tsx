@@ -264,6 +264,10 @@ interface PosContextType {
   setSupplierOrderBgColor: React.Dispatch<React.SetStateAction<string>>;
   supplierOrderBgOpacity: number;
   setSupplierOrderBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  creditNoteBgColor: string;
+  setCreditNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
+  creditNoteBgOpacity: number;
+  setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
 }
@@ -366,6 +370,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [deliveryNoteBgOpacity, setDeliveryNoteBgOpacity] = usePersistentState('settings.deliveryNoteBgOpacity', 100);
   const [supplierOrderBgColor, setSupplierOrderBgColor] = usePersistentState('settings.supplierOrderBgColor', '#faf5ff');
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
+  const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
+  const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -1419,6 +1425,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
       companyInfo, setCompanyInfo,
   };
 

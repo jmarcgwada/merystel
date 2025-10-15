@@ -80,6 +80,7 @@ export default function DocumentColorsPage() {
     quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
     deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
     supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
   } = usePos();
 
   return (
@@ -131,6 +132,13 @@ export default function DocumentColorsPage() {
                 setColor={setSupplierOrderBgColor}
                 opacity={supplierOrderBgOpacity}
                 setOpacity={setSupplierOrderBgOpacity}
+            />
+             <ColorSetting 
+                title="Avoirs"
+                color={creditNoteBgColor}
+                setColor={setCreditNoteBgColor}
+                opacity={creditNoteBgOpacity}
+                setOpacity={setCreditNoteBgOpacity}
             />
           </CardContent>
         </Card>
