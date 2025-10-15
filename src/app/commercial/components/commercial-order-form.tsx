@@ -533,46 +533,16 @@ export const CommercialOrderForm = forwardRef<
                       </Button>
                     )}
                 </div>
-                <div 
-                  className="grid items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b gap-x-4"
-                  style={{
-                    gridTemplateColumns: `
-                        ${visibleColumns.reference ? '1fr' : ''} 
-                        ${visibleColumns.designation ? '3fr' : ''} 
-                        ${visibleColumns.quantity ? '0.5fr' : ''} 
-                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
-                        ${priceDisplayType === 'ttc' ? '1fr' : ''} 
-                        ${visibleColumns.vat_code ? '0.7fr' : ''} 
-                        ${visibleColumns.discount ? '0.7fr' : ''} 
-                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
-                        ${priceDisplayType === 'ttc' ? '1fr' : ''}
-                        min-content
-                      `.replace(/\s+/g, ' ').trim()
-                  }}
-                >
-                  {visibleColumns.reference && <span>Réf.</span>}
-                  {visibleColumns.designation && <span>Désignation</span>}
-                  {visibleColumns.quantity && <span className="text-right">Qté</span>}
-                  {priceDisplayType === 'ht' && <span className="text-right">P.U. HT</span>}
-                  {priceDisplayType === 'ttc' && <span className="text-right">P.U. TTC</span>}
-                  {visibleColumns.vat_code && <span className="text-center">TVA</span>}
-                  {visibleColumns.discount && <span className="text-center">Rem. %</span>}
-                  {priceDisplayType === 'ht' && <span className="text-right">Total HT</span>}
-                  {priceDisplayType === 'ttc' && <span className="text-right">Total TTC</span>}
-                  <span />
-                </div>
-                <ScrollArea className="flex-1">
-                    <div className="space-y-2">
-                    {watchItems.map((field, index) => {
-                      const fullItem = allItems?.find(i => i.id === field.itemId);
-                      const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
-                      const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
-
-                      return (
-                      <div 
-                        key={field.id} 
-                        className="grid items-center py-2 border-b group gap-x-4"
-                        style={{
+                <div className="flex-1 min-h-[300px] flex flex-col">
+                  {watchItems.length === 0 ? (
+                      <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                          Aucun article dans la commande.
+                      </div>
+                    ) : (
+                      <>
+                        <div 
+                          className="grid items-center font-semibold text-sm text-muted-foreground px-3 py-2 border-b gap-x-4"
+                          style={{
                             gridTemplateColumns: `
                                 ${visibleColumns.reference ? '1fr' : ''} 
                                 ${visibleColumns.designation ? '3fr' : ''} 
@@ -587,93 +557,128 @@ export const CommercialOrderForm = forwardRef<
                               `.replace(/\s+/g, ' ').trim()
                           }}
                         >
-                          {visibleColumns.reference && <span className="text-xs text-muted-foreground font-mono">{field.barcode}</span>}
-                          {visibleColumns.designation && 
-                          <div className="flex flex-col">
-                              <div className="flex items-center gap-1">
-                                <span className="font-semibold">{field.name}</span>
-                                <Button 
-                                    type="button"
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
-                                    onClick={(e) => handleEditItemClick(e, field.itemId)}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                </Button>
-                                 <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => setEditingNoteId(field.id)}
-                                    >
-                                      <StickyNote className="h-3 w-3" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-80" align="start">
-                                    <NoteEditor 
-                                      orderItem={field}
-                                      onSave={(note) => {
-                                        updateItemNote(field.id, note);
-                                        setEditingNoteId(null);
-                                      }}
-                                      onCancel={() => setEditingNoteId(null)}
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                              </div>
-                              <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                                  {descriptionDisplay === 'first' && field.description}
-                                  {descriptionDisplay === 'both' && (
-                                      <>
-                                          {field.description}
-                                          {field.description && field.description2 && <br />}
-                                          {field.description2}
-                                      </>
-                                  )}
-                              </div>
-                              {field.selectedVariants && field.selectedVariants.length > 0 && (
-                                  <p className="text-xs text-muted-foreground capitalize mt-1">
-                                      {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
-                                  </p>
-                              )}
-                              {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
-                              {field.serialNumbers && field.serialNumbers.length > 0 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
-                                </div>
-                              )}
-                          </div>
-                          }
-                        {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" />)}/>}
-                        
-                        {priceDisplayType === 'ht' 
-                            ? <Controller control={form.control} name={`items.${index}.price`} render={({ field: { onChange, ...restField } }) => <Input type="number" {...restField} value={priceHT.toFixed(2)} onBlur={e => { const htValue = parseFloat(e.target.value) || 0; if (vatInfo) { const ttcValue = htValue * (1 + vatInfo.rate / 100); updateItemPrice(field.id, ttcValue); } }} onChange={() => {}} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />} />
-                            : <Controller control={form.control} name={`items.${index}.price`} render={({ field: controllerField }) => <Input type="number" {...controllerField} value={Number(controllerField.value).toFixed(2)} onBlur={e => updateItemPrice(field.id, parseFloat(e.target.value) || 0)} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto font-medium no-spinner" step="0.01" />} />
-                        }
+                          {visibleColumns.reference && <span>Réf.</span>}
+                          {visibleColumns.designation && <span>Désignation</span>}
+                          {visibleColumns.quantity && <span className="text-right">Qté</span>}
+                          {priceDisplayType === 'ht' && <span className="text-right">P.U. HT</span>}
+                          {priceDisplayType === 'ttc' && <span className="text-right">P.U. TTC</span>}
+                          {visibleColumns.vat_code && <span className="text-center">TVA</span>}
+                          {visibleColumns.discount && <span className="text-center">Rem. %</span>}
+                          {priceDisplayType === 'ht' && <span className="text-right">Total HT</span>}
+                          {priceDisplayType === 'ttc' && <span className="text-right">Total TTC</span>}
+                          <span />
+                        </div>
+                        <ScrollArea className="flex-1">
+                            <div className="space-y-2">
+                            {watchItems.map((field, index) => {
+                              const fullItem = allItems?.find(i => i.id === field.itemId);
+                              const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
+                              const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
 
-                        {visibleColumns.vat_code && <div className="text-center font-mono">{vatInfo?.code || '-'}</div>}
-                        
-                        {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onBlur={e => { const discountValue = parseFloat(e.target.value) || 0; applyDiscount(field.id, discountValue, 'percentage'); }} onChange={(e) => controllerField.onChange(e.target.value)} onFocus={e => e.target.select()} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />)}/>}
-                        
-                        {priceDisplayType === 'ht' && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
-                        {priceDisplayType === 'ttc' && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
-                      
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )})}
-                  </div>
-                </ScrollArea>
-                {watchItems.length === 0 && (
-                    <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
-                        Aucun article dans la commande.
-                    </div>
-                  )}
+                              return (
+                              <div 
+                                key={field.id} 
+                                className="grid items-center py-2 border-b group gap-x-4"
+                                style={{
+                                    gridTemplateColumns: `
+                                        ${visibleColumns.reference ? '1fr' : ''} 
+                                        ${visibleColumns.designation ? '3fr' : ''} 
+                                        ${visibleColumns.quantity ? '0.5fr' : ''} 
+                                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                                        ${priceDisplayType === 'ttc' ? '1fr' : ''} 
+                                        ${visibleColumns.vat_code ? '0.7fr' : ''} 
+                                        ${visibleColumns.discount ? '0.7fr' : ''} 
+                                        ${priceDisplayType === 'ht' ? '1fr' : ''} 
+                                        ${priceDisplayType === 'ttc' ? '1fr' : ''}
+                                        min-content
+                                      `.replace(/\s+/g, ' ').trim()
+                                  }}
+                                >
+                                  {visibleColumns.reference && <span className="text-xs text-muted-foreground font-mono">{field.barcode}</span>}
+                                  {visibleColumns.designation && 
+                                  <div className="flex flex-col">
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-semibold">{field.name}</span>
+                                        <Button 
+                                            type="button"
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
+                                            onClick={(e) => handleEditItemClick(e, field.itemId)}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                        </Button>
+                                         <Popover open={editingNoteId === field.id} onOpenChange={(open) => !open && setEditingNoteId(null)}>
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                              onClick={() => setEditingNoteId(field.id)}
+                                            >
+                                              <StickyNote className="h-3 w-3" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-80" align="start">
+                                            <NoteEditor 
+                                              orderItem={field}
+                                              onSave={(note) => {
+                                                updateItemNote(field.id, note);
+                                                setEditingNoteId(null);
+                                              }}
+                                              onCancel={() => setEditingNoteId(null)}
+                                            />
+                                          </PopoverContent>
+                                        </Popover>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                                          {descriptionDisplay === 'first' && field.description}
+                                          {descriptionDisplay === 'both' && (
+                                              <>
+                                                  {field.description}
+                                                  {field.description && field.description2 && <br />}
+                                                  {field.description2}
+                                              </>
+                                          )}
+                                      </div>
+                                      {field.selectedVariants && field.selectedVariants.length > 0 && (
+                                          <p className="text-xs text-muted-foreground capitalize mt-1">
+                                              {field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                          </p>
+                                      )}
+                                      {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
+                                      {field.serialNumbers && field.serialNumbers.length > 0 && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          <span className="font-semibold">N/S:</span> {field.serialNumbers.filter(sn => sn).join(', ')}
+                                        </div>
+                                      )}
+                                  </div>
+                                  }
+                                {visibleColumns.quantity && <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" />)}/>}
+                                
+                                {priceDisplayType === 'ht' 
+                                    ? <Controller control={form.control} name={`items.${index}.price`} render={({ field: { onChange, ...restField } }) => <Input type="number" {...restField} value={priceHT.toFixed(2)} onBlur={e => { const htValue = parseFloat(e.target.value) || 0; if (vatInfo) { const ttcValue = htValue * (1 + vatInfo.rate / 100); updateItemPrice(field.id, ttcValue); } }} onChange={() => {}} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />} />
+                                    : <Controller control={form.control} name={`items.${index}.price`} render={({ field: controllerField }) => <Input type="number" {...controllerField} value={Number(controllerField.value).toFixed(2)} onBlur={e => updateItemPrice(field.id, parseFloat(e.target.value) || 0)} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto font-medium no-spinner" step="0.01" />} />
+                                }
+
+                                {visibleColumns.vat_code && <div className="text-center font-mono">{vatInfo?.code || '-'}</div>}
+                                
+                                {visibleColumns.discount && <Controller control={form.control} name={`items.${index}.remise`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value ?? 0} onBlur={e => { const discountValue = parseFloat(e.target.value) || 0; applyDiscount(field.id, discountValue, 'percentage'); }} onChange={(e) => controllerField.onChange(e.target.value)} onFocus={e => e.target.select()} min={0} max={100} className="text-center bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto no-spinner" step="0.01" />)}/>}
+                                
+                                {priceDisplayType === 'ht' && <div className="text-right">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = priceHT * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                                {priceDisplayType === 'ttc' && <div className="text-right font-bold">{(() => { const item = watchItems[index]; if(!item || !item.itemId) return '0.00€'; const remise = item.remise || 0; const total = item.price * item.quantity * (1 - (remise || 0) / 100); return `${total.toFixed(2)}€` })()}</div>}
+                              
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removeFromOrder(field.id)} className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )})}
+                          </div>
+                        </ScrollArea>
+                      </>
+                    )}
+                </div>
               </div>
               
               <div className="mt-auto">
