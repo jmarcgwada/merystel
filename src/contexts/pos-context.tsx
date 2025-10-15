@@ -416,13 +416,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [showNotifications, notificationDuration, shadcnToast]);
 
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
+    if (!user) return;
     const newLog: AuditLog = {
       ...logData,
       id: uuidv4(),
       date: new Date(),
     };
     setAuditLogs(prev => [newLog, ...prev]);
-  }, [setAuditLogs]);
+  }, [user, setAuditLogs]);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -454,7 +455,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
     clearOrder();
     setCurrentSaleId(null);
-    setCurrentSaleContext({ documentType: pageType });
+    setCurrentSaleContext({ documentType: pageType, status: 'pending' });
   }, [clearOrder]);
 
   const seedInitialData = useCallback(() => {
@@ -794,7 +795,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: itemToUpdate, quantity });
+          setSerialNumberItem({ item: originalItem, quantity });
         }
         return;
       }
@@ -1043,6 +1044,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
                 ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+            } else if (saleData.documentType === 'credit_note') {
+                const creditNoteCount = sales.filter(s => s.documentType === 'credit_note').length;
+                ticketNumber = 'AVOIR-' + (creditNoteCount + 1).toString().padStart(4, '0');
             } else {
                 const todaysSalesCount = sales.filter(s => {
                     const saleDate = new Date(s.date as Date);
@@ -1107,7 +1111,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
-        const prefix = type === 'quote' ? 'Devis' : type === 'delivery_note' ? 'BL' : type === 'supplier_order' ? 'CF' : 'AVOIR';
+        const prefixMap = {
+          quote: 'Devis',
+          delivery_note: 'BL',
+          supplier_order: 'CF',
+          credit_note: 'AVOIR'
+        };
+        const prefix = prefixMap[type];
         
         let finalDoc: Sale;
 
@@ -1397,7 +1407,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateItemPrice, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,

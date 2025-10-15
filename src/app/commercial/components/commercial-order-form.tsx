@@ -61,7 +61,7 @@ interface CommercialOrderFormProps {
   showAcompte?: boolean;
   onTotalsChange: (totals: { subtotal: number, tax: number, total: number }) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
-  documentType: 'invoice' | 'quote' | 'delivery_note';
+  documentType: 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 }
 
 const MAX_SEARCH_ITEMS = 100;
@@ -355,10 +355,10 @@ export const CommercialOrderForm = forwardRef<
         return;
       }
 
-      if (documentType === 'invoice') {
+      if (documentType === 'invoice' || documentType === 'credit_note') {
         setCurrentSaleContext(prev => ({
           ...prev,
-          isInvoice: true,
+          isInvoice: true, // This flag can be used to signify it goes through checkout
           customerId: selectedCustomer?.id,
           acompte,
           subtotal: subTotalHT,
@@ -482,7 +482,7 @@ export const CommercialOrderForm = forwardRef<
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                         <h3 className="text-lg font-semibold">Détails de la facture</h3>
+                         <h3 className="text-lg font-semibold">Détails de la pièce</h3>
                          <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
