@@ -115,13 +115,13 @@ function SaleDetailContent() {
 
    const getUserName = useCallback((userId?: string, fallbackName?: string) => {
     if (!userId) return fallbackName || 'N/A';
-    if (!users) return fallbackName || 'Chargement...';
-    const saleUser = users.find(u => u.id === userId);
+    if (!allUsers) return fallbackName || 'Chargement...';
+    const saleUser = allUsers.find(u => u.id === userId);
     if (saleUser?.firstName && saleUser?.lastName) {
         return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
     }
     return fallbackName || saleUser?.email || 'Utilisateur supprimé';
-  }, [users]);
+  }, [allUsers]);
 
 
   const isLoading = isPosLoading || (saleId && !sale);
@@ -223,7 +223,7 @@ function SaleDetailContent() {
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         if (vatInfo) {
-            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const priceHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
             const totalHT = priceHT;
             const vatAmount = item.total - totalHT;
             
