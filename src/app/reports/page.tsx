@@ -392,6 +392,10 @@ export default function ReportsPage() {
             params.set('sortKey', sortConfig.key);
             params.set('sortDirection', sortConfig.direction);
         }
+        if (generalFilter) params.set('filter', generalFilter);
+        if (filterStatus !== 'all') params.set('filterStatus', filterStatus);
+        if (dateRange?.from) params.set('date', format(dateRange.from, 'yyyy-MM-dd'));
+        // Add other filters if you want them preserved
         return `/reports/${saleId}?${params.toString()}`;
     }
 
@@ -462,6 +466,12 @@ export default function ReportsPage() {
         subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
       >
         <div className="flex items-center gap-2">
+            <Button asChild variant="secondary">
+                <Link href="/reports/popular-items">
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Articles Populaires
+                </Link>
+            </Button>
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                 <RefreshCw className="h-4 w-4" />
             </Button>
