@@ -31,10 +31,7 @@ type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName
 const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
-    ticket: { label: 'Ticket', prefix: 'Tick-' },
     invoice: { label: 'Facture', prefix: 'Fact-' },
-    quote: { label: 'Devis', prefix: 'Devis-' },
-    delivery_note: { label: 'Bon de Livraison', prefix: 'BL-' },
     credit_note: { label: 'Avoir', prefix: 'AVOIR-' },
     supplier_order: { label: 'Cde Fournisseur', prefix: 'CF-' },
 };
@@ -95,12 +92,9 @@ export default function PaymentsReportPage() {
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterMethodName, setFilterMethodName] = useState('all');
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
-        ticket: true,
         invoice: true,
-        quote: false,
-        delivery_note: false,
         credit_note: true,
-        supplier_order: false,
+        supplier_order: true,
     });
     const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -274,7 +268,9 @@ export default function PaymentsReportPage() {
         setFilterMethodName('all');
         setFilterPaymentType('all');
         setFilterDocTypes({
-            ticket: true, invoice: true, quote: false, delivery_note: false, credit_note: true, supplier_order: false
+            invoice: true,
+            credit_note: true,
+            supplier_order: true,
         });
         setDateRange(undefined);
         setFilterSellerName('');
@@ -407,4 +403,3 @@ export default function PaymentsReportPage() {
     </div>
   );
 }
-
