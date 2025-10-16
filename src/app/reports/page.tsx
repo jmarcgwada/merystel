@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -126,7 +126,9 @@ export default function ReportsPage() {
         deliveryNoteBgColor, 
         deliveryNoteBgOpacity, 
         supplierOrderBgColor, 
-        supplierOrderBgOpacity
+        supplierOrderBgOpacity,
+        creditNoteBgColor,
+        creditNoteBgOpacity
     } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
@@ -305,12 +307,13 @@ export default function ReportsPage() {
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             
             const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
+            const saleTotal = Math.abs(sale.total);
             
             let statusMatch = true;
             if (filterStatus !== 'all') {
-                if (filterStatus === 'paid') statusMatch = sale.status === 'paid';
-                else if (filterStatus === 'pending') statusMatch = sale.status === 'pending' && totalPaid === 0;
-                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < Math.abs(sale.total);
+                if (filterStatus === 'paid') statusMatch = sale.status === 'paid' || totalPaid >= saleTotal;
+                else if (filterStatus === 'pending') statusMatch = (sale.status === 'pending' || sale.status === 'quote' || sale.status === 'delivery_note') && totalPaid === 0;
+                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < saleTotal;
                 else statusMatch = sale.status === filterStatus;
             }
 
@@ -470,7 +473,7 @@ export default function ReportsPage() {
       if (sale.status === 'invoiced') {
           return <Badge variant="outline">Facturé</Badge>;
       }
-      if (sale.status === 'paid') {
+      if (sale.status === 'paid' || totalPaid >= saleTotal) {
           return (
               <div className="flex flex-wrap gap-1">
                   {sale.payments.map((p, index) => (
@@ -600,6 +603,10 @@ export default function ReportsPage() {
                 color = supplierOrderBgColor;
                 opacity = supplierOrderBgOpacity;
                 break;
+            case 'credit_note':
+                color = creditNoteBgColor;
+                opacity = creditNoteBgOpacity;
+                break;
         }
 
         return {
@@ -619,6 +626,12 @@ export default function ReportsPage() {
                 <Link href="/reports/popular-items">
                     <TrendingUp className="mr-2 h-4 w-4" />
                     Articles Populaires
+                </Link>
+            </Button>
+             <Button asChild variant="secondary">
+                <Link href="/reports/payments">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Rapport des Paiements
                 </Link>
             </Button>
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
@@ -693,7 +706,7 @@ export default function ReportsPage() {
                                     Filtres
                                 </Button>
                             </CollapsibleTrigger>
-                            <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-2">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="w-[220px] justify-between">
