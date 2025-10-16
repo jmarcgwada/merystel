@@ -70,6 +70,9 @@ export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isTopItemsOpen, setIsTopItemsOpen] = useState(true);
+    const [isTopCustomersOpen, setIsTopCustomersOpen] = useState(true);
+
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
@@ -353,23 +356,45 @@ export default function AnalyticsPage() {
         </Collapsible>
 
         <div className="grid lg:grid-cols-2 gap-4">
-            <Card>
-                <CardHeader><CardTitle>Top {topN} Articles</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow>
-                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
-                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
-                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
-                </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
-            </Card>
-            <Card>
-                <CardHeader><CardTitle>Top {topN} Clients</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow>
-                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
-                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
-                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
-                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
-                </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
-            </Card>
+            <Collapsible open={isTopItemsOpen} onOpenChange={setIsTopItemsOpen} asChild>
+                <Card>
+                    <CardHeader>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
+                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopItemsOpen && "-rotate-90")} />
+                                Top {topN} Articles
+                            </Button>
+                        </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                        <CardContent><Table><TableHeader><TableRow>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
+                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
+                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
+                        </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
+            <Collapsible open={isTopCustomersOpen} onOpenChange={setIsTopCustomersOpen} asChild>
+                <Card>
+                    <CardHeader>
+                        <CollapsibleTrigger asChild>
+                             <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
+                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopCustomersOpen && "-rotate-90")} />
+                                Top {topN} Clients
+                            </Button>
+                        </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                    <CardContent><Table><TableHeader><TableRow>
+                        <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
+                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
+                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
+                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
+                    </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
         </div>
         
         <Card>
