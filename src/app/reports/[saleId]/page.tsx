@@ -310,29 +310,37 @@ function SaleDetailContent() {
   const vatBreakdown = useMemo(() => {
     if (!sale || !vatRates) return {};
     const breakdown: { [key: string]: { rate: number; total: number; base: number } } = {};
-
+    const totalHT = sale.subtotal;
+    
+    // First, find the total HT for each VAT rate
+    const htByRate: { [key: string]: number } = {};
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         if (vatInfo) {
-            const priceHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
-            const totalHT = priceHT;
-            const vatAmount = item.total - totalHT;
-            
-            if (breakdown[vatInfo.rate]) {
-                breakdown[vatInfo.rate].base += totalHT;
-                breakdown[vatInfo.rate].total += vatAmount;
-            } else {
-                breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: vatAmount, base: totalHT };
-            }
+            const priceHT = item.price / (1 + vatInfo.rate / 100);
+            const totalItemHT = priceHT * item.quantity * (1 - (item.discountPercent || 0) / 100);
+            const rateKey = vatInfo.rate.toString();
+            htByRate[rateKey] = (htByRate[rateKey] || 0) + totalItemHT;
         }
     });
+
+    // Then, distribute the total VAT amount proportionally
+    Object.entries(htByRate).forEach(([rateStr, baseForRate]) => {
+        const rate = parseFloat(rateStr);
+        const proportion = baseForRate / totalHT;
+        const vatForRate = sale.tax * proportion;
+        
+        breakdown[rateStr] = {
+            rate: rate,
+            total: vatForRate,
+            base: baseForRate,
+        };
+    });
+
     return breakdown;
   }, [sale, vatRates]);
   
-  const subTotalHT = useMemo(() => {
-    if (!sale) return 0;
-    return sale.total - sale.tax;
-  }, [sale]);
+  const subTotalHT = sale?.subtotal ?? 0;
 
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
@@ -444,8 +452,10 @@ function SaleDetailContent() {
                 <TableBody>
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
-                    const itemTotalHT = item.price / (1 + (vatInfo?.rate || 0) / 100);
-                    const vatAmount = itemTotalHT * (vatInfo?.rate || 0) / 100 * item.quantity;
+                    const itemTotal = item.price * item.quantity;
+                    const discountRatio = item.discount / itemTotal;
+                    const lineTotalHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
+                    const vatAmount = item.total - lineTotalHT;
                     const fullItem = getItemInfo(item);
 
                     return (
@@ -547,7 +557,7 @@ function SaleDetailContent() {
                     <PaymentsList payments={sale.originalPayments} title="Paiements Originaux" />
                  )}
                  {sale.originalPayments && <Separator />}
-                 <PaymentsList payments={sale.payments} title={sale.originalPayments ? "Paiements de la Modification" : "Paiements"} />
+                 <PaymentsList payments={sale.payments || []} title={sale.originalPayments ? "Paiements de la Modification" : "Paiements"} />
 
                  {sale.change && sale.change > 0 && (
                   <div className="w-full flex justify-between items-center text-sm text-amber-600 pt-2 border-t">
