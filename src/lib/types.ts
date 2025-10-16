@@ -51,6 +51,7 @@ export interface Item {
   lowStockThreshold?: number;
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
+  isDisabled?: boolean;
 }
 
 // OrderItem will no longer extend Item to reduce document size in Firestore
@@ -102,6 +103,7 @@ export interface Customer {
     country?: string;
     iban?: string;
     notes?: string;
+    isDisabled?: boolean;
 }
 
 export interface Supplier {
@@ -187,6 +189,7 @@ export interface CompanyInfo {
   bic?: string;
   notes?: string;
   communicationDoc?: string;
+  communicationDocOpacity?: number;
 }
 
 export interface User {
@@ -211,4 +214,28 @@ export interface AuditLog {
     documentId: string;
     documentNumber: string;
     details: string;
+}
+
+export interface SmtpConfig {
+    host?: string;
+    port?: number;
+    secure?: boolean;
+    user?: string;
+    password?: string;
+    senderEmail?: string;
+}
+
+export interface FtpConfig {
+    host?: string;
+    port?: number;
+    secure?: boolean | 'implicit';
+    user?: string;
+    password?: string;
+    path?: string;
+}
+
+export interface TwilioConfig {
+    accountSid?: string;
+    authToken?: string;
+    from?: string;
 }

@@ -61,7 +61,8 @@
         "city": { "type": "string" },
         "country": { "type": "string" },
         "iban": { "type": "string" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "isDisabled": { "type": "boolean", "description": "Whether the customer is disabled." }
       },
       "required": ["id", "name"]
     },
@@ -124,7 +125,8 @@
         "additionalCosts": { "type": "number", "description": "Additional costs as a percentage of the purchase price." },
         "manageStock": { "type": "boolean" },
         "stock": { "type": "number" },
-        "lowStockThreshold": { "type": "number" }
+        "lowStockThreshold": { "type": "number" },
+        "isDisabled": { "type": "boolean", "description": "Whether the item is disabled and cannot be sold." }
       },
       "required": ["name", "price", "categoryId", "vatId", "barcode"]
     },
