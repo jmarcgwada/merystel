@@ -686,25 +686,48 @@ export default function ReportsPage() {
             <Card>
                 <CardHeader>
                     <div className="relative">
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
-                               Filtres
-                            </Button>
-                        </CollapsibleTrigger>
-                         <div className="absolute top-0 right-0">
-                             <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
-                                            <X className="mr-2 h-4 w-4"/>Réinitialiser
+                         <div className="flex items-center justify-between">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="justify-start px-0 -ml-2 text-lg font-semibold">
+                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                                    Filtres
+                                </Button>
+                            </CollapsibleTrigger>
+                            <div className="flex items-center gap-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-[220px] justify-between">
+                                            <span>Types de pièce</span>
+                                            <ChevronDown className="h-4 w-4" />
                                         </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Réinitialiser les filtres</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {Object.entries(documentTypes).map(([type, { label }]) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={type}
+                                                checked={filterDocTypes[type]}
+                                                onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                            >
+                                                {label}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
+                                                <X className="mr-2 h-4 w-4"/>Réinitialiser
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Réinitialiser les filtres</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -806,28 +829,6 @@ export default function ReportsPage() {
                                     <SelectItem value="pending">En attente</SelectItem>
                                 </SelectContent>
                             </Select>
-                            
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-[220px] justify-between">
-                                        <span>Types de pièce</span>
-                                        <ChevronDown className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {Object.entries(documentTypes).map(([type, { label }]) => (
-                                        <DropdownMenuCheckboxItem
-                                            key={type}
-                                            checked={filterDocTypes[type]}
-                                            onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                        >
-                                            {label}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
                         </div>
                     </CardContent>
                 </CollapsibleContent>
