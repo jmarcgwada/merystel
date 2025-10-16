@@ -160,6 +160,7 @@ export default function DashboardPage() {
     
     const backgroundStyle = useMemo(() => {
         if (!isMounted) return {};
+        const opacityValue = typeof dashboardBgOpacity === 'number' ? dashboardBgOpacity : 100;
         const style: React.CSSProperties = {
             position: 'absolute',
             top: 0,
@@ -167,7 +168,7 @@ export default function DashboardPage() {
             right: 0,
             bottom: 0,
             zIndex: -1,
-            opacity: dashboardBgOpacity / 100,
+            opacity: opacityValue / 100,
         };
         if (dashboardBgType === 'image') {
             style.backgroundImage = `url(${dashboardBackgroundImage})`;
