@@ -50,6 +50,7 @@ export default function ItemsPage() {
   const [filterVatId, setFilterVatId] = useState('all');
   const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState('all');
   const [filterHasVariants, setFilterHasVariants] = useState('all');
+  const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>('no');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
@@ -74,8 +75,9 @@ export default function ItemsPage() {
       const vatMatch = filterVatId === 'all' || item.vatId === filterVatId;
       const serialMatch = filterRequiresSerialNumber === 'all' || (item.requiresSerialNumber ? 'yes' : 'no') === filterRequiresSerialNumber;
       const variantsMatch = filterHasVariants === 'all' || (item.hasVariants ? 'yes' : 'no') === filterHasVariants;
+      const disabledMatch = filterIsDisabled === 'all' || (item.isDisabled ? 'yes' : 'no') === filterIsDisabled;
       
-      return nameMatch && categoryMatch && vatMatch && serialMatch && variantsMatch;
+      return nameMatch && categoryMatch && vatMatch && serialMatch && variantsMatch && disabledMatch;
     });
 
     if (sortConfig !== null) {
@@ -103,7 +105,7 @@ export default function ItemsPage() {
     }
 
     return filtered;
-  }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, sortConfig, categories]);
+  }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, sortConfig, categories]);
 
   const totalPages = Math.ceil(sortedAndFilteredItems.length / ITEMS_PER_PAGE);
 
@@ -208,6 +210,16 @@ export default function ItemsPage() {
                                 Filtres
                             </Button>
                         </CollapsibleTrigger>
+                         <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
+                            <SelectTrigger className="w-[220px]">
+                                <SelectValue placeholder="Statut de l'article" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="no">Articles activés</SelectItem>
+                                <SelectItem value="yes">Articles désactivés</SelectItem>
+                                <SelectItem value="all">Tous les articles</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
