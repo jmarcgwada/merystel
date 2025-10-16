@@ -319,8 +319,8 @@ function SaleDetailContent() {
             const vatAmount = item.total - totalHT;
             
             if (breakdown[vatInfo.rate]) {
-                breakdown[vatInfo.rate].total += vatAmount;
                 breakdown[vatInfo.rate].base += totalHT;
+                breakdown[vatInfo.rate].total += vatAmount;
             } else {
                 breakdown[vatInfo.rate] = { rate: vatInfo.rate, total: vatAmount, base: totalHT };
             }
@@ -444,8 +444,8 @@ function SaleDetailContent() {
                 <TableBody>
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
-                    const itemTotalHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
-                    const vatAmount = item.total - itemTotalHT;
+                    const itemTotalHT = item.price / (1 + (vatInfo?.rate || 0) / 100);
+                    const vatAmount = itemTotalHT * (vatInfo?.rate || 0) / 100 * item.quantity;
                     const fullItem = getItemInfo(item);
 
                     return (
