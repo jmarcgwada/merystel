@@ -66,6 +66,7 @@ export default function AnalyticsPage() {
     const [isClient, setIsClient] = useState(false);
     
     // Filtering state
+    const [generalFilter, setGeneralFilter] = useState('');
     const [topArticles, setTopArticles] = useState(10);
     const [topClients, setTopClients] = useState(10);
     const [filterCustomer, setFilterCustomer] = useState('');
@@ -76,6 +77,8 @@ export default function AnalyticsPage() {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [isTopItemsOpen, setIsTopItemsOpen] = useState(true);
     const [isTopCustomersOpen, setIsTopCustomersOpen] = useState(true);
+    const { setTargetInput, inputValue, targetInput } = useKeyboard();
+    const generalFilterRef = useRef<HTMLInputElement>(null);
 
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
@@ -91,6 +94,10 @@ export default function AnalyticsPage() {
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+     useEffect(() => {
+        if (targetInput?.name === 'analytics-general-filter') setGeneralFilter(inputValue);
+    }, [inputValue, targetInput]);
     
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'N/A';
@@ -156,9 +163,17 @@ export default function AnalyticsPage() {
             
             const docTypeMatch = activeDocTypes.includes(item.documentType);
 
-            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch;
+             const generalMatch = !generalFilter || (
+                (item.ticketNumber && item.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                item.name.toLowerCase().includes(generalFilter.toLowerCase()) ||
+                (item.barcode && item.barcode.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                item.customerName.toLowerCase().includes(generalFilter.toLowerCase()) ||
+                item.userName.toLowerCase().includes(generalFilter.toLowerCase())
+             );
+
+            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch;
         });
-    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes]);
+    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter]);
     
 
     const { stats, topItems, topCustomers } = useMemo(() => {
@@ -348,6 +363,14 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CollapsibleContent asChild>
               <CardContent className="flex flex-wrap items-center gap-4">
+                 <Input 
+                    ref={generalFilterRef}
+                    placeholder="Recherche générale..." 
+                    value={generalFilter} 
+                    onChange={(e) => setGeneralFilter(e.target.value)} 
+                    className="max-w-xs"
+                    onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })}
+                />
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
@@ -465,4 +488,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
