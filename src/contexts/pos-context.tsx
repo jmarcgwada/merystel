@@ -486,7 +486,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const defaultVatRates: VatRate[] = [
         { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
         { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3 },
     ];
     setVatRates(defaultVatRates);
 
@@ -505,14 +505,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const newCategories: Category[] = [];
     const newItems: Item[] = [];
     const categoryIdMap: { [key: string]: string } = {};
-    const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
+
+    const findVatIdByRate = (rate?: number) => {
+        if (rate === undefined) {
+            return vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
+        }
+        const vat = vatRates.find(v => v.rate === rate);
+        return vat?.id || vatRates[0]?.id;
+    }
     
-    if (!defaultVatId) {
+    if (!vatRates || vatRates.length === 0) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
         return;
     }
 
-    demoData.categories.forEach((categoryData) => {
+    demoData.categories.forEach((categoryData: any) => {
         const catId = uuidv4();
         newCategories.push({
             id: catId,
@@ -522,7 +529,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         categoryIdMap[categoryData.name] = catId;
 
-        categoryData.items.forEach((itemData) => {
+        categoryData.items.forEach((itemData: any) => {
             const itemId = uuidv4();
             newItems.push({
                 id: itemId,
@@ -531,7 +538,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 purchasePrice: itemData.price * 0.6,
                 description: itemData.description,
                 categoryId: catId,
-                vatId: defaultVatId,
+                vatId: findVatIdByRate(itemData.vatRate),
                 image: `https://picsum.photos/seed/${itemId}/200/150`,
                 barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
             });

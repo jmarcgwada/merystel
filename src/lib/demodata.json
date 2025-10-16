@@ -4,13 +4,13 @@
     {
       "name": "Viennoiseries & Pains",
       "items": [
-        { "name": "Croissant au beurre AOP", "price": 1.50, "description": "Classique, pur beurre, feuilleté et doré." },
-        { "name": "Pain au chocolat", "price": 1.70, "description": "Généreux avec ses deux barres de chocolat noir." },
-        { "name": "Pain aux raisins", "price": 2.00, "description": "Spirale de pâte levée avec crème pâtissière et raisins secs." },
-        { "name": "Chausson aux pommes", "price": 2.20, "description": "Compotée de pommes maison dans une pâte feuilletée." },
-        { "name": "Baguette tradition", "price": 1.30, "description": "Croûte croustillante et mie alvéolée." },
-        { "name": "Brioche au sucre", "price": 2.50, "description": "Moelleuse et parsemée de grains de sucre." },
-        { "name": "Pain complet bio", "price": 2.80, "description": "Tranché ou entier, à la farine complète biologique." }
+        { "name": "Croissant au beurre AOP", "price": 1.50, "description": "Classique, pur beurre, feuilleté et doré.", "vatRate": 5.5 },
+        { "name": "Pain au chocolat", "price": 1.70, "description": "Généreux avec ses deux barres de chocolat noir.", "vatRate": 5.5 },
+        { "name": "Pain aux raisins", "price": 2.00, "description": "Spirale de pâte levée avec crème pâtissière et raisins secs.", "vatRate": 5.5 },
+        { "name": "Chausson aux pommes", "price": 2.20, "description": "Compotée de pommes maison dans une pâte feuilletée.", "vatRate": 5.5 },
+        { "name": "Baguette tradition", "price": 1.30, "description": "Croûte croustillante et mie alvéolée.", "vatRate": 5.5 },
+        { "name": "Brioche au sucre", "price": 2.50, "description": "Moelleuse et parsemée de grains de sucre.", "vatRate": 5.5 },
+        { "name": "Pain complet bio", "price": 2.80, "description": "Tranché ou entier, à la farine complète biologique.", "vatRate": 5.5 }
       ]
     },
     {
@@ -29,29 +29,29 @@
     {
       "name": "Sandwichs & Salades",
       "items": [
-        { "name": "Sandwich Jambon-Beurre", "price": 5.50, "description": "Le classique parisien : baguette tradition, jambon blanc supérieur, beurre AOP." },
-        { "name": "Sandwich Poulet-Crudités", "price": 6.80, "description": "Baguette, filet de poulet, mayonnaise, salade, tomate." },
-        { "name": "Salade César", "price": 12.50, "description": "Salade romaine, poulet grillé, croûtons, copeaux de parmesan, sauce César maison." },
-        { "name": "Salade Niçoise", "price": 13.00, "description": "Thon, tomates, poivrons, olives, anchois, œuf dur." }
+        { "name": "Sandwich Jambon-Beurre", "price": 5.50, "description": "Le classique parisien : baguette tradition, jambon blanc supérieur, beurre AOP.", "vatRate": 10 },
+        { "name": "Sandwich Poulet-Crudités", "price": 6.80, "description": "Baguette, filet de poulet, mayonnaise, salade, tomate.", "vatRate": 10 },
+        { "name": "Salade César", "price": 12.50, "description": "Salade romaine, poulet grillé, croûtons, copeaux de parmesan, sauce César maison.", "vatRate": 10 },
+        { "name": "Salade Niçoise", "price": 13.00, "description": "Thon, tomates, poivrons, olives, anchois, œuf dur.", "vatRate": 10 }
       ]
     },
     {
       "name": "Entrées du Jour",
       "items": [
-        { "name": "Velouté de saison", "price": 7.50, "description": "Selon les légumes du marché, servi avec croûtons à l'ail." },
-        { "name": "Œuf parfait, crème de lard", "price": 9.00, "description": "Œuf cuit à 64°C, émulsion de lard fumé et champignons poêlés." },
-        { "name": "Terrine de campagne maison", "price": 8.50, "description": "Servie avec ses cornichons et pain de campagne grillé." },
-        { "name": "Salade de chèvre chaud", "price": 9.50, "description": "Crottins de chèvre sur toasts, salade et noix." }
+        { "name": "Velouté de saison", "price": 7.50, "description": "Selon les légumes du marché, servi avec croûtons à l'ail.", "vatRate": 10 },
+        { "name": "Œuf parfait, crème de lard", "price": 9.00, "description": "Œuf cuit à 64°C, émulsion de lard fumé et champignons poêlés.", "vatRate": 10 },
+        { "name": "Terrine de campagne maison", "price": 8.50, "description": "Servie avec ses cornichons et pain de campagne grillé.", "vatRate": 10 },
+        { "name": "Salade de chèvre chaud", "price": 9.50, "description": "Crottins de chèvre sur toasts, salade et noix.", "vatRate": 10 }
       ]
     },
     {
       "name": "Plats du Jour",
       "items": [
-        { "name": "Quiche Lorraine", "price": 12.50, "description": "Servie avec une salade verte vinaigrette balsamique." },
-        { "name": "Croque-Monsieur truffé", "price": 14.00, "description": "Pain de mie artisanal, jambon blanc à l'os, béchamel à la truffe et comté." },
-        { "name": "Risotto aux champignons", "price": 16.50, "description": "Riz Arborio, champignons de Paris, cèpes et parmesan." },
-        { "name": "Filet de bar, purée de carottes", "price": 21.00, "description": "Cuit sur peau, servi avec une purée fine de carottes au cumin." },
-        { "name": "Plat du Marché", "price": 18.00, "description": "Variable chaque jour, demandez au personnel." }
+        { "name": "Quiche Lorraine", "price": 12.50, "description": "Servie avec une salade verte vinaigrette balsamique.", "vatRate": 10 },
+        { "name": "Croque-Monsieur truffé", "price": 14.00, "description": "Pain de mie artisanal, jambon blanc à l'os, béchamel à la truffe et comté.", "vatRate": 10 },
+        { "name": "Risotto aux champignons", "price": 16.50, "description": "Riz Arborio, champignons de Paris, cèpes et parmesan.", "vatRate": 10 },
+        { "name": "Filet de bar, purée de carottes", "price": 21.00, "description": "Cuit sur peau, servi avec une purée fine de carottes au cumin.", "vatRate": 10 },
+        { "name": "Plat du Marché", "price": 18.00, "description": "Variable chaque jour, demandez au personnel.", "vatRate": 10 }
       ]
     },
     {
@@ -68,11 +68,11 @@
     {
       "name": "Boissons Fraîches",
       "items": [
-        { "name": "Jus d'orange pressé", "price": 4.50, "description": "Oranges fraîches pressées à la minute (25cl)." },
-        { "name": "Citronnade maison", "price": 4.00, "description": "Citron, eau, sucre et menthe fraîche (25cl)." },
-        { "name": "Ice Tea Pêche maison", "price": 4.20, "description": "Thé noir infusé, sirop de pêche (25cl)." },
-        { "name": "Coca-Cola / Coca-Cola Zéro", "price": 3.50, "description": "Bouteille en verre 33cl." },
-        { "name": "Eau minérale (Evian / Badoit)", "price": 3.00, "description": "Bouteille 50cl." }
+        { "name": "Jus d'orange pressé", "price": 4.50, "description": "Oranges fraîches pressées à la minute (25cl).", "vatRate": 10 },
+        { "name": "Citronnade maison", "price": 4.00, "description": "Citron, eau, sucre et menthe fraîche (25cl).", "vatRate": 10 },
+        { "name": "Ice Tea Pêche maison", "price": 4.20, "description": "Thé noir infusé, sirop de pêche (25cl).", "vatRate": 10 },
+        { "name": "Coca-Cola / Coca-Cola Zéro", "price": 3.50, "description": "Bouteille en verre 33cl.", "vatRate": 10 },
+        { "name": "Eau minérale (Evian / Badoit)", "price": 3.00, "description": "Bouteille 50cl.", "vatRate": 10 }
       ]
     },
     {
