@@ -124,7 +124,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
-      <header className="flex justify-between items-start pb-4">
+      <header className="flex justify-between items-start pb-4 break-inside-avoid">
         <div className="w-1/2 space-y-0.5">
           <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <div className="leading-tight">{companyInfo?.address}</div>
@@ -140,7 +140,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </header>
 
-      <section className="flex justify-end mt-[-1rem]">
+      <section className="flex justify-end mt-[-1rem] break-inside-avoid">
         <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
             <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
             <p className="leading-tight">{customer?.address}</p>
@@ -152,23 +152,28 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         <table className="w-full">
             <thead>
                 <tr className="bg-gray-800 text-white">
-                    <th className="p-2 text-left w-1/2">Désignation</th>
-                    <th className="p-2 text-right">Qté</th>
-                    <th className="p-2 text-right">P.U. HT</th>
-                    <th className="p-2 text-right">Code TVA</th>
-                    <th className="p-2 text-right">Total HT</th>
+                    <th className="p-2 text-left w-[15%]">Référence</th>
+                    <th className="p-2 text-left w-[40%]">Désignation</th>
+                    <th className="p-2 text-right w-[5%]">Qté</th>
+                    <th className="p-2 text-right w-[10%]">P.U. HT</th>
+                    <th className="p-2 text-right w-[10%]">Remise</th>
+                    <th className="p-2 text-right w-[10%]">Code TVA</th>
+                    <th className="p-2 text-right w-[10%]">Total HT</th>
                 </tr>
             </thead>
             <tbody>
                 {sale.items.map((item) => {
                     const vatInfo = vatRates.find(v => v.id === item.vatId);
                     const priceHT = item.price / (1 + (vatInfo?.rate || 0)/100);
-                    const totalHT = item.quantity * priceHT * (1 - (item.discountPercent || 0)/100);
+                    const totalHT = item.price * item.quantity * (1 - (item.discountPercent || 0)/100) / (1 + (vatInfo?.rate || 0)/100);
+                    const discountAmount = item.discount;
                     return (
-                        <tr key={item.id} className="border-b">
+                        <tr key={item.id} className="border-b break-inside-avoid">
+                            <td className="p-2 align-top">{item.barcode}</td>
                             <td className="p-2 align-top">{item.name}</td>
                             <td className="p-2 text-right align-top">{item.quantity}</td>
                             <td className="p-2 text-right align-top">{priceHT.toFixed(2)}€</td>
+                            <td className="p-2 text-right align-top text-red-600">{discountAmount > 0 ? `-${discountAmount.toFixed(2)}€` : ''}</td>
                             <td className="p-2 text-right align-top">{vatInfo?.code || ''}</td>
                             <td className="p-2 text-right align-top">{totalHT.toFixed(2)}€</td>
                         </tr>
@@ -178,7 +183,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </table>
       </section>
 
-      <section className="mt-8 flex justify-between items-start">
+      <section className="mt-8 flex justify-between items-start break-inside-avoid">
         <div className="w-2/5">
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
         </div>
@@ -194,7 +199,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       </section>
 
       {companyInfo?.communicationDoc && (
-        <section className="my-8">
+        <section className="my-8 break-inside-avoid">
             <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
                 <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     {companyInfo.communicationDoc.startsWith('data:image') ? (
@@ -209,7 +214,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       
       <div className="flex-grow"></div>
 
-      <footer className="mt-auto pt-8 text-center text-xs text-gray-500">
+      <footer className="mt-auto pt-8 text-center text-xs text-gray-500" style={{ position: 'fixed', bottom: '2rem', left: '2.5rem', right: '2.5rem' }}>
         <div className="border-t pt-4">
             <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
             <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
