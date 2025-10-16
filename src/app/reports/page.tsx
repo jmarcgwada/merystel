@@ -44,6 +44,16 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 const ITEMS_PER_PAGE = 20;
 
+const documentTypes = {
+    ticket: { label: 'Ticket de caisse' },
+    invoice: { label: 'Facture' },
+    quote: { label: 'Devis' },
+    delivery_note: { label: 'Bon de Livraison' },
+    credit_note: { label: 'Avoir' },
+    supplier_order: { label: 'Cde Fournisseur' },
+};
+
+
 const hexToRgba = (hex: string, opacity: number) => {
     let c: any;
     if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
@@ -216,6 +226,19 @@ export default function ReportsPage() {
     
     const isContextualFilterActive = !!initialFilter;
 
+    const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
+        ticket: true,
+        invoice: true,
+        quote: true,
+        delivery_note: true,
+        supplier_order: true,
+        credit_note: true,
+    });
+
+    const handleDocTypeChange = (type: string, checked: boolean) => {
+        setFilterDocTypes(prev => ({ ...prev, [type]: checked }));
+    };
+
      useEffect(() => {
         setIsClient(true);
     }, []);
@@ -271,6 +294,9 @@ export default function ReportsPage() {
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
+        const activeDocTypes = Object.entries(filterDocTypes)
+            .filter(([, isActive]) => isActive)
+            .map(([type]) => type);
 
         // Apply filters
         let filteredSales = allSales.filter(sale => {
@@ -303,6 +329,9 @@ export default function ReportsPage() {
                 dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             }
 
+            const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+            const docTypeMatch = activeDocTypes.includes(docType);
+
             const generalMatch = !generalFilter || (
                 (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 (Array.isArray(sale.items) && sale.items.some(item => {
@@ -316,7 +345,7 @@ export default function ReportsPage() {
             );
             
 
-            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch && docTypeMatch;
         });
 
         // Apply sorting
@@ -381,7 +410,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter, getCustomerName, getUserName]);
+    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
 
@@ -430,6 +459,7 @@ export default function ReportsPage() {
         setFilterArticleRef('');
         setFilterSellerName('');
         setGeneralFilter('');
+        setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
     
@@ -776,6 +806,28 @@ export default function ReportsPage() {
                                     <SelectItem value="pending">En attente</SelectItem>
                                 </SelectContent>
                             </Select>
+                            
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-[220px] justify-between">
+                                        <span>Types de pièce</span>
+                                        <ChevronDown className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {Object.entries(documentTypes).map(([type, { label }]) => (
+                                        <DropdownMenuCheckboxItem
+                                            key={type}
+                                            checked={filterDocTypes[type]}
+                                            onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                        >
+                                            {label}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </CardContent>
                 </CollapsibleContent>
