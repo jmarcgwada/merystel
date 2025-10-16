@@ -242,27 +242,26 @@ function SaleDetailContent() {
   
   const navigationParams = useMemo(() => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
-    // Remove the 'from' param if it's 'analytics' to avoid loops, but keep others
-    if (params.get('from') === 'analytics') {
-      params.delete('from');
-    }
     return params;
   }, [searchParams]);
 
   const handleBack = () => {
+    const backParams = new URLSearchParams(navigationParams);
     if (fromPos && sale) {
         loadTicketForViewing(sale);
         router.push('/pos');
     } else if (fromAnalytics) {
-        router.push(`/reports/analytics?${navigationParams.toString()}`);
+        backParams.delete('from');
+        router.push(`/reports/analytics?${backParams.toString()}`);
     } else {
-        router.push(`/reports?${navigationParams.toString()}`);
+        backParams.delete('from');
+        router.push(`/reports?${backParams.toString()}`);
     }
   }
 
   const getDetailLink = (id: string | null) => {
     if (!id) return '#';
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    const params = new URLSearchParams(navigationParams);
     return `/reports/${id}?${params.toString()}`;
   };
 
