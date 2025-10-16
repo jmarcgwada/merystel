@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,10 +31,10 @@ type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName
 const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
-    ticket: { label: 'Ticket de caisse' },
-    invoice: { label: 'Facture' },
-    credit_note: { label: 'Avoir' },
-    supplier_order: { label: 'Cde Fournisseur' },
+    ticket: { label: 'Ticket', type: 'in' },
+    invoice: { label: 'Facture', type: 'in' },
+    credit_note: { label: 'Avoir', type: 'out' },
+    supplier_order: { label: 'Cde Fournisseur', type: 'out' },
 };
 
 const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | undefined, saleDate: Date | Timestamp | undefined }) => {
@@ -119,6 +119,27 @@ export default function PaymentsReportPage() {
     useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    const handleDocTypeChange = (typeKey: string, checked: boolean) => {
+        const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
+        if (!typeInfo) return;
+
+        const newFilter = { ...filterDocTypes };
+
+        // If we are checking an item, uncheck all items of the opposite type
+        if (checked) {
+            newFilter[typeKey] = true;
+            for (const key in documentTypes) {
+                if (documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                    newFilter[key] = false;
+                }
+            }
+        } else {
+            newFilter[typeKey] = false;
+        }
+
+        setFilterDocTypes(newFilter);
+    };
 
     const allPayments = useMemo(() => {
         if (!allSales) return [];
@@ -249,14 +270,15 @@ export default function PaymentsReportPage() {
         const totalPay = filteredAndSortedPayments.length;
         const avgPay = totalPay > 0 ? totalRev / totalPay : 0;
         
-        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
-        let title = "Revenu Total";
-        if (activeDocTypes.length === 1) {
-            const docTypeKey = activeDocTypes[0] as keyof typeof documentTypes;
-            if(docTypeKey === 'credit_note') title = "Total Remboursé (Avoirs)";
-            else if (docTypeKey === 'supplier_order') title = "Total Achats (Fournisseurs)";
-            else if (docTypeKey === 'invoice') title = "Revenu Total (Factures)";
-            else if (docTypeKey === 'ticket') title = "Revenu Total (Tickets)";
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes].type);
+        
+        let title = "Total";
+        const uniqueTypes = [...new Set(activeDocTypes)];
+
+        if (uniqueTypes.length === 1) {
+            const type = uniqueTypes[0];
+            if (type === 'in') title = "Revenu Total";
+            else if (type === 'out') title = "Total Dépensé";
         }
         
         return { summaryTitle: title, totalRevenue: totalRev, totalPayments: totalPay, averagePayment: avgPay };
@@ -310,20 +332,25 @@ export default function PaymentsReportPage() {
         subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedPayments.length} paiements sur ${allPayments.length} au total)`}
       >
         <div className="flex items-center gap-2">
+            <Button asChild variant="secondary">
+                <Link href="/reports">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Pièces de vente
+                </Link>
+            </Button>
             <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
             <Button asChild variant="outline" size="icon" className="btn-back">
                 <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>
             </Button>
-            <Button asChild><Link href="/reports"><ArrowLeft className="mr-2 h-4 w-4" />Pièces de vente</Link></Button>
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
         </div>
 
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
@@ -350,7 +377,7 @@ export default function PaymentsReportPage() {
                                     <DropdownMenuCheckboxItem
                                         key={type}
                                         checked={filterDocTypes[type]}
-                                        onCheckedChange={(checked) => setFilterDocTypes(prev => ({ ...prev, [type]: checked }))}
+                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
                                     >
                                         {label}
                                     </DropdownMenuCheckboxItem>
@@ -407,7 +434,7 @@ export default function PaymentsReportPage() {
                                     <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                     <TableCell>{customerName}</TableCell>
                                     <TableCell>{sellerName}</TableCell>
-                                    <TableCell className="text-right font-bold">{Math.abs(payment.amount).toFixed(2)}€</TableCell>
+                                    <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
                                     <TableCell className="text-right"><Button asChild variant="ghost" size="icon"><Link href={`/reports/${payment.saleId}`}><Eye className="h-4 w-4" /></Link></Button></TableCell>
                                 </TableRow>
                             )
