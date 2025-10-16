@@ -83,6 +83,7 @@ export default function AnalyticsPage() {
     const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(true);
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
+    const itemFilterRef = useRef<HTMLInputElement>(null);
 
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
 
@@ -108,6 +109,7 @@ export default function AnalyticsPage() {
 
      useEffect(() => {
         if (targetInput?.name === 'analytics-general-filter') setGeneralFilter(inputValue);
+        if (targetInput?.name === 'analytics-item-filter') setFilterItem(inputValue);
     }, [inputValue, targetInput]);
     
      useEffect(() => {
@@ -481,6 +483,14 @@ export default function AnalyticsPage() {
                     </PopoverContent>
                 </Popover>
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
+                <Input
+                    ref={itemFilterRef}
+                    placeholder="Filtrer par article/réf..." 
+                    value={filterItem} 
+                    onChange={(e) => setFilterItem(e.target.value)} 
+                    className="max-w-xs"
+                    onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}
+                />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
                 <div className="grid gap-2 w-48">
                     <div className="flex justify-between items-center">
