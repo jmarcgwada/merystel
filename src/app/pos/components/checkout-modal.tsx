@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -422,7 +421,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               </div>
               <div className={cn(
                   "flex justify-between font-bold text-lg mt-2",
-                  balanceDue !== 0 ? (isCreditNote ? "text-blue-600" : "text-primary") : "text-green-600"
+                  balanceDue !== 0 ? "text-primary" : "text-green-600"
               )}>
                   <span>{balanceDue !== 0 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : 'Soldé'}</span>
                   <span>{Math.abs(balanceDue).toFixed(2)}€</span>

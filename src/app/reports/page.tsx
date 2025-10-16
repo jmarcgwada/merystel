@@ -76,7 +76,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         }
 
         if (!isNaN(jsDate.getTime())) {
-            setFormattedDate(format(jsDate, "d MMM yyyy 'à' HH:mm", { locale: fr }));
+            setFormattedDate(format(jsDate, "d MMM yyyy, HH:mm", { locale: fr }));
         } else {
             setFormattedDate('Date invalide');
         }
@@ -278,13 +278,13 @@ export default function ReportsPage() {
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
             
-            const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
             
             let statusMatch = true;
             if (filterStatus !== 'all') {
                 if (filterStatus === 'paid') statusMatch = sale.status === 'paid';
                 else if (filterStatus === 'pending') statusMatch = sale.status === 'pending' && totalPaid === 0;
-                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < sale.total;
+                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < Math.abs(sale.total);
                 else statusMatch = sale.status === filterStatus;
             }
 
@@ -314,6 +314,7 @@ export default function ReportsPage() {
                     return nameMatch || noteMatch || serialMatch || variantMatch;
                 }))
             );
+            
 
             return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch;
         });
@@ -433,41 +434,41 @@ export default function ReportsPage() {
     }
     
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
-        const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
-        const saleTotal = Math.abs(sale.total);
+      const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
+      const saleTotal = Math.abs(sale.total);
 
-        if (sale.status === 'invoiced') {
-            return <Badge variant="outline">Facturé</Badge>;
-        }
-        if (sale.status === 'paid') {
-            return (
-                <div className="flex flex-wrap gap-1">
-                    {sale.payments.map((p, index) => (
-                        <Badge key={index} variant="outline" className="capitalize font-normal">
-                            {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
-                        </Badge>
-                    ))}
-                    {sale.change && sale.change > 0 && (
-                        <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
-                            Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
-                        </Badge>
-                    )}
-                </div>
-            );
-        }
+      if (sale.status === 'invoiced') {
+          return <Badge variant="outline">Facturé</Badge>;
+      }
+      if (sale.status === 'paid') {
+          return (
+              <div className="flex flex-wrap gap-1">
+                  {sale.payments.map((p, index) => (
+                      <Badge key={index} variant="outline" className="capitalize font-normal">
+                          {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
+                      </Badge>
+                  ))}
+                  {sale.change && sale.change > 0 && (
+                      <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
+                          Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
+                      </Badge>
+                  )}
+              </div>
+          );
+      }
 
-        if (totalPaid > 0) {
-            const remaining = saleTotal - totalPaid;
-            return (
-                <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>
-                    <span className="text-xs text-muted-foreground font-semibold">({remaining.toFixed(2)}€ restants)</span>
-                </div>
-            )
-        }
+      if (totalPaid > 0) {
+          const remaining = saleTotal - totalPaid;
+          return (
+              <div className="flex items-center gap-2">
+                  <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>
+                  <span className="text-xs text-muted-foreground font-semibold">({remaining.toFixed(2)}€ restants)</span>
+              </div>
+          )
+      }
 
-        return <Badge variant="destructive" className="font-normal">En attente</Badge>;
-    };
+      return <Badge variant="destructive" className="font-normal">En attente</Badge>;
+  };
 
     const getDetailLink = (saleId: string) => {
         const params = new URLSearchParams();
@@ -890,9 +891,9 @@ export default function ReportsPage() {
                                     {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
                                     {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
                                     {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
-                                    {visibleColumns.subtotal && <TableCell className="text-right font-medium">{(sale.subtotal || 0).toFixed(2)}€</TableCell>}
-                                    {visibleColumns.tax && <TableCell className="text-right font-medium">{(sale.tax || 0).toFixed(2)}€</TableCell>}
-                                    {visibleColumns.total && <TableCell className="text-right font-bold">{(sale.total || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                    {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
                                     {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
