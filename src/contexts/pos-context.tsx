@@ -1109,14 +1109,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
         let finalSale: Sale;
-        let isCreditNote = saleData.documentType === 'credit_note';
-
-        if (isCreditNote) {
-            saleData.total = -Math.abs(saleData.total);
-            saleData.subtotal = -Math.abs(saleData.subtotal);
-            saleData.tax = -Math.abs(saleData.tax);
-            saleData.payments = saleData.payments.map(p => ({ ...p, amount: -Math.abs(p.amount) }));
-        }
     
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
             const existingSale = sales.find(s => s.id === saleIdToUpdate);
@@ -1145,7 +1137,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
                 ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
-            } else if (isCreditNote) {
+            } else if (saleData.documentType === 'credit_note') {
                 const creditNoteCount = sales.filter(s => s.documentType === 'credit_note').length;
                 ticketNumber = 'AVOIR-' + (creditNoteCount + 1).toString().padStart(4, '0');
             } else {

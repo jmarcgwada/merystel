@@ -462,7 +462,7 @@ export default function ReportsPage() {
           return (
               <div className="flex items-center gap-2">
                   <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>
-                  <span className="text-xs text-muted-foreground font-semibold">({remaining.toFixed(2)}€ restants)</span>
+                  <span className="text-xs text-muted-foreground font-semibold">({Math.abs(remaining).toFixed(2)}€ restants)</span>
               </div>
           )
       }

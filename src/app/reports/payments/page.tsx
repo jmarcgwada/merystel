@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -358,7 +359,7 @@ export default function PaymentsReportPage() {
                                     <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                     <TableCell>{customerName}</TableCell>
                                     <TableCell>{sellerName}</TableCell>
-                                    <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
+                                    <TableCell className="text-right font-bold">{Math.abs(payment.amount).toFixed(2)}€</TableCell>
                                     <TableCell className="text-right"><Button asChild variant="ghost" size="icon"><Link href={`/reports/${payment.saleId}`}><Eye className="h-4 w-4" /></Link></Button></TableCell>
                                 </TableRow>
                             )
