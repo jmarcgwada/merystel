@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -634,12 +635,6 @@ export default function ReportsPage() {
         subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
       >
         <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-                <Link href="/reports/popular-items">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Articles Populaires
-                </Link>
-            </Button>
              <Button asChild variant="secondary">
                 <Link href="/reports/payments">
                     <CreditCard className="mr-2 h-4 w-4" />
