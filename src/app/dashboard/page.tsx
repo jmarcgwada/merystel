@@ -425,7 +425,6 @@ export default function DashboardPage() {
                           <div className="mt-4 flex flex-wrap gap-2">
                               <Button asChild variant="secondary" size="sm"><Link href="/reports">Pièces de vente</Link></Button>
                               <Button asChild variant="secondary" size="sm"><Link href="/reports/payments">Paiements</Link></Button>
-                              <Button asChild variant="secondary" size="sm"><Link href="/reports/popular-items">Articles Populaires</Link></Button>
                               <Button asChild variant="secondary" size="sm"><Link href="/reports/analytics">Reporting avancé</Link></Button>
                           </div>
                       </CardContent>

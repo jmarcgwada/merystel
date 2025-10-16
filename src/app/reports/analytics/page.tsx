@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,8 +39,6 @@ const getDateFromSale = (sale: Sale): Date => {
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in' },
     invoice: { label: 'Facture', type: 'in' },
-    quote: { label: 'Devis', type: 'neutral' },
-    delivery_note: { label: 'Bon de Livraison', type: 'neutral' },
     credit_note: { label: 'Avoir', type: 'out' },
     supplier_order: { label: 'Cde Fournisseur', type: 'out' },
 };
@@ -66,10 +65,8 @@ export default function AnalyticsPage() {
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
-        quote: false,
-        delivery_note: false,
-        supplier_order: false,
         credit_note: false,
+        supplier_order: false,
     });
 
     useEffect(() => {
@@ -89,7 +86,21 @@ export default function AnalyticsPage() {
     }, [users]);
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
-        setFilterDocTypes(prev => ({ ...prev, [typeKey]: checked }));
+        const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
+        if (!typeInfo) return;
+
+        setFilterDocTypes(prev => {
+            const newState = { ...prev, [typeKey]: checked };
+            // If a type with a directional flow (in/out) is checked, uncheck all types of the opposite flow.
+            if (checked && typeInfo.type) {
+                for (const key in documentTypes) {
+                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                        newState[key] = false;
+                    }
+                }
+            }
+            return newState;
+        });
     };
 
     const flattenedItems = useMemo(() => {
