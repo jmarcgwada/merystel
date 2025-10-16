@@ -25,9 +25,19 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 
 type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName' | 'userName';
 const ITEMS_PER_PAGE = 20;
+
+const documentTypes = {
+    ticket: { label: 'Ticket', prefix: 'Tick-' },
+    invoice: { label: 'Facture', prefix: 'Fact-' },
+    quote: { label: 'Devis', prefix: 'Devis-' },
+    delivery_note: { label: 'Bon de Livraison', prefix: 'BL-' },
+    credit_note: { label: 'Avoir', prefix: 'AVOIR-' },
+    supplier_order: { label: 'Cde Fournisseur', prefix: 'CF-' },
+};
 
 const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | undefined, saleDate: Date | Timestamp | undefined }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -84,7 +94,14 @@ export default function PaymentsReportPage() {
     // Filtering state
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterMethodName, setFilterMethodName] = useState('all');
-    const [filterDocType, setFilterDocType] = useState('all');
+    const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
+        ticket: true,
+        invoice: true,
+        quote: false,
+        delivery_note: false,
+        credit_note: true,
+        supplier_order: false,
+    });
     const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
         if (dateFilterParam) {
@@ -114,6 +131,7 @@ export default function PaymentsReportPage() {
                 ...payment,
                 saleId: sale.id,
                 saleTicketNumber: sale.ticketNumber,
+                saleDocumentType: sale.documentType,
                 saleDate: sale.date,
                 customerId: sale.customerId,
                 userId: sale.userId,
@@ -137,6 +155,10 @@ export default function PaymentsReportPage() {
 
     const filteredAndSortedPayments = useMemo(() => {
         if (!allPayments) return [];
+
+        const activeDocTypes = Object.entries(filterDocTypes)
+          .filter(([, isActive]) => isActive)
+          .map(([type]) => type);
 
         let filtered = allPayments.filter(payment => {
             const customerName = getCustomerName(payment.customerId);
@@ -172,16 +194,8 @@ export default function PaymentsReportPage() {
                 paymentTypeMatch = isSameDay(paymentJsDate, saleJsDate);
             }
             
-            let docTypeMatch = true;
-            if (filterDocType !== 'all') {
-                const prefixes = {
-                    ticket: 'Tick-',
-                    invoice: 'Fact-',
-                    quote: 'Devis-',
-                    delivery_note: 'BL-',
-                };
-                docTypeMatch = payment.saleTicketNumber?.startsWith(prefixes[filterDocType as keyof typeof prefixes]) || false;
-            }
+            const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+            const docTypeMatch = activeDocTypes.includes(docType);
 
             const generalMatch = !generalFilter || (
                 (payment.saleTicketNumber && payment.saleTicketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
@@ -225,7 +239,7 @@ export default function PaymentsReportPage() {
             });
         }
         return filtered;
-    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocType, getCustomerName, getUserName]);
+    }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedPayments.length / ITEMS_PER_PAGE);
 
@@ -259,7 +273,9 @@ export default function PaymentsReportPage() {
         setFilterCustomerName('');
         setFilterMethodName('all');
         setFilterPaymentType('all');
-        setFilterDocType('all');
+        setFilterDocTypes({
+            ticket: true, invoice: true, quote: false, delivery_note: false, credit_note: true, supplier_order: false
+        });
         setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
@@ -327,16 +343,28 @@ export default function PaymentsReportPage() {
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
                         <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
                         <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
-                        <Select value={filterDocType} onValueChange={setFilterDocType}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Type de pièce" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Toutes les pièces</SelectItem>
-                                <SelectItem value="ticket">Ticket</SelectItem>
-                                <SelectItem value="invoice">Facture</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-[220px] justify-between">
+                                    <span>Types de pièce</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {Object.entries(documentTypes).map(([type, { label }]) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={type}
+                                        checked={filterDocTypes[type]}
+                                        onCheckedChange={(checked) => setFilterDocTypes(prev => ({ ...prev, [type]: checked }))}
+                                    >
+                                        {label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
@@ -352,10 +380,17 @@ export default function PaymentsReportPage() {
                         {paginatedPayments.map((payment, index) => {
                             const customerName = getCustomerName(payment.customerId);
                             const sellerName = getUserName(payment.userId, payment.userName);
+                            const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                            
                             return (
                                 <TableRow key={`${payment.saleId}-${index}`}>
                                     <TableCell className="font-medium"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
-                                    <TableCell><Badge variant="secondary">{payment.saleTicketNumber}</Badge></TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
+                                            <span className="text-xs text-muted-foreground mt-1 capitalize">{documentTypes[docType as keyof typeof documentTypes]?.label || docType}</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                     <TableCell>{customerName}</TableCell>
                                     <TableCell>{sellerName}</TableCell>
@@ -372,3 +407,4 @@ export default function PaymentsReportPage() {
     </div>
   );
 }
+
