@@ -311,22 +311,46 @@ function SaleDetailContent() {
     if (!sale || !vatRates) return {};
     const breakdown: { [key: string]: { rate: number; total: number; base: number } } = {};
     
+    const totalSubtotal = sale.subtotal;
+
+    // First pass: group item subtotals by VAT rate
+    const subtotalByRate: { [key: string]: number } = {};
     sale.items.forEach(item => {
-        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        const vatInfo = getVatInfo(item.vatId);
         if (vatInfo) {
-            const priceHT = item.total / (1 + vatInfo.rate / 100);
-            const taxAmount = item.total - priceHT;
-            
+            const priceHT = item.price / (1 + vatInfo.rate / 100);
+            const totalHT = priceHT * item.quantity * (1 - (item.discountPercent || 0) / 100);
             const rateKey = vatInfo.rate.toString();
-            if (breakdown[rateKey]) {
-                breakdown[rateKey].base += priceHT;
-                breakdown[rateKey].total += taxAmount;
-            } else {
-                breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT };
-            }
+            subtotalByRate[rateKey] = (subtotalByRate[rateKey] || 0) + totalHT;
         }
     });
 
+    // Second pass: distribute the final subtotal proportionally
+    let distributedSubtotal = 0;
+    const calculatedSubtotal = Object.values(subtotalByRate).reduce((a, b) => a + b, 0);
+    
+    Object.entries(subtotalByRate).forEach(([rate, subtotalForRate]) => {
+        const proportion = calculatedSubtotal > 0 ? subtotalForRate / calculatedSubtotal : 0;
+        const base = totalSubtotal * proportion;
+        const tax = base * (parseFloat(rate) / 100);
+        
+        if (breakdown[rate]) {
+            breakdown[rate].base += base;
+            breakdown[rate].total += tax;
+        } else {
+            breakdown[rate] = { rate: parseFloat(rate), base, total: tax };
+        }
+        distributedSubtotal += base;
+    });
+
+    // Adjust for rounding errors
+    const diff = totalSubtotal - distributedSubtotal;
+    if (diff !== 0 && Object.keys(breakdown).length > 0) {
+        const firstRate = Object.keys(breakdown)[0];
+        breakdown[firstRate].base += diff;
+        breakdown[firstRate].total += diff * (parseFloat(firstRate) / 100);
+    }
+    
     return breakdown;
   }, [sale, vatRates]);
   
@@ -435,7 +459,7 @@ function SaleDetailContent() {
                     <TableHead className="w-[64px]">Image</TableHead>
                     <TableHead>Article</TableHead>
                     <TableHead className="text-center">Qté</TableHead>
-                    <TableHead className="text-right">Prix Unitaire (TTC)</TableHead>
+                    <TableHead className="text-right">Prix Unitaire (HT)</TableHead>
                     <TableHead className="text-right">TVA</TableHead>
                     <TableHead className="text-right">Total Ligne (TTC)</TableHead>
                   </TableRow>
@@ -444,8 +468,9 @@ function SaleDetailContent() {
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
                     const fullItem = getItemInfo(item);
-                    const vatAmount = item.total - (item.total / (1 + (vatInfo?.rate || 0) / 100));
-
+                    const priceHT = item.price / (1 + (vatInfo?.rate || 0) / 100);
+                    const vatAmount = priceHT * (vatInfo?.rate || 0) / 100;
+                    
                     return (
                         <TableRow key={item.id}>
                             <TableCell>
@@ -471,9 +496,9 @@ function SaleDetailContent() {
                                 )}
                             </TableCell>
                             <TableCell className="text-center">{item.quantity}</TableCell>
-                            <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                            <TableCell className="text-right">{priceHT.toFixed(2)}€</TableCell>
                              <TableCell className="text-right text-muted-foreground text-xs">
-                                <div>{vatAmount.toFixed(2)}€</div>
+                                <div>{(vatAmount * item.quantity).toFixed(2)}€</div>
                                 <div>({vatInfo?.rate || 0}%)</div>
                             </TableCell>
                             <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
@@ -513,7 +538,7 @@ function SaleDetailContent() {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Sous-total (HT)</span>
-                <span>{subTotalHT.toFixed(2)}€</span>
+                <span>{sale.subtotal.toFixed(2)}€</span>
               </div>
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
