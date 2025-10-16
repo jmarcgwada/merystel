@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -45,12 +44,12 @@ type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | '
 const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
-    ticket: { label: 'Ticket de caisse' },
-    invoice: { label: 'Facture' },
-    quote: { label: 'Devis' },
-    delivery_note: { label: 'Bon de Livraison' },
-    credit_note: { label: 'Avoir' },
-    supplier_order: { label: 'Cde Fournisseur' },
+    ticket: { label: 'Ticket', type: 'in' },
+    invoice: { label: 'Facture', type: 'in' },
+    quote: { label: 'Devis', type: 'neutral' },
+    delivery_note: { label: 'Bon de Livraison', type: 'neutral' },
+    credit_note: { label: 'Avoir', type: 'out' },
+    supplier_order: { label: 'Cde Fournisseur', type: 'out' },
 };
 
 
@@ -237,8 +236,22 @@ export default function ReportsPage() {
         credit_note: true,
     });
 
-    const handleDocTypeChange = (type: string, checked: boolean) => {
-        setFilterDocTypes(prev => ({ ...prev, [type]: checked }));
+    const handleDocTypeChange = (typeKey: string, checked: boolean) => {
+        const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
+        if (!typeInfo) return;
+
+        setFilterDocTypes(prev => {
+            const newState = { ...prev, [typeKey]: checked };
+
+            if (checked && typeInfo.type !== 'neutral') {
+                for (const key in documentTypes) {
+                    if (documentTypes[key as keyof typeof documentTypes].type !== 'neutral' && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                        newState[key] = false;
+                    }
+                }
+            }
+            return newState;
+        });
     };
 
      useEffect(() => {
@@ -428,9 +441,9 @@ export default function ReportsPage() {
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
         const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
 
-        const totalRevenue = revenueSales.reduce((acc, sale) => acc + sale.total, 0);
-        const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + sale.total, 0);
-        const totalPurchases = supplierOrders.reduce((acc, sale) => acc + sale.total, 0);
+        const totalRevenue = revenueSales.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
+        const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
+        const totalPurchases = supplierOrders.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
 
@@ -466,8 +479,8 @@ export default function ReportsPage() {
     }
     
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
-      const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-      const saleTotal = sale.total;
+      const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
+      const saleTotal = Math.abs(sale.total);
 
       if (sale.status === 'invoiced') {
           return <Badge variant="outline">Facturé</Badge>;
@@ -477,12 +490,12 @@ export default function ReportsPage() {
               <div className="flex flex-wrap gap-1">
                   {sale.payments.map((p, index) => (
                       <Badge key={index} variant="outline" className="capitalize font-normal">
-                          {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
+                          {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
                       </Badge>
                   ))}
                   {sale.change && sale.change > 0 && (
                       <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
-                          Rendu: <span className="font-semibold ml-1">{sale.change.toFixed(2)}€</span>
+                          Rendu: <span className="font-semibold ml-1">{Math.abs(sale.change).toFixed(2)}€</span>
                       </Badge>
                   )}
               </div>
@@ -697,7 +710,7 @@ export default function ReportsPage() {
                                     Filtres
                                 </Button>
                             </CollapsibleTrigger>
-                            <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-2">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="w-[220px] justify-between">
@@ -914,7 +927,7 @@ export default function ReportsPage() {
                             {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
                             {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
                             {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
-                            {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total {getSortIcon('total')}</Button></TableHead>}
+                            {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
                             {visibleColumns.payment && <TableHead>Paiement</TableHead>}
                             <TableHead className="w-[150px] text-right">Actions</TableHead>
                         </TableRow>
