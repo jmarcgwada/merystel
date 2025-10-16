@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -12,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -494,7 +493,7 @@ export default function AnalyticsPage() {
                                 {salesLinesColumns.map(column => (
                                     <DropdownMenuCheckboxItem
                                         key={column.id}
-                                        checked={visibleColumns[column.id]}
+                                        checked={visibleColumns[column.id] ?? true}
                                         onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
                                     >
                                         {column.label}
@@ -531,7 +530,25 @@ export default function AnalyticsPage() {
                                             <Badge variant="secondary">{item.ticketNumber}</Badge>
                                         </Link>
                                     </TableCell>}
-                                    {visibleColumns.name && <TableCell>{item.name}</TableCell>}
+                                    {visibleColumns.name && <TableCell>
+                                        <div className="font-medium">{item.name}</div>
+                                        {item.selectedVariants && item.selectedVariants.length > 0 && (
+                                            <div className="text-xs text-muted-foreground capitalize">
+                                                {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                            </div>
+                                        )}
+                                        {item.note && (
+                                            <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5">
+                                                <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
+                                                <span>{item.note}</span>
+                                            </div>
+                                        )}
+                                        {item.serialNumbers && item.serialNumbers.length > 0 && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
+                                            </div>
+                                        )}
+                                    </TableCell>}
                                     {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
                                     {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
                                     {visibleColumns.quantity && <TableCell className="text-right">{item.quantity}</TableCell>}
