@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, FileImage, Link as LinkIcon, Upload } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +34,7 @@ const initialCompanyInfo: CompanyInfo = {
     iban: '',
     bic: '',
     notes: '',
+    communicationDoc: '',
 }
 
 export default function CompanyPage() {
@@ -53,6 +54,17 @@ export default function CompanyPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setLocalInfo(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocalInfo(prev => ({ ...prev, communicationDoc: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSave = () => {
@@ -198,6 +210,52 @@ export default function CompanyPage() {
             </CardContent>
             </Card>
         </div>
+
+        <Card className="group-disabled:opacity-70">
+            <CardHeader>
+                <CardTitle>Document de Communication</CardTitle>
+                <CardDescription>Image ou PDF à afficher dans le cadre de communication sur vos documents imprimés.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="communicationDocUrl">URL de l'image/PDF</Label>
+                     <div className="flex items-center">
+                        <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                        <Input 
+                            id="communicationDoc"
+                            value={localInfo.communicationDoc?.startsWith('data:') ? '' : localInfo.communicationDoc}
+                            onChange={handleInputChange}
+                            placeholder="https://example.com/image.jpg"
+                            className="pl-9"
+                        />
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Separator className="flex-1"/>
+                    <span className="text-xs text-muted-foreground">OU</span>
+                    <Separator className="flex-1"/>
+                </div>
+                 <div className="grid gap-2">
+                     <Button variant="outline" onClick={() => document.getElementById('communicationDocFile')?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Téléverser un fichier
+                    </Button>
+                    <input type="file" id="communicationDocFile" onChange={handleImageUpload} className="hidden" accept="image/*,.pdf"/>
+                </div>
+                {localInfo.communicationDoc && (
+                  <div className="pt-4">
+                    <Label>Aperçu</Label>
+                    <div className="mt-2 border rounded-md p-2 flex justify-center items-center h-48">
+                      {localInfo.communicationDoc.startsWith('data:image') ? (
+                        <img src={localInfo.communicationDoc} alt="Aperçu" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <FileImage className="w-16 h-16 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                )}
+            </CardContent>
+        </Card>
 
         <Card className="group-disabled:opacity-70">
           <CardHeader>

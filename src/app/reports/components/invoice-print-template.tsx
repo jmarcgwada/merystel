@@ -65,7 +65,7 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
                 ))}
             </tbody>
         </table>
-        <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
+         <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
     </div>
   );
 };
@@ -195,11 +195,23 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      <section className="mt-8 flex-grow">
-        <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[6cm]">
-            <p className="text-gray-400">Cadre pour communication (image, texte, etc.)</p>
+      <section className="my-8">
+        <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
+             {companyInfo?.communicationDoc ? (
+                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  {companyInfo.communicationDoc.startsWith('data:image') ? (
+                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400">Cadre pour communication</p>
+              )}
         </div>
       </section>
+      
+      <div className="flex-grow"></div>
 
       <footer className="mt-auto pt-8 text-center text-xs text-gray-500">
         <div className="border-t pt-4">

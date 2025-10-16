@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -170,7 +171,7 @@ export interface HeldOrder {
 }
 
 export interface CompanyInfo {
-  id: string;
+  id?: string;
   name: string;
   address: string;
   postalCode: string;
@@ -185,6 +186,7 @@ export interface CompanyInfo {
   iban?: string;
   bic?: string;
   notes?: string;
+  communicationDoc?: string;
 }
 
 export interface User {
@@ -209,28 +211,4 @@ export interface AuditLog {
     documentId: string;
     documentNumber: string;
     details: string;
-}
-
-export interface SmtpConfig {
-  host?: string;
-  port?: number;
-  user?: string;
-  password?: string;
-  secure?: boolean;
-  senderEmail?: string;
-}
-
-export interface FtpConfig {
-  host?: string;
-  port?: number;
-  user?: string;
-  password?: string;
-  path?: string;
-  secure?: boolean;
-}
-
-export interface TwilioConfig {
-  accountSid?: string;
-  authToken?: string;
-  from?: string;
 }
