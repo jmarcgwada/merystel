@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -13,19 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import type { SmtpConfig, FtpConfig, TwilioConfig } from '@/lib/types';
+import type { SmtpConfig, FtpConfig, TwilioConfig, CompanyInfo } from '@/lib/types';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 import { sendWhatsApp } from '@/ai/flows/send-whatsapp-flow';
 
 
 export default function ConnectivityPage() {
-    const { smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig } = usePos();
+    const { companyInfo, setCompanyInfo } = usePos();
     const { toast } = useToast();
 
-    const [localSmtp, setLocalSmtp] = useState<SmtpConfig>({});
-    const [localFtp, setLocalFtp] = useState<FtpConfig>({});
-    const [localTwilio, setLocalTwilio] = useState<TwilioConfig>({});
+    const [localSmtp, setLocalSmtp] = useState<SmtpConfig>(companyInfo?.smtpConfig || {});
+    const [localFtp, setLocalFtp] = useState<FtpConfig>(companyInfo?.ftpConfig || {});
+    const [localTwilio, setLocalTwilio] = useState<TwilioConfig>(companyInfo?.twilioConfig || {});
 
     const [isTestingSmtp, setIsTestingSmtp] = useState(false);
     const [isTestingFtp, setIsTestingFtp] = useState(false);
@@ -34,10 +33,21 @@ export default function ConnectivityPage() {
 
 
     useEffect(() => {
-        setLocalSmtp(smtpConfig || {});
-        setLocalFtp(ftpConfig || {});
-        setLocalTwilio(twilioConfig || {});
-    }, [smtpConfig, ftpConfig, twilioConfig]);
+        setLocalSmtp(companyInfo?.smtpConfig || {});
+        setLocalFtp(companyInfo?.ftpConfig || {});
+        setLocalTwilio(companyInfo?.twilioConfig || {});
+    }, [companyInfo]);
+
+    const handleSave = () => {
+        if (!companyInfo) return;
+        setCompanyInfo({
+            ...companyInfo,
+            smtpConfig: localSmtp,
+            ftpConfig: localFtp,
+            twilioConfig: localTwilio,
+        });
+        toast({ title: 'Configurations sauvegardées' });
+    };
 
     const handleSmtpChange = (field: keyof SmtpConfig, value: any) => {
         setLocalSmtp(prev => ({ ...prev, [field]: value }));
@@ -51,27 +61,6 @@ export default function ConnectivityPage() {
         setLocalTwilio(prev => ({...prev, [field]: value }));
     }
 
-    const handleSaveSmtp = () => {
-        setSmtpConfig(localSmtp);
-        toast({
-            title: 'Configuration SMTP sauvegardée',
-        });
-    };
-    
-    const handleSaveFtp = () => {
-        setFtpConfig(localFtp);
-        toast({
-            title: 'Configuration FTP sauvegardée',
-        });
-    };
-
-    const handleSaveTwilio = () => {
-        setTwilioConfig(localTwilio);
-        toast({
-            title: 'Configuration Twilio sauvegardée',
-        });
-    }
-    
     const handleTestSmtp = async () => {
         if (!localSmtp.host || !localSmtp.port || !localSmtp.user || !localSmtp.password || !localSmtp.senderEmail) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs SMTP.' });
@@ -166,12 +155,15 @@ export default function ConnectivityPage() {
                 title="Connectivité"
                 subtitle="Configurez les serveurs SMTP, FTP et les services de messagerie."
             >
-                <Button asChild variant="outline" className="btn-back">
-                    <Link href="/settings">
-                        <ArrowLeft />
-                        Retour aux paramètres
-                    </Link>
-                </Button>
+                 <div className="flex items-center gap-2">
+                    <Button onClick={handleSave}>Sauvegarder les Configurations</Button>
+                    <Button asChild variant="outline" className="btn-back">
+                        <Link href="/settings">
+                            <ArrowLeft />
+                            Retour
+                        </Link>
+                    </Button>
+                </div>
             </PageHeader>
             <div className="mt-8 grid md:grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card>
@@ -219,7 +211,6 @@ export default function ConnectivityPage() {
                             <TestTube2 className="mr-2 h-4 w-4"/>
                             {isTestingSmtp ? 'Test en cours...' : 'Tester'}
                         </Button>
-                        <Button onClick={handleSaveSmtp}>Sauvegarder</Button>
                     </CardFooter>
                 </Card>
 
@@ -268,7 +259,6 @@ export default function ConnectivityPage() {
                             <TestTube2 className="mr-2 h-4 w-4"/>
                             {isTestingFtp ? 'Test en cours...' : 'Tester'}
                         </Button>
-                        <Button onClick={handleSaveFtp}>Sauvegarder</Button>
                     </CardFooter>
                 </Card>
 
@@ -306,7 +296,6 @@ export default function ConnectivityPage() {
                                 {isTestingTwilio ? 'Test...' : 'Tester'}
                             </Button>
                         </div>
-                        <Button onClick={handleSaveTwilio} className="w-full sm:w-auto">Sauvegarder</Button>
                     </CardFooter>
                 </Card>
             </div>

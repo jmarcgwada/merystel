@@ -181,6 +181,30 @@ export interface HeldOrder {
   tableId?: string;
 }
 
+export interface SmtpConfig {
+    host?: string;
+    port?: number;
+    secure?: boolean;
+    user?: string;
+    password?: string;
+    senderEmail?: string;
+}
+
+export interface FtpConfig {
+    host?: string;
+    port?: number;
+    secure?: boolean | 'implicit';
+    user?: string;
+    password?: string;
+    path?: string;
+}
+
+export interface TwilioConfig {
+    accountSid?: string;
+    authToken?: string;
+    from?: string;
+}
+
 export interface CompanyInfo {
   id?: string;
   name: string;
@@ -199,6 +223,9 @@ export interface CompanyInfo {
   notes?: string; // For document footer
   internalNotes?: string; // For internal use
   communicationDoc?: string;
+  smtpConfig?: SmtpConfig;
+  ftpConfig?: FtpConfig;
+  twilioConfig?: TwilioConfig;
 }
 
 export interface User {
@@ -223,28 +250,4 @@ export interface AuditLog {
     documentId: string;
     documentNumber: string;
     details: string;
-}
-
-export interface SmtpConfig {
-    host?: string;
-    port?: number;
-    secure?: boolean;
-    user?: string;
-    password?: string;
-    senderEmail?: string;
-}
-
-export interface FtpConfig {
-    host?: string;
-    port?: number;
-    secure?: boolean | 'implicit';
-    user?: string;
-    password?: string;
-    path?: string;
-}
-
-export interface TwilioConfig {
-    accountSid?: string;
-    authToken?: string;
-    from?: string;
 }
