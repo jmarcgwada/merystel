@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -573,14 +574,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
            Annuler
           </Button>
          
-         {(isInvoiceMode || isCreditNote) && (
+         {(isInvoiceMode || isCreditNote || currentSaleContext?.status === 'pending') && (
             <Button
               type="button"
               variant="secondary"
               onClick={handleSaveAsPending}
               className="w-full sm:w-auto"
             >
-              {isInvoiceMode ? 'Enregistrer en attente' : 'Enregistrer sans paiement'}
+              {isCreditNote ? 'Enregistrer sans paiement' : 'Enregistrer en attente'}
             </Button>
          )}
 
@@ -677,5 +678,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-    
