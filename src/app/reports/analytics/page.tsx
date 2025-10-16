@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -80,6 +80,8 @@ export default function AnalyticsPage() {
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
 
+    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
@@ -99,6 +101,40 @@ export default function AnalyticsPage() {
         if (targetInput?.name === 'analytics-general-filter') setGeneralFilter(inputValue);
     }, [inputValue, targetInput]);
     
+     useEffect(() => {
+        const storedColumns = localStorage.getItem('analyticsVisibleColumns');
+        if (storedColumns) {
+            setVisibleColumns(JSON.parse(storedColumns));
+        } else {
+             setVisibleColumns({
+                saleDate: true,
+                ticketNumber: true,
+                name: true,
+                customerName: true,
+                userName: true,
+                quantity: true,
+                total: true,
+            });
+        }
+    }, []);
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('analyticsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const salesLinesColumns = [
+        { id: 'saleDate', label: 'Date' },
+        { id: 'ticketNumber', label: 'Pièce' },
+        { id: 'name', label: 'Désignation' },
+        { id: 'customerName', label: 'Client' },
+        { id: 'userName', label: 'Vendeur' },
+        { id: 'quantity', label: 'Qté' },
+        { id: 'total', label: 'Total Ligne' },
+    ];
+
+
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'N/A';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
@@ -274,6 +310,7 @@ export default function AnalyticsPage() {
         setFilterItem('');
         setFilterSeller('');
         setDateRange(undefined);
+        setGeneralFilter('');
         setCurrentPage(1);
     }
 
@@ -443,7 +480,29 @@ export default function AnalyticsPage() {
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle>Détail des Lignes de Vente ({filteredItems.length})</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        Détail des Lignes de Vente ({filteredItems.length})
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Columns className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {salesLinesColumns.map(column => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={visibleColumns[column.id]}
+                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                    >
+                                        {column.label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardTitle>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                         <span className="text-sm font-medium">Page {currentPage} / {totalPages || 1}</span>
@@ -455,28 +514,28 @@ export default function AnalyticsPage() {
                 <ScrollArea className="h-[600px]">
                     <Table>
                         <TableHeader><TableRow>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Article {getSortIcon('name', 'salesLines')}</Button></TableHead>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>
-                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>
-                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('total', 'salesLines')}>Total Ligne {getSortIcon('total', 'salesLines')}</Button></TableHead>
+                            {visibleColumns.saleDate && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.quantity && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.total && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('total', 'salesLines')}>Total Ligne {getSortIcon('total', 'salesLines')}</Button></TableHead>}
                         </TableRow></TableHeader>
                         <TableBody>
                             {sortedAndPaginatedSalesLines.map((item, index) => (
                                 <TableRow key={item.id + index}>
-                                    <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>
-                                    <TableCell>
+                                    {visibleColumns.saleDate && <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>}
+                                    {visibleColumns.ticketNumber && <TableCell>
                                         <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
                                             <Badge variant="secondary">{item.ticketNumber}</Badge>
                                         </Link>
-                                    </TableCell>
-                                    <TableCell>{item.name}</TableCell>
-                                    <TableCell>{item.customerName}</TableCell>
-                                    <TableCell>{item.userName}</TableCell>
-                                    <TableCell className="text-right">{item.quantity}</TableCell>
-                                    <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
+                                    </TableCell>}
+                                    {visibleColumns.name && <TableCell>{item.name}</TableCell>}
+                                    {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
+                                    {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
+                                    {visibleColumns.quantity && <TableCell className="text-right">{item.quantity}</TableCell>}
+                                    {visibleColumns.total && <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>}
                                 </TableRow>
                             ))}
                         </TableBody>
