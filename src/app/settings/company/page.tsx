@@ -201,12 +201,12 @@ export default function CompanyPage() {
 
         <Card className="group-disabled:opacity-70">
           <CardHeader>
-              <CardTitle>Notes / Observations</CardTitle>
+              <CardTitle>Pied de page des documents</CardTitle>
+              <CardDescription>Ce texte apparaîtra en bas de vos factures et devis (mentions légales, conditions de vente, etc.).</CardDescription>
           </CardHeader>
           <CardContent>
               <div className="grid gap-2">
-                  <Label htmlFor="notes">Informations diverses</Label>
-                  <Textarea id="notes" value={localInfo.notes || ''} onChange={handleInputChange} placeholder="Consignez ici toute information supplémentaire concernant l'entreprise..." rows={4} />
+                  <Textarea id="notes" value={localInfo.notes || ''} onChange={handleInputChange} placeholder="Ex: TVA non applicable, art. 293 B du CGI..." rows={4} />
               </div>
           </CardContent>
         </Card>

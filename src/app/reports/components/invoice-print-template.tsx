@@ -78,8 +78,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   const subtotal = sale.items.reduce((acc, item) => acc + (item.total / (1 + (vatRates.find(v => v.id === item.vatId)?.rate || 0)/100)), 0);
 
   return (
-    <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm' }}>
-      <header className="flex justify-between items-start pb-8">
+    <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
+      <header className="flex justify-between items-start pb-4">
         <div className="w-1/2">
           <h1 className="text-2xl font-bold uppercase">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <p>{companyInfo?.address}</p>
@@ -95,7 +95,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </header>
 
-      <section className="flex justify-end -mt-8">
+      <section className="flex justify-end -mt-4">
         <div className="w-1/2 bg-gray-100 p-4 rounded-md">
             <h3 className="font-semibold text-gray-500 mb-2">Adressé à :</h3>
             <p className="font-bold">{customer?.name || 'Client au comptoir'}</p>
@@ -150,9 +150,18 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      <footer className="mt-auto pt-8 border-t text-center text-xs text-gray-500">
-        <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret}</p>
-        <p>IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
+      <section className="mt-8">
+        <div style={{ height: '6cm' }} className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
+            <p className="text-gray-400">Cadre pour communication (image, texte, etc.)</p>
+        </div>
+      </section>
+
+      <footer className="mt-auto pt-8 text-center text-xs text-gray-500">
+        <div className="border-t pt-4">
+            <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
+            <p className="mt-2">{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret}</p>
+            <p>IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
+        </div>
       </footer>
     </div>
   );
