@@ -119,6 +119,7 @@ export default function ReportsPage() {
         isLoading: isPosLoading, 
         deleteAllSales, 
         convertToInvoice,
+        paymentMethods,
         invoiceBgColor, 
         invoiceBgOpacity, 
         quoteBgColor, 
@@ -202,6 +203,7 @@ export default function ReportsPage() {
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterOrigin, setFilterOrigin] = useState('');
     const [filterStatus, setFilterStatus] = useState(initialStatusFilter || 'all');
+    const [filterPaymentMethod, setFilterPaymentMethod] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
         if (dateFilterParam) {
             const date = parseISO(dateFilterParam);
@@ -349,6 +351,8 @@ export default function ReportsPage() {
             const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
             const docTypeMatch = activeDocTypes.includes(docType);
 
+            const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
+
             const generalMatch = !generalFilter || (
                 (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 (Array.isArray(sale.items) && sale.items.some(item => {
@@ -362,7 +366,7 @@ export default function ReportsPage() {
             );
             
 
-            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch && docTypeMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
         });
 
         // Apply sorting
@@ -427,7 +431,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, dateRange, filterArticleRef, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
+    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterArticleRef, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
 
@@ -471,6 +475,7 @@ export default function ReportsPage() {
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
+        setFilterPaymentMethod('all');
         setDateRange(undefined);
         setFilterArticleRef('');
         setFilterSellerName('');
@@ -781,16 +786,7 @@ export default function ReportsPage() {
                                         )}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={2}
-                                    />
-                                </PopoverContent>
+                                <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                             </Popover>
 
                             <Input
@@ -839,6 +835,17 @@ export default function ReportsPage() {
                                     <SelectItem value="invoiced">Facturé</SelectItem>
                                     <SelectItem value="partial">Partiellement payé</SelectItem>
                                     <SelectItem value="pending">En attente</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Moyen de paiement" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tous les moyens</SelectItem>
+                                    {paymentMethods.map(method => (
+                                      <SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
