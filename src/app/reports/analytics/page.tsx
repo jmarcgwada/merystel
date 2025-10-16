@@ -26,6 +26,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLab
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -57,6 +58,7 @@ export default function AnalyticsPage() {
         customers, 
         users, 
         items,
+        categories,
         isLoading, 
     } = usePos();
     const router = useRouter();
@@ -68,6 +70,7 @@ export default function AnalyticsPage() {
     const [generalFilter, setGeneralFilter] = useState('');
     const [topArticles, setTopArticles] = useState(10);
     const [topClients, setTopClients] = useState(10);
+    const [filterCategory, setFilterCategory] = useState('all');
     const [filterCustomer, setFilterCustomer] = useState('');
     const [filterItem, setFilterItem] = useState('');
     const [filterSeller, setFilterSeller] = useState('');
@@ -164,7 +167,7 @@ export default function AnalyticsPage() {
     };
 
     const flattenedItems = useMemo(() => {
-        if (!allSales) return [];
+        if (!allSales || !items) return [];
         return allSales
             .flatMap(sale => 
                 sale.items.map(item => ({
@@ -177,9 +180,10 @@ export default function AnalyticsPage() {
                     customerName: getCustomerName(sale.customerId),
                     userId: sale.userId,
                     userName: getUserName(sale.userId, sale.userName),
+                    categoryId: items.find(i => i.id === item.itemId)?.categoryId,
                 }))
             );
-    }, [allSales, getCustomerName, getUserName]);
+    }, [allSales, getCustomerName, getUserName, items]);
 
 
     const filteredItems = useMemo(() => {
@@ -191,6 +195,7 @@ export default function AnalyticsPage() {
             const customerMatch = !filterCustomer || item.customerName.toLowerCase().includes(filterCustomer.toLowerCase());
             const itemMatch = !filterItem || item.name.toLowerCase().includes(filterItem.toLowerCase()) || (item.barcode && item.barcode.toLowerCase().includes(filterItem.toLowerCase()));
             const sellerMatch = !filterSeller || item.userName.toLowerCase().includes(filterSeller.toLowerCase());
+            const categoryMatch = filterCategory === 'all' || item.categoryId === filterCategory;
 
             let dateMatch = true;
             if (dateRange?.from) dateMatch = item.saleDate >= startOfDay(dateRange.from);
@@ -209,9 +214,9 @@ export default function AnalyticsPage() {
                 (item.selectedVariants && item.selectedVariants.some(v => `${v.name}: ${v.value}`.toLowerCase().includes(generalFilter.toLowerCase())))
              );
 
-            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch;
+            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch && categoryMatch;
         });
-    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter]);
+    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory]);
     
 
     const { stats, topItems, topCustomers } = useMemo(() => {
@@ -308,6 +313,7 @@ export default function AnalyticsPage() {
     const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
 
     const resetFilters = () => {
+        setFilterCategory('all');
         setFilterCustomer('');
         setFilterItem('');
         setFilterSeller('');
@@ -323,10 +329,11 @@ export default function AnalyticsPage() {
       if (filterCustomer) params.set('customer', filterCustomer);
       if (filterItem) params.set('item', filterItem);
       if (filterSeller) params.set('seller', filterSeller);
+      if (filterCategory !== 'all') params.set('category', filterCategory);
       const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
       if(activeDocTypes.length > 0) params.set('docTypes', activeDocTypes.join(','));
       return params.toString();
-    }, [dateRange, filterCustomer, filterItem, filterSeller, filterDocTypes]);
+    }, [dateRange, filterCustomer, filterItem, filterSeller, filterDocTypes, filterCategory]);
   
   if (!isClient || isLoading) {
       return (
@@ -421,6 +428,15 @@ export default function AnalyticsPage() {
                     <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
                   </PopoverContent>
                 </Popover>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">Toutes les catégories</SelectItem>
+                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
@@ -567,5 +583,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
-    
