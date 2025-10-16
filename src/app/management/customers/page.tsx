@@ -28,8 +28,6 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -48,7 +46,7 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 export default function CustomersPage() {
-  const { customers, deleteCustomer, setDefaultCustomer, updateCustomer, isLoading } = usePos();
+  const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
 
@@ -95,10 +93,6 @@ export default function CustomersPage() {
   const toggleCollapsible = (id: string) => {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));
   }
-  
-  const toggleCustomerDisabled = (customer: Customer) => {
-    updateCustomer({ ...customer, isDisabled: !customer.isDisabled });
-  };
 
   return (
     <>
@@ -178,21 +172,6 @@ export default function CustomersPage() {
                               <TableCell>{customer.email}</TableCell>
                               <TableCell>{customer.phone}</TableCell>
                               <TableCell className="text-right">
-                                  <TooltipProvider>
-                                      <Tooltip>
-                                          <TooltipTrigger asChild>
-                                              <Switch
-                                                  checked={!customer.isDisabled}
-                                                  onCheckedChange={() => toggleCustomerDisabled(customer)}
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  className="mr-2"
-                                              />
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                              <p>{customer.isDisabled ? 'Activer' : 'Désactiver'} ce client</p>
-                                          </TooltipContent>
-                                      </Tooltip>
-                                  </TooltipProvider>
                                   <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDefaultCustomer(customer.id)}}>
                                       <Star className={cn("h-4 w-4", customer.isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                                   </Button>

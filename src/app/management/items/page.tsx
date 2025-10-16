@@ -346,20 +346,6 @@ export default function ItemsPage() {
                       <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                       <TableCell className="text-right">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Switch
-                                        checked={!item.isDisabled}
-                                        onCheckedChange={() => toggleItemDisabled(item)}
-                                        className="mr-2"
-                                    />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{item.isDisabled ? 'Activer' : 'Désactiver'} cet article</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
                         <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                             <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                         </Button>
