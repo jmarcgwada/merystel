@@ -27,6 +27,7 @@ import { EditItemDialog } from './edit-item-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Link from 'next/link';
 
 
 const orderItemSchema = z.object({
@@ -461,7 +462,7 @@ export const CommercialOrderForm = forwardRef<
                       </Button>
                       {selectedCustomer ? (
                           <div className="space-y-1 text-sm">
-                              <p className="font-semibold text-base">{selectedCustomer.name}</p>
+                              <Link href={`/management/customers?filter=${selectedCustomer.id}`} className="font-semibold text-base hover:underline">{selectedCustomer.name}</Link>
                               <p className="text-muted-foreground">{selectedCustomer.address}</p>
                               <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                           </div>

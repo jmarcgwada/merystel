@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -23,7 +24,7 @@ import {
 import type { Customer } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -46,8 +47,9 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
     )
 }
 
-export default function CustomersPage() {
+function CustomersPageContent() {
   const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
+  const searchParams = useSearchParams();
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
 
@@ -55,7 +57,7 @@ export default function CustomersPage() {
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [isClient, setIsClient] = useState(false);
   
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(searchParams.get('filter') || '');
   const [filterPostalCode, setFilterPostalCode] = useState('');
   const [filterPhone, setFilterPhone] = useState('');
   const [filterAddress, setFilterAddress] = useState('');
@@ -70,7 +72,15 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const filterParam = searchParams.get('filter');
+    if (filterParam) {
+      setFilter(filterParam);
+      // Automatically open the detail view for the filtered customer
+      setTimeout(() => {
+        setOpenCollapsibles({ [filterParam]: true });
+      }, 100);
+    }
+  }, [searchParams]);
 
   const handleDeleteCustomer = () => {
     if (customerToDelete) {
@@ -299,4 +309,12 @@ export default function CustomersPage() {
       </AlertDialog>
     </>
   );
+}
+
+export default function CustomersPage() {
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+            <CustomersPageContent />
+        </Suspense>
+    )
 }
