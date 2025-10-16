@@ -49,7 +49,6 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
             <thead>
                 <tr className="bg-gray-100">
                     <th className="p-1 text-left">Code</th>
-                    <th className="p-1 text-left">Taux</th>
                     <th className="p-1 text-right">Base HT</th>
                     <th className="p-1 text-right">Montant TVA</th>
                 </tr>
@@ -57,8 +56,7 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
             <tbody>
                 {Object.entries(breakdown).map(([rate, values]) => (
                     <tr key={rate}>
-                        <td className="p-1">{values.code}</td>
-                        <td className="p-1">{values.rate.toFixed(2)}%</td>
+                        <td className="p-1">{values.code} ({values.rate.toFixed(2)}%)</td>
                         <td className="p-1 text-right">{values.base.toFixed(2)}€</td>
                         <td className="p-1 text-right">{values.total.toFixed(2)}€</td>
                     </tr>
@@ -129,11 +127,11 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       <header className="flex justify-between items-start pb-4">
         <div className="w-1/2 space-y-0.5">
           <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
-          <div>{companyInfo?.address}</div>
-          <div>{companyInfo?.postalCode} {companyInfo?.city}</div>
-          <div>{companyInfo?.phone}</div>
-          <div>{companyInfo?.email}</div>
-          <div>{companyInfo?.website}</div>
+          <div className="leading-tight">{companyInfo?.address}</div>
+          <div className="leading-tight">{companyInfo?.postalCode} {companyInfo?.city}</div>
+          <div className="leading-tight">{companyInfo?.phone}</div>
+          <div className="leading-tight">{companyInfo?.email}</div>
+          <div className="leading-tight">{companyInfo?.website}</div>
         </div>
         <div className="w-1/2 flex flex-col items-end">
             <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
@@ -143,12 +141,10 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       </header>
 
       <section className="flex justify-end mt-[-1rem]">
-        <div className="w-1/2 bg-gray-100 p-4 rounded-md">
-            <h3 className="font-semibold text-gray-500 mb-2">Adressé à :</h3>
-            <p className="font-bold">{customer?.name || 'Client au comptoir'}</p>
-            <p>{customer?.address}</p>
-            <p>{customer?.postalCode} {customer?.city}</p>
-            <p>{customer?.email}</p>
+        <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
+            <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
+            <p className="leading-tight">{customer?.address}</p>
+            <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
         </div>
       </section>
 
