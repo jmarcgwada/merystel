@@ -292,7 +292,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     useEffect(() => {
         try {
             const storedValue = localStorage.getItem(key);
-            if (storedValue) {
+            if (storedValue && storedValue !== 'undefined') { // Check for 'undefined' string
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
@@ -304,7 +304,11 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     useEffect(() => {
         if (isHydrated) {
             try {
-                localStorage.setItem(key, JSON.stringify(state));
+                if (state === undefined) {
+                    localStorage.removeItem(key);
+                } else {
+                    localStorage.setItem(key, JSON.stringify(state));
+                }
             } catch (error) {
                 console.error("Error setting localStorage key " + key + ":", error);
             }
@@ -314,7 +318,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     const rehydrate = useCallback(() => {
         try {
             const storedValue = localStorage.getItem(key);
-            if (storedValue) {
+            if (storedValue && storedValue !== 'undefined') {
                 setState(JSON.parse(storedValue));
             }
         } catch (error) {
