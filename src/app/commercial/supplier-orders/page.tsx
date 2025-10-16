@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -24,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle as AlertDialogTitleComponent,
 } from '@/components/ui/alert-dialog';
+import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 
 const hexToRgba = (hex: string, opacity: number) => {
     let c: any;
@@ -51,6 +50,7 @@ function SupplierOrdersPageContent() {
       setCurrentSaleContext,
       updateItemNote,
       updateItemQuantityInOrder,
+      updateItemPrice,
       resetCommercialPage,
       loadSaleForEditing,
       currentSaleId,
@@ -58,6 +58,8 @@ function SupplierOrdersPageContent() {
       recordCommercialDocument,
       supplierOrderBgColor,
       supplierOrderBgOpacity,
+      orderTotal,
+      orderTax,
   } = usePos();
   
   const formRef = useRef<{ submit: (validate?: boolean) => void }>(null);
@@ -66,6 +68,7 @@ function SupplierOrdersPageContent() {
   const { toast } = useToast();
   
   const [isValidationConfirmOpen, setValidationConfirmOpen] = useState(false);
+  const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const saleIdToEdit = searchParams.get('edit');
   const newItemId = searchParams.get('newItemId');
 
@@ -104,6 +107,33 @@ function SupplierOrdersPageContent() {
       formRef.current.submit(andValidate);
     }
   }, []);
+
+  const handleValidation = () => {
+    // This now just opens the checkout modal after confirmation
+    if (order.length === 0) {
+      toast({ variant: 'destructive', title: 'Commande vide', description: 'Ajoutez des articles avant de valider.' });
+      return;
+    }
+    setValidationConfirmOpen(true);
+  };
+  
+  const onValidationConfirm = () => {
+    setValidationConfirmOpen(false);
+    
+    // Set context for checkout modal
+    setCurrentSaleContext(prev => ({
+        ...prev,
+        items: order,
+        total: orderTotal + orderTax,
+        subtotal: orderTotal,
+        tax: orderTax,
+        documentType: 'supplier_order',
+        status: 'pending',
+    }));
+
+    setCheckoutOpen(true);
+  };
+
 
   const handleGenerateRandomOrder = useCallback(() => {
     if (!items?.length || !suppliers?.length) {
@@ -168,12 +198,10 @@ function SupplierOrdersPageContent() {
                  <Save className="mr-2 h-4 w-4" />
                  {isEditing ? 'Sauvegarder' : 'Sauvegarder'}
             </Button>
-             {isEditing && (
-                <Button size="lg" onClick={() => setValidationConfirmOpen(true)} disabled={isReadOnly}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Valider la commande
-                </Button>
-            )}
+            <Button size="lg" onClick={handleValidation} disabled={isReadOnly}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Valider la commande
+            </Button>
           </div>
         </PageHeader>
 
@@ -198,6 +226,7 @@ function SupplierOrdersPageContent() {
                     removeFromOrder={removeFromOrder}
                     updateItemNote={updateItemNote}
                     updateItemQuantityInOrder={updateItemQuantityInOrder}
+                    updateItemPrice={updateItemPrice}
                 />
             </div>
         </fieldset>
@@ -210,20 +239,24 @@ function SupplierOrdersPageContent() {
             <AlertDialogHeader>
             <AlertDialogTitleComponent>Confirmer la validation ?</AlertDialogTitleComponent>
             <AlertDialogDescriptionComponent>
-                Cette action est irréversible. Le stock des articles concernés sera mis à jour.
+                Cette action est irréversible. Le stock des articles concernés sera mis à jour après le paiement.
             </AlertDialogDescriptionComponent>
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-                handleSave(true);
-                setValidationConfirmOpen(false);
-            }}>
-                Confirmer & Mettre à jour le stock
+            <AlertDialogAction onClick={onValidationConfirm}>
+                Continuer vers le paiement
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+    {isCheckoutOpen && (
+        <CheckoutModal 
+            isOpen={isCheckoutOpen}
+            onClose={() => setCheckoutOpen(false)}
+            totalAmount={orderTotal + orderTax}
+        />
+    )}
     </>
   );
 }

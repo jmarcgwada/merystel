@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -48,6 +47,7 @@ interface SupplierOrderFormProps {
   removeFromOrder: (itemId: string) => void;
   updateItemNote: (itemId: string, note: string) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
+  updateItemPrice: (itemId: string, newPriceTTC: number) => void;
 }
 
 const MAX_SEARCH_ITEMS = 100;
@@ -81,7 +81,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 }
 
 export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) => void }, SupplierOrderFormProps>(
-    ({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemQuantityInOrder }, ref) => {
+    ({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemQuantityInOrder, updateItemPrice }, ref) => {
   const { items: allItems, suppliers, isLoading, vatRates, recordCommercialDocument, currentSaleContext, setCurrentSaleContext, descriptionDisplay, currentSaleId } = usePos();
   const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
@@ -253,7 +253,7 @@ export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) =>
             return;
         }
         
-         const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber' | 'documentType'> = {
+         const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
           items: order,
           subtotal: subTotalHT,
           tax: totalTVA,
@@ -261,6 +261,7 @@ export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) =>
           status: andValidate ? 'paid' : 'pending',
           payments: [],
           supplierId: selectedSupplier.id,
+          documentType: 'supplier_order',
         };
         
         recordCommercialDocument(doc, 'supplier_order', currentSaleId || undefined);
@@ -450,15 +451,9 @@ export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) =>
                               </div>
                             )}
                         </div>
-                      <Input 
-                          type="number" 
-                          value={field.quantity}
-                          onChange={e => updateItemQuantityInOrder(field.id, parseInt(e.target.value) || 1)}
-                          onBlur={e => updateQuantity(field.id, parseInt(e.target.value) || 1)}
-                          min={1} 
-                          className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" 
-                      />
-                      <Input type="number" readOnly value={field.price.toFixed(2)} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
+                      <Controller control={form.control} name={`items.${index}.quantity`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={controllerField.value || 1} onChange={e => { const newQty = parseInt(e.target.value, 10) || 1; controllerField.onChange(newQty); updateItemQuantityInOrder(field.id, newQty); }} onFocus={e => e.target.select()} min={1} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" />)} />
+                      <Controller control={form.control} name={`items.${index}.price`} render={({ field: controllerField }) => (<Input type="number" {...controllerField} value={Number(controllerField.value).toFixed(2)} onBlur={e => updateItemPrice(field.id, parseFloat(e.target.value) || 0)} onFocus={e => e.target.select()} className="text-right bg-transparent border-none ring-0 focus-visible:ring-0 p-0 h-auto" step="0.01" />)} />
+
                       <Input type="text" readOnly value={vatInfo?.code || '-'} className="text-center bg-transparent font-mono border-none ring-0 focus-visible:ring-0 p-0 h-auto" />
                     <div className="font-medium h-full flex items-center justify-end">
                       {`${(field.price * field.quantity).toFixed(2)}€`}
