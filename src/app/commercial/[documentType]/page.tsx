@@ -1,8 +1,9 @@
+
 'use client';
 
 import { usePos } from '@/contexts/pos-context';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useMemo } from 'react';
 import CommercialPageLayout from '../components/commercial-page-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,10 +19,18 @@ function DocumentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { loadSaleForEditing, resetCommercialPage, currentSaleId, loadSaleForConversion, order, setOrder, setCurrentSaleContext, isLoading } = usePos();
+  const {
+    loadSaleForEditing,
+    resetCommercialPage,
+    currentSaleId,
+    loadSaleForConversion,
+    order,
+    currentSaleContext,
+    isLoading: isPosLoading
+  } = usePos();
   
   const documentType = params.documentType as string;
-  const docType = typeMap[documentType];
+  const docType = useMemo(() => typeMap[documentType], [documentType]);
   
   const saleIdToEdit = searchParams.get('edit');
   const saleIdToConvert = searchParams.get('fromConversion');
@@ -30,55 +39,53 @@ function DocumentPageContent() {
 
   useEffect(() => {
     // This effect handles the initial loading logic based on URL params.
-    // It should run only once when the key parameters change.
-
     const performLoad = async () => {
         if (saleIdToEdit) {
-            // If we are editing, this is the highest priority
+            // Highest priority: editing an existing sale
             if (currentSaleId !== saleIdToEdit) {
                 const success = await loadSaleForEditing(saleIdToEdit, docType);
                 if (!success) {
-                  // Handle case where sale is not found, maybe redirect or show error
                   router.push('/reports');
                 }
             }
         } else if (saleIdToConvert) {
-            // If converting, load the source sale data into a new context
+            // Conversion logic
             await loadSaleForConversion(saleIdToConvert);
-            // Remove query param to avoid re-triggering on refresh
-            window.history.replaceState({}, '', `/commercial/${documentType}`);
+            const newUrl = window.location.pathname; // Remove query params
+            router.replace(newUrl, { scroll: false });
         } else if (!newItemId && !updatedItemId) {
-            // Only reset if it's a truly new page, not a redirect from item creation/update
-             if(currentSaleContext?.documentType !== docType) {
-                resetCommercialPage(docType);
+            // This is a new document page.
+            // Reset only if the context is for a different doc type or doesn't exist
+            if (!currentSaleContext || currentSaleContext.documentType !== docType) {
+               resetCommercialPage(docType);
             }
         }
     };
     
-    performLoad();
+    if (docType) {
+      performLoad();
+    }
     
+    // We only want this to run when the main identifiers from the URL change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, saleIdToConvert, docType]); // Dependencies are stable identifiers from the URL
+  }, [saleIdToEdit, saleIdToConvert, docType]); 
 
   useEffect(() => {
     // This effect handles item additions/updates from the item form page
     if (newItemId && !order.some(item => item.id === newItemId)) {
-        // Handle adding the new item (logic might be needed in usePos)
-        // For now, we assume addToOrder can be called if we have the full item data.
-        // This part might need more context on how to get item details from just an ID.
-        // A simple redirect cleanup for now:
+        // The item should have been added by the context already, so we just clean the URL
         const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
         router.replace(newUrl, { scroll: false });
 
     } else if (updatedItemId) {
-        // Handle updating the view if an item was edited
+        // The item should have been updated by the context. Clean the URL.
         const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
         router.replace(newUrl, { scroll: false });
     }
   }, [newItemId, updatedItemId, order, router]);
 
 
-  if (isLoading && saleIdToEdit) {
+  if (isPosLoading && (saleIdToEdit || !currentSaleContext)) {
     return (
         <div className="p-8">
             <Skeleton className="h-16 w-1/2 mb-8" />
