@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +24,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
+
+type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
+type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
+type TopCustomersSortKey = 'name' | 'visits' | 'basketTotal' | 'revenue';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -58,6 +63,7 @@ export default function AnalyticsPage() {
     const [isClient, setIsClient] = useState(false);
     
     // Filtering state
+    const [topN, setTopN] = useState(5);
     const [filterCustomer, setFilterCustomer] = useState('');
     const [filterItem, setFilterItem] = useState('');
     const [filterSeller, setFilterSeller] = useState('');
@@ -70,6 +76,10 @@ export default function AnalyticsPage() {
         credit_note: false,
         supplier_order: false,
     });
+    
+    const [salesLinesSortConfig, setSalesLinesSortConfig] = useState<{ key: SalesLinesSortKey, direction: 'asc' | 'desc' }>({ key: 'saleDate', direction: 'desc' });
+    const [topItemsSortConfig, setTopItemsSortConfig] = useState<{ key: TopItemsSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
+    const [topCustomersSortConfig, setTopCustomersSortConfig] = useState<{ key: TopCustomersSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
 
     useEffect(() => {
         setIsClient(true);
@@ -93,7 +103,6 @@ export default function AnalyticsPage() {
 
         setFilterDocTypes(prev => {
             const newState = { ...prev, [typeKey]: checked };
-            // If a type with a directional flow (in/out) is checked, uncheck all types of the opposite flow.
             if (checked && typeInfo.type) {
                 for (const key in documentTypes) {
                     if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
@@ -179,18 +188,64 @@ export default function AnalyticsPage() {
 
         return {
             stats: { revenue, totalSold, uniqueSales, averageBasket },
-            topItems: Object.values(itemStats).sort((a,b) => b.revenue - a.revenue).slice(0, 5),
-            topCustomers: Object.values(customerStats).sort((a,b) => b.revenue - a.revenue).slice(0, 5),
+            topItems: Object.values(itemStats),
+            topCustomers: Object.values(customerStats),
         };
     }, [filteredItems]);
 
 
-    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
-
-    const paginatedItems = useMemo(() => {
+    const sortedAndPaginatedSalesLines = useMemo(() => {
+        const sorted = [...filteredItems].sort((a, b) => {
+            const { key, direction } = salesLinesSortConfig;
+            const aValue = a[key];
+            const bValue = b[key];
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredItems, currentPage]);
+        return sorted.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredItems, currentPage, salesLinesSortConfig]);
+
+    const sortedTopItems = useMemo(() => {
+        return [...topItems].sort((a, b) => {
+            const { key, direction } = topItemsSortConfig;
+            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+            return 0;
+        }).slice(0, topN);
+    }, [topItems, topN, topItemsSortConfig]);
+
+    const sortedTopCustomers = useMemo(() => {
+        return [...topCustomers].sort((a, b) => {
+            const { key, direction } = topCustomersSortConfig;
+            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+            return 0;
+        }).slice(0, topN);
+    }, [topCustomers, topN, topCustomersSortConfig]);
+    
+    const requestSort = (key: SalesLinesSortKey | TopItemsSortKey | TopCustomersSortKey, table: 'salesLines' | 'topItems' | 'topCustomers') => {
+        let direction: 'asc' | 'desc' = 'asc';
+        const sortConfig = table === 'salesLines' ? salesLinesSortConfig : table === 'topItems' ? topItemsSortConfig : topCustomersSortConfig;
+        const setSortConfig = table === 'salesLines' ? setSalesLinesSortConfig : table === 'topItems' ? setTopItemsSortConfig : setTopCustomersSortConfig;
+
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction } as any);
+    };
+
+    const getSortIcon = (key: string, table: 'salesLines' | 'topItems' | 'topCustomers') => {
+        const sortConfig = table === 'salesLines' ? salesLinesSortConfig : table === 'topItems' ? topItemsSortConfig : topCustomersSortConfig;
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+        }
+        return sortConfig.direction === 'asc' ? '▲' : '▼';
+    }
+
+
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
 
     const resetFilters = () => {
         setFilterCustomer('');
@@ -288,6 +343,10 @@ export default function AnalyticsPage() {
                 <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="top-n-input">Top</Label>
+                    <Input id="top-n-input" type="number" value={topN} onChange={(e) => setTopN(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
+                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>
@@ -295,12 +354,21 @@ export default function AnalyticsPage() {
 
         <div className="grid lg:grid-cols-2 gap-4">
             <Card>
-                <CardHeader><CardTitle>Top 5 Articles</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow><TableHead>Article</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                <CardHeader><CardTitle>Top {topN} Articles</CardTitle></CardHeader>
+                <CardContent><Table><TableHeader><TableRow>
+                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
+                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
+                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
+                </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
             </Card>
             <Card>
-                <CardHeader><CardTitle>Top 5 Clients</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow><TableHead>Client</TableHead><TableHead className="text-right">Visites</TableHead><TableHead className="text-right">Panier Moyen</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                <CardHeader><CardTitle>Top {topN} Clients</CardTitle></CardHeader>
+                <CardContent><Table><TableHeader><TableRow>
+                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
+                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
+                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
+                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
+                </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
             </Card>
         </div>
         
@@ -318,9 +386,17 @@ export default function AnalyticsPage() {
             <CardContent>
                 <ScrollArea className="h-[600px]">
                     <Table>
-                        <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Pièce</TableHead><TableHead>Article</TableHead><TableHead>Client</TableHead><TableHead>Vendeur</TableHead><TableHead className="text-right">Qté</TableHead><TableHead className="text-right">Total Ligne</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Article {getSortIcon('name', 'salesLines')}</Button></TableHead>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>
+                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>
+                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>
+                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('total', 'salesLines')}>Total Ligne {getSortIcon('total', 'salesLines')}</Button></TableHead>
+                        </TableRow></TableHeader>
                         <TableBody>
-                            {paginatedItems.map((item, index) => (
+                            {sortedAndPaginatedSalesLines.map((item, index) => (
                                 <TableRow key={item.id + index}>
                                     <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>
                                     <TableCell><Link href={`/reports/${item.saleId}`} className="text-blue-600 hover:underline"><Badge variant="secondary">{item.ticketNumber}</Badge></Link></TableCell>
