@@ -140,10 +140,10 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 
       {/* Totals & VAT */}
       <section className="mt-8 flex justify-between items-start">
-        <div className="w-1/2">
+        <div className="w-2/5">
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
         </div>
-        <div className="w-1/2 space-y-2">
+        <div className="w-2/5 space-y-2">
             <table className="w-full">
                 <tbody>
                     <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
