@@ -29,7 +29,6 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -101,8 +100,6 @@ export default function AnalyticsPage() {
     const [selectedTopItems, setSelectedTopItems] = useState<string[]>([]);
     const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
     
-    const [isCategoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
-
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -456,32 +453,17 @@ export default function AnalyticsPage() {
                     <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
                   </PopoverContent>
                 </Popover>
-                 <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={isCategoryPopoverOpen} className="w-[200px] justify-between">
-                            {filterCategory === 'all' ? "Toutes les catégories" : categories.find(c => c.id === filterCategory)?.name}
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                            <CommandInput placeholder="Rechercher catégorie..." />
-                            <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
-                            <CommandGroup>
-                                <CommandItem onSelect={() => { setFilterCategory('all'); setCategoryPopoverOpen(false); }}>
-                                    <Check className={cn("mr-2 h-4 w-4", filterCategory === 'all' ? "opacity-100" : "opacity-0")} />
-                                    Toutes les catégories
-                                </CommandItem>
-                                {categories.map((c) => (
-                                    <CommandItem key={c.id} onSelect={() => { setFilterCategory(c.id); setCategoryPopoverOpen(false); }}>
-                                        <Check className={cn("mr-2 h-4 w-4", filterCategory === c.id ? "opacity-100" : "opacity-0")} />
-                                        {c.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
+                 <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}>
+                    <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Filtrer par catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Toutes les catégories</SelectItem>
+                        {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input
                     ref={itemFilterRef}
