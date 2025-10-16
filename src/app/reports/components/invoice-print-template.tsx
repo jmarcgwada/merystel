@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Sale, Customer, CompanyInfo, VatRate, Item } from '@/lib/types';
+import type { Sale, Customer, CompanyInfo, VatRate, Item, Payment } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
@@ -67,6 +67,44 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
   );
 };
 
+const PaymentsDetails = ({ payments, total, change }: { payments: Payment[], total: number, change?: number }) => {
+    const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+    const balanceDue = total - totalPaid;
+
+    if (payments.length === 0 && (!change || change === 0)) return null;
+
+    return (
+        <div className="mt-4 space-y-2">
+            <h3 className="font-semibold text-gray-500 text-sm">Règlements</h3>
+            <div className="space-y-1 text-sm border-t pt-2">
+                {payments.map((p, index) => (
+                    <div key={index} className="flex justify-between">
+                        <span>{p.method.name} (<ClientFormattedDate date={p.date} formatString="dd/MM/yyyy" />)</span>
+                        <span>{p.amount.toFixed(2)}€</span>
+                    </div>
+                ))}
+            </div>
+            <div className="border-t pt-2 space-y-1 text-sm">
+                 <div className="flex justify-between font-bold">
+                    <span>Total Payé</span>
+                    <span>{totalPaid.toFixed(2)}€</span>
+                </div>
+                 {change && change > 0 && (
+                     <div className="flex justify-between text-gray-600">
+                        <span>Monnaie Rendue</span>
+                        <span>- {change.toFixed(2)}€</span>
+                    </div>
+                 )}
+                 {balanceDue > 0.01 && (
+                     <div className="flex justify-between font-bold text-red-600">
+                        <span>Solde Dû</span>
+                        <span>{balanceDue.toFixed(2)}€</span>
+                    </div>
+                 )}
+            </div>
+        </div>
+    );
+}
 
 export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrintTemplateProps>(({ sale, customer, companyInfo, vatRates }, ref) => {
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
@@ -75,11 +113,15 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                   : sale?.documentType === 'credit_note' ? 'Avoir'
                   : 'Ticket';
 
-  const subtotal = sale.items.reduce((acc, item) => acc + (item.total / (1 + (vatRates.find(v => v.id === item.vatId)?.rate || 0)/100)), 0);
+  const subtotal = sale.items.reduce((acc, item) => {
+    const vatRate = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+    const priceHT = item.total / (1 + vatRate / 100);
+    return acc + priceHT;
+  }, 0);
 
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
-      <header className="flex justify-between items-start pb-4">
+      <header className="flex justify-between items-end pb-4">
         <div className="w-1/2">
           <h1 className="text-2xl font-bold uppercase">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <p>{companyInfo?.address}</p>
@@ -95,7 +137,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </header>
 
-      <section className="flex justify-end -mt-4">
+      <section className="flex justify-end mt-[-1rem]">
         <div className="w-1/2 bg-gray-100 p-4 rounded-md">
             <h3 className="font-semibold text-gray-500 mb-2">Adressé à :</h3>
             <p className="font-bold">{customer?.name || 'Client au comptoir'}</p>
@@ -140,13 +182,16 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
         </div>
         <div className="w-2/5 space-y-2">
-            <table className="w-full">
-                <tbody>
-                    <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
-                    <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
-                    <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
-                </tbody>
-            </table>
+            <div className="border rounded-md p-2">
+                <table className="w-full">
+                    <tbody>
+                        <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
+                        <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
+                        <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
+                    </tbody>
+                </table>
+                 <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
+            </div>
         </div>
       </section>
 
