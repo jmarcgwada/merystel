@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -142,12 +141,12 @@ export default function DashboardPage() {
 
         relevantSales.forEach(sale => {
             sale.items.forEach(orderItem => {
-                if(itemCounts[orderItem.id]) {
-                    itemCounts[orderItem.id].count += orderItem.quantity;
+                if(itemCounts[orderItem.itemId]) {
+                    itemCounts[orderItem.itemId].count += orderItem.quantity;
                 } else {
-                    const itemDetails = items.find(i => i.id === orderItem.id);
+                    const itemDetails = items.find(i => i.id === orderItem.itemId);
                     if(itemDetails) {
-                         itemCounts[orderItem.id] = { item: itemDetails, count: orderItem.quantity };
+                         itemCounts[orderItem.itemId] = { item: itemDetails, count: orderItem.quantity };
                     }
                 }
             })
@@ -427,6 +426,7 @@ export default function DashboardPage() {
                               <Button asChild variant="secondary" size="sm"><Link href="/reports">Pièces de vente</Link></Button>
                               <Button asChild variant="secondary" size="sm"><Link href="/reports/payments">Paiements</Link></Button>
                               <Button asChild variant="secondary" size="sm"><Link href="/reports/popular-items">Articles Populaires</Link></Button>
+                              <Button asChild variant="secondary" size="sm"><Link href="/reports/analytics">Reporting avancé</Link></Button>
                           </div>
                       </CardContent>
                   </Card>
