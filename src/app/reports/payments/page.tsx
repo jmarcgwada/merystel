@@ -31,9 +31,10 @@ type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName
 const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
-    invoice: { label: 'Facture', prefix: 'Fact-' },
-    credit_note: { label: 'Avoir', prefix: 'AVOIR-' },
-    supplier_order: { label: 'Cde Fournisseur', prefix: 'CF-' },
+    ticket: { label: 'Ticket de caisse' },
+    invoice: { label: 'Facture' },
+    credit_note: { label: 'Avoir' },
+    supplier_order: { label: 'Cde Fournisseur' },
 };
 
 const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | undefined, saleDate: Date | Timestamp | undefined }) => {
@@ -92,6 +93,7 @@ export default function PaymentsReportPage() {
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterMethodName, setFilterMethodName] = useState('all');
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
+        ticket: true,
         invoice: true,
         credit_note: true,
         supplier_order: true,
@@ -242,12 +244,23 @@ export default function PaymentsReportPage() {
         return filteredAndSortedPayments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     }, [filteredAndSortedPayments, currentPage]);
 
-     const summaryStats = useMemo(() => {
-        const totalRevenue = filteredAndSortedPayments.reduce((acc, p) => acc + p.amount, 0);
-        const totalPayments = filteredAndSortedPayments.length;
-        const averagePayment = totalPayments > 0 ? totalRevenue / totalPayments : 0;
-        return { totalRevenue, totalPayments, averagePayment };
-    }, [filteredAndSortedPayments]);
+     const { summaryTitle, totalRevenue, totalPayments, averagePayment } = useMemo(() => {
+        const totalRev = filteredAndSortedPayments.reduce((acc, p) => acc + p.amount, 0);
+        const totalPay = filteredAndSortedPayments.length;
+        const avgPay = totalPay > 0 ? totalRev / totalPay : 0;
+        
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
+        let title = "Revenu Total";
+        if (activeDocTypes.length === 1) {
+            const docTypeKey = activeDocTypes[0] as keyof typeof documentTypes;
+            if(docTypeKey === 'credit_note') title = "Total Remboursé (Avoirs)";
+            else if (docTypeKey === 'supplier_order') title = "Total Achats (Fournisseurs)";
+            else if (docTypeKey === 'invoice') title = "Revenu Total (Factures)";
+            else if (docTypeKey === 'ticket') title = "Revenu Total (Tickets)";
+        }
+        
+        return { summaryTitle: title, totalRevenue: totalRev, totalPayments: totalPay, averagePayment: avgPay };
+    }, [filteredAndSortedPayments, filterDocTypes]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -268,6 +281,7 @@ export default function PaymentsReportPage() {
         setFilterMethodName('all');
         setFilterPaymentType('all');
         setFilterDocTypes({
+            ticket: true,
             invoice: true,
             credit_note: true,
             supplier_order: true,
@@ -307,9 +321,9 @@ export default function PaymentsReportPage() {
       </PageHeader>
       <div className="mt-8 space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total (Factures/Tickets)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{summaryStats.totalPayments}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.averagePayment.toFixed(2)}€</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
         </div>
 
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
