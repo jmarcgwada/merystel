@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -36,6 +37,7 @@ const initialCompanyInfo: CompanyInfo = {
     iban: '',
     bic: '',
     notes: '',
+    internalNotes: '',
     communicationDoc: '',
 }
 
@@ -175,6 +177,11 @@ export default function CompanyPage() {
                                 <Label htmlFor="phone">Téléphone</Label>
                                 <Input id="phone" value={localInfo.phone || ''} onChange={handleInputChange} />
                             </div>
+                        </div>
+                         <Separator/>
+                        <div className="grid gap-2">
+                            <Label htmlFor="internalNotes">Notes Internes</Label>
+                            <Textarea id="internalNotes" value={localInfo.internalNotes || ''} onChange={handleInputChange} placeholder="Informations diverses sur l'entreprise..." rows={4} />
                         </div>
                     </CardContent>
                 </Card>

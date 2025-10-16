@@ -187,7 +187,8 @@ export interface CompanyInfo {
   legalForm?: string;
   iban?: string;
   bic?: string;
-  notes?: string;
+  notes?: string; // For document footer
+  internalNotes?: string; // For internal use
   communicationDoc?: string;
   communicationDocOpacity?: number;
 }

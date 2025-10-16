@@ -586,9 +586,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSales([]);
     setHeldOrders([]);
     setAuditLogs([]);
-    toast({ title: 'Données de l\'application réinitialisées' });
-}, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, toast]);
-
+    setPaymentMethods([]);
+    setVatRates([]);
+    setCompanyInfo(null);
+    localStorage.removeItem('data.seeded');
+    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
+    setTimeout(() => {
+      seedInitialData();
+      importDemoData();
+      localStorage.setItem('data.seeded', 'true');
+    }, 100);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -616,70 +624,70 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const exportConfiguration = useCallback(() => {
     const config = {
-      items,
-      categories,
-      customers,
-      suppliers,
-      tables: tablesData,
-      paymentMethods,
-      vatRates,
-      companyInfo,
-      users,
-      sales,
-      auditLogs,
-      settings: {
-        showNotifications,
-        notificationDuration,
-        enableDynamicBg,
-        dynamicBgOpacity,
-        showTicketImages,
-        showItemImagesInGrid,
-        descriptionDisplay,
-        popularItemsCount,
-        itemCardOpacity,
-        paymentMethodImageOpacity,
-        itemDisplayMode,
-        itemCardShowImageAsBackground,
-        itemCardImageOverlayOpacity,
-        itemCardTextColor,
-        itemCardShowPrice,
-        externalLinkModalEnabled,
-        externalLinkUrl,
-        externalLinkTitle,
-        externalLinkModalWidth,
-        externalLinkModalHeight,
-        showDashboardStats,
-        enableRestaurantCategoryFilter,
-        enableSerialNumber,
-        defaultSalesMode,
-        isForcedMode,
-        requirePinForAdmin,
-        directSaleBackgroundColor,
-        restaurantModeBackgroundColor,
-        directSaleBgOpacity,
-        restaurantModeBgOpacity,
-        dashboardBgType,
-        dashboardBackgroundColor,
-        dashboardBackgroundImage,
-        dashboardBgOpacity,
-        dashboardButtonBackgroundColor,
-        dashboardButtonOpacity,
-        dashboardButtonShowBorder,
-        dashboardButtonBorderColor,
-        invoiceBgColor,
-        invoiceBgOpacity,
-        quoteBgColor,
-        quoteBgOpacity,
-        deliveryNoteBgColor,
-        deliveryNoteBgOpacity,
-        supplierOrderBgColor,
-        supplierOrderBgOpacity,
-        creditNoteBgColor,
-        creditNoteBgOpacity,
-        smtpConfig,
-        ftpConfig,
-        twilioConfig,
-      }
+        items,
+        categories,
+        customers,
+        suppliers,
+        tables: tablesData,
+        paymentMethods,
+        vatRates,
+        companyInfo,
+        users,
+        sales,
+        auditLogs,
+        settings: {
+            showNotifications,
+            notificationDuration,
+            enableDynamicBg,
+            dynamicBgOpacity,
+            showTicketImages,
+            showItemImagesInGrid,
+            descriptionDisplay,
+            popularItemsCount,
+            itemCardOpacity,
+            paymentMethodImageOpacity,
+            itemDisplayMode,
+            itemCardShowImageAsBackground,
+            itemCardImageOverlayOpacity,
+            itemCardTextColor,
+            itemCardShowPrice,
+            externalLinkModalEnabled,
+            externalLinkUrl,
+            externalLinkTitle,
+            externalLinkModalWidth,
+            externalLinkModalHeight,
+            showDashboardStats,
+            enableRestaurantCategoryFilter,
+            enableSerialNumber,
+            defaultSalesMode,
+            isForcedMode,
+            requirePinForAdmin,
+            directSaleBackgroundColor,
+            restaurantModeBackgroundColor,
+            directSaleBgOpacity,
+            restaurantModeBgOpacity,
+            dashboardBgType,
+            dashboardBackgroundColor,
+            dashboardBackgroundImage,
+            dashboardBgOpacity,
+            dashboardButtonBackgroundColor,
+            dashboardButtonOpacity,
+            dashboardButtonShowBorder,
+            dashboardButtonBorderColor,
+            invoiceBgColor,
+            invoiceBgOpacity,
+            quoteBgColor,
+            quoteBgOpacity,
+            deliveryNoteBgColor,
+            deliveryNoteBgOpacity,
+            supplierOrderBgColor,
+            supplierOrderBgOpacity,
+            creditNoteBgColor,
+            creditNoteBgOpacity,
+            smtpConfig,
+            ftpConfig,
+            twilioConfig,
+        }
     };
     return JSON.stringify(config, null, 2);
   }, [
