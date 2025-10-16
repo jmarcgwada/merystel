@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
+import { useKeyboard } from '@/contexts/keyboard-context';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -65,7 +66,8 @@ export default function AnalyticsPage() {
     const [isClient, setIsClient] = useState(false);
     
     // Filtering state
-    const [topN, setTopN] = useState(5);
+    const [topArticles, setTopArticles] = useState(10);
+    const [topClients, setTopClients] = useState(10);
     const [filterCustomer, setFilterCustomer] = useState('');
     const [filterItem, setFilterItem] = useState('');
     const [filterSeller, setFilterSeller] = useState('');
@@ -218,8 +220,8 @@ export default function AnalyticsPage() {
             if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
             if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
             return 0;
-        }).slice(0, topN);
-    }, [topItems, topN, topItemsSortConfig]);
+        }).slice(0, topArticles);
+    }, [topItems, topArticles, topItemsSortConfig]);
 
     const sortedTopCustomers = useMemo(() => {
         return [...topCustomers].sort((a, b) => {
@@ -227,8 +229,8 @@ export default function AnalyticsPage() {
             if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
             if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
             return 0;
-        }).slice(0, topN);
-    }, [topCustomers, topN, topCustomersSortConfig]);
+        }).slice(0, topClients);
+    }, [topCustomers, topClients, topCustomersSortConfig]);
     
     const requestSort = (key: SalesLinesSortKey | TopItemsSortKey | TopCustomersSortKey, table: 'salesLines' | 'topItems' | 'topCustomers') => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -361,8 +363,12 @@ export default function AnalyticsPage() {
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
                 <div className="flex items-center gap-2">
-                    <Label htmlFor="top-n-input">Top</Label>
-                    <Input id="top-n-input" type="number" value={topN} onChange={(e) => setTopN(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
+                    <Label htmlFor="top-n-articles-input">Top Articles</Label>
+                    <Input id="top-n-articles-input" type="number" value={topArticles} onChange={(e) => setTopArticles(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
+                </div>
+                 <div className="flex items-center gap-2">
+                    <Label htmlFor="top-n-clients-input">Top Clients</Label>
+                    <Input id="top-n-clients-input" type="number" value={topClients} onChange={(e) => setTopClients(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
                 </div>
               </CardContent>
             </CollapsibleContent>
@@ -376,7 +382,7 @@ export default function AnalyticsPage() {
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
                                 <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopItemsOpen && "-rotate-90")} />
-                                Top {topN} Articles
+                                Top {topArticles} Articles
                             </Button>
                         </CollapsibleTrigger>
                     </CardHeader>
@@ -395,7 +401,7 @@ export default function AnalyticsPage() {
                         <CollapsibleTrigger asChild>
                              <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
                                 <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopCustomersOpen && "-rotate-90")} />
-                                Top {topN} Clients
+                                Top {topClients} Clients
                             </Button>
                         </CollapsibleTrigger>
                     </CardHeader>
@@ -459,3 +465,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
