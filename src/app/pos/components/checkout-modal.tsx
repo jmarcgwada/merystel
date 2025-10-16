@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -173,8 +172,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         })
         clearOrder();
         onClose();
-        if (currentSaleContext?.documentType === 'invoice') {
-          router.push('/reports?filter=Fact-');
+        if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
+          router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
         }
     }
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote]);
@@ -325,9 +324,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     };
     
     const handleSaveAsPending = () => {
-      if (isInvoiceMode || isCreditNote) {
-        handleFinalizeSale(payments, false); 
-      }
+      handleFinalizeSale(payments, false); 
     };
     
     const renderCalculator = () => (
@@ -570,13 +567,22 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
          <Button
             type="button"
             variant="outline"
-            onClick={isInvoiceMode || isCreditNote ? handleSaveAsPending : handleReset}
+            onClick={handleReset}
             className="w-full sm:w-auto"
           >
-            {isInvoiceMode && balanceDue > 0.009 ? 'Enregistrer en attente' 
-             : isCreditNote ? 'Enregistrer sans paiement'
-             : 'Annuler'}
+           Annuler
           </Button>
+         
+         {(isInvoiceMode || isCreditNote) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSaveAsPending}
+              className="w-full sm:w-auto"
+            >
+              {isInvoiceMode ? 'Enregistrer en attente' : 'Enregistrer sans paiement'}
+            </Button>
+         )}
 
         {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
           <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode || isCreditNote ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
@@ -671,3 +677,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+    
