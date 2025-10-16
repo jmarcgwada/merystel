@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 
-type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
+type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
 type TopCustomersSortKey = 'name' | 'visits' | 'basketTotal' | 'revenue';
 
@@ -118,6 +118,7 @@ export default function AnalyticsPage() {
                 saleDate: true,
                 ticketNumber: true,
                 name: true,
+                barcode: true,
                 customerName: true,
                 userName: true,
                 quantity: true,
@@ -136,6 +137,7 @@ export default function AnalyticsPage() {
         { id: 'saleDate', label: 'Date' },
         { id: 'ticketNumber', label: 'Pièce' },
         { id: 'name', label: 'Désignation' },
+        { id: 'barcode', label: 'Référence' },
         { id: 'customerName', label: 'Client' },
         { id: 'userName', label: 'Vendeur' },
         { id: 'quantity', label: 'Qté' },
@@ -152,7 +154,7 @@ export default function AnalyticsPage() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${'saleUser.firstName'} ${'saleUser.lastName.charAt(0)'}.` : (fallbackName || 'Utilisateur supprimé');
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
@@ -460,7 +462,6 @@ export default function AnalyticsPage() {
                       {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
                 <div className="grid gap-2 w-48">
@@ -594,6 +595,7 @@ export default function AnalyticsPage() {
                             {visibleColumns.saleDate && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.barcode && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('barcode', 'salesLines')}>Référence {getSortIcon('barcode', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.quantity && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>}
@@ -627,6 +629,7 @@ export default function AnalyticsPage() {
                                             </div>
                                         )}
                                     </TableCell>}
+                                    {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                                     {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
                                     {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
                                     {visibleColumns.quantity && <TableCell className="text-right">{item.quantity}</TableCell>}
@@ -642,3 +645,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
