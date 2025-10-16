@@ -80,8 +80,7 @@ export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-    const [isTopItemsOpen, setIsTopItemsOpen] = useState(true);
-    const [isTopCustomersOpen, setIsTopCustomersOpen] = useState(true);
+    const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(true);
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
 
@@ -498,13 +497,13 @@ export default function AnalyticsPage() {
         </Collapsible>
 
         <div className="grid lg:grid-cols-2 gap-4">
-            <Collapsible open={isTopItemsOpen} onOpenChange={setIsTopItemsOpen} asChild>
+            <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
                 <Card>
                     <CardHeader>
                         <CollapsibleTrigger asChild>
                             <div className="flex items-center justify-between">
                                 <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopItemsOpen && "-rotate-90")} />
+                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
                                     Top {topArticles} Articles
                                 </Button>
                                 {selectedTopItems.length > 0 && (
@@ -525,13 +524,13 @@ export default function AnalyticsPage() {
                     </CollapsibleContent>
                 </Card>
             </Collapsible>
-            <Collapsible open={isTopCustomersOpen} onOpenChange={setIsTopCustomersOpen} asChild>
+            <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
                 <Card>
                     <CardHeader>
                          <CollapsibleTrigger asChild>
                              <div className="flex items-center justify-between">
                                 <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopCustomersOpen && "-rotate-90")} />
+                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
                                     Top {topClients} Clients
                                 </Button>
                                  {selectedTopCustomers.length > 0 && (
@@ -645,4 +644,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
