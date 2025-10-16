@@ -18,6 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const initialCompanyInfo: CompanyInfo = {
     name: '',
@@ -81,7 +83,9 @@ export default function CompanyPage() {
       title: 'Informations sauvegardées',
       description: 'Les détails de votre entreprise ont été mis à jour.',
     });
-    router.push('/settings');
+    if (isInitialSetup) {
+        router.push('/dashboard');
+    }
   };
   
   if (isLoading) {
@@ -90,8 +94,6 @@ export default function CompanyPage() {
             <PageHeader title="Détails de l'entreprise" subtitle="Gérez les informations légales et commerciales de votre entreprise."/>
             <div className="mt-8 space-y-8">
                 <Skeleton className="w-full h-96" />
-                <Skeleton className="w-full h-64" />
-                <Skeleton className="w-full h-48" />
             </div>
         </>
       )
@@ -113,7 +115,7 @@ export default function CompanyPage() {
         )}
       </PageHeader>
         
-      <fieldset className="mt-4 space-y-8 group">
+      <div className="mt-4 space-y-8">
         {isInitialSetup && (
             <Alert variant="destructive">
                 <Lock className="h-4 w-4" />
@@ -123,153 +125,163 @@ export default function CompanyPage() {
                 </AlertDescription>
             </Alert>
         )}
-        <Card className="group-disabled:opacity-70">
-          <CardHeader>
-              <CardTitle>Informations générales et de contact</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-              <div className="grid gap-2">
-                  <Label htmlFor="name">Nom de l'entreprise *</Label>
-                  <Input id="name" value={localInfo.name} onChange={handleInputChange} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address">Adresse</Label>
-                <Input id="address" value={localInfo.address} onChange={handleInputChange} placeholder="ex: 123 Rue du Commerce"/>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="postalCode">Code Postal</Label>
-                    <Input id="postalCode" value={localInfo.postalCode} onChange={handleInputChange} />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="city">Ville</Label>
-                    <Input id="city" value={localInfo.city} onChange={handleInputChange} />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="region">Région / Département</Label>
-                    <Input id="region" value={localInfo.region || ''} onChange={handleInputChange} />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="country">Pays</Label>
-                    <Input id="country" value={localInfo.country} onChange={handleInputChange} />
-                </div>
-              </div>
-              <Separator/>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="email">Email de contact</Label>
-                    <Input id="email" type="email" value={localInfo.email} onChange={handleInputChange} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input id="phone" value={localInfo.phone || ''} onChange={handleInputChange} />
-                </div>
-              </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="group-disabled:opacity-70">
-            <CardHeader>
-                <CardTitle>Informations légales et fiscales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="siret">Numéro de SIRET</Label>
-                        <Input id="siret" value={localInfo.siret || ''} onChange={handleInputChange} />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="legalForm">Forme juridique</Label>
-                        <Input id="legalForm" value={localInfo.legalForm || ''} onChange={handleInputChange} placeholder="ex: SARL, SAS..." />
-                    </div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="website">Site Web</Label>
-                        <Input id="website" value={localInfo.website || ''} onChange={handleInputChange} placeholder="https://..." />
-                    </div>
-                </div>
-            </CardContent>
-            </Card>
+        
+        <Tabs defaultValue="general">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="general">Général</TabsTrigger>
+                <TabsTrigger value="legal">Légal & Bancaire</TabsTrigger>
+                <TabsTrigger value="docs">Communication</TabsTrigger>
+            </TabsList>
             
-            <Card className="group-disabled:opacity-70">
-            <CardHeader>
-                <CardTitle>Coordonnées bancaires</CardTitle>
-                <CardDescription>Ces informations apparaîtront sur vos factures.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid gap-2">
-                    <Label htmlFor="iban">IBAN</Label>
-                    <Input id="iban" value={localInfo.iban || ''} onChange={handleInputChange} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="bic">BIC / SWIFT</Label>
-                    <Input id="bic" value={localInfo.bic || ''} onChange={handleInputChange} />
-                </div>
-            </CardContent>
-            </Card>
-        </div>
+            <TabsContent value="general">
+                 <Card className="mt-4">
+                    <CardHeader>
+                        <CardTitle>Informations générales et de contact</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Nom de l'entreprise *</Label>
+                            <Input id="name" value={localInfo.name} onChange={handleInputChange} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="address">Adresse</Label>
+                            <Input id="address" value={localInfo.address} onChange={handleInputChange} placeholder="ex: 123 Rue du Commerce"/>
+                        </div>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="postalCode">Code Postal</Label>
+                                <Input id="postalCode" value={localInfo.postalCode} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="city">Ville</Label>
+                                <Input id="city" value={localInfo.city} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="region">Région / Département</Label>
+                                <Input id="region" value={localInfo.region || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="country">Pays</Label>
+                                <Input id="country" value={localInfo.country} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                        <Separator/>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Email de contact</Label>
+                                <Input id="email" type="email" value={localInfo.email} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">Téléphone</Label>
+                                <Input id="phone" value={localInfo.phone || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
 
-        <Card className="group-disabled:opacity-70">
-            <CardHeader>
-                <CardTitle>Document de Communication</CardTitle>
-                <CardDescription>Image ou PDF à afficher dans le cadre de communication sur vos documents imprimés.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="communicationDocUrl">URL de l'image/PDF</Label>
-                     <div className="flex items-center">
-                        <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
-                        <Input 
-                            id="communicationDoc"
-                            value={localInfo.communicationDoc?.startsWith('data:') ? '' : localInfo.communicationDoc}
-                            onChange={handleInputChange}
-                            placeholder="https://example.com/image.jpg"
-                            className="pl-9"
-                        />
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Separator className="flex-1"/>
-                    <span className="text-xs text-muted-foreground">OU</span>
-                    <Separator className="flex-1"/>
-                </div>
-                 <div className="grid gap-2">
-                     <Button variant="outline" onClick={() => document.getElementById('communicationDocFile')?.click()}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Téléverser un fichier
-                    </Button>
-                    <input type="file" id="communicationDocFile" onChange={handleImageUpload} className="hidden" accept="image/*,.pdf"/>
-                </div>
-                {localInfo.communicationDoc && (
-                  <div className="pt-4">
-                    <Label>Aperçu</Label>
-                    <div className="mt-2 border rounded-md p-2 flex justify-center items-center h-48">
-                      {localInfo.communicationDoc.startsWith('data:image') ? (
-                        <img src={localInfo.communicationDoc} alt="Aperçu" className="max-h-full max-w-full object-contain" />
-                      ) : (
-                        <FileImage className="w-16 h-16 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-        </Card>
+            <TabsContent value="legal">
+                 <Card className="mt-4">
+                    <CardHeader>
+                        <CardTitle>Informations légales et fiscales</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="siret">Numéro de SIRET</Label>
+                                <Input id="siret" value={localInfo.siret || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="legalForm">Forme juridique</Label>
+                                <Input id="legalForm" value={localInfo.legalForm || ''} onChange={handleInputChange} placeholder="ex: SARL, SAS..." />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="website">Site Web</Label>
+                                <Input id="website" value={localInfo.website || ''} onChange={handleInputChange} placeholder="https://..." />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle>Coordonnées bancaires</CardTitle>
+                        <CardDescription>Ces informations apparaîtront sur vos factures.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="iban">IBAN</Label>
+                            <Input id="iban" value={localInfo.iban || ''} onChange={handleInputChange} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="bic">BIC / SWIFT</Label>
+                            <Input id="bic" value={localInfo.bic || ''} onChange={handleInputChange} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
 
-        <Card className="group-disabled:opacity-70">
-          <CardHeader>
-              <CardTitle>Pied de page des documents</CardTitle>
-              <CardDescription>Ce texte apparaîtra en bas de vos factures et devis (mentions légales, conditions de vente, etc.).</CardDescription>
-          </CardHeader>
-          <CardContent>
-              <div className="grid gap-2">
-                  <Textarea id="notes" value={localInfo.notes || ''} onChange={handleInputChange} placeholder="Ex: TVA non applicable, art. 293 B du CGI..." rows={4} />
-              </div>
-          </CardContent>
-        </Card>
-
-      </fieldset>
+            <TabsContent value="docs">
+                 <Card className="mt-4">
+                    <CardHeader>
+                        <CardTitle>Document de Communication</CardTitle>
+                        <CardDescription>Image ou PDF à afficher dans le cadre de communication sur vos documents imprimés.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="communicationDocUrl">URL de l'image/PDF</Label>
+                            <div className="flex items-center">
+                                <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                                <Input 
+                                    id="communicationDoc"
+                                    value={localInfo.communicationDoc?.startsWith('data:') ? '' : localInfo.communicationDoc}
+                                    onChange={handleInputChange}
+                                    placeholder="https://example.com/image.jpg"
+                                    className="pl-9"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Separator className="flex-1"/>
+                            <span className="text-xs text-muted-foreground">OU</span>
+                            <Separator className="flex-1"/>
+                        </div>
+                        <div className="grid gap-2">
+                            <Button variant="outline" onClick={() => document.getElementById('communicationDocFile')?.click()}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Téléverser un fichier
+                            </Button>
+                            <input type="file" id="communicationDocFile" onChange={handleImageUpload} className="hidden" accept="image/*,.pdf"/>
+                        </div>
+                        {localInfo.communicationDoc && (
+                        <div className="pt-4">
+                            <Label>Aperçu</Label>
+                            <div className="mt-2 border rounded-md p-2 flex justify-center items-center h-48">
+                            {localInfo.communicationDoc.startsWith('data:image') ? (
+                                <img src={localInfo.communicationDoc} alt="Aperçu" className="max-h-full max-w-full object-contain" />
+                            ) : (
+                                <FileImage className="w-16 h-16 text-muted-foreground" />
+                            )}
+                            </div>
+                        </div>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle>Pied de page des documents</CardTitle>
+                        <CardDescription>Ce texte apparaîtra en bas de vos factures et devis (mentions légales, conditions de vente, etc.).</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-2">
+                            <Textarea id="notes" value={localInfo.notes || ''} onChange={handleInputChange} placeholder="Ex: TVA non applicable, art. 293 B du CGI..." rows={4} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
+      </div>
        <div className="mt-8 flex justify-end">
             <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
        </div>
