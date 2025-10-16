@@ -311,27 +311,41 @@ function SaleDetailContent() {
   const vatBreakdown = useMemo(() => {
     if (!sale || !vatRates) return {};
     const breakdown: { [key: string]: { rate: number; total: number; base: number, code: number } } = {};
+    const subtotal = sale.subtotal || 0;
+    const totalTax = sale.tax || 0;
+
+    // Distribute total tax based on each rate's contribution to the subtotal
+    const htByRate: { [key: string]: number } = {};
+    let totalHtCalculated = 0;
 
     sale.items.forEach(item => {
         const vatInfo = getVatInfo(item.vatId);
         if (vatInfo) {
-            const priceHT = item.total / (1 + vatInfo.rate / 100);
-            const taxAmount = item.total - priceHT;
-
-            if (breakdown[vatInfo.rate]) {
-                breakdown[vatInfo.rate].base += priceHT;
-                breakdown[vatInfo.rate].total += taxAmount;
-            } else {
-                breakdown[vatInfo.rate] = { 
-                    rate: vatInfo.rate, 
-                    base: priceHT, 
-                    total: taxAmount,
-                    code: vatInfo.code,
-                };
-            }
+            const itemHT = item.total / (1 + vatInfo.rate / 100);
+            htByRate[vatInfo.rate] = (htByRate[vatInfo.rate] || 0) + itemHT;
+            totalHtCalculated += itemHT;
         }
     });
-    
+
+    if (totalHtCalculated === 0) return {}; // Avoid division by zero
+
+    Object.entries(htByRate).forEach(([rateStr, htForRate]) => {
+        const rate = parseFloat(rateStr);
+        const proportion = htForRate / totalHtCalculated;
+        const taxForRate = totalTax * proportion;
+        const baseForRate = subtotal * proportion;
+        const vatInfo = vatRates.find(v => v.rate === rate);
+
+        if (vatInfo) {
+            breakdown[rateStr] = {
+                rate: rate,
+                total: taxForRate,
+                base: baseForRate,
+                code: vatInfo.code,
+            };
+        }
+    });
+
     return breakdown;
   }, [sale, vatRates]);
   
