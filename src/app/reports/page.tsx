@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -432,7 +433,8 @@ export default function ReportsPage() {
     }
     
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
-        const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
+        const saleTotal = Math.abs(sale.total);
 
         if (sale.status === 'invoiced') {
             return <Badge variant="outline">Facturé</Badge>;
@@ -442,7 +444,7 @@ export default function ReportsPage() {
                 <div className="flex flex-wrap gap-1">
                     {sale.payments.map((p, index) => (
                         <Badge key={index} variant="outline" className="capitalize font-normal">
-                            {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
+                            {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
                         </Badge>
                     ))}
                     {sale.change && sale.change > 0 && (
@@ -455,7 +457,7 @@ export default function ReportsPage() {
         }
 
         if (totalPaid > 0) {
-            const remaining = sale.total - totalPaid;
+            const remaining = saleTotal - totalPaid;
             return (
                 <div className="flex items-center gap-2">
                     <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>
