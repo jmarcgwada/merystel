@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -62,6 +63,7 @@ export default function AnalyticsPage() {
     const [filterSeller, setFilterSeller] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
@@ -232,55 +234,64 @@ export default function AnalyticsPage() {
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-                <CardTitle>Filtres</CardTitle>
+        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                    Filtres
+                  </Button>
+                </CollapsibleTrigger>
                 <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-[220px] justify-between">
-                                <span>Types de pièce</span>
-                                <ChevronDown className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.entries(documentTypes).map(([type, { label }]) => (
-                                <DropdownMenuCheckboxItem
-                                    key={type}
-                                    checked={filterDocTypes[type]}
-                                    onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                >
-                                    {label}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button variant="ghost" size="sm" onClick={resetFilters}>
-                        <RefreshCw className="mr-2 h-4 w-4"/>Réinitialiser
-                    </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-[220px] justify-between">
+                        <span>Types de pièce</span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {Object.entries(documentTypes).map(([type, { label }]) => (
+                        <DropdownMenuCheckboxItem
+                          key={type}
+                          checked={filterDocTypes[type]}
+                          onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                        >
+                          {label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="ghost" size="sm" onClick={resetFilters}>
+                    <X className="mr-2 h-4 w-4" />Réinitialiser
+                  </Button>
                 </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-4">
-            <Popover>
-                <PopoverTrigger asChild>
+              </div>
+            </CardHeader>
+            <CollapsibleContent asChild>
+              <CardContent className="flex flex-wrap items-center gap-4">
+                <Popover>
+                  <PopoverTrigger asChild>
                     <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                     </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
-                </PopoverContent>
-            </Popover>
-            <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
-            <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
-            <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
-          </CardContent>
-        </Card>
+                  </PopoverContent>
+                </Popover>
+                <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
+                <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
+                <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         <div className="grid lg:grid-cols-2 gap-4">
             <Card>
