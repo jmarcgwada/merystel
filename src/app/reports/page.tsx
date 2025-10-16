@@ -211,7 +211,6 @@ export default function ReportsPage() {
         }
         return undefined;
     });
-    const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter);
@@ -226,7 +225,6 @@ export default function ReportsPage() {
     const customerNameFilterRef = useRef<HTMLInputElement>(null);
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
     const originFilterRef = useRef<HTMLInputElement>(null);
-    const articleRefFilterRef = useRef<HTMLInputElement>(null);
     
     const isContextualFilterActive = !!initialFilter;
 
@@ -266,7 +264,6 @@ export default function ReportsPage() {
         if (targetInput?.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
         if (targetInput?.name === 'reports-seller-filter') setFilterSellerName(inputValue);
         if (targetInput?.name === 'reports-origin-filter') setFilterOrigin(inputValue);
-        if (targetInput?.name === 'reports-article-filter') setFilterArticleRef(inputValue);
     }, [inputValue, targetInput]);
 
     const getCustomerName = useCallback((customerId?: string) => {
@@ -278,10 +275,7 @@ export default function ReportsPage() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        if (saleUser?.firstName && saleUser?.lastName) {
-            return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
-        }
-        return fallbackName || saleUser?.email || 'Utilisateur supprimé';
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
     const handleEdit = useCallback((sale: Sale) => {
@@ -332,8 +326,6 @@ export default function ReportsPage() {
                 else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < saleTotal;
                 else statusMatch = sale.status === filterStatus;
             }
-
-            const articleRefMatch = !filterArticleRef || (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(filterArticleRef.toLowerCase())) || (item.barcode && item.barcode.toLowerCase().includes(filterArticleRef.toLowerCase()))));
             
             const saleSellerName = getUserName(sale.userId, sale.userName);
             const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
@@ -361,12 +353,12 @@ export default function ReportsPage() {
                     const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
                     const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
                     const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
-                    return nameMatch || noteMatch || serialMatch || variantMatch;
+                    return nameMatch || noteMatch || serialMatch || variantMatch || (item.barcode && item.barcode.toLowerCase().includes(lowerGeneralFilter));
                 }))
             );
             
 
-            return customerMatch && originMatch && statusMatch && dateMatch && articleRefMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
+            return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
         });
 
         // Apply sorting
@@ -431,7 +423,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterArticleRef, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
+    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
 
@@ -477,7 +469,6 @@ export default function ReportsPage() {
         setFilterStatus('all');
         setFilterPaymentMethod('all');
         setDateRange(undefined);
-        setFilterArticleRef('');
         setFilterSellerName('');
         setGeneralFilter('');
         setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
@@ -534,7 +525,6 @@ export default function ReportsPage() {
         if (filterCustomerName) params.set('customer', filterCustomerName);
         if (filterSellerName) params.set('seller', filterSellerName);
         if (filterOrigin) params.set('origin', filterOrigin);
-        if (filterArticleRef) params.set('article', filterArticleRef);
         
         return `/reports/${saleId}?${params.toString()}`;
     }
@@ -641,9 +631,9 @@ export default function ReportsPage() {
       >
         <div className="flex items-center gap-2">
              <Button asChild variant="secondary">
-                <Link href="/reports/payments">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Rapport des Paiements
+                <Link href="/reports/analytics">
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Reporting Avancé
                 </Link>
             </Button>
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
@@ -753,7 +743,7 @@ export default function ReportsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                             <Input
                                 ref={generalFilterRef}
-                                placeholder="Rechercher (N°, article, note...)"
+                                placeholder="Recherche générale..."
                                 value={generalFilter}
                                 onChange={(e) => setGeneralFilter(e.target.value)}
                                 className="max-w-sm"
@@ -809,22 +799,13 @@ export default function ReportsPage() {
 
                             <Input
                                 ref={originFilterRef}
-                                placeholder="Filtrer par origine..."
+                                placeholder="Filtrer par origine (table)..."
                                 value={filterOrigin}
                                 onChange={(e) => setFilterOrigin(e.target.value)}
                                 className="max-w-xs"
                                 onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}
                             />
-
-                            <Input
-                                ref={articleRefFilterRef}
-                                placeholder="Rechercher par article/référence..."
-                                value={filterArticleRef}
-                                onChange={(e) => setFilterArticleRef(e.target.value)}
-                                className="max-w-xs"
-                                onFocus={() => setTargetInput({ value: filterArticleRef, name: 'reports-article-filter', ref: articleRefFilterRef })}
-                            />
-
+                            
                             <Select value={filterStatus} onValueChange={setFilterStatus}>
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Statut de paiement" />
@@ -943,12 +924,8 @@ export default function ReportsPage() {
                         )) : null}
                         {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
                             const sellerName = getUserName(sale.userId, sale.userName);
-                            const pieceType = sale.documentType === 'invoice' ? 'Facture'
-                                            : sale.documentType === 'quote' ? 'Devis'
-                                            : sale.documentType === 'delivery_note' ? 'BL'
-                                            : sale.documentType === 'supplier_order' ? 'Cde Fournisseur'
-                                            : sale.documentType === 'credit_note' ? 'Avoir'
-                                            : 'Ticket';
+                            const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                            const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
                             const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
                             
                             const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
