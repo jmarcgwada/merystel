@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -93,6 +92,7 @@ function SaleDetailContent() {
   const router = useRouter();
   
   const fromPos = searchParams.get('from') === 'pos';
+  const fromAnalytics = searchParams.get('from') === 'analytics';
   
   const sortKey = searchParams.get('sortKey') as SortKey | null;
   const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
@@ -247,6 +247,8 @@ function SaleDetailContent() {
     if (fromPos && sale) {
         loadTicketForViewing(sale);
         router.push('/pos');
+    } else if (fromAnalytics) {
+        router.push(`/reports/analytics?${navigationParams.toString()}`);
     } else {
         router.push(`/reports?${navigationParams.toString()}`);
     }

@@ -424,7 +424,11 @@ export default function AnalyticsPage() {
                             {sortedAndPaginatedSalesLines.map((item, index) => (
                                 <TableRow key={item.id + index}>
                                     <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>
-                                    <TableCell><Link href={`/reports/${item.saleId}`} className="text-blue-600 hover:underline"><Badge variant="secondary">{item.ticketNumber}</Badge></Link></TableCell>
+                                    <TableCell>
+                                        <Link href={`/reports/${item.saleId}?from=analytics`} className="text-blue-600 hover:underline">
+                                            <Badge variant="secondary">{item.ticketNumber}</Badge>
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>{item.name}</TableCell>
                                     <TableCell>{item.customerName}</TableCell>
                                     <TableCell>{item.userName}</TableCell>
