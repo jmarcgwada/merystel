@@ -87,11 +87,13 @@ const PaymentsDetails = ({ payments, total, change }: { payments: Payment[], tot
                     </div>
                 ))}
             </div>
-            <div className="border-t pt-2 space-y-1 text-sm">
-                 <div className="flex justify-between font-bold">
-                    <span>Total Payé</span>
-                    <span>{totalPaid.toFixed(2)}€</span>
-                </div>
+             <div className="border-t pt-2 space-y-1 text-sm">
+                {payments.length > 0 && (
+                    <div className="flex justify-between font-bold">
+                        <span>Total Payé</span>
+                        <span>{totalPaid.toFixed(2)}€</span>
+                    </div>
+                )}
                  {change && change > 0 && (
                      <div className="flex justify-between text-gray-600">
                         <span>Monnaie Rendue</span>
@@ -125,13 +127,13 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
       <header className="flex justify-between items-start pb-4">
-        <div className="w-1/2">
-          <h1 className="text-2xl font-bold uppercase">{companyInfo?.name || 'Votre Entreprise'}</h1>
-          <p>{companyInfo?.address}</p>
-          <p>{companyInfo?.postalCode} {companyInfo?.city}</p>
-          <p>{companyInfo?.phone}</p>
-          <p>{companyInfo?.email}</p>
-          <p>{companyInfo?.website}</p>
+        <div className="w-1/2 leading-tight space-y-1">
+          <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
+          <div>{companyInfo?.address}</div>
+          <div>{companyInfo?.postalCode} {companyInfo?.city}</div>
+          <div>{companyInfo?.phone}</div>
+          <div>{companyInfo?.email}</div>
+          <div>{companyInfo?.website}</div>
         </div>
         <div className="w-1/2 flex flex-col items-end">
             <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
