@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +21,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -34,6 +34,16 @@ const getDateFromSale = (sale: Sale): Date => {
     const d = new Date(sale.date as any);
     return isNaN(d.getTime()) ? new Date(0) : d;
 };
+
+const documentTypes = {
+    ticket: { label: 'Ticket', type: 'in' },
+    invoice: { label: 'Facture', type: 'in' },
+    quote: { label: 'Devis', type: 'neutral' },
+    delivery_note: { label: 'Bon de Livraison', type: 'neutral' },
+    credit_note: { label: 'Avoir', type: 'out' },
+    supplier_order: { label: 'Cde Fournisseur', type: 'out' },
+};
+
 
 export default function AnalyticsPage() {
     const { 
@@ -53,6 +63,14 @@ export default function AnalyticsPage() {
     const [filterSeller, setFilterSeller] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
+    const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
+        ticket: true,
+        invoice: true,
+        quote: false,
+        delivery_note: false,
+        supplier_order: false,
+        credit_note: false,
+    });
 
     useEffect(() => {
         setIsClient(true);
@@ -70,16 +88,20 @@ export default function AnalyticsPage() {
         return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
+    const handleDocTypeChange = (typeKey: string, checked: boolean) => {
+        setFilterDocTypes(prev => ({ ...prev, [typeKey]: checked }));
+    };
+
     const flattenedItems = useMemo(() => {
         if (!allSales) return [];
         return allSales
-            .filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'))
             .flatMap(sale => 
                 sale.items.map(item => ({
                     ...item,
                     saleId: sale.id,
                     saleDate: getDateFromSale(sale),
                     ticketNumber: sale.ticketNumber,
+                    documentType: sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice'),
                     customerId: sale.customerId,
                     customerName: getCustomerName(sale.customerId),
                     userId: sale.userId,
@@ -90,6 +112,10 @@ export default function AnalyticsPage() {
 
 
     const filteredItems = useMemo(() => {
+        const activeDocTypes = Object.entries(filterDocTypes)
+            .filter(([, isActive]) => isActive)
+            .map(([type]) => type);
+
         return flattenedItems.filter(item => {
             const customerMatch = !filterCustomer || item.customerName.toLowerCase().includes(filterCustomer.toLowerCase());
             const itemMatch = !filterItem || item.name.toLowerCase().includes(filterItem.toLowerCase()) || (item.barcode && item.barcode.toLowerCase().includes(filterItem.toLowerCase()));
@@ -98,10 +124,12 @@ export default function AnalyticsPage() {
             let dateMatch = true;
             if (dateRange?.from) dateMatch = item.saleDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && item.saleDate <= endOfDay(dateRange.to);
+            
+            const docTypeMatch = activeDocTypes.includes(item.documentType);
 
-            return customerMatch && itemMatch && sellerMatch && dateMatch;
+            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch;
         });
-    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange]);
+    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes]);
     
 
     const { stats, topItems, topCustomers } = useMemo(() => {
@@ -197,9 +225,32 @@ export default function AnalyticsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
                 <CardTitle>Filtres</CardTitle>
-                <Button variant="ghost" size="sm" onClick={resetFilters}>
-                    <RefreshCw className="mr-2 h-4 w-4"/>Réinitialiser
-                </Button>
+                <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-[220px] justify-between">
+                                <span>Types de pièce</span>
+                                <ChevronDown className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Object.entries(documentTypes).map(([type, { label }]) => (
+                                <DropdownMenuCheckboxItem
+                                    key={type}
+                                    checked={filterDocTypes[type]}
+                                    onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                >
+                                    {label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button variant="ghost" size="sm" onClick={resetFilters}>
+                        <RefreshCw className="mr-2 h-4 w-4"/>Réinitialiser
+                    </Button>
+                </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-4">
