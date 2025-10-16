@@ -37,7 +37,7 @@ import { CustomerSelectionDialog } from '@/components/shared/customer-selection-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 
 
 interface CheckoutModalProps {
@@ -76,6 +76,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
   
   const isCreditNote = currentSaleContext?.documentType === 'credit_note';
+  const displayTotalAmount = Math.abs(totalAmount);
 
   const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -93,8 +94,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }, [previousPayments, previousChange]);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const totalAmountPaid = amountPaidFromPrevious + amountPaid;
-  const balanceDue = useMemo(() => totalAmount - totalAmountPaid, [totalAmount, totalAmountPaid]);
+  const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid;
+  const balanceDue = useMemo(() => displayTotalAmount - totalAmountPaid, [displayTotalAmount, totalAmountPaid]);
 
   const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
   
@@ -123,14 +124,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     const allPayments = [...previousPayments, ...finalPayments];
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
-    const change = totalPaidForSale > totalAmount ? totalPaidForSale - totalAmount : 0;
+    const change = totalPaidForSale > displayTotalAmount ? totalPaidForSale - displayTotalAmount : 0;
   
     const saleInfo: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
       items: order,
       subtotal: orderTotal,
       tax: orderTax,
       total: totalAmount,
-      payments: allPayments.map(p => ({ ...p, date: p.date || Timestamp.fromDate(paymentDate) })),
+      payments: allPayments.map(p => ({ ...p, date: p.date || paymentDate as any })),
       status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
@@ -150,7 +151,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         setTimeout(() => {
           toast({
             title: isCreditNote ? 'Remboursement réussi' : 'Paiement réussi',
-            description: `Pièce de ${Math.abs(totalAmount).toFixed(2)}€ finalisée.`,
+            description: `Pièce de ${displayTotalAmount.toFixed(2)}€ finalisée.`,
           });
           
           const isTableSale = currentSaleContext?.isTableSale;
@@ -178,7 +179,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount]);
 
 
   useEffect(() => {
@@ -196,7 +197,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         }
         
         if (!isPaid) {
-            const newBalance = totalAmount - amountPaidFromPrevious;
+            const newBalance = displayTotalAmount - Math.abs(amountPaidFromPrevious);
             setCurrentAmount(newBalance !== 0 ? Math.abs(newBalance).toFixed(2) : '');
         }
         setPaymentDate(new Date());
@@ -211,7 +212,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setPaymentDate(new Date());
         }, 300);
     }
-  }, [isOpen, isPaid, totalAmount, customers, currentSaleContext, amountPaidFromPrevious]);
+  }, [isOpen, isPaid, displayTotalAmount, customers, currentSaleContext, amountPaidFromPrevious]);
 
 
   const handleReset = () => {
@@ -238,7 +239,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     if (isNaN(amountToAdd) || amountToAdd <= 0) return;
     
-    if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > Math.abs(balanceDue) + 0.009 && !isCreditNote) {
+    if (method.type === 'direct' && method.icon !== 'cash' && amountToAdd > Math.abs(balanceDue) + 0.009) {
         setShowOverpaymentAlert(true);
         return;
     }
@@ -252,12 +253,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       return;
     }
   
-    const newPayment: Payment = { method, amount: amountToAdd, date: Timestamp.fromDate(paymentDate) };
+    const newPayment: Payment = { method, amount: amountToAdd, date: paymentDate as any };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
     
     const newTotalAmountPaid = totalAmountPaid + amountToAdd;
-    const newBalance = totalAmount - newTotalAmountPaid;
+    const newBalance = displayTotalAmount - newTotalAmountPaid;
     
     if (Math.abs(newBalance) > 0.009) {
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
@@ -279,7 +280,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
-        const newBalance = totalAmount - (amountPaidFromPrevious + newAmountPaid);
+        const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newAmountPaid);
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         return newPayments;
     });
@@ -388,7 +389,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                                 <div key={`prev-${index}`} className="flex items-center justify-between p-3 bg-card/50 rounded-md">
                                 <div className="flex items-center gap-3">
                                     <Badge variant="outline" className="capitalize">{p.method.name}</Badge>
-                                    <span className="font-semibold">{p.amount.toFixed(2)}€</span>
+                                    <span className="font-semibold">{Math.abs(p.amount).toFixed(2)}€</span>
                                 </div>
                                 </div>
                             ))}
@@ -450,7 +451,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             ) : (
                 <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total de la commande</p>
-                    <p className="text-xl font-semibold text-foreground">{Math.abs(totalAmount).toFixed(2)}€</p>
+                    <p className="text-xl font-semibold text-foreground">{displayTotalAmount.toFixed(2)}€</p>
                 </div>
             )}
             <div className="flex flex-col items-end">
@@ -511,7 +512,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
             </div>
 
-            <fieldset disabled={isOverpaid} className="space-y-2">
+            <fieldset disabled={isOverpaid && !isCreditNote} className="space-y-2">
                  <div className="flex gap-2">
                     {mainPaymentMethods.map((method) => {
                         const IconComponent = getIcon(method.icon);
