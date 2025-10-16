@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -211,7 +211,7 @@ export default function ReportsPage() {
     });
     const [filterArticleRef, setFilterArticleRef] = useState('');
     const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
-    const [isSummaryOpen, setSummaryOpen] = useState(false);
+    const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -424,18 +424,17 @@ export default function ReportsPage() {
 
 
      const summaryStats = useMemo(() => {
-        const relevantSales = filteredAndSortedSales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
-        const totalRevenue = relevantSales.reduce((acc, sale) => acc + sale.total, 0);
-        const totalSales = relevantSales.length;
-        const averageBasket = totalSales > 0 ? totalRevenue / totalSales : 0;
-        const totalItemsSold = relevantSales.reduce((acc, sale) => acc + (Array.isArray(sale.items) ? sale.items.reduce((itemAcc, item) => itemAcc + item.quantity, 0) : 0), 0);
+        const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
+        const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
+        const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
 
-        return {
-            totalRevenue,
-            totalSales,
-            averageBasket,
-            totalItemsSold
-        }
+        const totalRevenue = revenueSales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + sale.total, 0);
+        const totalPurchases = supplierOrders.reduce((acc, sale) => acc + sale.total, 0);
+        
+        const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
+
+        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance };
     }, [filteredAndSortedSales]);
 
     const requestSort = (key: SortKey) => {
@@ -467,8 +466,8 @@ export default function ReportsPage() {
     }
     
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
-      const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
-      const saleTotal = Math.abs(sale.total);
+      const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+      const saleTotal = sale.total;
 
       if (sale.status === 'invoiced') {
           return <Badge variant="outline">Facturé</Badge>;
@@ -478,7 +477,7 @@ export default function ReportsPage() {
               <div className="flex flex-wrap gap-1">
                   {sale.payments.map((p, index) => (
                       <Badge key={index} variant="outline" className="capitalize font-normal">
-                          {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
+                          {p.method.name}: <span className="font-semibold ml-1">{p.amount.toFixed(2)}€</span>
                       </Badge>
                   ))}
                   {sale.change && sale.change > 0 && (
@@ -495,7 +494,7 @@ export default function ReportsPage() {
           return (
               <div className="flex items-center gap-2">
                   <Badge variant="destructive" className="font-normal bg-orange-500 text-white">Partiel</Badge>
-                  <span className="text-xs text-muted-foreground font-semibold">({Math.abs(remaining).toFixed(2)}€ restants)</span>
+                  <span className="text-xs text-muted-foreground font-semibold">({remaining.toFixed(2)}€ restants)</span>
               </div>
           )
       }
@@ -657,39 +656,31 @@ export default function ReportsPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Chiffre d'affaires (Factures/Tickets)</CardTitle>
+                            <CardTitle className="text-sm font-medium">Chiffre d'Affaires (Encaissements)</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div>
-                        </CardContent>
+                        <CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nombre de pièces</CardTitle>
-                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle>
+                             <RefreshCw className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">+{summaryStats.totalSales}</div>
-                        </CardContent>
+                        <CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
-                             <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle>
+                             <Truck className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{summaryStats.averageBasket.toFixed(2)}€</div>
-                        </CardContent>
+                        <CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent>
                     </Card>
-                    <Card>
+                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Articles vendus</CardTitle>
-                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Balance Nette</CardTitle>
+                            <Scale className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{summaryStats.totalItemsSold}</div>
-                        </CardContent>
+                        <CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent>
                     </Card>
                 </div>
             </CollapsibleContent>
@@ -706,7 +697,7 @@ export default function ReportsPage() {
                                     Filtres
                                 </Button>
                             </CollapsibleTrigger>
-                             <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="w-[220px] justify-between">
