@@ -74,7 +74,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
-  const isCreditNote = totalAmount < 0;
+  
+  const isCreditNote = currentSaleContext?.documentType === 'credit_note';
 
   const autoFinalizeTimer = useRef<NodeJS.Timeout | null>(null);
 
