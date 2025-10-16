@@ -19,7 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
+import type { Sale, Payment, Item, OrderItem, VatBreakdown } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -36,13 +36,9 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
         }
         
         let jsDate: Date;
-        if (date instanceof Date) {
-            jsDate = date;
-        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
-            jsDate = (date as Timestamp).toDate();
-        } else {
-            jsDate = new Date(date as any);
-        }
+        if (date instanceof Date) jsDate = date;
+        else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
+        else jsDate = new Date(date as any);
 
         if (!isNaN(jsDate.getTime())) {
             setFormattedDate(format(jsDate, formatString, { locale: fr }));
@@ -298,56 +294,15 @@ function SaleDetailContent() {
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
   const sellerName = seller ? `${seller.firstName} ${seller.lastName}` : sale?.userName;
-
-  const getVatInfo = (vatId: string) => {
-    return vatRates?.find(v => v.id === vatId);
-  }
   
   const getItemInfo = useCallback((orderItem: OrderItem): Partial<Item> => {
       if (!allItems) return {};
       return allItems.find(i => i.id === orderItem.itemId) || {};
   }, [allItems]);
 
-  const vatBreakdown = useMemo(() => {
-    if (!sale || !vatRates) return {};
-    const breakdown: { [key: string]: { rate: number; total: number; base: number, code: number } } = {};
-    const subtotal = sale.subtotal || 0;
-    const totalTax = sale.tax || 0;
-
-    // Distribute total tax based on each rate's contribution to the subtotal
-    const htByRate: { [key: string]: number } = {};
-    let totalHtCalculated = 0;
-
-    sale.items.forEach(item => {
-        const vatInfo = getVatInfo(item.vatId);
-        if (vatInfo) {
-            const itemHT = item.total / (1 + vatInfo.rate / 100);
-            htByRate[vatInfo.rate] = (htByRate[vatInfo.rate] || 0) + itemHT;
-            totalHtCalculated += itemHT;
-        }
-    });
-
-    if (totalHtCalculated === 0) return {}; // Avoid division by zero
-
-    Object.entries(htByRate).forEach(([rateStr, htForRate]) => {
-        const rate = parseFloat(rateStr);
-        const proportion = htForRate / totalHtCalculated;
-        const taxForRate = totalTax * proportion;
-        const baseForRate = subtotal * proportion;
-        const vatInfo = vatRates.find(v => v.rate === rate);
-
-        if (vatInfo) {
-            breakdown[rateStr] = {
-                rate: rate,
-                total: taxForRate,
-                base: baseForRate,
-                code: vatInfo.code,
-            };
-        }
-    });
-
-    return breakdown;
-  }, [sale, vatRates]);
+  const vatBreakdown: VatBreakdown = useMemo(() => {
+    return sale?.vatBreakdown || {};
+  }, [sale]);
   
   const subTotalHT = sale?.subtotal ?? 0;
   const totalTax = sale?.tax ?? 0;
@@ -535,7 +490,7 @@ function SaleDetailContent() {
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
                 <div key={rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA ({values.rate.toFixed(2)}%)</span>
+                    <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
                     <span>{values.base.toFixed(2)}€</span>
                 </div>
               ))}

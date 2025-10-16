@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -139,6 +138,15 @@ export interface Payment {
   date: Date | Timestamp;
 }
 
+export interface VatBreakdown {
+  [key: string]: {
+    rate: number;
+    total: number;
+    base: number;
+    code: number;
+  };
+}
+
 export interface Sale {
   id: string;
   ticketNumber: string;
@@ -152,6 +160,7 @@ export interface Sale {
   payments: Payment[];
   originalPayments?: Payment[];
   change?: number;
+  vatBreakdown?: VatBreakdown;
   customerId?: string;
   supplierId?: string;
   tableId?: string;
@@ -190,7 +199,6 @@ export interface CompanyInfo {
   notes?: string; // For document footer
   internalNotes?: string; // For internal use
   communicationDoc?: string;
-  communicationDocOpacity?: number;
 }
 
 export interface User {

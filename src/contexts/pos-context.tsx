@@ -27,6 +27,7 @@ import type {
   SmtpConfig,
   FtpConfig,
   TwilioConfig,
+  VatBreakdown,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -1085,7 +1086,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (!vatRates) return 0;
     return (readOnlyOrder || order).reduce((sum, item) => {
       const vat = vatRates.find((v) => v.id === item.vatId);
-      const taxForItem = item.total * ((vat?.rate || 0) / 100);
+      const taxForItem = item.total * ((vat?.rate || 0) / (100 + (vat?.rate || 0)));
       return sum + taxForItem;
     }, 0);
   }, [order, readOnlyOrder, vatRates]);
