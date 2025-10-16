@@ -44,26 +44,29 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
   });
 
   return (
-    <table className="w-full text-xs">
-        <thead>
-            <tr className="bg-gray-100">
-                <th className="p-1 text-left">Code</th>
-                <th className="p-1 text-left">Taux</th>
-                <th className="p-1 text-right">Base HT</th>
-                <th className="p-1 text-right">Montant TVA</th>
-            </tr>
-        </thead>
-        <tbody>
-            {Object.entries(breakdown).map(([rate, values]) => (
-                <tr key={rate}>
-                    <td className="p-1">{values.code}</td>
-                    <td className="p-1">{values.rate.toFixed(2)}%</td>
-                    <td className="p-1 text-right">{values.base.toFixed(2)}€</td>
-                    <td className="p-1 text-right">{values.total.toFixed(2)}€</td>
+    <div className="border rounded-md p-2">
+        <table className="w-full text-xs">
+            <thead>
+                <tr className="bg-gray-100">
+                    <th className="p-1 text-left">Code</th>
+                    <th className="p-1 text-left">Taux</th>
+                    <th className="p-1 text-right">Base HT</th>
+                    <th className="p-1 text-right">Montant TVA</th>
                 </tr>
-            ))}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {Object.entries(breakdown).map(([rate, values]) => (
+                    <tr key={rate}>
+                        <td className="p-1">{values.code}</td>
+                        <td className="p-1">{values.rate.toFixed(2)}%</td>
+                        <td className="p-1 text-right">{values.base.toFixed(2)}€</td>
+                        <td className="p-1 text-right">{values.total.toFixed(2)}€</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+        <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
+    </div>
   );
 };
 
@@ -121,7 +124,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
-      <header className="flex justify-between items-end pb-4">
+      <header className="flex justify-between items-start pb-4">
         <div className="w-1/2">
           <h1 className="text-2xl font-bold uppercase">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <p>{companyInfo?.address}</p>
@@ -130,7 +133,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
           <p>{companyInfo?.email}</p>
           <p>{companyInfo?.website}</p>
         </div>
-        <div className="w-1/2 text-right">
+        <div className="w-1/2 flex flex-col items-end">
             <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
             <p className="font-semibold mt-4">Numéro : {sale.ticketNumber}</p>
             <p>Date : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
@@ -178,9 +181,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       </section>
 
       <section className="mt-8 flex justify-between items-start">
-        <div className="w-2/5 border rounded-md p-2">
+        <div className="w-2/5">
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
-          <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
         </div>
         <div className="w-2/5 space-y-2">
             <table className="w-full">
@@ -193,8 +195,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      <section className="mt-8">
-        <div style={{ height: '6cm' }} className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center">
+      <section className="mt-8 flex-grow">
+        <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[6cm]">
             <p className="text-gray-400">Cadre pour communication (image, texte, etc.)</p>
         </div>
       </section>
