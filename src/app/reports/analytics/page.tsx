@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
     const filteredItems = useMemo(() => {
         return flattenedItems.filter(item => {
             const customerMatch = !filterCustomer || item.customerName.toLowerCase().includes(filterCustomer.toLowerCase());
-            const itemMatch = !filterItem || item.name.toLowerCase().includes(filterItem.toLowerCase()) || item.barcode.toLowerCase().includes(filterItem.toLowerCase());
+            const itemMatch = !filterItem || item.name.toLowerCase().includes(filterItem.toLowerCase()) || (item.barcode && item.barcode.toLowerCase().includes(filterItem.toLowerCase()));
             const sellerMatch = !filterSeller || item.userName.toLowerCase().includes(filterSeller.toLowerCase());
 
             let dateMatch = true;
@@ -223,11 +223,11 @@ export default function AnalyticsPage() {
         <div className="grid lg:grid-cols-2 gap-4">
             <Card>
                 <CardHeader><CardTitle>Top 5 Articles</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow><TableHead>Article</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topItems.map(i => <TableRow key={i.name}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                <CardContent><Table><TableHeader><TableRow><TableHead>Article</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
             </Card>
             <Card>
                 <CardHeader><CardTitle>Top 5 Clients</CardTitle></CardHeader>
-                <CardContent><Table><TableHeader><TableRow><TableHead>Client</TableHead><TableHead className="text-right">Visites</TableHead><TableHead className="text-right">Panier Moyen</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topCustomers.map(c => <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                <CardContent><Table><TableHeader><TableRow><TableHead>Client</TableHead><TableHead className="text-right">Visites</TableHead><TableHead className="text-right">Panier Moyen</TableHead><TableHead className="text-right">Revenu</TableHead></TableRow></TableHeader><TableBody>{topCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
             </Card>
         </div>
         
