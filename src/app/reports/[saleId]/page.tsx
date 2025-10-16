@@ -310,31 +310,21 @@ function SaleDetailContent() {
   const vatBreakdown = useMemo(() => {
     if (!sale || !vatRates) return {};
     const breakdown: { [key: string]: { rate: number; total: number; base: number } } = {};
-    const totalHT = sale.subtotal;
     
-    // First, find the total HT for each VAT rate
-    const htByRate: { [key: string]: number } = {};
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         if (vatInfo) {
-            const priceHT = item.price / (1 + vatInfo.rate / 100);
-            const totalItemHT = priceHT * item.quantity * (1 - (item.discountPercent || 0) / 100);
+            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const taxAmount = item.total - priceHT;
+            
             const rateKey = vatInfo.rate.toString();
-            htByRate[rateKey] = (htByRate[rateKey] || 0) + totalItemHT;
+            if (breakdown[rateKey]) {
+                breakdown[rateKey].base += priceHT;
+                breakdown[rateKey].total += taxAmount;
+            } else {
+                breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT };
+            }
         }
-    });
-
-    // Then, distribute the total VAT amount proportionally
-    Object.entries(htByRate).forEach(([rateStr, baseForRate]) => {
-        const rate = parseFloat(rateStr);
-        const proportion = baseForRate / totalHT;
-        const vatForRate = sale.tax * proportion;
-        
-        breakdown[rateStr] = {
-            rate: rate,
-            total: vatForRate,
-            base: baseForRate,
-        };
     });
 
     return breakdown;
@@ -452,11 +442,8 @@ function SaleDetailContent() {
                 <TableBody>
                   {sale.items.map(item => {
                     const vatInfo = getVatInfo(item.vatId);
-                    const itemTotal = item.price * item.quantity;
-                    const discountRatio = item.discount / itemTotal;
-                    const lineTotalHT = item.total / (1 + (vatInfo?.rate || 0) / 100);
-                    const vatAmount = item.total - lineTotalHT;
                     const fullItem = getItemInfo(item);
+                    const vatAmount = item.total - (item.total / (1 + (vatInfo?.rate || 0) / 100));
 
                     return (
                         <TableRow key={item.id}>
