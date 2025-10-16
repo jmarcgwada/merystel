@@ -79,9 +79,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm' }}>
-      {/* Header */}
-      <header className="flex justify-between items-start pb-8 border-b-2 border-gray-800">
-        <div className="w-2/3">
+      <header className="flex justify-between items-start pb-8">
+        <div className="w-1/2">
           <h1 className="text-2xl font-bold uppercase">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <p>{companyInfo?.address}</p>
           <p>{companyInfo?.postalCode} {companyInfo?.city}</p>
@@ -89,15 +88,14 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
           <p>{companyInfo?.email}</p>
           <p>{companyInfo?.website}</p>
         </div>
-        <div className="w-1/3 text-right">
+        <div className="w-1/2 text-right">
             <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
             <p className="font-semibold mt-4">Numéro : {sale.ticketNumber}</p>
             <p>Date : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
         </div>
       </header>
 
-      {/* Customer Info */}
-      <section className="mt-8">
+      <section className="flex justify-end -mt-8">
         <div className="w-1/2 bg-gray-100 p-4 rounded-md">
             <h3 className="font-semibold text-gray-500 mb-2">Adressé à :</h3>
             <p className="font-bold">{customer?.name || 'Client au comptoir'}</p>
@@ -107,7 +105,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      {/* Items Table */}
       <section className="mt-8">
         <table className="w-full">
             <thead>
@@ -138,7 +135,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </table>
       </section>
 
-      {/* Totals & VAT */}
       <section className="mt-8 flex justify-between items-start">
         <div className="w-2/5">
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
@@ -154,7 +150,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="mt-auto pt-8 border-t text-center text-xs text-gray-500">
         <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret}</p>
         <p>IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
