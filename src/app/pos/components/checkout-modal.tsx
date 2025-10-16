@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -164,7 +165,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
           } else if (currentSaleContext?.documentType === 'supplier_order') {
               clearOrder();
-              router.push('/commercial/supplier-orders');
+              router.push('/reports?filter=CF-');
           } else {
             clearOrder();
           }
