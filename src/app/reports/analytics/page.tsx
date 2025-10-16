@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -27,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -94,6 +96,9 @@ export default function AnalyticsPage() {
     const [salesLinesSortConfig, setSalesLinesSortConfig] = useState<{ key: SalesLinesSortKey, direction: 'asc' | 'desc' }>({ key: 'saleDate', direction: 'desc' });
     const [topItemsSortConfig, setTopItemsSortConfig] = useState<{ key: TopItemsSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
     const [topCustomersSortConfig, setTopCustomersSortConfig] = useState<{ key: TopCustomersSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
+
+    const [selectedTopItems, setSelectedTopItems] = useState<string[]>([]);
+    const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
 
     useEffect(() => {
         setIsClient(true);
@@ -213,10 +218,13 @@ export default function AnalyticsPage() {
                 (item.serialNumbers && item.serialNumbers.some(sn => sn.toLowerCase().includes(generalFilter.toLowerCase()))) ||
                 (item.selectedVariants && item.selectedVariants.some(v => `${v.name}: ${v.value}`.toLowerCase().includes(generalFilter.toLowerCase())))
              );
+             
+            const selectedItemsMatch = selectedTopItems.length === 0 || selectedTopItems.includes(item.name);
+            const selectedCustomersMatch = selectedTopCustomers.length === 0 || selectedTopCustomers.includes(item.customerName);
 
-            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch && categoryMatch;
+            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch && categoryMatch && selectedItemsMatch && selectedCustomersMatch;
         });
-    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory]);
+    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory, selectedTopItems, selectedTopCustomers]);
     
 
     const { stats, topItems, topCustomers } = useMemo(() => {
@@ -319,6 +327,8 @@ export default function AnalyticsPage() {
         setFilterSeller('');
         setDateRange(undefined);
         setGeneralFilter('');
+        setSelectedTopItems([]);
+        setSelectedTopCustomers([]);
         setCurrentPage(1);
     }
 
@@ -334,6 +344,18 @@ export default function AnalyticsPage() {
       if(activeDocTypes.length > 0) params.set('docTypes', activeDocTypes.join(','));
       return params.toString();
     }, [dateRange, filterCustomer, filterItem, filterSeller, filterDocTypes, filterCategory]);
+
+    const handleTopItemSelect = (itemName: string, isSelected: boolean) => {
+        setSelectedTopItems(prev => 
+            isSelected ? [...prev, itemName] : prev.filter(name => name !== itemName)
+        );
+    };
+
+    const handleTopCustomerSelect = (customerName: string, isSelected: boolean) => {
+        setSelectedTopCustomers(prev => 
+            isSelected ? [...prev, customerName] : prev.filter(name => name !== customerName)
+        );
+    };
   
   if (!isClient || isLoading) {
       return (
@@ -458,38 +480,54 @@ export default function AnalyticsPage() {
                 <Card>
                     <CardHeader>
                         <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopItemsOpen && "-rotate-90")} />
-                                Top {topArticles} Articles
-                            </Button>
+                            <div className="flex items-center justify-between">
+                                <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
+                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopItemsOpen && "-rotate-90")} />
+                                    Top {topArticles} Articles
+                                </Button>
+                                {selectedTopItems.length > 0 && (
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopItems([]) }}>
+                                        <X className="mr-2 h-4 w-4" /> Effacer
+                                    </Button>
+                                )}
+                            </div>
                         </CollapsibleTrigger>
                     </CardHeader>
                     <CollapsibleContent>
                         <CardContent><Table><TableHeader><TableRow>
+                            <TableHead className="w-10"><Checkbox onCheckedChange={(checked) => setSelectedTopItems(checked ? sortedTopItems.map(i => i.name) : [])} checked={selectedTopItems.length === sortedTopItems.length && sortedTopItems.length > 0} /></TableHead>
                             <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
                             <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
                             <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
-                        </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                        </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
                     </CollapsibleContent>
                 </Card>
             </Collapsible>
             <Collapsible open={isTopCustomersOpen} onOpenChange={setIsTopCustomersOpen} asChild>
                 <Card>
                     <CardHeader>
-                        <CollapsibleTrigger asChild>
-                             <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopCustomersOpen && "-rotate-90")} />
-                                Top {topClients} Clients
-                            </Button>
+                         <CollapsibleTrigger asChild>
+                             <div className="flex items-center justify-between">
+                                <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
+                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopCustomersOpen && "-rotate-90")} />
+                                    Top {topClients} Clients
+                                </Button>
+                                 {selectedTopCustomers.length > 0 && (
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopCustomers([]) }}>
+                                        <X className="mr-2 h-4 w-4" /> Effacer
+                                    </Button>
+                                )}
+                             </div>
                         </CollapsibleTrigger>
                     </CardHeader>
                     <CollapsibleContent>
                     <CardContent><Table><TableHeader><TableRow>
+                        <TableHead className="w-10"><Checkbox onCheckedChange={(checked) => setSelectedTopCustomers(checked ? sortedTopCustomers.map(c => c.name) : [])} checked={selectedTopCustomers.length === sortedTopCustomers.length && sortedTopCustomers.length > 0} /></TableHead>
                         <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
                         <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
                         <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
                         <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
-                    </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
+                    </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)}/></TableCell><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
                     </CollapsibleContent>
                 </Card>
             </Collapsible>
