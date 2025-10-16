@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,8 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
@@ -42,6 +45,11 @@ export default function ItemsPage() {
 
   const [filterName, setFilterName] = useState('');
   const [filterCategoryName, setFilterCategoryName] = useState('');
+  const [filterVatId, setFilterVatId] = useState('all');
+  const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState('all');
+  const [filterHasVariants, setFilterHasVariants] = useState('all');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -61,7 +69,11 @@ export default function ItemsPage() {
       const nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase());
       const categoryName = getCategoryName(item.categoryId).toLowerCase();
       const categoryMatch = categoryName.includes(filterCategoryName.toLowerCase());
-      return nameMatch && categoryMatch;
+      const vatMatch = filterVatId === 'all' || item.vatId === filterVatId;
+      const serialMatch = filterRequiresSerialNumber === 'all' || (item.requiresSerialNumber ? 'yes' : 'no') === filterRequiresSerialNumber;
+      const variantsMatch = filterHasVariants === 'all' || (item.hasVariants ? 'yes' : 'no') === filterHasVariants;
+      
+      return nameMatch && categoryMatch && vatMatch && serialMatch && variantsMatch;
     });
 
     if (sortConfig !== null) {
@@ -89,7 +101,7 @@ export default function ItemsPage() {
     }
 
     return filtered;
-  }, [items, filterName, filterCategoryName, sortConfig, categories]);
+  }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, sortConfig, categories]);
 
   const totalPages = Math.ceil(sortedAndFilteredItems.length / ITEMS_PER_PAGE);
 
@@ -180,28 +192,75 @@ export default function ItemsPage() {
       </PageHeader>
 
       <div className="mt-8">
+        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+            <Card className="mb-4">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CollapsibleTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                Filtres
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                </CardHeader>
+                 <CollapsibleContent>
+                    <CardContent className="flex flex-wrap items-center gap-4 pt-0">
+                        <Input
+                            placeholder="Filtrer par nom..."
+                            value={filterName}
+                            onChange={(e) => { setFilterName(e.target.value); setCurrentPage(1); }}
+                            className="max-w-sm"
+                        />
+                        <Input
+                            placeholder="Filtrer par catégorie..."
+                            value={filterCategoryName}
+                            onChange={(e) => { setFilterCategoryName(e.target.value); setCurrentPage(1); }}
+                            className="max-w-sm"
+                        />
+                        <Select value={filterVatId} onValueChange={(value) => { setFilterVatId(value); setCurrentPage(1); }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Taux de TVA" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Toute la TVA</SelectItem>
+                                {vatRates.map(vat => (
+                                    <SelectItem key={vat.id} value={vat.id}>
+                                        {vat.name} ({vat.rate}%)
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterRequiresSerialNumber} onValueChange={(value) => { setFilterRequiresSerialNumber(value); setCurrentPage(1); }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Numéro de série" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous</SelectItem>
+                                <SelectItem value="yes">Avec N/S</SelectItem>
+                                <SelectItem value="no">Sans N/S</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterHasVariants} onValueChange={(value) => { setFilterHasVariants(value); setCurrentPage(1); }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Déclinaisons" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous</SelectItem>
+                                <SelectItem value="yes">Avec déclinaisons</SelectItem>
+                                <SelectItem value="no">Sans déclinaisons</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </CardContent>
+                 </CollapsibleContent>
+            </Card>
+        </Collapsible>
+
         <Card>
           <CardContent className="pt-6">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <Input
-                    placeholder="Filtrer par nom..."
-                    value={filterName}
-                    onChange={(e) => {
-                      setFilterName(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="max-w-sm"
-                  />
-                  <Input
-                    placeholder="Filtrer par catégorie..."
-                    value={filterCategoryName}
-                    onChange={(e) => {
-                      setFilterCategoryName(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="max-w-sm"
-                  />
+                  {/* Filters are now in the collapsible card */}
                 </div>
                 <div className="flex items-center gap-2">
                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
