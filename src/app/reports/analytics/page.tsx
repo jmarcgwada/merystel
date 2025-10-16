@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
+        return saleUser ? `${'user.firstName'} ${'user.lastName.charAt(0)'}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
