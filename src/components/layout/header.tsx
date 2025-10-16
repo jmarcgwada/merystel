@@ -30,6 +30,7 @@ import {
 import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { Skeleton } from '../ui/skeleton';
+import { Separator } from '../ui/separator';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
