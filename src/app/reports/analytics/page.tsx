@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -12,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +29,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -99,6 +99,8 @@ export default function AnalyticsPage() {
 
     const [selectedTopItems, setSelectedTopItems] = useState<string[]>([]);
     const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
+    
+    const [isCategoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
@@ -452,15 +454,32 @@ export default function AnalyticsPage() {
                     <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
                   </PopoverContent>
                 </Popover>
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">Toutes les catégories</SelectItem>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                 <Popover open={isCategoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={isCategoryPopoverOpen} className="w-[200px] justify-between">
+                            {filterCategory === 'all' ? "Toutes les catégories" : categories.find(c => c.id === filterCategory)?.name}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                            <CommandInput placeholder="Rechercher catégorie..." />
+                            <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
+                            <CommandGroup>
+                                <CommandItem onSelect={() => { setFilterCategory('all'); setCategoryPopoverOpen(false); }}>
+                                    <Check className={cn("mr-2 h-4 w-4", filterCategory === 'all' ? "opacity-100" : "opacity-0")} />
+                                    Toutes les catégories
+                                </CommandItem>
+                                {categories.map((c) => (
+                                    <CommandItem key={c.id} onSelect={() => { setFilterCategory(c.id); setCategoryPopoverOpen(false); }}>
+                                        <Check className={cn("mr-2 h-4 w-4", filterCategory === c.id ? "opacity-100" : "opacity-0")} />
+                                        {c.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
                 <div className="grid gap-2 w-48">
@@ -500,19 +519,19 @@ export default function AnalyticsPage() {
             <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
                 <Card>
                     <CardHeader>
-                        <CollapsibleTrigger asChild>
-                            <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
+                            <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
                                     <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
                                     Top {topArticles} Articles
                                 </Button>
-                                {selectedTopItems.length > 0 && (
-                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopItems([]) }}>
-                                        <X className="mr-2 h-4 w-4" /> Effacer
-                                    </Button>
-                                )}
-                            </div>
-                        </CollapsibleTrigger>
+                            </CollapsibleTrigger>
+                             {selectedTopItems.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopItems([]) }}>
+                                    <X className="mr-2 h-4 w-4" /> Effacer
+                                </Button>
+                            )}
+                        </div>
                     </CardHeader>
                     <CollapsibleContent>
                         <CardContent><Table><TableHeader><TableRow>
@@ -527,19 +546,19 @@ export default function AnalyticsPage() {
             <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
                 <Card>
                     <CardHeader>
-                         <CollapsibleTrigger asChild>
-                             <div className="flex items-center justify-between">
+                         <div className="flex items-center justify-between">
+                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
                                     <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
                                     Top {topClients} Clients
                                 </Button>
-                                 {selectedTopCustomers.length > 0 && (
-                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopCustomers([]) }}>
-                                        <X className="mr-2 h-4 w-4" /> Effacer
-                                    </Button>
-                                )}
-                             </div>
-                        </CollapsibleTrigger>
+                            </CollapsibleTrigger>
+                              {selectedTopCustomers.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopCustomers([]) }}>
+                                    <X className="mr-2 h-4 w-4" /> Effacer
+                                </Button>
+                            )}
+                         </div>
                     </CardHeader>
                     <CollapsibleContent>
                     <CardContent><Table><TableHeader><TableRow>
