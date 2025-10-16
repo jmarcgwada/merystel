@@ -1,15 +1,14 @@
 
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { ArrowLeft, Lock, FileImage, Link as LinkIcon, Upload } from 'lucide-react';
+import { ArrowLeft, Lock, FileImage, Link as LinkIcon, Upload, Trash2 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -237,35 +236,35 @@ export default function CompanyPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="communicationDocUrl">URL de l'image/PDF</Label>
-                            <div className="flex items-center">
-                                <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
-                                <Input 
-                                    id="communicationDoc"
-                                    value={localInfo.communicationDoc?.startsWith('data:') ? '' : localInfo.communicationDoc}
-                                    onChange={handleInputChange}
-                                    placeholder="https://example.com/image.jpg"
-                                    className="pl-9"
-                                />
+                            <Label htmlFor="communicationDocUrl">Document de Communication</Label>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 flex items-center relative">
+                                    <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                                    <Input 
+                                        id="communicationDoc"
+                                        value={(localInfo.communicationDoc || '').startsWith('data:') ? '' : (localInfo.communicationDoc || '')}
+                                        onChange={handleInputChange}
+                                        placeholder="https://example.com/image.jpg"
+                                        className="pl-9"
+                                    />
+                                </div>
+                                <Button variant="outline" onClick={() => document.getElementById('communicationDocFile')?.click()}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Téléverser
+                                </Button>
+                                <input type="file" id="communicationDocFile" onChange={handleImageUpload} className="hidden" accept="image/*,.pdf"/>
+                                {localInfo.communicationDoc && (
+                                    <Button variant="destructive" size="icon" onClick={() => setLocalInfo(prev => ({ ...prev, communicationDoc: '' }))}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Separator className="flex-1"/>
-                            <span className="text-xs text-muted-foreground">OU</span>
-                            <Separator className="flex-1"/>
-                        </div>
-                        <div className="grid gap-2">
-                            <Button variant="outline" onClick={() => document.getElementById('communicationDocFile')?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Téléverser un fichier
-                            </Button>
-                            <input type="file" id="communicationDocFile" onChange={handleImageUpload} className="hidden" accept="image/*,.pdf"/>
                         </div>
                         {localInfo.communicationDoc && (
                         <div className="pt-4">
                             <Label>Aperçu</Label>
                             <div className="mt-2 border rounded-md p-2 flex justify-center items-center h-48">
-                            {localInfo.communicationDoc.startsWith('data:image') ? (
+                            {(localInfo.communicationDoc || '').startsWith('data:image') ? (
                                 <img src={localInfo.communicationDoc} alt="Aperçu" className="max-h-full max-w-full object-contain" />
                             ) : (
                                 <FileImage className="w-16 h-16 text-muted-foreground" />
