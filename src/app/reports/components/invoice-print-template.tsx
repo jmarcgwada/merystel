@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -217,8 +215,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       <footer className="mt-auto pt-8 text-center text-xs text-gray-500">
         <div className="border-t pt-4">
             <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
-            <p className="mt-2">{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret}</p>
-            <p>IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
+            <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
         </div>
       </footer>
     </div>
