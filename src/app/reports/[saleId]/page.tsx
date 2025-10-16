@@ -335,6 +335,7 @@ function SaleDetailContent() {
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
                   : sale?.documentType === 'delivery_note' ? 'BL'
+                  : sale?.documentType === 'credit_note' ? 'Avoir'
                   : 'Ticket';
 
   if (isLoading) {
