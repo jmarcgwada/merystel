@@ -312,7 +312,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
 
   const isInvoiceMode = currentSaleContext?.documentType === 'invoice';
-  const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode;
+  const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode && !isCreditNote;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
       if (method.type === 'indirect' && method.value) {
@@ -585,7 +585,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
          )}
 
         {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
-          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode || isCreditNote ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
