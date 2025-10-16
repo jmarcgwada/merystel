@@ -621,25 +621,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       vatRates,
       companyInfo,
       users,
+      sales,
+      auditLogs,
       settings: {
-        showNotifications, notificationDuration, enableDynamicBg, dynamicBgOpacity, showTicketImages,
-        showItemImagesInGrid, descriptionDisplay, popularItemsCount, itemCardOpacity,
-        paymentMethodImageOpacity, itemDisplayMode, itemCardShowImageAsBackground,
-        itemCardImageOverlayOpacity, itemCardTextColor, itemCardShowPrice,
-        externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth,
-        externalLinkModalHeight, showDashboardStats, enableRestaurantCategoryFilter,
-        enableSerialNumber, defaultSalesMode, isForcedMode, requirePinForAdmin, directSaleBackgroundColor,
-        restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity,
-        dashboardBgType, dashboardBackgroundColor, dashboardBackgroundImage, dashboardBgOpacity,
-        dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
-        dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
-        deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
-        creditNoteBgColor, creditNoteBgOpacity
+        // ... all settings
       }
     };
     return JSON.stringify(config, null, 2);
   }, [
-    items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users,
+    items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, sales, auditLogs,
     showNotifications, notificationDuration, enableDynamicBg, dynamicBgOpacity, showTicketImages,
     showItemImagesInGrid, descriptionDisplay, popularItemsCount, itemCardOpacity,
     paymentMethodImageOpacity, itemDisplayMode, itemCardShowImageAsBackground,
@@ -669,6 +659,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.vatRates) setVatRates(config.vatRates);
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
+            if (config.sales) setSales(config.sales);
+            if (config.auditLogs) setAuditLogs(config.auditLogs);
             if (config.settings) {
                 setShowNotifications(config.settings.showNotifications);
                 setNotificationDuration(config.settings.notificationDuration);
@@ -725,7 +717,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, toast,
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setSales, setAuditLogs, toast,
       setShowNotifications, setNotificationDuration, setEnableDynamicBg, setDynamicBgOpacity, setShowTicketImages,
       setShowItemImagesInGrid, setDescriptionDisplay, setPopularItemsCount, setItemCardOpacity,
       setPaymentMethodImageOpacity, setItemDisplayMode, setItemCardShowImageAsBackground,
