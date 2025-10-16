@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Customer } from '@/lib/types';
 import { AlertCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
     const [customerId, setCustomerId] = useState('');
+    const [isDisabled, setIsDisabled] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
 
@@ -80,6 +82,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                 country,
                 iban,
                 notes,
+                isDisabled,
             });
 
             if (newCustomer) {
@@ -104,6 +107,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                 setIban('');
                 setNotes('');
                 setCustomerId('');
+                setIsDisabled(false);
                 onClose();
             }
         } catch (e: any) {
@@ -179,6 +183,10 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
                      <div className="space-y-2">
                         <Label htmlFor="notes">Notes / Observations</Label>
                         <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Client fidèle, préférences..." />
+                    </div>
+                     <div className="flex items-center space-x-2 pt-2">
+                        <Switch id="isDisabled" checked={isDisabled} onCheckedChange={setIsDisabled} />
+                        <Label htmlFor="isDisabled" className="text-destructive">Désactiver ce client</Label>
                     </div>
                 </TabsContent>
             </div>

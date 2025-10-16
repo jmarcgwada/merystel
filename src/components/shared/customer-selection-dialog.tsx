@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -33,6 +34,7 @@ export function CustomerSelectionDialog({ isOpen, onClose, onCustomerSelected }:
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
     return customers.filter(customer => {
+        if(customer.isDisabled) return false;
         const lowerSearchTerm = searchTerm.toLowerCase();
         return (
             customer.name.toLowerCase().includes(lowerSearchTerm) ||

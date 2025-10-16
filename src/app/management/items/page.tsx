@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +30,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 
 const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite, isLoading } = usePos();
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -166,6 +168,10 @@ export default function ItemsPage() {
             </Tooltip>
         </TooltipProvider>
     );
+  };
+  
+  const toggleItemDisabled = (item: Item) => {
+    updateItem({ ...item, isDisabled: !item.isDisabled });
   };
 
 
@@ -303,7 +309,7 @@ export default function ItemsPage() {
                           Prix Vente {getSortIcon('price')}
                       </Button>
                     </TableHead>
-                    <TableHead className="w-[160px] text-right">Actions</TableHead>
+                    <TableHead className="w-[200px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -319,7 +325,7 @@ export default function ItemsPage() {
                     </TableRow>
                   ))}
                   {isClient && !isLoading && paginatedItems && paginatedItems.map(item => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground")}>
                       <TableCell>
                         <Image 
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
@@ -340,6 +346,20 @@ export default function ItemsPage() {
                       <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                       <TableCell className="text-right">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Switch
+                                        checked={!item.isDisabled}
+                                        onCheckedChange={() => toggleItemDisabled(item)}
+                                        className="mr-2"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{item.isDisabled ? 'Activer' : 'Désactiver'} cet article</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                         <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                             <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                         </Button>

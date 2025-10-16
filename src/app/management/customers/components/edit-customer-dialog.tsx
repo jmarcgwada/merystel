@@ -19,6 +19,7 @@ import { usePos } from '@/contexts/pos-context';
 import type { Customer } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 
 interface EditCustomerDialogProps {
   customer: Customer | null;
@@ -40,6 +41,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
     const [iban, setIban] = useState('');
     const [notes, setNotes] = useState('');
     const [customerId, setCustomerId] = useState('');
+    const [isDisabled, setIsDisabled] = useState(false);
 
     useEffect(() => {
         if(customer) {
@@ -54,6 +56,7 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
             setIban(customer.iban || '');
             setNotes(customer.notes || '');
             setCustomerId(customer.id);
+            setIsDisabled(customer.isDisabled || false);
         }
     }, [customer]);
 
@@ -78,7 +81,8 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
                 city,
                 country,
                 iban,
-                notes
+                notes,
+                isDisabled,
             });
             toast({
                 title: 'Client modifié',
@@ -156,6 +160,10 @@ export function EditCustomerDialog({ customer, isOpen, onClose }: EditCustomerDi
                      <div className="space-y-2">
                         <Label htmlFor="edit-notes">Notes / Observations</Label>
                         <Textarea id="edit-notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Client fidèle, préférences..." />
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                        <Switch id="edit-isDisabled" checked={isDisabled} onCheckedChange={setIsDisabled} />
+                        <Label htmlFor="edit-isDisabled" className="text-destructive">Désactiver ce client</Label>
                     </div>
                 </TabsContent>
             </div>

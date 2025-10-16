@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import React, { useState, useMemo, forwardRef } from 'react';
@@ -38,7 +40,7 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
     const isOutOfStock = item.manageStock && (item.stock || 0) <= 0;
 
     const handleItemClick = () => {
-        if(isOutOfStock) return;
+        if(isOutOfStock || item.isDisabled) return;
         onClick(item);
         setIsClicked(true);
         setTimeout(() => setIsClicked(false), 200);
@@ -58,18 +60,18 @@ const ItemCard = ({ item, onClick }: { item: Item; onClick: (item: Item) => void
       <Card
         className={cn(
           'flex flex-col overflow-hidden transition-all duration-200 border-2 relative',
-          isOutOfStock ? 'opacity-40' : 'hover:shadow-lg hover:-translate-y-0.5',
+          (isOutOfStock || item.isDisabled) ? 'opacity-40' : 'hover:shadow-lg hover:-translate-y-0.5',
           isClicked && 'scale-105 shadow-xl ring-2 ring-accent',
            itemCardShowImageAsBackground && 'relative'
         )}
         style={cardStyle}
       >
-        {isOutOfStock && (
+        {(isOutOfStock || item.isDisabled) && (
             <div className="absolute inset-0 bg-secondary/80 flex items-center justify-center z-20">
-                <span className="font-semibold text-destructive">Rupture</span>
+                <span className="font-semibold text-destructive">{item.isDisabled ? 'Désactivé' : 'Rupture'}</span>
             </div>
         )}
-        <button onClick={handleItemClick} className="flex flex-col h-full text-left disabled:cursor-not-allowed" disabled={isOutOfStock}>
+        <button onClick={handleItemClick} className="flex flex-col h-full text-left disabled:cursor-not-allowed" disabled={isOutOfStock || item.isDisabled}>
           {showImage && showItemImagesInGrid && item.image ? (
             <CardHeader className="p-0">
               <div className={cn("relative w-full", itemCardShowImageAsBackground ? 'aspect-[4/3]' : 'aspect-video')}>
@@ -121,14 +123,14 @@ const ItemListItem = ({ item, onClick }: { item: Item, onClick: (item: Item) => 
         <div
             className={cn(
                 "flex items-center gap-4 p-3 rounded-lg border-2 hover:border-primary hover:bg-secondary/50 transition-all relative",
-                isOutOfStock ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+                (isOutOfStock || item.isDisabled) ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
             )}
-            onClick={() => !isOutOfStock && onClick(item)}
+            onClick={() => !(isOutOfStock || item.isDisabled) && onClick(item)}
             style={{ '--category-color': categoryColor, borderColor: 'var(--category-color)' } as React.CSSProperties}
         >
-            {isOutOfStock && (
+            {(isOutOfStock || item.isDisabled) && (
                 <div className="absolute inset-0 bg-secondary/80 flex items-center justify-center z-20 rounded-lg">
-                    <span className="font-semibold text-destructive">Rupture</span>
+                    <span className="font-semibold text-destructive">{item.isDisabled ? 'Désactivé' : 'Rupture'}</span>
                 </div>
             )}
             {item.image && showItemImagesInGrid && (
@@ -146,7 +148,7 @@ const ItemListItem = ({ item, onClick }: { item: Item, onClick: (item: Item) => 
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-muted-foreground">{item.price.toFixed(2)}€</p>
             </div>
-            <Button variant="ghost" size="icon" disabled={isOutOfStock}>
+            <Button variant="ghost" size="icon" disabled={isOutOfStock || item.isDisabled}>
                 <PlusCircle className="h-6 w-6 text-muted-foreground" />
             </Button>
         </div>
@@ -166,13 +168,13 @@ export const ItemList = forwardRef<HTMLDivElement, ItemListProps>(
     const filteredItems = useMemo(() => {
       if (!allItems || !popularItems || !categories) return [];
 
-      let itemsToFilter = allItems;
+      let itemsToFilter = allItems.filter(item => !item.isDisabled);
 
       // Determine the base list of items to filter
       if (showFavoritesOnly) {
-        itemsToFilter = allItems.filter(item => item.isFavorite);
+        itemsToFilter = itemsToFilter.filter(item => item.isFavorite);
       } else if (category === 'popular') {
-        itemsToFilter = popularItems;
+        itemsToFilter = popularItems.filter(item => !item.isDisabled);
       }
 
       // Filter by selected category (only if not 'all' or special views)

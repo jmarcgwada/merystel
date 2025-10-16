@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -49,6 +50,7 @@ const formSchema = z.object({
   manageStock: z.boolean().default(false),
   stock: z.coerce.number().optional(),
   lowStockThreshold: z.coerce.number().optional(),
+  isDisabled: z.boolean().default(false),
   hasVariants: z.boolean().default(false),
   variantOptions: z.array(z.object({
     name: z.string().min(1, { message: "Le nom est requis." }),
@@ -100,6 +102,7 @@ function ItemForm() {
       manageStock: false,
       stock: 0,
       lowStockThreshold: 0,
+      isDisabled: false,
       hasVariants: false,
       variantOptions: [],
     },
@@ -197,6 +200,7 @@ function ItemForm() {
         manageStock: itemToEdit.manageStock || false,
         stock: itemToEdit.stock || 0,
         lowStockThreshold: itemToEdit.lowStockThreshold || 0,
+        isDisabled: itemToEdit.isDisabled || false,
         hasVariants: itemToEdit.hasVariants || false,
         variantOptions: itemToEdit.variantOptions?.map(opt => ({
             name: opt.name,
@@ -222,6 +226,7 @@ function ItemForm() {
           manageStock: false,
           stock: 0,
           lowStockThreshold: 0,
+          isDisabled: false,
           hasVariants: false,
           variantOptions: [],
         };
@@ -724,6 +729,26 @@ function ItemForm() {
                                     <CardTitle>Statut & Visibilité</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="isDisabled"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-amber-50 border-amber-200">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base text-amber-900">Désactiver l'article</FormLabel>
+                                                <FormDescription className="text-amber-800">
+                                                Un article désactivé ne pourra plus être vendu.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
                                     <FormField
                                         control={form.control}
                                         name="isFavorite"
