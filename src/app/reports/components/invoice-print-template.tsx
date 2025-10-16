@@ -178,20 +178,18 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       </section>
 
       <section className="mt-8 flex justify-between items-start">
-        <div className="w-2/5">
+        <div className="w-2/5 border rounded-md p-2">
           <VatBreakdownTable sale={sale} vatRates={vatRates} />
+          <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
         </div>
         <div className="w-2/5 space-y-2">
-            <div className="border rounded-md p-2">
-                <table className="w-full">
-                    <tbody>
-                        <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
-                        <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
-                        <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
-                    </tbody>
-                </table>
-                 <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
-            </div>
+            <table className="w-full">
+                <tbody>
+                    <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
+                    <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
+                    <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
+                </tbody>
+            </table>
         </div>
       </section>
 
