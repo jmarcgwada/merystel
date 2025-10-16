@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { Skeleton } from '../ui/skeleton';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -55,6 +56,7 @@ export default function Header() {
     isLoading: isPosLoading,
     user,
     setCurrentSaleContext,
+    companyInfo,
   } = usePos();
 
   const router = useRouter();
@@ -159,6 +161,20 @@ export default function Header() {
                 Zenith POS
               </span>
             </Link>
+             {isClient && companyInfo?.name && (
+                <>
+                    <Separator orientation="vertical" className="h-6" />
+                    <span className="font-semibold text-muted-foreground hidden sm:inline-block">
+                        {companyInfo.name}
+                    </span>
+                </>
+            )}
+             {isClient && !companyInfo?.name && (
+                 <>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Skeleton className="h-5 w-32" />
+                 </>
+            )}
           </div>
           
           <nav className="hidden md:flex items-center gap-2">

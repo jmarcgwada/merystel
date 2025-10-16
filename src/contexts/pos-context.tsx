@@ -1117,7 +1117,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date, // Preserve original date on update
+                date: existingSale.date, 
                 modifiedAt: today, 
             };
              addAuditLog({
@@ -1140,6 +1140,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             } else if (saleData.documentType === 'credit_note') {
                 const creditNoteCount = sales.filter(s => s.documentType === 'credit_note').length;
                 ticketNumber = 'AVOIR-' + (creditNoteCount + 1).toString().padStart(4, '0');
+            } else if (saleData.documentType === 'supplier_order') {
+                const supplierOrderCount = sales.filter(s => s.documentType === 'supplier_order').length;
+                ticketNumber = 'CF-' + (supplierOrderCount + 1).toString().padStart(4, '0');
             } else {
                 const todaysSalesCount = sales.filter(s => {
                     const saleDate = new Date(s.date as Date);
@@ -1193,6 +1196,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
+        if (finalSale.documentType === 'supplier_order' && finalSale.status === 'paid') {
+          const updatedItems = items.map(item => {
+              const orderItem = finalSale.items.find(oi => oi.itemId === item.id);
+              if (orderItem && item.manageStock) {
+                  return { ...item, stock: (item.stock || 0) + orderItem.quantity };
+              }
+              return item;
+          });
+          setItems(updatedItems);
+          addAuditLog({
+              userId: user?.id,
+              userName: `${user?.firstName} ${user?.lastName}`,
+              action: 'update',
+              documentType: 'Stock',
+              documentId: finalSale.id,
+              documentNumber: finalSale.ticketNumber,
+              details: `Stock mis à jour via Cde Fournisseur`
+          });
+        }
+
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
            setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
         } else {
@@ -1200,7 +1223,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, items, setItems]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
@@ -1255,26 +1278,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 details: `Pièce créée: ${finalDoc.ticketNumber}`
             });
         }
-
-        if (type === 'supplier_order' && docData.status === 'paid') {
-            const updatedItems = items.map(item => {
-                const orderItem = docData.items.find(oi => oi.itemId === item.id);
-                if (orderItem && item.manageStock) {
-                    return { ...item, stock: (item.stock || 0) + orderItem.quantity };
-                }
-                return item;
-            });
-            setItems(updatedItems);
-            addAuditLog({
-                userId: user?.id,
-                userName: `${user?.firstName} ${user?.lastName}`,
-                action: 'update',
-                documentType: 'Stock',
-                documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber,
-                details: `Stock mis à jour via Cde Fournisseur`
-            });
-        }
         
         toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'validé' : 'enregistré') });
         clearOrder();
@@ -1285,7 +1288,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : type === 'credit_note' ? '/reports?filter=Avoir-'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, items, setItems, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);

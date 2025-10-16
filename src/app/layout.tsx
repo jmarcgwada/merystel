@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -12,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
+import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 
 function AppLoading() {
   return (
@@ -58,13 +60,15 @@ export default function RootLayout({
           <PosProvider>
             <KeyboardProvider>
                 <React.Suspense fallback={<AppLoading/>}>
-                  <Header />
-                  <main className="flex-1 overflow-auto">{children}</main>
-                  <Toaster />
-                  <NavigationGuard />
-                  <NavigationConfirmationDialog />
-                  <VirtualKeyboard />
-                  <ExternalLinkModal />
+                  <CompanyInfoGuard>
+                    <Header />
+                    <main className="flex-1 overflow-auto">{children}</main>
+                    <Toaster />
+                    <NavigationGuard />
+                    <NavigationConfirmationDialog />
+                    <VirtualKeyboard />
+                    <ExternalLinkModal />
+                  </CompanyInfoGuard>
                 </React.Suspense>
             </KeyboardProvider>
           </PosProvider>

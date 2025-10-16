@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,6 +42,8 @@ export default function CompanyPage() {
   const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const router = useRouter();
 
+  const isInitialSetup = !companyInfo?.name;
+
   useEffect(() => {
     if (companyInfo) {
         setLocalInfo(companyInfo);
@@ -55,6 +56,14 @@ export default function CompanyPage() {
   };
 
   const handleSave = () => {
+    if (!localInfo.name) {
+      toast({
+        title: "Nom de l'entreprise requis",
+        description: 'Veuillez renseigner le nom de votre entreprise.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setCompanyInfo(localInfo);
     toast({
       title: 'Informations sauvegardées',
@@ -82,22 +91,33 @@ export default function CompanyPage() {
         title="Détails de l'entreprise"
         subtitle="Gérez les informations légales et commerciales de votre entreprise."
       >
-        <Button asChild variant="outline" className="btn-back">
-          <Link href="/settings">
-            <ArrowLeft />
-            Retour aux paramètres
-          </Link>
-        </Button>
+        {!isInitialSetup && (
+            <Button asChild variant="outline" className="btn-back">
+            <Link href="/settings">
+                <ArrowLeft />
+                Retour aux paramètres
+            </Link>
+            </Button>
+        )}
       </PageHeader>
         
       <fieldset className="mt-4 space-y-8 group">
+        {isInitialSetup && (
+            <Alert variant="destructive">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Configuration requise</AlertTitle>
+                <AlertDescription>
+                    Veuillez renseigner au moins le nom de votre entreprise pour continuer.
+                </AlertDescription>
+            </Alert>
+        )}
         <Card className="group-disabled:opacity-70">
           <CardHeader>
               <CardTitle>Informations générales et de contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
               <div className="grid gap-2">
-                  <Label htmlFor="name">Nom de l'entreprise</Label>
+                  <Label htmlFor="name">Nom de l'entreprise *</Label>
                   <Input id="name" value={localInfo.name} onChange={handleInputChange} />
               </div>
               <div className="grid gap-2">
@@ -198,5 +218,3 @@ export default function CompanyPage() {
     </>
   );
 }
-
-    
