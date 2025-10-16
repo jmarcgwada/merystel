@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
