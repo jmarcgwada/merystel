@@ -37,6 +37,20 @@ const documentTypes = {
     supplier_order: { label: 'Cde Fournisseur', type: 'out' },
 };
 
+const hexToRgba = (hex: string, opacity: number) => {
+    let c: any;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length === 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
+    }
+    return `hsla(var(--background), ${opacity / 100})`;
+};
+
+
 const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | undefined, saleDate: Date | Timestamp | undefined }) => {
     const [formattedDate, setFormattedDate] = useState('');
     const [isDeferred, setIsDeferred] = useState(false);
@@ -76,7 +90,19 @@ const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | unde
 }
 
 export default function PaymentsReportPage() {
-    const { sales: allSales, customers, users, isLoading: isPosLoading, paymentMethods } = usePos();
+    const { 
+        sales: allSales, 
+        customers, 
+        users, 
+        isLoading: isPosLoading, 
+        paymentMethods,
+        invoiceBgColor, 
+        invoiceBgOpacity, 
+        creditNoteBgColor,
+        creditNoteBgOpacity,
+        supplierOrderBgColor,
+        supplierOrderBgOpacity,
+    } = usePos();
     const { user } = useUser();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -95,8 +121,8 @@ export default function PaymentsReportPage() {
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
-        credit_note: true,
-        supplier_order: true,
+        credit_note: false,
+        supplier_order: false,
     });
     const [filterPaymentType, setFilterPaymentType] = useState<'all' | 'immediate' | 'deferred'>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -124,21 +150,17 @@ export default function PaymentsReportPage() {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
         if (!typeInfo) return;
 
-        const newFilter = { ...filterDocTypes };
-
-        // If we are checking an item, uncheck all items of the opposite type
-        if (checked) {
-            newFilter[typeKey] = true;
-            for (const key in documentTypes) {
-                if (documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
-                    newFilter[key] = false;
+        setFilterDocTypes(prev => {
+            const newState = { ...prev, [typeKey]: checked };
+            if (checked && typeInfo.type) {
+                for (const key in documentTypes) {
+                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                        newState[key] = false;
+                    }
                 }
             }
-        } else {
-            newFilter[typeKey] = false;
-        }
-
-        setFilterDocTypes(newFilter);
+            return newState;
+        });
     };
 
     const allPayments = useMemo(() => {
@@ -270,10 +292,10 @@ export default function PaymentsReportPage() {
         const totalPay = filteredAndSortedPayments.length;
         const avgPay = totalPay > 0 ? totalRev / totalPay : 0;
         
-        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes].type);
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
         
         let title = "Total";
-        const uniqueTypes = [...new Set(activeDocTypes)];
+        const uniqueTypes = [...new Set(activeDocTypes)].filter(Boolean);
 
         if (uniqueTypes.length === 1) {
             const type = uniqueTypes[0];
@@ -313,6 +335,32 @@ export default function PaymentsReportPage() {
         setGeneralFilter('');
         setCurrentPage(1);
     }
+
+    const getRowStyle = (payment: (typeof paginatedPayments)[0]) => {
+        if (!isClient) return {};
+        const docType = payment.saleDocumentType;
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice':
+                color = invoiceBgColor;
+                opacity = invoiceBgOpacity;
+                break;
+            case 'supplier_order':
+                color = supplierOrderBgColor;
+                opacity = supplierOrderBgOpacity;
+                break;
+            case 'credit_note':
+                color = creditNoteBgColor;
+                opacity = creditNoteBgOpacity;
+                break;
+        }
+
+        return {
+            backgroundColor: hexToRgba(color, opacity),
+        };
+    };
   
   if (!isClient || isPosLoading) {
       return (
@@ -423,7 +471,7 @@ export default function PaymentsReportPage() {
                             const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                             
                             return (
-                                <TableRow key={`${payment.saleId}-${index}`}>
+                                <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
                                     <TableCell className="font-medium"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
