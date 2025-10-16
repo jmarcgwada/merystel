@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -309,52 +310,33 @@ function SaleDetailContent() {
 
   const vatBreakdown = useMemo(() => {
     if (!sale || !vatRates) return {};
-    const breakdown: { [key: string]: { rate: number; total: number; base: number } } = {};
-    
-    const totalSubtotal = sale.subtotal;
+    const breakdown: { [key: string]: { rate: number; total: number; base: number, code: number } } = {};
 
-    // First pass: group item subtotals by VAT rate
-    const subtotalByRate: { [key: string]: number } = {};
     sale.items.forEach(item => {
         const vatInfo = getVatInfo(item.vatId);
         if (vatInfo) {
-            const priceHT = item.price / (1 + vatInfo.rate / 100);
-            const totalHT = priceHT * item.quantity * (1 - (item.discountPercent || 0) / 100);
-            const rateKey = vatInfo.rate.toString();
-            subtotalByRate[rateKey] = (subtotalByRate[rateKey] || 0) + totalHT;
+            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const taxAmount = item.total - priceHT;
+
+            if (breakdown[vatInfo.rate]) {
+                breakdown[vatInfo.rate].base += priceHT;
+                breakdown[vatInfo.rate].total += taxAmount;
+            } else {
+                breakdown[vatInfo.rate] = { 
+                    rate: vatInfo.rate, 
+                    base: priceHT, 
+                    total: taxAmount,
+                    code: vatInfo.code,
+                };
+            }
         }
     });
-
-    // Second pass: distribute the final subtotal proportionally
-    let distributedSubtotal = 0;
-    const calculatedSubtotal = Object.values(subtotalByRate).reduce((a, b) => a + b, 0);
-    
-    Object.entries(subtotalByRate).forEach(([rate, subtotalForRate]) => {
-        const proportion = calculatedSubtotal > 0 ? subtotalForRate / calculatedSubtotal : 0;
-        const base = totalSubtotal * proportion;
-        const tax = base * (parseFloat(rate) / 100);
-        
-        if (breakdown[rate]) {
-            breakdown[rate].base += base;
-            breakdown[rate].total += tax;
-        } else {
-            breakdown[rate] = { rate: parseFloat(rate), base, total: tax };
-        }
-        distributedSubtotal += base;
-    });
-
-    // Adjust for rounding errors
-    const diff = totalSubtotal - distributedSubtotal;
-    if (diff !== 0 && Object.keys(breakdown).length > 0) {
-        const firstRate = Object.keys(breakdown)[0];
-        breakdown[firstRate].base += diff;
-        breakdown[firstRate].total += diff * (parseFloat(firstRate) / 100);
-    }
     
     return breakdown;
   }, [sale, vatRates]);
   
   const subTotalHT = sale?.subtotal ?? 0;
+  const totalTax = sale?.tax ?? 0;
 
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
@@ -459,17 +441,14 @@ function SaleDetailContent() {
                     <TableHead className="w-[64px]">Image</TableHead>
                     <TableHead>Article</TableHead>
                     <TableHead className="text-center">Qté</TableHead>
-                    <TableHead className="text-right">Prix Unitaire (HT)</TableHead>
-                    <TableHead className="text-right">TVA</TableHead>
+                    <TableHead className="text-right">Prix Unitaire (TTC)</TableHead>
+                    <TableHead className="text-right">Remise</TableHead>
                     <TableHead className="text-right">Total Ligne (TTC)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sale.items.map(item => {
-                    const vatInfo = getVatInfo(item.vatId);
                     const fullItem = getItemInfo(item);
-                    const priceHT = item.price / (1 + (vatInfo?.rate || 0) / 100);
-                    const vatAmount = priceHT * (vatInfo?.rate || 0) / 100;
                     
                     return (
                         <TableRow key={item.id}>
@@ -496,10 +475,9 @@ function SaleDetailContent() {
                                 )}
                             </TableCell>
                             <TableCell className="text-center">{item.quantity}</TableCell>
-                            <TableCell className="text-right">{priceHT.toFixed(2)}€</TableCell>
-                             <TableCell className="text-right text-muted-foreground text-xs">
-                                <div>{(vatAmount * item.quantity).toFixed(2)}€</div>
-                                <div>({vatInfo?.rate || 0}%)</div>
+                            <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                             <TableCell className="text-right text-destructive">
+                                {item.discount > 0 ? `-${item.discount.toFixed(2)}€` : '-'}
                             </TableCell>
                             <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
                         </TableRow>
@@ -537,20 +515,20 @@ function SaleDetailContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Sous-total (HT)</span>
-                <span>{sale.subtotal.toFixed(2)}€</span>
+                <span className="text-muted-foreground">Total HT</span>
+                <span>{subTotalHT.toFixed(2)}€</span>
               </div>
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
                 <div key={rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA ({rate}%)</span>
+                    <span>Base TVA ({values.rate.toFixed(2)}%)</span>
                     <span>{values.base.toFixed(2)}€</span>
                 </div>
               ))}
 
               <div className="flex justify-between text-muted-foreground">
                  <span>Total TVA</span>
-                 <span>{sale.tax.toFixed(2)}€</span>
+                 <span>{totalTax.toFixed(2)}€</span>
               </div>
 
               <Separator />

@@ -306,20 +306,24 @@ export const CommercialOrderForm = forwardRef<
       const priceTTC = item.price;
       const remisePercent = item.remise || 0;
       
-      const priceHT = vatInfo ? priceTTC / (1 + vatInfo.rate / 100) : priceTTC;
-      const totalItemHT = priceHT * item.quantity * (1 - remisePercent / 100);
-      
-      subTotalHT += totalItemHT;
+      const itemTotalTTC = priceTTC * item.quantity;
+      const itemTotalAfterRemiseTTC = itemTotalTTC * (1 - remisePercent / 100);
 
       if(vatInfo) {
-        const taxForItem = totalItemHT * (vatInfo.rate / 100);
+        const itemTotalHT = itemTotalAfterRemiseTTC / (1 + vatInfo.rate / 100);
+        subTotalHT += itemTotalHT;
+        
+        const taxForItem = itemTotalHT * (vatInfo.rate / 100);
         const vatKey = vatInfo.rate.toString();
         if (vatBreakdown[vatKey]) {
           vatBreakdown[vatKey].total += taxForItem;
-          vatBreakdown[vatKey].base += totalItemHT;
+          vatBreakdown[vatKey].base += itemTotalHT;
         } else {
-          vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: totalItemHT, code: vatInfo.code };
+          vatBreakdown[vatKey] = { rate: vatInfo.rate, total: taxForItem, base: itemTotalHT, code: vatInfo.code };
         }
+      } else {
+        // No VAT info, consider price as HT
+        subTotalHT += itemTotalAfterRemiseTTC;
       }
     });
 
