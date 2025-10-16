@@ -203,7 +203,10 @@ export default function AnalyticsPage() {
                 item.name.toLowerCase().includes(generalFilter.toLowerCase()) ||
                 (item.barcode && item.barcode.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 item.customerName.toLowerCase().includes(generalFilter.toLowerCase()) ||
-                item.userName.toLowerCase().includes(generalFilter.toLowerCase())
+                item.userName.toLowerCase().includes(generalFilter.toLowerCase()) ||
+                (item.note && item.note.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                (item.serialNumbers && item.serialNumbers.some(sn => sn.toLowerCase().includes(generalFilter.toLowerCase()))) ||
+                (item.selectedVariants && item.selectedVariants.some(v => `${v.name}: ${v.value}`.toLowerCase().includes(generalFilter.toLowerCase())))
              );
 
             return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch;
@@ -564,3 +567,5 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+    
