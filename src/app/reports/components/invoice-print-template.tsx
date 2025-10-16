@@ -127,7 +127,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   return (
     <div ref={ref} className="p-10 bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm', minHeight: '297mm', display: 'flex', flexDirection: 'column' }}>
       <header className="flex justify-between items-start pb-4">
-        <div className="w-1/2 leading-tight space-y-1">
+        <div className="w-1/2 space-y-0.5">
           <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
           <div>{companyInfo?.address}</div>
           <div>{companyInfo?.postalCode} {companyInfo?.city}</div>
@@ -197,21 +197,19 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         </div>
       </section>
 
-      <section className="my-8">
-        <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
-             {companyInfo?.communicationDoc ? (
+      {companyInfo?.communicationDoc && (
+        <section className="my-8">
+            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
                 <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  {companyInfo.communicationDoc.startsWith('data:image') ? (
+                    {companyInfo.communicationDoc.startsWith('data:image') ? (
                     <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                  ) : (
+                    ) : (
                     <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
-                  )}
+                    )}
                 </div>
-              ) : (
-                <p className="text-gray-400">Cadre pour communication</p>
-              )}
-        </div>
-      </section>
+            </div>
+        </section>
+      )}
       
       <div className="flex-grow"></div>
 
