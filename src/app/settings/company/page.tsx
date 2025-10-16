@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,13 +40,16 @@ const initialCompanyInfo: CompanyInfo = {
     communicationDoc: '',
 }
 
-export default function CompanyPage() {
+function CompanyPageContent() {
   const { companyInfo, setCompanyInfo, isLoading } = usePos();
   const { toast } = useToast();
   const [localInfo, setLocalInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const isInitialSetup = !companyInfo?.name;
+  const backUrl = searchParams.get('from') || '/settings';
+
 
   useEffect(() => {
     if (companyInfo) {
@@ -108,9 +111,9 @@ export default function CompanyPage() {
       >
         {!isInitialSetup && (
             <Button asChild variant="outline" className="btn-back">
-            <Link href="/settings">
+            <Link href={backUrl}>
                 <ArrowLeft />
-                Retour aux paramètres
+                Retour
             </Link>
             </Button>
         )}
@@ -293,4 +296,12 @@ export default function CompanyPage() {
        </div>
     </>
   );
+}
+
+export default function CompanyPage() {
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+            <CompanyPageContent />
+        </Suspense>
+    )
 }
