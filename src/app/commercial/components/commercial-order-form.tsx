@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 
 
 const orderItemSchema = z.object({
@@ -104,6 +105,7 @@ export const CommercialOrderForm = forwardRef<
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
   const [isEditItemOpen, setIsEditItemOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
@@ -462,7 +464,7 @@ export const CommercialOrderForm = forwardRef<
                       </Button>
                       {selectedCustomer ? (
                           <div className="space-y-1 text-sm">
-                              <Link href={`/management/customers?filter=${selectedCustomer.id}`} className="font-semibold text-base hover:underline">{selectedCustomer.name}</Link>
+                              <button onClick={() => setEditCustomerOpen(true)} className="font-semibold text-base hover:underline text-left">{selectedCustomer.name}</button>
                               <p className="text-muted-foreground">{selectedCustomer.address}</p>
                               <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
                           </div>
@@ -741,6 +743,7 @@ export const CommercialOrderForm = forwardRef<
       
       <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
       <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setCheckoutOpen(false)} totalAmount={totalTTC} />
+      <EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={selectedCustomer} />
       {isEditItemOpen && itemToEdit && (
           <EditItemDialog
               item={itemToEdit}
