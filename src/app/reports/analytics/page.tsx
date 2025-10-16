@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'customerName' | 'userName' | 'quantity' | 'total';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -151,7 +152,7 @@ export default function AnalyticsPage() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
+        return saleUser ? `${'saleUser.firstName'} ${'saleUser.lastName.charAt(0)'}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
@@ -462,13 +463,33 @@ export default function AnalyticsPage() {
                 <Input placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
                 <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
-                <div className="flex items-center gap-2">
-                    <Label htmlFor="top-n-articles-input">Top Articles</Label>
-                    <Input id="top-n-articles-input" type="number" value={topArticles} onChange={(e) => setTopArticles(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
+                <div className="grid gap-2 w-48">
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="top-n-articles-slider">Top Articles</Label>
+                        <span className="text-sm font-bold text-primary">{topArticles}</span>
+                    </div>
+                    <Slider 
+                        id="top-n-articles-slider" 
+                        value={[topArticles]} 
+                        onValueChange={(value) => setTopArticles(value[0])}
+                        min={1} 
+                        max={100} 
+                        step={1} 
+                    />
                 </div>
-                 <div className="flex items-center gap-2">
-                    <Label htmlFor="top-n-clients-input">Top Clients</Label>
-                    <Input id="top-n-clients-input" type="number" value={topClients} onChange={(e) => setTopClients(Math.max(1, parseInt(e.target.value)) || 1)} className="w-20" />
+                 <div className="grid gap-2 w-48">
+                     <div className="flex justify-between items-center">
+                        <Label htmlFor="top-n-clients-slider">Top Clients</Label>
+                        <span className="text-sm font-bold text-primary">{topClients}</span>
+                    </div>
+                     <Slider 
+                        id="top-n-clients-slider" 
+                        value={[topClients]} 
+                        onValueChange={(value) => setTopClients(value[0])}
+                        min={1} 
+                        max={100} 
+                        step={1} 
+                    />
                 </div>
               </CardContent>
             </CollapsibleContent>
