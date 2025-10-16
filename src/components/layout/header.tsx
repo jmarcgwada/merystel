@@ -165,9 +165,11 @@ export default function Header() {
              {isClient && companyInfo?.name && (
                 <>
                     <Separator orientation="vertical" className="h-6" />
-                    <span className="font-semibold text-muted-foreground hidden sm:inline-block">
-                        {companyInfo.name}
-                    </span>
+                    <Link href="/settings/company" onClick={(e) => handleNavClick(e, '/settings/company')}>
+                        <span className="font-semibold text-muted-foreground hidden sm:inline-block hover:text-primary transition-colors">
+                            {companyInfo.name}
+                        </span>
+                    </Link>
                 </>
             )}
              {isClient && !companyInfo?.name && (
