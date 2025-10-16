@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -20,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { PromptViewer } from '../components/prompt-viewer';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -68,7 +67,7 @@ export default function FirestoreDataPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
-  const [isPinDialogOpen, setPinDialogOpen] = useState(requirePinForAdmin);
+  const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const { toast } = useToast();
   const router = useRouter();
@@ -78,10 +77,12 @@ export default function FirestoreDataPage() {
     if (!userLoading && user?.role !== 'admin') {
       toast({ title: "Accès non autorisé", variant: "destructive" });
       router.push('/settings');
+    } else if (!userLoading && requirePinForAdmin) {
+      setPinDialogOpen(true);
     }
-  }, [user, userLoading, router, toast]);
+  }, [user, userLoading, router, toast, requirePinForAdmin]);
 
-  const generateDynamicPin = () => {
+  const generateDynamicPin = useCallback(() => {
     const now = new Date();
     const month = (now.getMonth() + 1);
     const day = now.getDate();
@@ -91,9 +92,9 @@ export default function FirestoreDataPage() {
     const difference = Math.abs(day - month).toString();
 
     return `${monthStr}${dayStr}${difference}`;
-  };
+  }, []);
 
-  const handlePinSubmit = (e?: React.FormEvent) => {
+  const handlePinSubmit = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
     const correctPin = generateDynamicPin();
     if (pin === correctPin) {
@@ -106,7 +107,7 @@ export default function FirestoreDataPage() {
       });
       router.push('/settings');
     }
-  };
+  }, [pin, generateDynamicPin, router, toast]);
 
   const handleCancelPin = () => {
       setPinDialogOpen(false);

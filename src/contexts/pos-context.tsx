@@ -628,7 +628,57 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       sales,
       auditLogs,
       settings: {
-        // ... all settings
+        showNotifications,
+        notificationDuration,
+        enableDynamicBg,
+        dynamicBgOpacity,
+        showTicketImages,
+        showItemImagesInGrid,
+        descriptionDisplay,
+        popularItemsCount,
+        itemCardOpacity,
+        paymentMethodImageOpacity,
+        itemDisplayMode,
+        itemCardShowImageAsBackground,
+        itemCardImageOverlayOpacity,
+        itemCardTextColor,
+        itemCardShowPrice,
+        externalLinkModalEnabled,
+        externalLinkUrl,
+        externalLinkTitle,
+        externalLinkModalWidth,
+        externalLinkModalHeight,
+        showDashboardStats,
+        enableRestaurantCategoryFilter,
+        enableSerialNumber,
+        defaultSalesMode,
+        isForcedMode,
+        requirePinForAdmin,
+        directSaleBackgroundColor,
+        restaurantModeBackgroundColor,
+        directSaleBgOpacity,
+        restaurantModeBgOpacity,
+        dashboardBgType,
+        dashboardBackgroundColor,
+        dashboardBackgroundImage,
+        dashboardBgOpacity,
+        dashboardButtonBackgroundColor,
+        dashboardButtonOpacity,
+        dashboardButtonShowBorder,
+        dashboardButtonBorderColor,
+        invoiceBgColor,
+        invoiceBgOpacity,
+        quoteBgColor,
+        quoteBgOpacity,
+        deliveryNoteBgColor,
+        deliveryNoteBgOpacity,
+        supplierOrderBgColor,
+        supplierOrderBgOpacity,
+        creditNoteBgColor,
+        creditNoteBgOpacity,
+        smtpConfig,
+        ftpConfig,
+        twilioConfig,
       }
     };
     return JSON.stringify(config, null, 2);
@@ -646,7 +696,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
     dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
     deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
-    creditNoteBgColor, creditNoteBgOpacity
+    creditNoteBgColor, creditNoteBgOpacity, smtpConfig, ftpConfig, twilioConfig
   ]);
 
   const importConfiguration = useCallback(async (file: File) => {
@@ -666,54 +716,57 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.sales) setSales(config.sales);
             if (config.auditLogs) setAuditLogs(config.auditLogs);
             if (config.settings) {
-                setShowNotifications(config.settings.showNotifications);
-                setNotificationDuration(config.settings.notificationDuration);
-                setEnableDynamicBg(config.settings.enableDynamicBg);
-                setDynamicBgOpacity(config.settings.dynamicBgOpacity);
-                setShowTicketImages(config.settings.showTicketImages);
-                setShowItemImagesInGrid(config.settings.showItemImagesInGrid);
-                setDescriptionDisplay(config.settings.descriptionDisplay);
-                setPopularItemsCount(config.settings.popularItemsCount);
-                setItemCardOpacity(config.settings.itemCardOpacity);
-                setPaymentMethodImageOpacity(config.settings.paymentMethodImageOpacity);
-                setItemDisplayMode(config.settings.itemDisplayMode);
-                setItemCardShowImageAsBackground(config.settings.itemCardShowImageAsBackground);
-                setItemCardImageOverlayOpacity(config.settings.itemCardImageOverlayOpacity);
-                setItemCardTextColor(config.settings.itemCardTextColor);
-                setItemCardShowPrice(config.settings.itemCardShowPrice);
-                setExternalLinkModalEnabled(config.settings.externalLinkModalEnabled);
-                setExternalLinkUrl(config.settings.externalLinkUrl);
-                setExternalLinkTitle(config.settings.externalLinkTitle);
-                setExternalLinkModalWidth(config.settings.externalLinkModalWidth);
-                setExternalLinkModalHeight(config.settings.externalLinkModalHeight);
-                setShowDashboardStats(config.settings.showDashboardStats);
-                setEnableRestaurantCategoryFilter(config.settings.enableRestaurantCategoryFilter);
-                setEnableSerialNumber(config.settings.enableSerialNumber);
-                setDefaultSalesMode(config.settings.defaultSalesMode);
-                setIsForcedMode(config.settings.isForcedMode);
-                setRequirePinForAdmin(config.settings.requirePinForAdmin);
-                setDirectSaleBackgroundColor(config.settings.directSaleBackgroundColor);
-                setRestaurantModeBackgroundColor(config.settings.restaurantModeBackgroundColor);
-                setDirectSaleBgOpacity(config.settings.directSaleBgOpacity);
-                setRestaurantModeBgOpacity(config.settings.restaurantModeBgOpacity);
-                setDashboardBgType(config.settings.dashboardBgType);
-                setDashboardBackgroundColor(config.settings.dashboardBackgroundColor);
-                setDashboardBackgroundImage(config.settings.dashboardBackgroundImage);
-                setDashboardBgOpacity(config.settings.dashboardBgOpacity);
-                setDashboardButtonBackgroundColor(config.settings.dashboardButtonBackgroundColor);
-                setDashboardButtonOpacity(config.settings.dashboardButtonOpacity);
-                setDashboardButtonShowBorder(config.settings.dashboardButtonShowBorder);
-                setDashboardButtonBorderColor(config.settings.dashboardButtonBorderColor);
-                setInvoiceBgColor(config.settings.invoiceBgColor);
-                setInvoiceBgOpacity(config.settings.invoiceBgOpacity);
-                setQuoteBgColor(config.settings.quoteBgColor);
-                setQuoteBgOpacity(config.settings.quoteBgOpacity);
-                setDeliveryNoteBgColor(config.settings.deliveryNoteBgColor);
-                setDeliveryNoteBgOpacity(config.settings.deliveryNoteBgOpacity);
-                setSupplierOrderBgColor(config.settings.supplierOrderBgColor);
-                setSupplierOrderBgOpacity(config.settings.supplierOrderBgOpacity);
-                setCreditNoteBgColor(config.settings.creditNoteBgColor);
-                setCreditNoteBgOpacity(config.settings.creditNoteBgOpacity);
+                setShowNotifications(config.settings.showNotifications ?? true);
+                setNotificationDuration(config.settings.notificationDuration ?? 3000);
+                setEnableDynamicBg(config.settings.enableDynamicBg ?? true);
+                setDynamicBgOpacity(config.settings.dynamicBgOpacity ?? 10);
+                setShowTicketImages(config.settings.showTicketImages ?? true);
+                setShowItemImagesInGrid(config.settings.showItemImagesInGrid ?? true);
+                setDescriptionDisplay(config.settings.descriptionDisplay ?? 'none');
+                setPopularItemsCount(config.settings.popularItemsCount ?? 10);
+                setItemCardOpacity(config.settings.itemCardOpacity ?? 30);
+                setPaymentMethodImageOpacity(config.settings.paymentMethodImageOpacity ?? 20);
+                setItemDisplayMode(config.settings.itemDisplayMode ?? 'grid');
+                setItemCardShowImageAsBackground(config.settings.itemCardShowImageAsBackground ?? false);
+                setItemCardImageOverlayOpacity(config.settings.itemCardImageOverlayOpacity ?? 30);
+                setItemCardTextColor(config.settings.itemCardTextColor ?? 'dark');
+                setItemCardShowPrice(config.settings.itemCardShowPrice ?? true);
+                setExternalLinkModalEnabled(config.settings.externalLinkModalEnabled ?? false);
+                setExternalLinkUrl(config.settings.externalLinkUrl ?? '');
+                setExternalLinkTitle(config.settings.externalLinkTitle ?? '');
+                setExternalLinkModalWidth(config.settings.externalLinkModalWidth ?? 80);
+                setExternalLinkModalHeight(config.settings.externalLinkModalHeight ?? 90);
+                setShowDashboardStats(config.settings.showDashboardStats ?? true);
+                setEnableRestaurantCategoryFilter(config.settings.enableRestaurantCategoryFilter ?? true);
+                setEnableSerialNumber(config.settings.enableSerialNumber ?? true);
+                setDefaultSalesMode(config.settings.defaultSalesMode ?? 'pos');
+                setIsForcedMode(config.settings.isForcedMode ?? false);
+                setRequirePinForAdmin(config.settings.requirePinForAdmin ?? true);
+                setDirectSaleBackgroundColor(config.settings.directSaleBackgroundColor ?? '#ffffff');
+                setRestaurantModeBackgroundColor(config.settings.restaurantModeBackgroundColor ?? '#eff6ff');
+                setDirectSaleBgOpacity(config.settings.directSaleBgOpacity ?? 15);
+                setRestaurantModeBgOpacity(config.settings.restaurantModeBgOpacity ?? 15);
+                setDashboardBgType(config.settings.dashboardBgType ?? 'color');
+                setDashboardBackgroundColor(config.settings.dashboardBgColor ?? '#f8fafc');
+                setDashboardBackgroundImage(config.settings.dashboardBgImage ?? '');
+                setDashboardBgOpacity(config.settings.dashboardBgOpacity ?? 100);
+                setDashboardButtonBackgroundColor(config.settings.dashboardButtonBgColor ?? '#ffffff');
+                setDashboardButtonOpacity(config.settings.dashboardButtonOpacity ?? 100);
+                setDashboardButtonShowBorder(config.settings.dashboardButtonShowBorder ?? true);
+                setDashboardButtonBorderColor(config.settings.dashboardButtonBorderColor ?? '#e2e8f0');
+                setInvoiceBgColor(config.settings.invoiceBgColor ?? '#eef2ff');
+                setInvoiceBgOpacity(config.settings.invoiceBgOpacity ?? 100);
+                setQuoteBgColor(config.settings.quoteBgColor ?? '#f0fdf4');
+                setQuoteBgOpacity(config.settings.quoteBgOpacity ?? 100);
+                setDeliveryNoteBgColor(config.settings.deliveryNoteBgColor ?? '#fefce8');
+                setDeliveryNoteBgOpacity(config.settings.deliveryNoteBgOpacity ?? 100);
+                setSupplierOrderBgColor(config.settings.supplierOrderBgColor ?? '#faf5ff');
+                setSupplierOrderBgOpacity(config.settings.supplierOrderBgOpacity ?? 100);
+                setCreditNoteBgColor(config.settings.creditNoteBgColor ?? '#fee2e2');
+                setCreditNoteBgOpacity(config.settings.creditNoteBgOpacity ?? 100);
+                setSmtpConfig(config.settings.smtpConfig ?? {});
+                setFtpConfig(config.settings.ftpConfig ?? {});
+                setTwilioConfig(config.settings.twilioConfig ?? {});
             }
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
@@ -721,7 +774,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setSales, setAuditLogs, toast,
+  }, [
+      setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setSales, setAuditLogs, toast,
       setShowNotifications, setNotificationDuration, setEnableDynamicBg, setDynamicBgOpacity, setShowTicketImages,
       setShowItemImagesInGrid, setDescriptionDisplay, setPopularItemsCount, setItemCardOpacity,
       setPaymentMethodImageOpacity, setItemDisplayMode, setItemCardShowImageAsBackground,
@@ -734,7 +788,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
       setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, setQuoteBgOpacity,
       setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity,
-      setCreditNoteBgColor, setCreditNoteBgOpacity
+      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig
   ]);
   
   
@@ -787,6 +841,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
+      if (itemToAdd.isDisabled) {
+        toast({
+            variant: 'destructive',
+            title: 'Article désactivé',
+            description: "Cet article ne peut pas être vendu.",
+        });
+        return;
+      }
       if (itemToAdd.manageStock && (!itemToAdd.stock || itemToAdd.stock <= 0)) {
         toast({
             variant: 'destructive',
@@ -866,7 +928,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           if (item.id === itemId) {
               const newTotal = item.price * quantity;
               const discountAmount = item.discountPercent ? newTotal * (item.discountPercent / 100) : item.discount;
-              return { ...item, quantity: quantity, total: newTotal - discountAmount, discount: discountAmount };
+              return { ...item, quantity: quantity, total: newTotal - discountAmount, discount: discountAmount || 0 };
           }
           return item;
       }));
@@ -903,8 +965,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
              return {
                 ...item,
                 quantity,
-                total: newTotal - discountAmount,
-                discount: discountAmount,
+                total: newTotal - (discountAmount || 0),
+                discount: discountAmount || 0,
               }
           }
           return item;
@@ -935,7 +997,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentOrder.map(item => {
         if (item.id === itemId) {
           const newTotal = newPriceTTC * item.quantity;
-          const discountAmount = item.discountPercent ? newTotal * (item.discountPercent / 100) : item.discount;
+          const discountAmount = item.discountPercent ? newTotal * (item.discountPercent / 100) : (item.discount || 0);
           return {
             ...item,
             price: newPriceTTC,
@@ -957,7 +1019,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               name: updatedItem.name, 
               price: updatedItem.price, 
               description: updatedItem.description, 
-              description2: updatedItem.description2 
+              description2: updatedItem.description2,
+              barcode: updatedItem.barcode,
             }
           : orderItem
       )
