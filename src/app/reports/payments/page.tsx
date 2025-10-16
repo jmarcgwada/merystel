@@ -314,32 +314,14 @@ export default function PaymentsReportPage() {
 
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
                     <CollapsibleTrigger asChild>
                         <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
                             <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />Filtres
                         </Button>
                     </CollapsibleTrigger>
-                    <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
-                </CardHeader>
-                <CollapsibleContent asChild>
-                    <CardContent className="flex items-center gap-2 flex-wrap">
-                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
-                        <Popover>
-                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                        </Popover>
-                        <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                        <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
-                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
-                        
+                    <div className="flex items-center gap-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="w-[220px] justify-between">
@@ -361,6 +343,27 @@ export default function PaymentsReportPage() {
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent asChild>
+                    <CardContent className="flex items-center gap-2 flex-wrap">
+                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
+                        <Popover>
+                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                        </Popover>
+                        <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                        <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
