@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
+import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
@@ -13,7 +12,7 @@ import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +20,9 @@ import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Sale, Payment, Item, OrderItem } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { InvoicePrintTemplate } from '../components/invoice-print-template';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -107,8 +109,10 @@ function SaleDetailContent() {
   const articleFilter = searchParams.get('article');
 
 
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo } = usePos();
   const { user } = useUser();
+  const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const [sale, setSale] = useState<Sale | null>(null);
 
@@ -143,7 +147,6 @@ function SaleDetailContent() {
     }
 
     let filteredSales = allSales.filter(s => {
-        // If navigating from POS, only show tickets
         if (fromPos && !s.ticketNumber?.startsWith('Tick-')) {
             return false;
         }
@@ -254,7 +257,6 @@ function SaleDetailContent() {
         backParams.delete('from');
         router.push(`/reports/analytics?${backParams.toString()}`);
     } else {
-        backParams.delete('from');
         router.push(`/reports?${backParams.toString()}`);
     }
   }
@@ -264,6 +266,33 @@ function SaleDetailContent() {
     const params = new URLSearchParams(navigationParams);
     return `/reports/${id}?${params.toString()}`;
   };
+
+  const handlePrint = async () => {
+    if (!printRef.current) return;
+    setIsPrinting(true);
+    try {
+        const canvas = await html2canvas(printRef.current, {
+            scale: 2,
+            useCORS: true
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasHeight / canvasWidth;
+        const height = ratio * pdfWidth;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, height);
+        pdf.save(`${sale?.ticketNumber || 'document'}.pdf`);
+    } catch (error) {
+        console.error("Error generating PDF", error);
+    } finally {
+        setIsPrinting(false);
+    }
+  };
+
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -348,6 +377,9 @@ function SaleDetailContent() {
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="absolute -left-[9999px] -top-[9999px]">
+         {sale && vatRates && <InvoicePrintTemplate ref={printRef} sale={sale} customer={customer || null} companyInfo={companyInfo} vatRates={vatRates} />}
+      </div>
       <PageHeader
         title={`Détail ${pieceType} #${sale.ticketNumber}`}
         subtitle={
@@ -364,6 +396,10 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
+            <Button onClick={handlePrint} variant="outline" disabled={isPrinting}>
+                <Printer className="mr-2 h-4 w-4" />
+                {isPrinting ? 'Génération...' : 'Imprimer / PDF'}
+            </Button>
             <Button onClick={handleBack} variant="outline" className="btn-back">
                 <ArrowLeft />
                 Retour
