@@ -76,6 +76,12 @@
       ]
     },
     {
+      "name": "Prestations de service",
+      "items": [
+        { "name": "Service de conseil", "price": 100.00, "description": "Prestation intellectuelle non soumise à TVA.", "vatRate": 0 }
+      ]
+    },
+    {
       "name": "Apéritifs & Vins",
       "items": [
         { "name": "Kir (cassis, mûre, pêche)", "price": 5.00, "description": "Vin blanc Aligoté, 12cl." },

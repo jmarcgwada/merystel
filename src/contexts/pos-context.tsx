@@ -487,6 +487,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
         { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
         { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3 },
+        { id: 'vat_0', name: 'Taux Nul', rate: 0, code: 4 },
     ];
     setVatRates(defaultVatRates);
 
@@ -1191,7 +1192,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date, 
+                date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
              addAuditLog({

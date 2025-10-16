@@ -158,7 +158,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     <th className="p-2 text-left w-1/2">Désignation</th>
                     <th className="p-2 text-right">Qté</th>
                     <th className="p-2 text-right">P.U. HT</th>
-                    <th className="p-2 text-right">TVA %</th>
+                    <th className="p-2 text-right">Code TVA</th>
                     <th className="p-2 text-right">Total HT</th>
                 </tr>
             </thead>
@@ -172,7 +172,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                             <td className="p-2 align-top">{item.name}</td>
                             <td className="p-2 text-right align-top">{item.quantity}</td>
                             <td className="p-2 text-right align-top">{priceHT.toFixed(2)}€</td>
-                            <td className="p-2 text-right align-top">{vatInfo?.rate.toFixed(2)}%</td>
+                            <td className="p-2 text-right align-top">{vatInfo?.code || ''}</td>
                             <td className="p-2 text-right align-top">{totalHT.toFixed(2)}€</td>
                         </tr>
                     )
