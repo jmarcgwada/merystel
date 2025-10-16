@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -73,7 +74,7 @@ const PaymentsDetails = ({ payments, total, change }: { payments: Payment[], tot
     const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
     const balanceDue = total - totalPaid;
 
-    if (payments.length === 0 && (!change || change === 0)) return null;
+    if (payments.length === 0 && balanceDue <= 0.01) return null;
 
     return (
         <div className="mt-4 space-y-2">
