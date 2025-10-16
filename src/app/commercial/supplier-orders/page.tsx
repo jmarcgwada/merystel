@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -62,6 +63,7 @@ function SupplierOrdersPageContent() {
       supplierOrderBgOpacity,
       orderTotal,
       orderTax,
+      sales,
   } = usePos();
   
   const formRef = useRef<{ submit: (validate?: boolean) => void }>(null);
@@ -98,8 +100,7 @@ function SupplierOrdersPageContent() {
           if (currentSaleId !== saleIdToEdit) {
             const success = await loadSaleForEditing(saleIdToEdit, 'supplier_order');
             if(success) {
-                // When loading for edit, store the original items
-                const saleToEdit = usePos.getState().sales.find(s => s.id === saleIdToEdit);
+                const saleToEdit = sales.find(s => s.id === saleIdToEdit);
                 if (saleToEdit) {
                     setOriginalOrderItems(saleToEdit.items);
                 }
@@ -114,7 +115,7 @@ function SupplierOrdersPageContent() {
     }
     performLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit, loadSaleForEditing, resetCommercialPage, currentSaleId, newItemId]);
+  }, [saleIdToEdit, loadSaleForEditing, resetCommercialPage, currentSaleId, newItemId, sales]);
 
 
   const handleSave = useCallback(async (andValidate = false) => {
@@ -134,8 +135,6 @@ function SupplierOrdersPageContent() {
         originalOrderItems.map(item => ({ itemId: item.itemId, quantity: item.quantity }))
     );
 
-    // If stock has been updated and order hasn't changed, go straight to payment.
-    // The status 'paid' implies stock was already updated.
     if (currentSaleContext?.status === 'paid' && !hasOrderChanged) {
         onValidationConfirm();
         return;
@@ -147,7 +146,6 @@ function SupplierOrdersPageContent() {
   const onValidationConfirm = () => {
     setValidationConfirmOpen(false);
     
-    // Set context for checkout modal
     setCurrentSaleContext(prev => ({
         ...prev,
         items: order,
@@ -155,7 +153,7 @@ function SupplierOrdersPageContent() {
         subtotal: orderTotal,
         tax: orderTax,
         documentType: 'supplier_order',
-        status: prev?.status === 'paid' ? 'paid' : 'pending', // Keep 'paid' status if it was already so
+        status: prev?.status === 'paid' ? 'paid' : 'pending',
     }));
 
     setCheckoutOpen(true);
