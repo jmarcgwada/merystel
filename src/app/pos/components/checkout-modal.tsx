@@ -325,7 +325,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     };
     
     const handleSaveAsPending = () => {
-      if (isInvoiceMode) {
+      if (isInvoiceMode || isCreditNote) {
         handleFinalizeSale(payments, false); 
       }
     };
@@ -483,7 +483,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       </DialogHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
         <div className="md:col-span-1 space-y-6 flex flex-col">
-            <fieldset disabled={isInvoiceMode} className={cn(isInvoiceMode && "opacity-70 pointer-events-none")}>
+            <fieldset disabled={isInvoiceMode || isCreditNote} className={cn((isInvoiceMode || isCreditNote) && "opacity-70 pointer-events-none")}>
                 <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
                     <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
@@ -567,17 +567,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         {showCalculator ? renderCalculator() : renderPaymentHistory()}
       </div>
       <DialogFooter>
-        <Button
+         <Button
             type="button"
             variant="outline"
-            onClick={isInvoiceMode ? handleSaveAsPending : handleReset}
+            onClick={isInvoiceMode || isCreditNote ? handleSaveAsPending : handleReset}
             className="w-full sm:w-auto"
-        >
-            {isInvoiceMode && balanceDue > 0.009 ? 'Enregistrer en attente' : 'Annuler'}
-        </Button>
+          >
+            {isInvoiceMode && balanceDue > 0.009 ? 'Enregistrer en attente' 
+             : isCreditNote ? 'Enregistrer sans paiement'
+             : 'Annuler'}
+          </Button>
 
-        {(balanceDue < 0.009 || isInvoiceMode) && (
-          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
+        {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
+          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={isInvoiceMode || isCreditNote ? false : finalizeButtonDisabled} className="w-full sm:w-auto">
               {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
