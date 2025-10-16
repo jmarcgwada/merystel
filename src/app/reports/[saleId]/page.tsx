@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -22,7 +21,6 @@ import { useUser } from '@/firebase/auth/use-user';
 import type { Sale, Payment, Item, OrderItem, VatBreakdown } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
 
 
@@ -267,27 +265,22 @@ function SaleDetailContent() {
   const handlePrint = async () => {
     if (!printRef.current) return;
     setIsPrinting(true);
-    try {
-        const canvas = await html2canvas(printRef.current, {
-            scale: 2,
-            useCORS: true
-        });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const ratio = canvasHeight / canvasWidth;
-        const height = ratio * pdfWidth;
-
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, height);
-        pdf.save(`${sale?.ticketNumber || 'document'}.pdf`);
-    } catch (error) {
-        console.error("Error generating PDF", error);
-    } finally {
-        setIsPrinting(false);
-    }
+    
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    // jsPDF's html method handles pagination.
+    // The scale option helps with fitting content.
+    await pdf.html(printRef.current, {
+        callback: function (pdf) {
+            pdf.save(`${sale?.ticketNumber || 'document'}.pdf`);
+            setIsPrinting(false);
+        },
+        x: 0,
+        y: 0,
+        width: 210, // A4 width in mm
+        windowWidth: printRef.current.scrollWidth,
+        autoPaging: 'text',
+    });
   };
 
 
@@ -300,13 +293,48 @@ function SaleDetailContent() {
       return allItems.find(i => i.id === orderItem.itemId) || {};
   }, [allItems]);
 
-  const vatBreakdown: VatBreakdown = useMemo(() => {
-    return sale?.vatBreakdown || {};
-  }, [sale]);
-  
-  const subTotalHT = sale?.subtotal ?? 0;
-  const totalTax = sale?.tax ?? 0;
+  const { subtotal, tax, vatBreakdown } = useMemo(() => {
+    if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {} };
+    
+    const breakdown: VatBreakdown = {};
+    let calculatedSubtotal = 0;
+    
+    sale.items.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        if (vatInfo) {
+            const priceHT = item.total / (1 + vatInfo.rate / 100);
+            const taxAmount = item.total - priceHT;
+            calculatedSubtotal += priceHT;
+            
+            const rateKey = vatInfo.rate.toString();
+            if (breakdown[rateKey]) {
+                breakdown[rateKey].base += priceHT;
+                breakdown[rateKey].total += taxAmount;
+            } else {
+                breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
+            }
+        } else {
+            // For items with no/unknown VAT, consider them as HT
+            calculatedSubtotal += item.total;
+        }
+    });
 
+    // We prioritize the stored totals for accuracy and use calculated values for breakdown.
+    const finalSubtotal = sale.subtotal;
+    const finalTax = sale.tax;
+
+    // Adjust breakdown to match stored totals if there's a small discrepancy
+    const calculatedBreakdownTotalTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
+    const taxDiff = finalTax - calculatedBreakdownTotalTax;
+    if (taxDiff !== 0 && Object.keys(breakdown).length > 0) {
+        const highestRateKey = Object.keys(breakdown).sort((a,b) => b-a)[0];
+        breakdown[highestRateKey].total += taxDiff;
+        breakdown[highestRateKey].base = (breakdown[highestRateKey].total * 100) / breakdown[highestRateKey].rate;
+    }
+
+    return { subtotal: finalSubtotal, tax: finalTax, vatBreakdown: breakdown };
+  }, [sale, vatRates]);
+  
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
                   : sale?.documentType === 'delivery_note' ? 'BL'
@@ -485,7 +513,7 @@ function SaleDetailContent() {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total HT</span>
-                <span>{subTotalHT.toFixed(2)}€</span>
+                <span>{subtotal.toFixed(2)}€</span>
               </div>
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
@@ -497,7 +525,7 @@ function SaleDetailContent() {
 
               <div className="flex justify-between text-muted-foreground">
                  <span>Total TVA</span>
-                 <span>{totalTax.toFixed(2)}€</span>
+                 <span>{tax.toFixed(2)}€</span>
               </div>
 
               <Separator />
