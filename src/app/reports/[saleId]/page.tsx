@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense } from 'react';
@@ -240,7 +241,12 @@ function SaleDetailContent() {
   }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter, fromPos]);
   
   const navigationParams = useMemo(() => {
-    return new URLSearchParams(Array.from(searchParams.entries()));
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    // Remove the 'from' param if it's 'analytics' to avoid loops, but keep others
+    if (params.get('from') === 'analytics') {
+      params.delete('from');
+    }
+    return params;
   }, [searchParams]);
 
   const handleBack = () => {
@@ -256,7 +262,8 @@ function SaleDetailContent() {
 
   const getDetailLink = (id: string | null) => {
     if (!id) return '#';
-    return `/reports/${id}?${navigationParams.toString()}`;
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    return `/reports/${id}?${params.toString()}`;
   };
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;

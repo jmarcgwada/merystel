@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -16,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { DateRange } from 'react-day-picker';
@@ -59,6 +60,7 @@ export default function AnalyticsPage() {
         isLoading, 
     } = usePos();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [isClient, setIsClient] = useState(false);
     
@@ -257,6 +259,18 @@ export default function AnalyticsPage() {
         setDateRange(undefined);
         setCurrentPage(1);
     }
+
+    const currentFilterParams = useMemo(() => {
+      const params = new URLSearchParams();
+      if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
+      if (filterCustomer) params.set('customer', filterCustomer);
+      if (filterItem) params.set('item', filterItem);
+      if (filterSeller) params.set('seller', filterSeller);
+      const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
+      if(activeDocTypes.length > 0) params.set('docTypes', activeDocTypes.join(','));
+      return params.toString();
+    }, [dateRange, filterCustomer, filterItem, filterSeller, filterDocTypes]);
   
   if (!isClient || isLoading) {
       return (
@@ -425,7 +439,7 @@ export default function AnalyticsPage() {
                                 <TableRow key={item.id + index}>
                                     <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>
                                     <TableCell>
-                                        <Link href={`/reports/${item.saleId}?from=analytics`} className="text-blue-600 hover:underline">
+                                        <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
                                             <Badge variant="secondary">{item.ticketNumber}</Badge>
                                         </Link>
                                     </TableCell>
