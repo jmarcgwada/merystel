@@ -134,6 +134,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
+      ...(currentSaleContext?.supplierId && { supplierId: currentSaleContext.supplierId }),
       ...(currentSaleContext?.originalTotal && { originalTotal: currentSaleContext.originalTotal }),
       ...(currentSaleContext?.originalSaleId && { originalSaleId: currentSaleContext.originalSaleId }),
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
@@ -161,6 +162,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           } else if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
               clearOrder();
               router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
+          } else if (currentSaleContext?.documentType === 'supplier_order') {
+              clearOrder();
+              router.push('/commercial/supplier-orders');
           } else {
             clearOrder();
           }
@@ -679,3 +683,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
+
+    

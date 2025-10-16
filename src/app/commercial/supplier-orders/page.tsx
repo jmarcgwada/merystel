@@ -23,6 +23,8 @@ import {
   AlertDialogTitle as AlertDialogTitleComponent,
 } from '@/components/ui/alert-dialog';
 import { CheckoutModal } from '@/app/pos/components/checkout-modal';
+import isEqual from 'lodash.isequal';
+
 
 const hexToRgba = (hex: string, opacity: number) => {
     let c: any;
@@ -69,6 +71,7 @@ function SupplierOrdersPageContent() {
   
   const [isValidationConfirmOpen, setValidationConfirmOpen] = useState(false);
   const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+  const [originalOrderItems, setOriginalOrderItems] = useState<OrderItem[]>([]);
   const saleIdToEdit = searchParams.get('edit');
   const newItemId = searchParams.get('newItemId');
 
@@ -90,17 +93,29 @@ function SupplierOrdersPageContent() {
   }, [newItemId, addToOrder, router]);
   
   useEffect(() => {
-    if (saleIdToEdit) {
-      if (currentSaleId !== saleIdToEdit) {
-        loadSaleForEditing(saleIdToEdit, 'supplier_order');
-      }
-    } else {
-        if (!currentSaleId && !newItemId) {
-             resetCommercialPage('supplier_order');
+    const performLoad = async () => {
+        if (saleIdToEdit) {
+          if (currentSaleId !== saleIdToEdit) {
+            const success = await loadSaleForEditing(saleIdToEdit, 'supplier_order');
+            if(success) {
+                // When loading for edit, store the original items
+                const saleToEdit = usePos.getState().sales.find(s => s.id === saleIdToEdit);
+                if (saleToEdit) {
+                    setOriginalOrderItems(saleToEdit.items);
+                }
+            }
+          }
+        } else {
+            if (!currentSaleId && !newItemId) {
+                resetCommercialPage('supplier_order');
+                setOriginalOrderItems([]);
+            }
         }
     }
+    performLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleIdToEdit]);
+  }, [saleIdToEdit, loadSaleForEditing, resetCommercialPage, currentSaleId, newItemId]);
+
 
   const handleSave = useCallback(async (andValidate = false) => {
     if (formRef.current) {
@@ -109,11 +124,23 @@ function SupplierOrdersPageContent() {
   }, []);
 
   const handleValidation = () => {
-    // This now just opens the checkout modal after confirmation
     if (order.length === 0) {
       toast({ variant: 'destructive', title: 'Commande vide', description: 'Ajoutez des articles avant de valider.' });
       return;
     }
+    
+    const hasOrderChanged = !isEqual(
+        order.map(item => ({ itemId: item.itemId, quantity: item.quantity })),
+        originalOrderItems.map(item => ({ itemId: item.itemId, quantity: item.quantity }))
+    );
+
+    // If stock has been updated and order hasn't changed, go straight to payment.
+    // The status 'paid' implies stock was already updated.
+    if (currentSaleContext?.status === 'paid' && !hasOrderChanged) {
+        onValidationConfirm();
+        return;
+    }
+
     setValidationConfirmOpen(true);
   };
   
@@ -128,7 +155,7 @@ function SupplierOrdersPageContent() {
         subtotal: orderTotal,
         tax: orderTax,
         documentType: 'supplier_order',
-        status: 'pending',
+        status: prev?.status === 'paid' ? 'paid' : 'pending', // Keep 'paid' status if it was already so
     }));
 
     setCheckoutOpen(true);
