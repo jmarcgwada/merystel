@@ -126,6 +126,9 @@ const getDateFromSale = (sale: Sale): Date => {
 // Custom hook to manage persistent state
 function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, boolean>) {
     const [state, setState] = useState(() => {
+        if (typeof window === 'undefined') {
+            return defaultValue;
+        }
         try {
             const storedValue = localStorage.getItem(key);
             return storedValue ? JSON.parse(storedValue) : defaultValue;
@@ -135,7 +138,9 @@ function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, bo
     });
 
     useEffect(() => {
-        localStorage.setItem(key, JSON.stringify(state));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(key, JSON.stringify(state));
+        }
     }, [key, state]);
 
     return [state, setState];
@@ -174,14 +179,12 @@ export default function ReportsPage() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     
-    const generalFilterParam = searchParams.get('filter');
     const docTypeFilterParam = searchParams.get('docType');
     const initialStatusFilter = searchParams.get('filterStatus');
     const dateFilterParam = searchParams.get('date');
 
     const [isDocTypeFilterLocked, setIsDocTypeFilterLocked] = useState(!!docTypeFilterParam);
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
-
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
 
     const printRef = useRef<HTMLDivElement>(null);
@@ -244,7 +247,7 @@ export default function ReportsPage() {
         }
         return undefined;
     });
-    const [generalFilter, setGeneralFilter] = useState(generalFilterParam || '');
+    const [generalFilter, setGeneralFilter] = useState('');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter || !!docTypeFilterParam);
     const [filterSellerName, setFilterSellerName] = useState('');
@@ -259,7 +262,7 @@ export default function ReportsPage() {
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
     const originFilterRef = useRef<HTMLInputElement>(null);
     
-     useEffect(() => {
+    useEffect(() => {
         if (docTypeFilterParam) {
             setIsDocTypeFilterLocked(true);
             const newFilterDocTypes: Record<string, boolean> = {};
@@ -661,7 +664,7 @@ export default function ReportsPage() {
             </div>
         );
     }
-
+    
   return (
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
@@ -675,7 +678,7 @@ export default function ReportsPage() {
                 />
             )}
         </div>
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports des pièces"
         subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
@@ -723,77 +726,77 @@ export default function ReportsPage() {
         
         <Card>
               <CardHeader className="p-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                      <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="justify-start px-2 text-lg font-semibold" onClick={() => setFiltersOpen(prev => !prev)}>
-                              <SlidersHorizontal className="mr-2 h-4 w-4" />
-                              Filtres
-                              <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
-                          </Button>
-                      </CollapsibleTrigger>
-                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
-                                      {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
-                                      <span>Types de pièce</span>
-                                      <ChevronDown className="h-4 w-4" />
-                                  </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                  <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                                  <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
-                                      Tout désélectionner
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {Object.entries(documentTypes).map(([type, { label }]) => (
-                                      <DropdownMenuCheckboxItem
-                                          key={type}
-                                          checked={filterDocTypes[type]}
-                                          onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                      >
-                                          {label}
-                                      </DropdownMenuCheckboxItem>
-                                  ))}
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="icon" className="h-9 w-9">
-                                      <Columns className="h-4 w-4" />
-                                  </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                  <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {columnsConfig.map(column => (
-                                      <DropdownMenuCheckboxItem
-                                          key={column.id}
-                                          checked={visibleColumns[column.id] ?? false}
-                                          onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                      >
-                                          {column.label}
-                                      </DropdownMenuCheckboxItem>
-                                  ))}
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                          <TooltipProvider>
-                              <Tooltip>
-                                  <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
-                                  <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
-                              </Tooltip>
-                          </TooltipProvider>
-                          <div className="flex items-center gap-1">
-                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                              <div className="text-xs font-medium text-muted-foreground min-w-[70px] text-center px-1">Page {currentPage} / {totalPages || 1}</div>
-                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                          </div>
-                      </div>
-                  </div>
-              </CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="justify-start px-2 text-lg font-semibold" onClick={() => setFiltersOpen(prev => !prev)}>
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filtres
+                            <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                        </Button>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                       <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
+                                    {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
+                                    <span>Types de pièce</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
+                                    Tout désélectionner
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {Object.entries(documentTypes).map(([type, { label }]) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={type}
+                                        checked={filterDocTypes[type]}
+                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                    >
+                                        {label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-9 w-9">
+                                    <Columns className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {columnsConfig.map(column => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={visibleColumns[column.id] ?? false}
+                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                    >
+                                        {column.label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        <div className="flex items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                            <div className="text-xs font-medium text-muted-foreground min-w-[70px] text-center px-1">Page {currentPage} / {totalPages || 1}</div>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                        </div>
+                    </div>
+                </div>
+            </CardHeader>
               <CollapsibleContent>
-                  <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                      <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                  <CardContent className="flex items-center gap-2 flex-wrap pt-4">
                       <Popover>
                           <PopoverTrigger asChild disabled={isDateFilterLocked}>
                               <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
@@ -924,3 +927,4 @@ export default function ReportsPage() {
   );
 }
 
+    
