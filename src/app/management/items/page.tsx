@@ -239,15 +239,15 @@ export default function ItemsPage() {
       <div className="mt-8">
         <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
             <Card className="mb-4">
-                <CardHeader>
+                <CardHeader className="p-2">
                     <div className="flex items-center justify-between">
                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                            <Button variant="ghost" className="w-full justify-start text-lg font-semibold">
                                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                                 Filtres
                             </Button>
                         </CollapsibleTrigger>
-                        <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2 pr-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline">
@@ -454,4 +454,3 @@ export default function ItemsPage() {
     </>
   );
 }
-
