@@ -350,7 +350,6 @@ export default function ReportsPage() {
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
     }, [router, toast, setLastSelectedSaleId]);
 
-
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
         const activeDocTypes = Object.entries(filterDocTypes)
@@ -471,27 +470,6 @@ export default function ReportsPage() {
         }
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
-    
-    useEffect(() => {
-        if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
-            const index = filteredAndSortedSales.findIndex((s) => s.id === lastSelectedSaleId);
-            if (index !== -1) {
-                const newPage = Math.floor(index / itemsPerPage) + 1;
-                if (newPage !== currentPage) {
-                    setCurrentPage(newPage);
-                }
-                setTimeout(() => {
-                    const rowElement = rowRefs.current[lastSelectedSaleId];
-                    if (rowElement) {
-                        rowElement.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center',
-                        });
-                    }
-                }, 100); 
-            }
-        }
-    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -499,6 +477,30 @@ export default function ReportsPage() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+      if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
+        const index = filteredAndSortedSales.findIndex(
+          (s) => s.id === lastSelectedSaleId
+        );
+        if (index !== -1) {
+          const newPage = Math.floor(index / itemsPerPage) + 1;
+          if (newPage !== currentPage) {
+            setCurrentPage(newPage);
+          }
+          setTimeout(() => {
+            const rowElement = rowRefs.current[lastSelectedSaleId];
+            if (rowElement) {
+              rowElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+              });
+            }
+          }, 100);
+        }
+      }
+    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
+
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -605,19 +607,7 @@ export default function ReportsPage() {
   };
     
   const getDetailLink = (saleId: string) => {
-      const params = new URLSearchParams();
-      if (sortConfig) {
-          params.set('sortKey', sortConfig.key);
-          params.set('sortDirection', sortConfig.direction);
-      }
-      if (generalFilter) params.set('filter', generalFilter);
-      if (filterStatus !== 'all') params.set('filterStatus', filterStatus);
-      if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
-      if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
-      if (filterCustomerName) params.set('customer', filterCustomerName);
-      if (filterSellerName) params.set('seller', filterSellerName);
-      if (filterOrigin) params.set('origin', filterOrigin);
-      
+      const params = new URLSearchParams(searchParams.toString());
       return `/reports/${saleId}?${params.toString()}`;
   }
 
@@ -681,27 +671,9 @@ export default function ReportsPage() {
             </CollapsibleTrigger>
             <CollapsibleContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Chiffre d'Affaires (Encaissements)</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle>
-                             <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle>
-                             <Truck className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent>
-                    </Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires (Encaissements)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Balance Nette</CardTitle>
@@ -861,7 +833,7 @@ export default function ReportsPage() {
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                            <Button asChild variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id) }}>
+                                            <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                                 <Link href={getDetailLink(sale.id)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>

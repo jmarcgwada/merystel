@@ -408,7 +408,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
   const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
-  const [lastSelectedSaleId, setLastSelectedSaleId] = useState<string | null>(null);
+  const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
