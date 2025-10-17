@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePos } from '@/contexts/pos-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,22 +31,32 @@ const StandardCalculator = () => {
     const [operator, setOperator] = useState<string | null>(null);
     const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false);
 
-    const handleDigitClick = (digit: string) => {
+    const handleDigitClick = useCallback((digit: string) => {
         if (waitingForSecondOperand) {
             setDisplayValue(digit);
             setWaitingForSecondOperand(false);
         } else {
             setDisplayValue(displayValue === '0' ? digit : displayValue + digit);
         }
-    };
+    }, [displayValue, waitingForSecondOperand]);
 
-    const handleDecimalClick = () => {
+    const handleDecimalClick = useCallback(() => {
         if (!displayValue.includes('.')) {
             setDisplayValue(displayValue + '.');
         }
-    };
+    }, [displayValue]);
 
-    const handleOperatorClick = (nextOperator: string) => {
+    const calculate = useCallback((first: number, second: number, op: string): number => {
+        switch (op) {
+            case '+': return first + second;
+            case '-': return first - second;
+            case '*': return first * second;
+            case '/': return second === 0 ? NaN : first / second; // Avoid division by zero
+            default: return second;
+        }
+    }, []);
+
+    const handleOperatorClick = useCallback((nextOperator: string) => {
         const inputValue = parseFloat(displayValue);
 
         if (firstOperand === null) {
@@ -58,19 +69,9 @@ const StandardCalculator = () => {
 
         setWaitingForSecondOperand(true);
         setOperator(nextOperator);
-    };
+    }, [displayValue, firstOperand, operator, calculate]);
     
-    const calculate = (first: number, second: number, op: string): number => {
-        switch (op) {
-            case '+': return first + second;
-            case '-': return first - second;
-            case '*': return first * second;
-            case '/': return second === 0 ? NaN : first / second; // Avoid division by zero
-            default: return second;
-        }
-    };
-
-    const handleEqualsClick = () => {
+    const handleEqualsClick = useCallback(() => {
         if (operator && firstOperand !== null) {
             const result = calculate(firstOperand, parseFloat(displayValue), operator);
             if(isNaN(result)) {
@@ -82,18 +83,44 @@ const StandardCalculator = () => {
             setOperator(null);
             setWaitingForSecondOperand(false);
         }
-    };
+    }, [operator, firstOperand, displayValue, calculate]);
 
-    const handleClearClick = () => {
+    const handleClearClick = useCallback(() => {
         setDisplayValue('0');
         setFirstOperand(null);
         setOperator(null);
         setWaitingForSecondOperand(false);
-    };
+    }, []);
     
-    const handleBackspaceClick = () => {
+    const handleBackspaceClick = useCallback(() => {
         setDisplayValue(displayValue.length > 1 ? displayValue.slice(0, -1) : '0');
-    };
+    }, [displayValue]);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const { key } = event;
+            if (key >= '0' && key <= '9') {
+                handleDigitClick(key);
+            } else if (key === '.' || key === ',') {
+                handleDecimalClick();
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                handleOperatorClick(key);
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                handleEqualsClick();
+            } else if (key === 'Backspace') {
+                handleBackspaceClick();
+            } else if (key === 'Escape' || key === 'Delete') {
+                handleClearClick();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleDigitClick, handleDecimalClick, handleOperatorClick, handleEqualsClick, handleBackspaceClick, handleClearClick]);
+
 
      return (
         <div className="space-y-2">
