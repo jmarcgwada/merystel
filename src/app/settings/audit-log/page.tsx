@@ -2,7 +2,7 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -79,7 +79,7 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = log.date instanceof Date ? log.date : typeof log.date === 'string' ? new Date(log.date) : (log.date as Timestamp)?.toDate ? (log.date as Timestamp).toDate() : new Date();
+            const logDate = new Date(log.date as any);
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
@@ -87,8 +87,8 @@ export default function AuditLogPage() {
         });
 
         return filtered.sort((a,b) => {
-            const dateA = a.date instanceof Date ? a.date : new Date(a.date);
-            const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+            const dateA = new Date(a.date as any);
+            const dateB = new Date(b.date as any);
             return dateB.getTime() - dateA.getTime();
         });
     }, [auditLogs, filterUser, filterAction, filterDocType, filterDocNumber, dateRange]);
