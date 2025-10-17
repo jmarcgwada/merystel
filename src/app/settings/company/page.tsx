@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { ArrowLeft, Lock, FileImage, Link as LinkIcon, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, Lock, FileImage, Link as LinkIcon, Upload, Trash2, Save } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import type { CompanyInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -106,7 +106,10 @@ function CompanyPageContent() {
   return (
     <>
         {!isInitialSetup && (
-            <div className="fixed top-24 right-8 z-50">
+             <div className="fixed top-24 right-8 z-50 flex items-center gap-2">
+                <Button onClick={handleSave} size="lg" className="h-12 w-12 rounded-full shadow-lg p-0">
+                    <Save className="h-6 w-6" />
+                </Button>
                 <Button asChild variant="outline" size="icon" className="h-12 w-12 rounded-full shadow-lg btn-back">
                   <Link href={backUrl}>
                     <ArrowLeft className="h-6 w-6" />
@@ -292,9 +295,11 @@ function CompanyPageContent() {
             </TabsContent>
         </Tabs>
       </div>
-       <div className="mt-8 flex justify-end">
-            <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
-       </div>
+       {isInitialSetup && (
+           <div className="mt-8 flex justify-end">
+                <Button onClick={handleSave} size="lg">Sauvegarder les modifications</Button>
+           </div>
+       )}
     </>
   );
 }
