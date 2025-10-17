@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,10 +16,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
-import type { Supplier } from '@/lib/types';
+import type { Supplier, Timestamp } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar, Clock } from 'lucide-react';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 interface EditSupplierDialogProps {
   supplier: Supplier | null;
@@ -107,6 +122,16 @@ export function EditSupplierDialog({ supplier, isOpen, onClose }: EditSupplierDi
             Modifiez les informations du fournisseur.
           </DialogDescription>
         </DialogHeader>
+        {supplier?.createdAt && (
+            <div className="p-2 text-xs text-muted-foreground bg-muted/50 rounded-md">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={supplier.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    {supplier.updatedAt && (
+                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={supplier.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    )}
+                </div>
+            </div>
+        )}
         <div className="flex-1 min-h-0">
           <Tabs defaultValue="info" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-3">

@@ -16,10 +16,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft } from 'lucide-react';
-import type { Table } from '@/lib/types';
+import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import type { Table, Timestamp } from '@/lib/types';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = React.useState('');
+  React.useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -95,7 +108,16 @@ function TableForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-xl space-y-8">
-          
+            {isEditMode && tableToEdit?.createdAt && (
+                <div className="p-2 text-xs text-muted-foreground bg-muted/50 rounded-md">
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                        <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={tableToEdit.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                        {tableToEdit.updatedAt && (
+                            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={tableToEdit.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                        )}
+                    </div>
+                </div>
+            )}
           <Card>
             <CardHeader>
               <CardTitle>Détails de la table</CardTitle>

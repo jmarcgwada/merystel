@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,8 +16,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
-import type { Category } from '@/lib/types';
+import type { Category, Timestamp } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar, Clock } from 'lucide-react';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 interface EditCategoryDialogProps {
   category: Category | null;
@@ -72,6 +87,16 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
             Modifiez les détails de la catégorie.
           </DialogDescription>
         </DialogHeader>
+        {category?.createdAt && (
+            <div className="p-2 text-xs text-muted-foreground bg-muted/50 rounded-md">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={category.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    {category.updatedAt && (
+                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={category.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    )}
+                </div>
+            </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">

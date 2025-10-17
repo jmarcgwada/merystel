@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,7 +16,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
-import type { VatRate } from '@/lib/types';
+import type { VatRate, Timestamp } from '@/lib/types';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar, Clock } from 'lucide-react';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 interface EditVatDialogProps {
   vatRate: VatRate | null;
@@ -70,6 +85,16 @@ export function EditVatDialog({ vatRate, isOpen, onClose }: EditVatDialogProps) 
             Modifiez les informations du taux. Le code n'est pas modifiable.
           </DialogDescription>
         </DialogHeader>
+        {vatRate?.createdAt && (
+            <div className="p-2 text-xs text-muted-foreground bg-muted/50 rounded-md">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={vatRate.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    {vatRate.updatedAt && (
+                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={vatRate.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    )}
+                </div>
+            </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="code" className="text-right">

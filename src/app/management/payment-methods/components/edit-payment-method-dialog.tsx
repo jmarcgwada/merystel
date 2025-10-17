@@ -18,10 +18,23 @@ import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Wallet, Landmark, StickyNote, Upload, Link as LinkIcon } from 'lucide-react';
-import type { PaymentMethod } from '@/lib/types';
+import { CreditCard, Wallet, Landmark, StickyNote, Upload, Link as LinkIcon, Calendar, Clock } from 'lucide-react';
+import type { PaymentMethod, Timestamp } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 interface EditPaymentMethodDialogProps {
   paymentMethod: PaymentMethod | null;
@@ -147,6 +160,16 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
             Modifiez les détails de la méthode de paiement.
           </DialogDescription>
         </DialogHeader>
+        {paymentMethod?.createdAt && (
+            <div className="p-2 text-xs text-muted-foreground bg-muted/50 rounded-md">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={paymentMethod.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    {paymentMethod.updatedAt && (
+                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={paymentMethod.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    )}
+                </div>
+            </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -259,5 +282,3 @@ export function EditPaymentMethodDialog({ paymentMethod, isOpen, onClose }: Edit
     </Dialog>
   );
 }
-
-    
