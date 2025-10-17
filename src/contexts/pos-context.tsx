@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -1358,16 +1359,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
                 ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
-            } else if (saleData.documentType === 'credit_note') {
-                const creditNoteCount = sales.filter(s => s.documentType === 'credit_note').length;
-                ticketNumber = 'AVOIR-' + (creditNoteCount + 1).toString().padStart(4, '0');
-            } else if (saleData.documentType === 'supplier_order') {
-                const supplierOrderCount = sales.filter(s => s.documentType === 'supplier_order').length;
-                ticketNumber = 'CF-' + (supplierOrderCount + 1).toString().padStart(4, '0');
             } else {
                 const todaysSalesCount = sales.filter(s => {
-                    const saleDate = new Date(s.date as Date);
-                    return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
+                    const saleDate = s.date ? new Date(s.date as any) : new Date(0);
+                    return isSameDay(saleDate, today) && (s.documentType === 'ticket' || !s.documentType);
                 }).length;
                 ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
             }
@@ -1376,7 +1371,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 id: newId,
                 ticketNumber,
                 ...saleData,
-                date: today
+                date: today,
+                documentType: saleData.documentType || 'ticket'
             };
             
             const paymentDetails = (saleData.payments || [])
@@ -1387,7 +1383,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 userId: user?.id,
                 userName: `${user?.firstName} ${user?.lastName}`,
                 action: 'create',
-                documentType: finalSale.documentType || 'ticket',
+                documentType: finalSale.documentType,
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
                 details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€. ${paymentDetails ? 'Payé via: ' + paymentDetails : ''}`,
@@ -1790,5 +1786,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
