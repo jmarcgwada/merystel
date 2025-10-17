@@ -410,90 +410,87 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
-          <div className="w-full lg:flex-1">
-              <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                      ref={searchInputRef}
-                      placeholder="Rechercher ou scanner un article..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                          performSearch(e.target.value, searchType);
-                      }}
-                      onKeyDown={handleKeyDown}
-                      className="h-14 text-xl pl-12 pr-40"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <Button
-                          variant="outline"
-                          onClick={handleChangeSearchType}
-                          className="h-12 text-xs w-28"
-                      >
-                          {searchType === 'contains' ? 'Contient' : 'Commence par'}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
-                          <List className="h-6 w-6" />
-                      </Button>
-                  </div>
-              </div>
-              {listContent.length > 0 && (
-                  <Card className="mt-2 absolute z-10 w-full max-w-2xl">
-                      <ScrollArea className="h-full max-h-80">
-                           <div className="space-y-px p-1">
-                              {listContent.map((item, index) => (
-                                  <div
-                                  key={item.id}
-                                  ref={(el) => (itemRefs.current[index] = el)}
-                                  className={cn(
-                                      "flex items-center justify-between p-2 rounded-md cursor-pointer",
-                                      index === highlightedIndex && "bg-secondary"
-                                  )}
-                                  onClick={() => {
-                                      handleAddItem(item);
-                                      setSearchTerm('');
-                                      setListContent([]);
-                                  }}
-                                  onMouseEnter={() => setHighlightedIndex(index)}
-                                  >
-                                      <div className="flex items-center gap-2">
-                                          <p className="font-semibold text-sm">{item.name}</p>
-                                          <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>
-                                      </div>
-                                      <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
-                                  </div>
-                              ))}
-                          </div>
-                      </ScrollArea>
-                  </Card>
-              )}
-          </div>
-          <div className="w-full lg:w-auto">
-              <Card className="w-full lg:w-[350px]">
-                  <CardContent className="p-4 relative">
-                       <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      {selectedCustomer ? (
-                          <div className="space-y-1 text-sm">
-                              <button onClick={() => setEditCustomerOpen(true)} className="font-semibold text-base hover:underline text-left">{selectedCustomer.name}</button>
-                              <p className="text-muted-foreground">{selectedCustomer.address}</p>
-                              <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
-                          </div>
-                      ) : (
-                           <div className="text-center text-muted-foreground py-1">
-                              {selectedCustomer === null && <Label>Client</Label>}
-                              <p>Aucun client sélectionné.</p>
-                          </div>
-                      )}
-                  </CardContent>
-              </Card>
-          </div>
+        <div className="w-full lg:flex-1 space-y-2">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    ref={searchInputRef}
+                    placeholder="Rechercher ou scanner un article..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        performSearch(e.target.value, searchType);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    className="h-14 text-xl pl-12 pr-40"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <Button
+                        variant="outline"
+                        onClick={handleChangeSearchType}
+                        className="h-12 text-xs w-28"
+                    >
+                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
+                        <List className="h-6 w-6" />
+                    </Button>
+                </div>
+            </div>
+            {listContent.length > 0 && (
+                <Card className="mt-2 absolute z-10 w-full max-w-2xl">
+                    <ScrollArea className="h-full max-h-80">
+                         <div className="space-y-px p-1">
+                            {listContent.map((item, index) => (
+                                <div
+                                key={item.id}
+                                ref={(el) => (itemRefs.current[index] = el)}
+                                className={cn(
+                                    "flex items-center justify-between p-2 rounded-md cursor-pointer",
+                                    index === highlightedIndex && "bg-secondary"
+                                )}
+                                onClick={() => {
+                                    handleAddItem(item);
+                                    setSearchTerm('');
+                                    setListContent([]);
+                                }}
+                                onMouseEnter={() => setHighlightedIndex(index)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-sm">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground font-mono">({item.barcode})</p>
+                                    </div>
+                                    <p className="text-sm font-bold">{item.price.toFixed(2)}€</p>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </Card>
+            )}
         </div>
-
-      <div className="flex justify-between items-center mt-4 mb-2">
-           <div className="flex items-center gap-2">
-                 <h3 className="text-lg font-semibold">Détails de la pièce</h3>
+        <div className="w-full lg:w-auto self-end flex-shrink-0">
+            <Card className="w-full lg:w-[350px]">
+                <CardContent className="p-4 relative">
+                     <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setCustomerSearchOpen(true)}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    {selectedCustomer ? (
+                        <div className="space-y-1 text-sm">
+                            <button onClick={() => setEditCustomerOpen(true)} className="font-semibold text-base hover:underline text-left">{selectedCustomer.name}</button>
+                            <p className="text-muted-foreground">{selectedCustomer.address}</p>
+                            <p className="text-muted-foreground">{selectedCustomer.postalCode} {selectedCustomer.city}</p>
+                        </div>
+                    ) : (
+                         <div className="text-center text-muted-foreground py-1">
+                            {selectedCustomer === null && <Label>Client</Label>}
+                            <p>Aucun client sélectionné.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+         <div className="flex items-center gap-2 self-end">
+                 <h3 className="text-lg font-semibold text-muted-foreground">Détails de la pièce</h3>
                  <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -535,9 +532,10 @@ export const CommercialOrderForm = forwardRef<
                         </TooltipContent>
                     </Tooltip>
                  </TooltipProvider>
-            </div>
         </div>
-      <Card className="flex-1 flex flex-col">
+      </div>
+
+      <Card className="flex-1 flex flex-col mt-2">
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
           <Form {...form}>
             <form className="flex-1 flex flex-col h-full">
@@ -689,7 +687,7 @@ export const CommercialOrderForm = forwardRef<
                 </div>
               
               <div className="mt-auto">
-                  <Separator className="my-2"/>
+                  <Separator className="my-1"/>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
                       <div className="space-y-1">
                           <h4 className="font-semibold text-xs">Taux de TVA</h4>
