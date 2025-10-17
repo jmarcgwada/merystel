@@ -593,6 +593,40 @@ export default function ReportsPage() {
         return `/reports/${saleId}?${params.toString()}`;
     }
 
+    const getRowStyle = (sale: Sale) => {
+        if (!isClient) return {};
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice':
+                color = invoiceBgColor;
+                opacity = invoiceBgOpacity;
+                break;
+            case 'quote':
+                color = quoteBgColor;
+                opacity = quoteBgOpacity;
+                break;
+            case 'delivery_note':
+                color = deliveryNoteBgColor;
+                opacity = deliveryNoteBgOpacity;
+                break;
+            case 'supplier_order':
+                color = supplierOrderBgColor;
+                opacity = supplierOrderBgOpacity;
+                break;
+            case 'credit_note':
+                color = creditNoteBgColor;
+                opacity = creditNoteBgOpacity;
+                break;
+        }
+
+        return {
+            backgroundColor: hexToRgba(color, opacity),
+        };
+    };
+
     if (isCashier) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -873,3 +907,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
