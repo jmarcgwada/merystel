@@ -51,6 +51,7 @@ const TAKEAWAY_TABLE: Table = {
   order: [],
   description: 'Pour les ventes à emporter et les commandes rapides.',
   covers: 0,
+  createdAt: new Date(),
 };
 
 interface PosContextType {
@@ -96,7 +97,7 @@ interface PosContextType {
   convertToInvoice: (saleId: string) => void;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken'>, password?: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken' | 'createdAt'>, password?: string) => Promise<void>;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -120,12 +121,12 @@ interface PosContextType {
   toggleCategoryFavorite: (categoryId: string) => void;
   getCategoryColor: (categoryId: string) => string | undefined;
   customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'isDefault'> & {id: string}) => Promise<Customer | null>;
+  addCustomer: (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id'> & {id: string}) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'>) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -298,6 +299,8 @@ interface PosContextType {
   setLastSelectedSaleId: React.Dispatch<React.SetStateAction<string | null>>;
   itemsPerPage: number;
   setItemsPerPage: React.Dispatch<React.SetStateAction<number>>;
+  importLimit: number;
+  setImportLimit: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -429,6 +432,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
   const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -475,6 +479,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
+  
+  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    setOrder((currentOrder) =>
+      currentOrder.filter((item) => item.id !== itemId)
+    );
+  }, []);
 
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
@@ -507,24 +517,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       return newItem;
   }, [setItems]);
 
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'> & {id: string}) => {
-      if (customers.some(c => c.id === customer.id)) {
-          throw new Error('Un client avec ce code existe déjà.');
-      }
-      const newCustomer = { ...customer, isDefault: customers.length === 0, createdAt: new Date() };
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>) => {
+      const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
       setCustomers(prev => [...prev, newCustomer]);
       return newCustomer;
   }, [customers, setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'> & {id: string}) => {
-      if (suppliers.some(s => s.id === supplier.id)) {
-          throw new Error('Un fournisseur avec ce code existe déjà.');
-      }
-      const newSupplier = { ...supplier, id: supplier.id || uuidv4(), createdAt: new Date() };
-      setSuppliers(prev => [...prev, newSupplier]);
-      return newSupplier;
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>) => {
+    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}`, createdAt: new Date() };
+    if (suppliers.some(s => s.id === newSupplier.id)) {
+        throw new Error('Un fournisseur avec ce code existe déjà.');
+    }
+    setSuppliers(prev => [...prev, newSupplier]);
+    return newSupplier;
   }, [suppliers, setSuppliers]);
-
+  
   const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]) => {
     let successCount = 0;
     let errorCount = 0;
@@ -911,12 +918,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale, setItemsPerPage
   ]);
   
-  
-  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    setOrder((currentOrder) =>
-      currentOrder.filter((item) => item.id !== itemId)
-    );
-  }, []);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1637,14 +1638,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, sendNotificationEmail]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const updateUser = useCallback((u: User) => {
+        const updatedUser = { ...u, updatedAt: new Date() };
+        setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user));
+    }, [setUsers]);
+    const deleteUser = useCallback((id: string) => { 
+        setUsers(prev => prev.filter(u => u.id !== id)) 
+    }, [setUsers]);
     const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const findUserByEmail = useCallback(() => undefined, []);
     const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    
+
     const updateCategory = useCallback((category: Category) => {
         const updatedCategory = { ...category, updatedAt: new Date() };
         setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
@@ -1870,6 +1876,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
       sendEmailOnSale, setSendEmailOnSale, lastSelectedSaleId, setLastSelectedSaleId,
       itemsPerPage, setItemsPerPage,
+      importLimit, setImportLimit,
   };
 
   return (
@@ -1886,3 +1893,5 @@ export function usePos() {
   }
   return context;
 }
+
+    

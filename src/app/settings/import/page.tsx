@@ -6,12 +6,12 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -27,17 +27,16 @@ import type { Item, Customer, Supplier } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 
-
-// Define available fields for each data type
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
 const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
 
 const fieldLabels: Record<string, string> = {
   ignore: 'Ignorer cette colonne',
-  id: 'ID / Code',
-  name: 'Nom',
+  id: 'ID / Code *',
+  name: 'Nom *',
   email: 'Email',
   phone: 'Téléphone',
   phone2: 'Téléphone 2',
@@ -48,13 +47,13 @@ const fieldLabels: Record<string, string> = {
   iban: 'IBAN',
   notes: 'Notes',
   isDisabled: 'Désactivé (oui/non)',
-  price: 'Prix de vente',
+  price: 'Prix de vente *',
   purchasePrice: "Prix d'achat",
-  categoryId: 'Nom de la Catégorie',
-  vatId: 'Nom ou Taux de TVA',
+  categoryId: 'Nom de la Catégorie *',
+  vatId: 'Nom ou Taux de TVA *',
   description: 'Description',
   description2: 'Description 2',
-  barcode: 'Code-barres',
+  barcode: 'Code-barres *',
   marginPercentage: 'Marge (%)',
   stock: 'Stock actuel',
   lowStockThreshold: 'Seuil de stock bas',
@@ -64,19 +63,25 @@ const fieldLabels: Record<string, string> = {
   bic: 'BIC / SWIFT',
 };
 
+const requiredFieldsMap: Record<string, string[]> = {
+    clients: ['id', 'name'],
+    articles: ['name', 'price', 'categoryId', 'vatId', 'barcode'],
+    fournisseurs: ['id', 'name'],
+};
+
 
 export default function ImportDataPage() {
   const { toast } = useToast();
-  const { importDataFromJson } = usePos();
+  const { importDataFromJson, importLimit, setImportLimit } = usePos();
   const [activeTab, setActiveTab] = useState('file');
   const [dataType, setDataType] = useState('clients');
-  const [separator, setSeparator] = useState(',');
+  const [separator, setSeparator] = useState(';');
   const [hasHeader, setHasHeader] = useState(true);
   const [fileContent, setFileContent] = useState('');
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [mappings, setMappings] = useState<Record<number, string>>({});
+  const [mappings, setMappings] = useState<Record<string, number | null>>({});
   const [jsonData, setJsonData] = useState<any[] | null>(null);
   const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -90,6 +95,7 @@ export default function ImportDataPage() {
         const text = e.target?.result as string;
         setFileContent(text);
         setJsonData(null); 
+        setMappings({});
         setActiveTab('file'); 
       };
       reader.readAsText(file);
@@ -117,38 +123,36 @@ export default function ImportDataPage() {
   const availableFields = getAvailableFields();
 
   const handleGenerateJson = () => {
-    const requiredFields = dataType === 'clients' ? ['id', 'name']
-                         : dataType === 'articles' ? ['name', 'price', 'categoryId', 'vatId', 'barcode']
-                         : ['id', 'name'];
-
-    const mappedFields = Object.values(mappings);
-    const missingFields = requiredFields.filter(field => !mappedFields.includes(field));
+    const requiredForType = requiredFieldsMap[dataType] || [];
+    const mappedFields = Object.keys(mappings);
+    const missingFields = requiredForType.filter(field => !mappedFields.includes(field));
 
     if (missingFields.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Champs obligatoires manquants',
-        description: `Veuillez mapper les champs suivants: ${missingFields.join(', ')}`,
+        description: `Veuillez mapper les champs suivants: ${missingFields.map(f => fieldLabels[f] || f).join(', ')}`,
       });
       return;
     }
 
     const generated: any[] = [];
-    dataRows.forEach(row => {
+    const rowsToProcess = dataRows.slice(0, importLimit);
+
+    rowsToProcess.forEach(row => {
         const obj: any = {};
-        headerRow.forEach((_, index) => {
-            const field = mappings[index];
-            if (field && field !== 'ignore') {
-                let value: any = row[index] ? row[index].trim() : '';
-                // Basic type conversion
-                if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(field)) {
+        Object.entries(mappings).forEach(([fieldName, columnIndex]) => {
+            if (columnIndex !== null) {
+                let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
+                 if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
                     value = parseFloat(value.replace(',', '.')) || 0;
-                } else if (['isDisabled'].includes(field)) {
+                } else if (['isDisabled'].includes(fieldName)) {
                     value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
                 }
-                obj[field] = value;
+                obj[fieldName] = value;
             }
         });
+
         if (Object.keys(obj).length > 0) {
             generated.push(obj);
         }
@@ -175,7 +179,7 @@ export default function ImportDataPage() {
         toast({
             variant: 'destructive',
             title: `Importation terminée avec ${errorCount} erreur(s)`,
-            description: `Détails : ${errors.join(', ')}`,
+            description: `Détails : ${errors.slice(0, 5).join(', ')}...`,
             duration: 10000,
         });
     } else {
@@ -185,6 +189,8 @@ export default function ImportDataPage() {
         });
     }
   }
+
+  const mappedColumnIndices = useMemo(() => new Set(Object.values(mappings)), [mappings]);
 
   return (
     <>
@@ -231,7 +237,7 @@ export default function ImportDataPage() {
                         </Select>
                     </div>
 
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label htmlFor="separator">Séparateur</Label>
                         <Select value={separator} onValueChange={setSeparator}>
                             <SelectTrigger id="separator">
@@ -245,7 +251,6 @@ export default function ImportDataPage() {
                             </SelectContent>
                         </Select>
                     </div>
-
 
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -313,6 +318,7 @@ export default function ImportDataPage() {
                                 <p>Aucun fichier sélectionné ou fichier vide.</p>
                               </div>
                             )}
+                            <ScrollBar orientation="horizontal" />
                           </ScrollArea>
                            <div className="mt-4 flex justify-end">
                                 <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
@@ -329,34 +335,46 @@ export default function ImportDataPage() {
                 <CardHeader>
                     <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
                     <CardDescription>
-                        Faites correspondre chaque colonne de votre fichier à un champ de l'application. Les champs avec * sont obligatoires.
+                        Faites correspondre chaque champ de l'application à une colonne de votre fichier. Les champs avec * sont obligatoires.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
                     <div className="space-y-4 pr-6">
-                      {headerRow.map((header, index) => (
-                        <div key={index} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
-                          <div className="font-semibold text-sm">
-                              <p>{header}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                  Ex: "{dataRows[0] ? dataRows[0][index] : ''}"
-                              </p>
-                          </div>
-                          <Select value={mappings[index] || 'ignore'} onValueChange={(value) => setMappings(prev => ({...prev, [index]: value}))}>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Choisir un champ..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  {availableFields.map(field => (
-                                      <SelectItem key={field as string} value={field as string}>
-                                          {fieldLabels[field as string] || field}
-                                      </SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
+                      {availableFields.filter(f => f !== 'ignore').map((field) => {
+                        const required = requiredFieldsMap[dataType]?.includes(field as string);
+                        return (
+                            <div key={field as string} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
+                              <Label className="font-semibold text-sm">
+                                {fieldLabels[field as string] || field}
+                                {required && <span className="text-destructive"> *</span>}
+                              </Label>
+                              <Select
+                                value={String(mappings[field as string] ?? 'ignore')}
+                                onValueChange={(value) => setMappings(prev => ({
+                                  ...prev, 
+                                  [field]: value === 'ignore' ? null : Number(value)
+                                }))}
+                              >
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Choisir une colonne..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      <SelectItem value="ignore">Ignorer</SelectItem>
+                                      {headerRow.map((header, index) => (
+                                          <SelectItem 
+                                            key={index} 
+                                            value={String(index)} 
+                                            disabled={mappedColumnIndices.has(index) && mappings[field as string] !== index}
+                                          >
+                                            {header}
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                            </div>
+                        );
+                      })}
                     </div>
                    </ScrollArea>
                    <div className="mt-6 flex justify-between">
@@ -379,6 +397,17 @@ export default function ImportDataPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="mb-4 space-y-2">
+                        <Label htmlFor="import-limit">Nombre de lignes à importer</Label>
+                        <Input 
+                            id="import-limit" 
+                            type="number" 
+                            value={importLimit} 
+                            onChange={(e) => setImportLimit(Number(e.target.value))} 
+                            min={1} 
+                            className="w-48"
+                        />
+                    </div>
                     <ScrollArea className="h-[400px] border rounded-md bg-muted/50 p-4">
                         <pre className="text-xs">{jsonData ? JSON.stringify(jsonData, null, 2) : "Aucune donnée générée."}</pre>
                     </ScrollArea>
@@ -400,10 +429,10 @@ export default function ImportDataPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
-              <p>
+              <div>
                   Vous êtes sur le point d'importer {jsonData?.length || 0} {dataType}.
                   Cette action est irréversible et ajoutera de nouvelles données à votre application.
-              </p>
+              </div>
               <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Attention</AlertTitle>
@@ -426,4 +455,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-
