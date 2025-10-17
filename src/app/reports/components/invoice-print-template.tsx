@@ -123,8 +123,26 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col min-h-screen" style={{ width: '210mm' }}>
-        <div className="p-10 flex-grow">
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm' }}>
+        <style jsx global>{`
+          @media print {
+            html, body {
+              height: initial !important;
+              overflow: initial !important;
+              -webkit-print-color-adjust: exact;
+            }
+            .print-footer {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+            }
+            .print-content {
+              padding-bottom: 80px; /* Adjust this value based on footer height */
+            }
+          }
+        `}</style>
+        <div className="print-content p-10">
             <header className="flex justify-between items-start pb-4 break-inside-avoid">
             <div className="w-1/2 space-y-0.5">
                 <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
@@ -214,7 +232,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             )}
         </div>
       
-        <footer className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
+        <footer className="print-footer p-10 pt-4 text-center text-xs text-gray-500 border-t">
             <div className="pt-2">
                 <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
                 <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
