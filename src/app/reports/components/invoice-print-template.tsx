@@ -123,51 +123,33 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm' }}>
-        <style jsx global>{`
-          @media print {
-            html, body {
-              height: initial !important;
-              overflow: initial !important;
-              -webkit-print-color-adjust: exact;
-            }
-            .print-footer {
-              position: fixed;
-              bottom: 0;
-              left: 0;
-              right: 0;
-            }
-            .print-content {
-              padding-bottom: 80px; /* Adjust this value based on footer height */
-            }
-          }
-        `}</style>
-        <div className="print-content p-10">
-            <header className="flex justify-between items-start pb-4 break-inside-avoid">
-            <div className="w-1/2 space-y-0.5">
-                <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
-                <div className="leading-tight">{companyInfo?.address}</div>
-                <div className="leading-tight">{companyInfo?.postalCode} {companyInfo?.city}</div>
-                <div className="leading-tight">{companyInfo?.phone}</div>
-                <div className="leading-tight">{companyInfo?.email}</div>
-                <div className="leading-tight">{companyInfo?.website}</div>
-            </div>
-            <div className="w-1/2 flex flex-col items-end">
-                <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
-                <p className="font-semibold mt-4">Numéro : {sale.ticketNumber}</p>
-                <p>Date : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
-            </div>
-            </header>
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
+      <div className="print-content p-10 flex-grow">
+        <header className="flex justify-between items-start pb-4">
+          <div className="w-1/2 space-y-0.5">
+            <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
+            <div className="leading-tight">{companyInfo?.address}</div>
+            <div className="leading-tight">{companyInfo?.postalCode} {companyInfo?.city}</div>
+            <div className="leading-tight">{companyInfo?.phone}</div>
+            <div className="leading-tight">{companyInfo?.email}</div>
+            <div className="leading-tight">{companyInfo?.website}</div>
+          </div>
+          <div className="w-1/2 flex flex-col items-end">
+            <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
+            <p className="font-semibold mt-4">Numéro : {sale.ticketNumber}</p>
+            <p>Date : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
+          </div>
+        </header>
 
-            <section className="flex justify-end mt-[-1rem] break-inside-avoid">
-            <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
-                <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
-                <p className="leading-tight">{customer?.address}</p>
-                <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
-            </div>
-            </section>
-
-            <section className="mt-8">
+        <section className="flex justify-end mt-4">
+          <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
+            <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
+            <p className="leading-tight">{customer?.address}</p>
+            <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
+          </div>
+        </section>
+        
+        <section className="mt-8">
             <table className="w-full">
                 <thead>
                     <tr className="bg-gray-800 text-white">
@@ -200,9 +182,9 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     })}
                 </tbody>
             </table>
-            </section>
+        </section>
 
-            <section className="mt-8 flex justify-between items-start break-before-page">
+        <section className="mt-8 flex justify-between items-start break-before-page">
             <div className="w-2/5">
                 <VatBreakdownTable sale={sale} vatRates={vatRates} />
             </div>
@@ -215,29 +197,29 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     </tbody>
                 </table>
             </div>
-            </section>
+        </section>
 
-            {companyInfo?.communicationDoc && (
-            <section className="my-8 break-inside-avoid">
-                <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
-                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        {companyInfo.communicationDoc.startsWith('data:image') ? (
-                        <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                        ) : (
-                        <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
-                        )}
-                    </div>
+        {companyInfo?.communicationDoc && (
+        <section className="my-8 break-inside-avoid">
+            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
+                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {companyInfo.communicationDoc.startsWith('data:image') ? (
+                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
+                    )}
                 </div>
-            </section>
-            )}
-        </div>
-      
-        <footer className="print-footer p-10 pt-4 text-center text-xs text-gray-500 border-t">
-            <div className="pt-2">
-                <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
-                <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
             </div>
-        </footer>
+        </section>
+        )}
+      </div>
+
+      <footer className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
+        <div className="pt-2">
+          <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
+          <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
+        </div>
+      </footer>
     </div>
   );
 });
