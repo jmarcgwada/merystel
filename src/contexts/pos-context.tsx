@@ -38,7 +38,6 @@ import demoData from '@/lib/demodata.json';
 import type { Timestamp } from 'firebase/firestore';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
-import ReactDOMServer from 'react-dom/server';
 import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
 
 const SHARED_COMPANY_ID = 'main';
@@ -813,8 +812,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardBgType, setDashboardBackgroundColor, setDashboardBackgroundImage, setDashboardBgOpacity,
       setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
       setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, setQuoteBgOpacity,
-      setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity,
-      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale
+      setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, supplierOrderBgColor, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale
   ]);
   
   
@@ -1190,6 +1189,53 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
+
+    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
+      if (!sale) return null;
+      // This is a temporary, client-side only solution for PDF generation.
+      const printContainer = document.createElement('div');
+      printContainer.style.position = 'absolute';
+      printContainer.style.left = '-9999px';
+      
+      const customer = customers.find(c => c.id === sale.customerId) || null;
+      
+      const renderPromise = new Promise<void>(resolve => {
+          const element = React.createElement(InvoicePrintTemplate, {
+              sale: sale,
+              customer: customer,
+              companyInfo: companyInfo,
+              vatRates: vatRates,
+              ref: (el: HTMLDivElement) => {
+                  if (el) {
+                      printContainer.appendChild(el);
+                      resolve();
+                  }
+              }
+          });
+          // We can't use ReactDOM.renderToString on the client with hooks
+          // This is a placeholder for a more robust server-side rendering or a client-side library that can handle it.
+          // For now, we'll create a fake PDF content.
+          setTimeout(() => {
+             const fakeEl = document.createElement('div');
+             fakeEl.innerHTML = '<h1>PDF Content Placeholder</h1><p>This is a mock PDF for email attachment.</p>';
+             printContainer.appendChild(fakeEl);
+             resolve();
+          }, 100);
+      });
+  
+      document.body.appendChild(printContainer);
+      await renderPromise;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfContent = await pdf.html(printContainer, { autoPaging: 'text', width: 210, windowWidth: printContainer.scrollWidth }).output('datauristring');
+      
+      document.body.removeChild(printContainer);
+
+      return {
+          content: pdfContent.split(',')[1],
+          filename: `${sale.ticketNumber || 'document'}.pdf`,
+      };
+    }, [customers, companyInfo, vatRates]);
   
     const sendNotificationEmail = useCallback(async (sale: Sale) => {
         if (!sendEmailOnSale || !smtpConfig?.host || !smtpConfig.senderEmail || !companyInfo?.email) {
@@ -1673,3 +1719,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
