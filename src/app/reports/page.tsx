@@ -759,7 +759,7 @@ export default function ReportsPage() {
                         </Popover>
                         <TooltipProvider>
                             <Tooltip>
-                                <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
                                 <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -782,30 +782,27 @@ export default function ReportsPage() {
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <Columns className="mr-2 h-4 w-4" />
-                                    Affichage
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {columns.map(column => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        checked={visibleColumns[column.id]}
-                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                    >
-                                        {column.label}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                <Columns className="mr-2 h-4 w-4" />
+                                Affichage
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columns.map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    checked={visibleColumns[column.id] ?? false}
+                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                >
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                             <ArrowLeft className="h-4 w-4" />
@@ -919,5 +916,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-    
