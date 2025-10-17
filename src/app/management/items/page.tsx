@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -247,7 +247,7 @@ export default function ItemsPage() {
                                 Filtres
                             </Button>
                         </CollapsibleTrigger>
-                         <div className="flex items-center gap-4">
+                         <div className="flex items-center gap-2 flex-wrap justify-end">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="icon">
@@ -269,7 +269,7 @@ export default function ItemsPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                              <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
-                                <SelectTrigger className="w-[220px]">
+                                <SelectTrigger className="w-[220px] h-9">
                                     <SelectValue placeholder="Statut de l'article" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -278,14 +278,14 @@ export default function ItemsPage() {
                                     <SelectItem value="all">Tous les articles</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                            <div className="flex items-center gap-1 shrink-0">
+                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                <div className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center px-1">
                                     Page {currentPage} / {totalPages || 1}
-                                </span>
-                                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                </div>
+                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -293,21 +293,21 @@ export default function ItemsPage() {
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
-                    <CardContent className="flex flex-wrap items-center gap-4 pt-0">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 pt-0">
                         <Input
                             placeholder="Filtrer par nom..."
                             value={filterName}
                             onChange={(e) => { setFilterName(e.target.value); setCurrentPage(1); }}
-                            className="max-w-sm"
+                            className="h-9"
                         />
                         <Input
                             placeholder="Filtrer par catégorie..."
                             value={filterCategoryName}
                             onChange={(e) => { setFilterCategoryName(e.target.value); setCurrentPage(1); }}
-                            className="max-w-sm"
+                            className="h-9"
                         />
                         <Select value={filterVatId} onValueChange={(value) => { setFilterVatId(value); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full h-9">
                                 <SelectValue placeholder="Taux de TVA" />
                             </SelectTrigger>
                             <SelectContent>
@@ -320,7 +320,7 @@ export default function ItemsPage() {
                             </SelectContent>
                         </Select>
                         <Select value={filterRequiresSerialNumber} onValueChange={(value) => { setFilterRequiresSerialNumber(value); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full h-9">
                                 <SelectValue placeholder="Numéro de série" />
                             </SelectTrigger>
                             <SelectContent>
@@ -330,7 +330,7 @@ export default function ItemsPage() {
                             </SelectContent>
                         </Select>
                         <Select value={filterHasVariants} onValueChange={(value) => { setFilterHasVariants(value); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full h-9">
                                 <SelectValue placeholder="Déclinaisons" />
                             </SelectTrigger>
                             <SelectContent>
