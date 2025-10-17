@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -23,6 +24,20 @@ import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/ai/flows/send-email-flow';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Dialog, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -110,6 +125,8 @@ function SaleDetailContent() {
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isConfirmEmailOpen, setConfirmEmailOpen] = useState(false);
+  const [emailToSend, setEmailToSend] = useState('');
 
   const [sale, setSale] = useState<Sale | null>(null);
 
@@ -264,6 +281,54 @@ function SaleDetailContent() {
     return `/reports/${id}?${params.toString()}`;
   };
 
+  const handleOpenEmailDialog = () => {
+    if (!sale) return;
+    const customer = customers?.find(c => c.id === sale.customerId);
+    setEmailToSend(customer?.email || '');
+    setConfirmEmailOpen(true);
+  };
+  
+  const handleConfirmSendEmail = async () => {
+    if (!sale || !smtpConfig?.senderEmail) {
+        toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
+        return;
+    }
+    if (!emailToSend) {
+        toast({ variant: 'destructive', title: "E-mail du client manquant", description: "Veuillez saisir une adresse e-mail." });
+        return;
+    }
+    setConfirmEmailOpen(false);
+    setIsSendingEmail(true);
+    toast({ title: 'Envoi en cours...' });
+
+    const pdfData = await generatePdfForEmail();
+    if (!pdfData) {
+        setIsSendingEmail(false);
+        return;
+    }
+
+    const emailResult = await sendEmail({
+        smtpConfig: {
+            host: smtpConfig.host!, port: smtpConfig.port!, secure: smtpConfig.secure || false,
+            auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+            senderEmail: smtpConfig.senderEmail!,
+        },
+        to: emailToSend, cc: smtpConfig.senderEmail,
+        subject: `Votre document #${sale.ticketNumber}`,
+        text: `Veuillez trouver ci-joint votre document #${sale.ticketNumber}.`,
+        html: `<p>Veuillez trouver ci-joint votre document #${sale.ticketNumber}.</p>`,
+        attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
+    });
+
+    toast({
+        variant: emailResult.success ? 'default' : 'destructive',
+        title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
+        description: emailResult.message,
+    });
+
+    setIsSendingEmail(false);
+  };
+
   const generatePdfForEmail = useCallback(async (): Promise<{ content: string; filename: string } | null> => {
     if (!printRef.current || !sale) {
         toast({ variant: 'destructive', title: "Erreur de génération" });
@@ -276,49 +341,6 @@ function SaleDetailContent() {
         filename: `${sale.ticketNumber || 'document'}.pdf`,
     };
   }, [sale, toast]);
-
-  const handleSendEmail = useCallback(async () => {
-      if (!sale || !smtpConfig?.senderEmail) {
-          toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
-          return;
-      }
-      const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
-      if (!customer?.email) {
-          toast({ variant: 'destructive', title: 'E-mail du client manquant' });
-          return;
-      }
-      
-      setIsSendingEmail(true);
-      toast({ title: 'Envoi en cours...' });
-
-      const pdfData = await generatePdfForEmail();
-      if (!pdfData) {
-          setIsSendingEmail(false);
-          return;
-      }
-
-      const emailResult = await sendEmail({
-          smtpConfig: {
-              host: smtpConfig.host!, port: smtpConfig.port!, secure: smtpConfig.secure || false,
-              auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
-              senderEmail: smtpConfig.senderEmail!,
-          },
-          to: customer.email, cc: smtpConfig.senderEmail,
-          subject: `Votre document #${sale.ticketNumber}`,
-          text: `Veuillez trouver ci-joint votre document #${sale.ticketNumber}.`,
-          html: `<p>Veuillez trouver ci-joint votre document #${sale.ticketNumber}.</p>`,
-          attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
-      });
-
-      toast({
-          variant: emailResult.success ? 'default' : 'destructive',
-          title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
-          description: emailResult.message,
-      });
-
-      setIsSendingEmail(false);
-  }, [sale, smtpConfig, customers, toast, generatePdfForEmail]);
-
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -429,7 +451,7 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
-            <Button onClick={handleSendEmail} variant="outline" disabled={isSendingEmail}>
+            <Button onClick={handleOpenEmailDialog} variant="outline" disabled={isSendingEmail}>
                 <Send className="mr-2 h-4 w-4" />
                 {isSendingEmail ? 'Envoi...' : 'Envoyer par E-mail'}
             </Button>
@@ -600,6 +622,32 @@ function SaleDetailContent() {
           )}
         </div>
       </div>
+       <AlertDialog open={isConfirmEmailOpen} onOpenChange={setConfirmEmailOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'envoi par e-mail</AlertDialogTitle>
+            <AlertDialogDescription>
+              Veuillez vérifier et, si nécessaire, corriger l'adresse e-mail du destinataire avant d'envoyer le document.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="email-confirm">Adresse e-mail du client</Label>
+            <Input
+              id="email-confirm"
+              type="email"
+              value={emailToSend}
+              onChange={(e) => setEmailToSend(e.target.value)}
+              placeholder="Saisir l'e-mail du client..."
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSendEmail}>
+              <Send className="mr-2 h-4 w-4" /> Envoyer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
