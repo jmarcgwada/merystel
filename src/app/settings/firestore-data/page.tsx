@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -31,6 +30,7 @@ import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
+import { SelectiveResetDialog } from './components/selective-reset-dialog';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -46,7 +46,6 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 export default function FirestoreDataPage() {
   const { user, loading: userLoading } = useUser();
   const { 
-      resetAllData, 
       exportConfiguration, 
       ftpConfig,
       smtpConfig,
@@ -55,7 +54,6 @@ export default function FirestoreDataPage() {
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
-  const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
   
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
@@ -117,17 +115,6 @@ export default function FirestoreDataPage() {
     setPin(prev => prev.slice(0, -1));
   };
 
-
-  const handleResetData = () => {
-    resetAllData();
-    setResetDialogOpen(false);
-  }
-
-  const handleDeleteSales = () => {
-    deleteAllSales();
-    setDeleteSalesDialogOpen(false);
-  };
-  
   const handleDownload = () => {
     const jsonString = exportConfiguration();
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -334,57 +321,17 @@ export default function FirestoreDataPage() {
                                 Ces actions suppriment définitivement des données. Soyez certain avant de continuer.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex flex-col sm:flex-row gap-4">
-                            <AlertDialog open={isDeleteSalesDialogOpen} onOpenChange={setDeleteSalesDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="bg-orange-600 hover:bg-orange-700">
-                                        <History className="mr-2 h-4 w-4" />
-                                        Supprimer toutes les ventes
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteSales} className="bg-destructive hover:bg-destructive/90">
-                                            Oui, supprimer les ventes
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-
-                            <AlertDialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Réinitialiser l'application
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible. Toutes vos données (ventes, articles, clients, etc.) seront supprimées de la base de données.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
-                                            Oui, tout supprimer
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                        <CardContent>
+                          <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Réinitialiser les données
+                          </Button>
                         </CardContent>
                     </Card>
                 </div>
             </div>
        <PromptViewer isOpen={isPromptViewerOpen} onClose={() => setPromptViewerOpen(false)} />
+       <SelectiveResetDialog isOpen={isResetDialogOpen} onClose={() => setResetDialogOpen(false)} />
     </>
   );
 }

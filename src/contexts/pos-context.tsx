@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -54,7 +53,19 @@ const TAKEAWAY_TABLE: Table = {
   createdAt: new Date(),
 };
 
-interface PosContextType {
+export type DeletableDataKeys = 
+  | 'items' 
+  | 'categories' 
+  | 'customers' 
+  | 'suppliers' 
+  | 'tables' 
+  | 'sales' 
+  | 'paymentMethods' 
+  | 'vatRates' 
+  | 'heldOrders' 
+  | 'auditLogs';
+
+export interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   systemDate: Date;
@@ -97,7 +108,7 @@ interface PosContextType {
   convertToInvoice: (saleId: string) => void;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId' | 'sessionToken' | 'createdAt'>, password?: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string) => Promise<void>;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -108,14 +119,14 @@ interface PosContextType {
   sessionInvalidated: boolean;
   setSessionInvalidated: React.Dispatch<React.SetStateAction<boolean>>;
   items: Item[];
-  addItem: (item: Omit<Item, 'id'>) => Promise<Item | null>;
+  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Item | null>;
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
   toggleFavoriteForList: (itemIds: string[], setFavorite: boolean) => void;
   popularItems: Item[];
   categories: Category[];
-  addCategory: (category: Omit<Category, 'id'>) => Promise<Category | null>;
+  addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Category | null>;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => void;
   toggleCategoryFavorite: (categoryId: string) => void;
@@ -154,11 +165,11 @@ interface PosContextType {
   ) => void,
   deleteAllSales: () => Promise<void>;
   paymentMethods: PaymentMethod[];
-  addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
+  addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updatePaymentMethod: (method: PaymentMethod) => void;
   deletePaymentMethod: (methodId: string) => void;
   vatRates: VatRate[];
-  addVatRate: (vatRate: Omit<VatRate, 'id' | 'code'>) => void;
+  addVatRate: (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => void;
   updateVatRate: (vatRate: VatRate) => void;
   deleteVatRate: (vatRateId: string) => void;
   heldOrders: HeldOrder[] | null;
@@ -171,7 +182,7 @@ interface PosContextType {
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
   seedInitialData: () => void;
-  resetAllData: () => Promise<void>;
+  selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
   importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number, errorCount: number, errors: string[] }>;
@@ -309,33 +320,11 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
 
-    const rehydrate = useCallback(() => {
+    useEffect(() => {
         try {
             const storedValue = localStorage.getItem(key);
-            if (storedValue && storedValue !== 'undefined') {
-                const parsedValue = JSON.parse(storedValue);
-                // Recursively convert date strings to Date objects
-                const reviveDates = (obj: any): any => {
-                    if (typeof obj === 'string') {
-                        // This regex is a simple check for ISO-like date strings
-                        const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
-                        if (isoDateRegex.test(obj)) {
-                            const date = new Date(obj);
-                            if (!isNaN(date.getTime())) {
-                                return date;
-                            }
-                        }
-                    } else if (Array.isArray(obj)) {
-                        return obj.map(item => reviveDates(item));
-                    } else if (typeof obj === 'object' && obj !== null) {
-                        return Object.entries(obj).reduce((acc, [k, v]) => {
-                            (acc as any)[k] = reviveDates(v);
-                            return acc;
-                        }, {} as { [key: string]: any });
-                    }
-                    return obj;
-                };
-                setState(reviveDates(parsedValue));
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
             }
         } catch (error) {
             console.error("Error reading localStorage key " + key + ":", error);
@@ -344,26 +333,29 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     }, [key]);
 
     useEffect(() => {
-        rehydrate();
-    }, [rehydrate]);
-
-    useEffect(() => {
         if (isHydrated) {
             try {
-                if (state === undefined) {
-                    localStorage.removeItem(key);
-                } else {
-                    localStorage.setItem(key, JSON.stringify(state));
-                }
+                localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
                 console.error("Error setting localStorage key " + key + ":", error);
             }
         }
     }, [key, state, isHydrated]);
 
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
 
     return [state, setState, rehydrate];
 }
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -480,12 +472,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
   
-  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    setOrder((currentOrder) =>
-      currentOrder.filter((item) => item.id !== itemId)
-    );
-  }, []);
-
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
     const newLog: AuditLog = {
@@ -505,26 +491,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSelectedTable(null);
   }, [readOnlyOrder]);
   
-  const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
+  const addCategory = useCallback(async (category: Omit<Category, 'id'| 'createdAt' | 'updatedAt'>): Promise<Category | null> => {
       const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
   }, [setCategories]);
 
-  const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
+  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>): Promise<Item | null> => {
       const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
       setItems(prev => [newItem, ...prev]);
       return newItem;
   }, [setItems]);
 
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>) => {
-      const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>): Promise<Customer | null> => {
+    const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
+    if (customers.some(c => c.id === newCustomer.id)) {
+        throw new Error('Un client avec ce code existe déjà.');
+    }
       setCustomers(prev => [...prev, newCustomer]);
       return newCustomer;
   }, [customers, setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>) => {
-    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}`, createdAt: new Date() };
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>): Promise<Supplier | null> => {
+    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}` , createdAt: new Date()};
     if (suppliers.some(s => s.id === newSupplier.id)) {
         throw new Error('Un fournisseur avec ce code existe déjà.');
     }
@@ -691,27 +680,49 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
   }, [setSuppliers, toast]);
+  
+  const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
+    const dataMap: Record<DeletableDataKeys, React.Dispatch<React.SetStateAction<any[]>>> = {
+      items: setItems,
+      categories: setCategories,
+      customers: setCustomers,
+      suppliers: setSuppliers,
+      tables: setTablesData,
+      sales: setSales,
+      paymentMethods: setPaymentMethods,
+      vatRates: setVatRates,
+      heldOrders: setHeldOrders,
+      auditLogs: setAuditLogs,
+    };
 
-  const resetAllData = useCallback(async () => {
-    setItems([]);
-    setCategories([]);
-    setCustomers([]);
-    setSuppliers([]);
-    setTablesData([]);
-    setSales([]);
-    setHeldOrders([]);
-    setAuditLogs([]);
-    setPaymentMethods([]);
-    setVatRates([]);
-    setCompanyInfo(null);
-    localStorage.removeItem('data.seeded');
-    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
-    setTimeout(() => {
-      seedInitialData();
-      importDemoData();
-      localStorage.setItem('data.seeded', 'true');
-    }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
+    const resetLabels: Record<DeletableDataKeys, string> = {
+      items: 'Articles',
+      categories: 'Catégories',
+      customers: 'Clients',
+      suppliers: 'Fournisseurs',
+      tables: 'Tables',
+      sales: 'Ventes',
+      paymentMethods: 'Moyens de paiement',
+      vatRates: 'TVA',
+      heldOrders: 'Tickets en attente',
+      auditLogs: 'Logs d\'audit',
+    };
+
+    const deleted: string[] = [];
+
+    (Object.keys(dataToReset) as DeletableDataKeys[]).forEach(key => {
+      if (dataToReset[key] && dataMap[key]) {
+        dataMap[key]([]);
+        deleted.push(resetLabels[key]);
+      }
+    });
+
+    if (deleted.length > 0) {
+      toast({ title: 'Données supprimées', description: `Les données suivantes ont été effacées : ${deleted.join(', ')}.` });
+    } else {
+      toast({ title: 'Aucune donnée sélectionnée', variant: 'destructive' });
+    }
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, setPaymentMethods, setVatRates, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -919,6 +930,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   ]);
   
   
+  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    setOrder((currentOrder) =>
+      currentOrder.filter((item) => item.id !== itemId)
+    );
+  }, []);
+  
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
       const existingItemIndex = currentOrder.findIndex(i => 'id' in item && i.id === item.id);
@@ -966,7 +983,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: 'Article désactivé',
-            description: "Cet article ne peut pas être vendu.",
+            description: 'Cet article ne peut pas être vendu.',
         });
         return;
       }
@@ -1094,7 +1111,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         })
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items]
+    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -1280,8 +1297,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tablesData, setTablesData]);
 
     const updateTable = useCallback((table: Table) => {
-      const updatedTable = { ...table, updatedAt: new Date() };
-      setTablesData(prev => prev.map(t => t.id === table.id ? updatedTable : t));
+        const updatedTable = { ...table, updatedAt: new Date() };
+        setTablesData(prev => prev.map(t => t.id === table.id ? updatedTable : t));
     }, [setTablesData]);
 
     const deleteTable = useCallback((tableId: string) => {
@@ -1651,6 +1668,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
+    
     const updateCategory = useCallback((category: Category) => {
         const updatedCategory = { ...category, updatedAt: new Date() };
         setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
@@ -1704,7 +1722,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setSuppliers]);
 
     
-    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
+    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>) => {
         setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
     }, [setPaymentMethods]);
     const updatePaymentMethod = useCallback((method: PaymentMethod) => {
@@ -1716,7 +1734,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setPaymentMethods]);
 
     
-    const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
+    const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => {
         const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
         setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
     }, [vatRates, setVatRates]);
@@ -1851,7 +1869,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
       auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, selectivelyResetData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
@@ -1893,5 +1911,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
