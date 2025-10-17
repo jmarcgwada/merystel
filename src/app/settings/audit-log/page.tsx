@@ -23,10 +23,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const ITEMS_PER_PAGE = 20;
 
-const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined }) => {
+const ClientFormattedDate = ({ date }: { date: Date | Timestamp | string | undefined }) => {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
@@ -38,7 +39,7 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined }) =
         let jsDate: Date;
         if (date instanceof Date) {
             jsDate = date;
-        } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
+        } else if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') {
             jsDate = (date as Timestamp).toDate();
         } else {
             jsDate = new Date(date as any);
@@ -64,6 +65,7 @@ export default function AuditLogPage() {
     const [filterDocNumber, setFilterDocNumber] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isFiltersOpen, setFiltersOpen] = useState(false);
+    const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
     
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -79,7 +81,7 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = new Date(log.date as any);
+            const logDate = log.date instanceof Date ? log.date : new Date(log.date as string);
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
@@ -108,6 +110,10 @@ export default function AuditLogPage() {
         setDateRange(undefined);
         setCurrentPage(1);
     }
+    
+    const toggleCollapsible = (id: string) => {
+        setOpenCollapsibles(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     return (
         <>
@@ -176,6 +182,7 @@ export default function AuditLogPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Utilisateur</TableHead>
                                     <TableHead>Action</TableHead>
@@ -186,33 +193,48 @@ export default function AuditLogPage() {
                             <TableBody>
                                 {isLoading ? Array.from({ length: 10 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        <TableCell colSpan={5}><Skeleton className="h-6 w-full" /></TableCell>
+                                        <TableCell colSpan={6}><Skeleton className="h-6 w-full" /></TableCell>
                                     </TableRow>
                                 )) : null}
                                 {!isLoading && paginatedLogs.map(log => (
-                                    <TableRow key={log.id}>
-                                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={log.date} /></TableCell>
-                                        <TableCell className="font-medium">{log.userName}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={
-                                                log.action === 'create' ? 'default' :
-                                                log.action === 'transform' ? 'secondary' :
-                                                log.action === 'delete' ? 'destructive' :
-                                                'outline'
-                                            } className="capitalize">{log.action}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Link href={`/reports/${log.documentId}?from=audit-log`} className="text-blue-600 hover:underline">
-                                                {log.documentNumber}
-                                            </Link>
-                                            <span className="text-xs text-muted-foreground ml-2">({log.documentType})</span>
-                                        </TableCell>
-                                        <TableCell>{log.details}</TableCell>
-                                    </TableRow>
+                                    <React.Fragment key={log.id}>
+                                        <TableRow className="cursor-pointer" onClick={() => toggleCollapsible(log.id)}>
+                                            <TableCell>
+                                                <ChevronDown className={cn("h-4 w-4 transition-transform", openCollapsibles[log.id] && "rotate-180")} />
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={log.date} /></TableCell>
+                                            <TableCell className="font-medium">{log.userName}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={
+                                                    log.action === 'create' ? 'default' :
+                                                    log.action === 'transform' ? 'secondary' :
+                                                    log.action === 'delete' ? 'destructive' :
+                                                    'outline'
+                                                } className="capitalize">{log.action}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link href={`/reports/${log.documentId}?from=audit-log`} className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                                                    {log.documentNumber}
+                                                </Link>
+                                                <span className="text-xs text-muted-foreground ml-2">({log.documentType})</span>
+                                            </TableCell>
+                                            <TableCell>{log.details}</TableCell>
+                                        </TableRow>
+                                        {openCollapsibles[log.id] && log.richDetails && (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="p-0">
+                                                    <div className="bg-secondary/50 p-4 pl-16 text-sm">
+                                                        <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(log.richDetails, null, 2)}</pre>
+                                                    </div>
+                                                    <Separator />
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </React.Fragment>
                                 ))}
                                 {!isLoading && paginatedLogs.length === 0 && (
                                      <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                             Aucun historique à afficher pour les filtres sélectionnés.
                                         </TableCell>
                                     </TableRow>

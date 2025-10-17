@@ -39,6 +39,8 @@ import type { Timestamp } from 'firebase/firestore';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
+import isEqual from 'lodash.isequal';
+
 
 const SHARED_COMPANY_ID = 'main';
 
@@ -1289,6 +1291,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 date: existingSale.date, 
                 modifiedAt: today, 
             };
+            
+            const details: string[] = [];
+            if (!isEqual(existingSale.items, finalSale.items)) details.push("Articles modifiés");
+            if (existingSale.total !== finalSale.total) details.push(`Montant changé (${existingSale.total.toFixed(2)}€ -> ${finalSale.total.toFixed(2)}€)`);
+            if (existingSale.customerId !== finalSale.customerId) {
+                const oldCustomer = customers.find(c => c.id === existingSale.customerId)?.name || 'N/A';
+                const newCustomer = customers.find(c => c.id === finalSale.customerId)?.name || 'N/A';
+                details.push(`Client changé (${oldCustomer} -> ${newCustomer})`);
+            }
+             (saleData.payments || []).filter(p => !(existingSale.payments || []).some(ep => ep.amount === p.amount && ep.method.id === p.method.id))
+                .forEach(p => details.push(`Paiement ajouté: ${p.method.name} ${p.amount.toFixed(2)}€`));
+
+
              addAuditLog({
                 userId: user?.id,
                 userName: `${user?.firstName} ${user?.lastName}`,
@@ -1296,7 +1311,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: `Pièce modifiée, total: ${finalSale.total.toFixed(2)}€`
+                details: details.join(', ') || 'Pièce mise à jour sans changement majeur.'
             });
         } else {
             const dayMonth = format(today, 'ddMM');
@@ -1393,7 +1408,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
         sendNotificationEmail(finalSale);
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, items, setItems, sendNotificationEmail]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, items, setItems, sendNotificationEmail, customers]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
