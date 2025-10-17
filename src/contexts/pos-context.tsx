@@ -36,6 +36,10 @@ import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
 import type { Timestamp } from 'firebase/firestore';
+import { sendEmail } from '@/ai/flows/send-email-flow';
+import jsPDF from 'jspdf';
+import ReactDOMServer from 'react-dom/server';
+import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
 
 const SHARED_COMPANY_ID = 'main';
 
@@ -1182,6 +1186,73 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
+    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
+        const customerForSale = customers?.find(c => c.id === sale.customerId) || null;
+        
+        // This is a bit of a hack: render the component to a string on the server, then create a PDF.
+        // In a real app, you might use a dedicated PDF library or a server-side rendering service.
+        const printComponent = React.createElement(InvoicePrintTemplate, {
+            sale,
+            customer: customerForSale,
+            companyInfo,
+            vatRates: vatRates || [],
+        });
+        const htmlString = ReactDOMServer.renderToString(printComponent);
+
+        // We can't use browser-only `jsPDF` here. We will create a simplified HTML structure for the email.
+        // For a real PDF, we'd need a server-side PDF generation library.
+        // For now, let's fake the PDF generation for the email flow.
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const tempElement = document.createElement('div');
+        tempElement.innerHTML = htmlString;
+        document.body.appendChild(tempElement);
+        
+        const pdfContent = await pdf.html(tempElement, { autoPaging: 'text', width: 210, windowWidth: tempElement.scrollWidth }).output('datauristring');
+        document.body.removeChild(tempElement);
+        
+        return {
+            content: pdfContent.split(',')[1],
+            filename: `${sale.ticketNumber || 'document'}.pdf`,
+        };
+    }, [customers, companyInfo, vatRates]);
+
+
+    const sendNotificationEmail = useCallback(async (sale: Sale) => {
+        if (!smtpConfig?.host || !smtpConfig.senderEmail || !companyInfo?.email) {
+            console.warn("SMTP or company email not configured. Skipping notification.");
+            return;
+        }
+
+        try {
+            const pdfData = await generatePdfForEmail(sale);
+            if (!pdfData) return;
+            
+            const pieceType = sale.documentType === 'invoice' ? 'Facture' : sale.documentType === 'quote' ? 'Devis' : sale.documentType === 'delivery_note' ? 'BL' : 'Ticket';
+            
+            const emailResult = await sendEmail({
+                smtpConfig: {
+                    host: smtpConfig.host, port: smtpConfig.port!, secure: smtpConfig.secure || false,
+                    auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+                    senderEmail: smtpConfig.senderEmail,
+                },
+                to: companyInfo.email,
+                subject: `Nouvelle pièce créée: ${pieceType} #${sale.ticketNumber}`,
+                text: `Une nouvelle pièce (${pieceType} #${sale.ticketNumber}) d'un montant de ${sale.total.toFixed(2)}€ a été créée.`,
+                html: `<p>Une nouvelle pièce (<b>${pieceType} #${sale.ticketNumber}</b>) d'un montant de <b>${sale.total.toFixed(2)}€</b> a été créée.</p>`,
+                attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
+            });
+
+            if (!emailResult.success) {
+                console.error("Failed to send notification email:", emailResult.message);
+                 toast({ variant: 'destructive', title: 'Erreur de notification', description: "Impossible d'envoyer l'e-mail de notification."});
+            }
+
+        } catch (error) {
+            console.error("Error sending notification email:", error);
+        }
+    }, [smtpConfig, companyInfo, toast, generatePdfForEmail]);
+
+
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
         let finalSale: Sale;
@@ -1193,7 +1264,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date, // Preserve original date on update
+                date: existingSale.date, 
                 modifiedAt: today, 
             };
              addAuditLog({
@@ -1298,8 +1369,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
            setSales(prev => [finalSale, ...prev]);
         }
     
+        sendNotificationEmail(finalSale);
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, items, setItems]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, items, setItems, sendNotificationEmail]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
@@ -1357,6 +1429,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'validé' : 'enregistré') });
         clearOrder();
+        
+        sendNotificationEmail(finalDoc);
 
         const reportPath = type === 'quote' ? '/reports?filter=Devis-'
                         : type === 'delivery_note' ? '/reports?filter=BL-'
@@ -1364,7 +1438,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : type === 'credit_note' ? '/reports?filter=Avoir-'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, sendNotificationEmail]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
