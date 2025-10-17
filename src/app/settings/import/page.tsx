@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,11 +22,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Item, Customer, Supplier } from '@/lib/types';
+import type { Item, Customer, Supplier, MappingTemplate } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
 const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
@@ -69,10 +71,11 @@ const requiredFieldsMap: Record<string, string[]> = {
     fournisseurs: ['id', 'name'],
 };
 
+type MappingMode = 'column' | 'fixed';
 
 export default function ImportDataPage() {
   const { toast } = useToast();
-  const { importDataFromJson, importLimit, setImportLimit } = usePos();
+  const { importDataFromJson, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate } = usePos();
   const [activeTab, setActiveTab] = useState('file');
   const [dataType, setDataType] = useState('clients');
   const [separator, setSeparator] = useState(';');
@@ -82,9 +85,15 @@ export default function ImportDataPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [mappings, setMappings] = useState<Record<string, number | null>>({});
+  const [mappingModes, setMappingModes] = useState<Record<string, MappingMode>>({});
+  const [fixedValues, setFixedValues] = useState<Record<string, string>>({});
+  
   const [jsonData, setJsonData] = useState<any[] | null>(null);
   const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  
+  const [templateName, setTemplateName] = useState('');
+  const [isTemplatePopoverOpen, setTemplatePopoverOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -96,6 +105,8 @@ export default function ImportDataPage() {
         setFileContent(text);
         setJsonData(null); 
         setMappings({});
+        setMappingModes({});
+        setFixedValues({});
         setActiveTab('file'); 
       };
       reader.readAsText(file);
@@ -124,7 +135,10 @@ export default function ImportDataPage() {
 
   const handleGenerateJson = () => {
     const requiredForType = requiredFieldsMap[dataType] || [];
-    const mappedFields = Object.keys(mappings);
+    
+    const mappedFields = Object.keys(mappings).filter(key => mappings[key] !== null)
+                           .concat(Object.keys(fixedValues).filter(key => fixedValues[key] !== ''));
+
     const missingFields = requiredForType.filter(field => !mappedFields.includes(field));
 
     if (missingFields.length > 0) {
@@ -141,16 +155,30 @@ export default function ImportDataPage() {
 
     rowsToProcess.forEach(row => {
         const obj: any = {};
-        Object.entries(mappings).forEach(([fieldName, columnIndex]) => {
-            if (columnIndex !== null) {
-                let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                 if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
-                    value = parseFloat(value.replace(',', '.')) || 0;
-                } else if (['isDisabled'].includes(fieldName)) {
-                    value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
-                }
-                obj[fieldName] = value;
-            }
+        availableFields.forEach(fieldName => {
+          if(fieldName === 'ignore') return;
+
+          const mode = mappingModes[fieldName] || 'column';
+          if (mode === 'fixed') {
+              let value = fixedValues[fieldName] || '';
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
+                  value = parseFloat(value.replace(',', '.')) as any || 0;
+              } else if (['isDisabled'].includes(fieldName)) {
+                  value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
+              }
+              obj[fieldName] = value;
+          } else {
+              const columnIndex = mappings[fieldName];
+              if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
+                  let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
+                      value = parseFloat(value.replace(',', '.')) || 0;
+                  } else if (['isDisabled'].includes(fieldName)) {
+                      value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
+                  }
+                  obj[fieldName] = value;
+              }
+          }
         });
 
         if (Object.keys(obj).length > 0) {
@@ -191,6 +219,45 @@ export default function ImportDataPage() {
   }
 
   const mappedColumnIndices = useMemo(() => new Set(Object.values(mappings)), [mappings]);
+
+  const toggleMappingMode = (field: string) => {
+    setMappingModes(prev => ({
+      ...prev,
+      [field]: (prev[field] === 'fixed' ? 'column' : 'fixed')
+    }));
+    // Clear mappings when switching modes to avoid conflicts
+    setMappings(prev => ({ ...prev, [field]: null }));
+    setFixedValues(prev => ({ ...prev, [field]: '' }));
+  };
+  
+  const handleSaveTemplate = () => {
+      if(!templateName) {
+          toast({ variant: "destructive", title: "Nom du modèle requis" });
+          return;
+      }
+      const newTemplate: MappingTemplate = {
+          name: templateName,
+          dataType,
+          mappings,
+          mappingModes,
+          fixedValues,
+      };
+      addMappingTemplate(newTemplate);
+      setTemplateName('');
+      setTemplatePopoverOpen(false);
+  };
+
+  const applyTemplate = (template: MappingTemplate) => {
+      if(template.dataType !== dataType) {
+          toast({ variant: 'destructive', title: 'Type de données incorrect', description: `Ce modèle est pour le type "${template.dataType}".`});
+          return;
+      }
+      setMappings(template.mappings || {});
+      setMappingModes(template.mappingModes || {});
+      setFixedValues(template.fixedValues || {});
+      toast({ title: 'Modèle appliqué !'});
+  };
+
 
   return (
     <>
@@ -339,39 +406,104 @@ export default function ImportDataPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="flex items-center gap-4 mb-6 p-4 border rounded-lg">
+                        <Label>Modèles</Label>
+                        <Popover open={isTemplatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-[200px] justify-between">
+                                Appliquer un modèle
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[200px] p-0" align="start">
+                                <Command>
+                                <CommandList>
+                                    <CommandEmpty>Aucun modèle.</CommandEmpty>
+                                    <CommandGroup>
+                                    {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                        <CommandItem key={template.name} onSelect={() => { applyTemplate(template); setTemplatePopoverOpen(false); }}>
+                                            {template.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <div className="flex items-center gap-2">
+                            <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} />
+                            <Button onClick={handleSaveTemplate}><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
+                        </div>
+                        {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[200px] p-0" align="start">
+                                <Command>
+                                <CommandList>
+                                    <CommandEmpty>Aucun modèle.</CommandEmpty>
+                                    <CommandGroup>
+                                    {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                        <CommandItem key={template.name} onSelect={() => deleteMappingTemplate(template.name)}>
+                                            Supprimer: {template.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                            </Popover>
+                        )}
+                    </div>
+
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
                     <div className="space-y-4 pr-6">
                       {availableFields.filter(f => f !== 'ignore').map((field) => {
                         const required = requiredFieldsMap[dataType]?.includes(field as string);
+                        const currentMode = mappingModes[field] || 'column';
                         return (
                             <div key={field as string} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
-                              <Label className="font-semibold text-sm">
-                                {fieldLabels[field as string] || field}
-                                {required && <span className="text-destructive"> *</span>}
-                              </Label>
-                              <Select
-                                value={String(mappings[field as string] ?? 'ignore')}
-                                onValueChange={(value) => setMappings(prev => ({
-                                  ...prev, 
-                                  [field]: value === 'ignore' ? null : Number(value)
-                                }))}
-                              >
-                                  <SelectTrigger>
-                                      <SelectValue placeholder="Choisir une colonne..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                      <SelectItem value="ignore">Ignorer</SelectItem>
-                                      {headerRow.map((header, index) => (
-                                          <SelectItem 
-                                            key={index} 
-                                            value={String(index)} 
-                                            disabled={mappedColumnIndices.has(index) && mappings[field as string] !== index}
-                                          >
-                                            {header}
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
+                                <div className="flex items-center gap-2">
+                                  <Button variant="ghost" size="icon" onClick={() => toggleMappingMode(field as string)}>
+                                    <Type className="h-4 w-4" />
+                                  </Button>
+                                  <Label className="font-semibold text-sm">
+                                    {fieldLabels[field as string] || field}
+                                    {required && <span className="text-destructive"> *</span>}
+                                  </Label>
+                                </div>
+                                {currentMode === 'column' ? (
+                                  <Select
+                                    value={String(mappings[field as string] ?? 'ignore')}
+                                    onValueChange={(value) => setMappings(prev => ({
+                                      ...prev, 
+                                      [field]: value === 'ignore' ? null : Number(value)
+                                    }))}
+                                  >
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Choisir une colonne..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          <SelectItem value="ignore">Ignorer</SelectItem>
+                                          {headerRow.map((header, index) => (
+                                              <SelectItem 
+                                                key={index} 
+                                                value={String(index)} 
+                                                disabled={mappedColumnIndices.has(index) && mappings[field as string] !== index}
+                                              >
+                                                {header}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input 
+                                    placeholder="Saisir la valeur fixe..."
+                                    value={fixedValues[field as string] || ''}
+                                    onChange={e => setFixedValues(prev => ({...prev, [field as string]: e.target.value}))}
+                                  />
+                                )}
                             </div>
                         );
                       })}
@@ -429,8 +561,8 @@ export default function ImportDataPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit).length || 0} {dataType}.
-              Cette action est irréversible et ajoutera de nouvelles données à votre application.
+                Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit).length || 0} {dataType}.
+                Cette action est irréversible et ajoutera de nouvelles données à votre application.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <Alert variant="destructive" className="mt-4">

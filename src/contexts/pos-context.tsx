@@ -133,7 +133,7 @@ export interface PosContextType {
   toggleCategoryFavorite: (categoryId: string) => void;
   getCategoryColor: (categoryId: string) => string | undefined;
   customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>) => Promise<Customer | null>;
+  addCustomer: (customer: Omit<Customer, 'isDefault' | 'createdAt'> & {id?: string}) => Promise<Customer | null>;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
@@ -474,10 +474,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
 
-  const cycleCommercialViewLevel = useCallback(() => {
-    setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
-  
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
     const newLog: AuditLog = {
@@ -488,278 +484,150 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [newLog, ...prev]);
   }, [user, setAuditLogs]);
 
-  const clearOrder = useCallback(() => {
-    setOrder([]);
-    setDynamicBgImage(null);
-    if (readOnlyOrder) setReadOnlyOrder(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    setSelectedTable(null);
-  }, [readOnlyOrder]);
-
-  const showNavConfirm = (url: string) => {
-    setNextUrl(url);
-    setNavConfirmOpen(true);
-  };
-  
-  const closeNavConfirm = useCallback(() => {
-    setNextUrl(null);
-    setNavConfirmOpen(false);
-  }, []);
-
-  const confirmNavigation = useCallback(async () => {
-    if (nextUrl) {
-      await clearOrder();
-      router.push(nextUrl);
-    }
-    closeNavConfirm();
-  }, [nextUrl, clearOrder, closeNavConfirm, router]);
-
-  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
-    clearOrder();
-    setCurrentSaleId(null);
-    setCurrentSaleContext({ documentType: pageType, status: 'pending' });
-  }, [clearOrder]);
-
-  const seedInitialData = useCallback(() => {
-    const hasData = categories.length > 0 || vatRates.length > 0;
-    if (hasData) {
-        return;
-    }
-
-    const defaultVatRates: VatRate[] = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1, createdAt: new Date() },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2, createdAt: new Date() },
-        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
-        { id: 'vat_0', name: 'Taux Nul', rate: 0, code: 4, createdAt: new Date() },
-    ];
-    setVatRates(defaultVatRates);
-
-    const defaultPaymentMethods: PaymentMethod[] = [
-        { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
-        { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
-        { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
-        { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
-    ];
-    setPaymentMethods(defaultPaymentMethods);
-    
-    toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
-    
-  const addCategory = useCallback(async (category: Omit<Category, 'id'| 'createdAt' | 'updatedAt'>): Promise<Category | null> => {
+  const addCategory = useCallback(async (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
       const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
   }, [setCategories]);
-  
-  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>): Promise<Item | null> => {
+
+  const updateCategory = useCallback((category: Category) => {
+      const updatedCategory = { ...category, updatedAt: new Date() };
+      setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
+  }, [setCategories]);
+
+  const deleteCategory = useCallback((id: string) => {
+      setCategories(prev => prev.filter(c => c.id !== id));
+      setItems(prev => prev.filter(i => i.categoryId !== id));
+  }, [setCategories, setItems]);
+
+  const toggleCategoryFavorite = useCallback((id: string) => {
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite, updatedAt: new Date() } : c));
+  }, [setCategories]);
+
+  const getCategoryColor = useCallback((categoryId: string) => {
+    return categories.find(c => c.id === categoryId)?.color;
+  }, [categories]);
+
+  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => {
       const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
       setItems(prev => [newItem, ...prev]);
       return newItem;
   }, [setItems]);
-  
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>): Promise<Customer | null> => {
-    const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
-    if (customers.some(c => c.id === newCustomer.id)) {
+
+  const updateItem = useCallback((item: Item) => {
+      const updatedItem = { ...item, updatedAt: new Date() };
+      setItems(prev => prev.map(i => i.id === item.id ? updatedItem : i));
+  }, [setItems]);
+
+  const deleteItem = useCallback((id: string) => {
+      setItems(prev => prev.filter(i => i.id !== id));
+  }, [setItems]);
+
+  const toggleItemFavorite = useCallback((id: string) => {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite, updatedAt: new Date() } : i));
+  }, [setItems]);
+
+  const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
+      setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite, updatedAt: new Date() } : i));
+  }, [setItems]);
+
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'updatedAt'> & {id?: string}) => {
+    if (customer.id && customers.some(c => c.id === customer.id)) {
         throw new Error('Un client avec ce code existe déjà.');
     }
-      setCustomers(prev => [...prev, newCustomer]);
-      return newCustomer;
+    const newCustomer = { ...customer, id: customer.id || `C${uuidv4().substring(0, 6)}`, isDefault: customers.length === 0, createdAt: new Date() };
+    setCustomers(prev => [...prev, newCustomer]);
+    return newCustomer;
   }, [customers, setCustomers]);
-  
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>): Promise<Supplier | null> => {
-    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}` , createdAt: new Date()};
-    if (suppliers.some(s => s.id === newSupplier.id)) {
-        throw new Error('Un fournisseur avec ce code existe déjà.');
+
+  const updateCustomer = useCallback((customer: Customer) => {
+      const updatedCustomer = { ...customer, updatedAt: new Date() };
+      setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCustomer : c));
+  }, [setCustomers]);
+
+  const deleteCustomer = useCallback((id: string) => {
+      setCustomers(prev => prev.filter(c => c.id !== id));
+  }, [setCustomers]);
+
+  const setDefaultCustomer = useCallback((id: string) => {
+      setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
+  }, [setCustomers]);
+
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'> & {id?: string}) => {
+    if (supplier.id && suppliers.some(s => s.id === supplier.id)) {
+      throw new Error('Un fournisseur avec ce code existe déjà.');
     }
+    const newSupplier = { ...supplier, id: supplier.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
     setSuppliers(prev => [...prev, newSupplier]);
     return newSupplier;
   }, [suppliers, setSuppliers]);
+
+  const updateSupplier = useCallback((supplier: Supplier) => {
+      const updatedSupplier = { ...supplier, updatedAt: new Date() };
+      setSuppliers(prev => prev.map(s => s.id === supplier.id ? updatedSupplier : s));
+  }, [setSuppliers]);
+
+  const deleteSupplier = useCallback((id: string) => {
+      setSuppliers(prev => prev.filter(s => s.id !== id));
+  }, [setSuppliers]);
+
+  const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>) => {
+      setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
+  }, [setPaymentMethods]);
+
+  const updatePaymentMethod = useCallback((method: PaymentMethod) => {
+      const updatedMethod = { ...method, updatedAt: new Date() };
+      setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? updatedMethod : pm));
+  }, [setPaymentMethods]);
+
+  const deletePaymentMethod = useCallback((id: string) => {
+      setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
+  }, [setPaymentMethods]);
+
+  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => {
+      const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
+      setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
+  }, [vatRates, setVatRates]);
+
+  const updateVatRate = useCallback((vatRate: VatRate) => {
+      const updatedVatRate = { ...vatRate, updatedAt: new Date() };
+      setVatRates(prev => prev.map(v => v.id === vatRate.id ? updatedVatRate : v));
+  }, [setVatRates]);
+
+  const deleteVatRate = useCallback((id: string) => {
+      setVatRates(prev => prev.filter(v => v.id !== id));
+  }, [setVatRates]);
 
   const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]) => {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
-  
-    for (const record of jsonData) {
+
+    const operations: { [key: string]: (data: any) => Promise<any> } = {
+      clients: addCustomer,
+      articles: addItem,
+      fournisseurs: addSupplier,
+    };
+
+    const importFn = operations[dataType];
+    if (!importFn) {
+      errors.push('Type de données non supporté.');
+      return { successCount, errorCount: jsonData.length, errors };
+    }
+
+    for (const data of jsonData) {
       try {
-        if (dataType === 'clients') {
-          await addCustomer(record);
-        } else if (dataType === 'articles') {
-          await addItem(record);
-        } else if (dataType === 'fournisseurs') {
-          await addSupplier(record);
-        }
+        await importFn(data);
         successCount++;
       } catch (e: any) {
         errorCount++;
-        errors.push(e.message);
+        errors.push(e.message || 'Erreur inconnue');
       }
     }
+
     return { successCount, errorCount, errors };
   }, [addCustomer, addItem, addSupplier]);
   
-  const importDemoData = useCallback(async () => {
-    const newCategories: Category[] = [];
-    const newItems: Item[] = [];
-    const categoryIdMap: { [key: string]: string } = {};
-    const findVatIdByRate = (rate?: number) => {
-        if (rate === undefined) {
-            return vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
-        }
-        const vat = vatRates.find(v => v.rate === rate);
-        return vat?.id || vatRates[0]?.id;
-    }
-    
-    if (!vatRates || vatRates.length === 0) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
-        return;
-    }
-
-    demoData.categories.forEach((categoryData: any) => {
-        const catId = uuidv4();
-        newCategories.push({
-            id: catId,
-            name: categoryData.name,
-            image: `https://picsum.photos/seed/${catId}/200/150`,
-            color: '#e2e8f0',
-            createdAt: new Date(),
-        });
-        categoryIdMap[categoryData.name] = catId;
-
-        categoryData.items.forEach((itemData: any) => {
-            const itemId = uuidv4();
-            newItems.push({
-                id: itemId,
-                name: itemData.name,
-                price: itemData.price,
-                purchasePrice: itemData.price * 0.6,
-                description: itemData.description,
-                categoryId: catId,
-                vatId: findVatIdByRate(itemData.vatRate),
-                image: `https://picsum.photos/seed/${itemId}/200/150`,
-                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`,
-                createdAt: new Date(),
-            });
-        });
-    });
-    
-    const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `C${uuidv4().substring(0,6)}`,
-        name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`,
-        createdAt: new Date(),
-    }));
-    
-    const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: `S-${uuidv4().substring(0,6)}`,
-        name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`,
-        createdAt: new Date(),
-    }));
-
-    setCategories(prev => [...prev, ...newCategories]);
-    setItems(prev => [...prev, ...newItems]);
-    setCustomers(prev => [...prev, ...demoCustomers]);
-    setSuppliers(prev => [...prev, ...demoSuppliers]);
-    toast({ title: 'Données de démo importées !' });
-  }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
-  
-  const importDemoCustomers = useCallback(async () => {
-    const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `C${uuidv4().substring(0,6)}`,
-        name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`,
-        createdAt: new Date(),
-    }));
-    setCustomers(prev => [...prev, ...demoCustomers]);
-    toast({ title: 'Clients de démo importés !' });
-  }, [setCustomers, toast]);
-    
-  const importDemoSuppliers = useCallback(async () => {
-    const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: `S-${uuidv4().substring(0,6)}`,
-        name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`,
-        createdAt: new Date(),
-    }));
-    setSuppliers(prev => [...prev, ...demoSuppliers]);
-    toast({ title: 'Fournisseurs de démo importés !' });
-  }, [setSuppliers, toast]);
-  
-  const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
-    const dataMap: Record<DeletableDataKeys, React.Dispatch<React.SetStateAction<any[]>>> = {
-      items: setItems,
-      categories: setCategories,
-      customers: setCustomers,
-      suppliers: setSuppliers,
-      tables: setTablesData,
-      sales: setSales,
-      paymentMethods: setPaymentMethods,
-      vatRates: setVatRates,
-      heldOrders: setHeldOrders,
-      auditLogs: setAuditLogs,
-    };
-
-    const resetLabels: Record<DeletableDataKeys, string> = {
-      items: 'Articles',
-      categories: 'Catégories',
-      customers: 'Clients',
-      suppliers: 'Fournisseurs',
-      tables: 'Tables',
-      sales: 'Ventes',
-      paymentMethods: 'Moyens de paiement',
-      vatRates: 'TVA',
-      heldOrders: 'Tickets en attente',
-      auditLogs: 'Logs d\'audit',
-    };
-
-    const deleted: string[] = [];
-
-    (Object.keys(dataToReset) as DeletableDataKeys[]).forEach(key => {
-      if (dataToReset[key] && dataMap[key]) {
-        dataMap[key]([]);
-        deleted.push(resetLabels[key]);
-      }
-    });
-
-    if (deleted.length > 0) {
-      toast({ title: 'Données supprimées', description: `Les données suivantes ont été effacées : ${deleted.join(', ')}.` });
-    } else {
-      toast({ title: 'Aucune donnée sélectionnée', variant: 'destructive' });
-    }
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, setPaymentMethods, setVatRates, toast]);
-  
-  const addMappingTemplate = useCallback((template: MappingTemplate) => {
-    setMappingTemplates(prev => {
-        const existingIndex = prev.findIndex(t => t.name === template.name);
-        if (existingIndex > -1) {
-            const newTemplates = [...prev];
-            newTemplates[existingIndex] = template;
-            return newTemplates;
-        }
-        return [...prev, template];
-    });
-    toast({ title: 'Modèle de mappage sauvegardé !' });
-  }, [setMappingTemplates, toast]);
-
-  const deleteMappingTemplate = useCallback((templateName: string) => {
-    setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
-    toast({ title: 'Modèle supprimé.' });
-  }, [setMappingTemplates, toast]);
-  
-  useEffect(() => {
-    if(isHydrated) {
-        const isSeeded = localStorage.getItem('data.seeded');
-        if (!isSeeded) {
-          seedInitialData();
-          importDemoData();
-          localStorage.setItem('data.seeded', 'true');
-        }
-    }
-  }, [isHydrated, seedInitialData, importDemoData]);
-
-
   useEffect(() => {
     const timer = setInterval(() => setSystemDate(new Date()), 60000);
     return () => clearInterval(timer);
@@ -839,6 +707,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             twilioConfig,
             sendEmailOnSale,
             itemsPerPage,
+            importLimit,
         }
     };
     return JSON.stringify(config, null, 2);
@@ -856,7 +725,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
     dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
     deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
-    creditNoteBgColor, creditNoteBgOpacity, smtpConfig, ftpConfig, twilioConfig, sendEmailOnSale, itemsPerPage
+    creditNoteBgColor, creditNoteBgOpacity, smtpConfig, ftpConfig, twilioConfig, sendEmailOnSale, itemsPerPage, importLimit
   ]);
 
   const importConfiguration = useCallback(async (file: File) => {
@@ -929,6 +798,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 setTwilioConfig(config.settings.twilioConfig ?? {});
                 setSendEmailOnSale(config.settings.sendEmailOnSale ?? false);
                 setItemsPerPage(config.settings.itemsPerPage ?? 20);
+                setImportLimit(config.settings.importLimit ?? 100);
             }
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
@@ -950,7 +820,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
       setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, setQuoteBgOpacity,
       setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity,
-      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale, setItemsPerPage
+      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale, setItemsPerPage, setImportLimit
   ]);
   
   
@@ -1679,96 +1549,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, sendNotificationEmail]);
 
     const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    
     const updateUser = useCallback((u: User) => {
         const updatedUser = { ...u, updatedAt: new Date() };
         setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user));
     }, [setUsers]);
+
     const deleteUser = useCallback((id: string) => { 
         setUsers(prev => prev.filter(u => u.id !== id)) 
     }, [setUsers]);
+
     const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const findUserByEmail = useCallback(() => undefined, []);
     const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-
-    const updateCategory = useCallback((category: Category) => {
-        const updatedCategory = { ...category, updatedAt: new Date() };
-        setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
-    }, [setCategories]);
-    const deleteCategory = useCallback((id: string) => {
-        setCategories(prev => prev.filter(c => c.id !== id));
-        setItems(prev => prev.filter(i => i.categoryId !== id));
-    }, [setCategories, setItems]);
-    const toggleCategoryFavorite = useCallback((id: string) => {
-        setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
-    }, [setCategories]);
     
-    const getCategoryColor = useCallback((categoryId: string) => {
-      return categories.find(c => c.id === categoryId)?.color;
-    }, [categories]);
-
-    
-    const updateItem = useCallback((item: Item) => {
-        const updatedItem = { ...item, updatedAt: new Date() };
-        setItems(prev => prev.map(i => i.id === item.id ? updatedItem : i));
-    }, [setItems]);
-    const deleteItem = useCallback((id: string) => {
-        setItems(prev => prev.filter(i => i.id !== id));
-    }, [setItems]);
-    const toggleItemFavorite = useCallback((id: string) => {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
-    }, [setItems]);
-    const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
-        setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
-    }, [setItems]);
-
-    
-    const updateCustomer = useCallback((customer: Customer) => {
-        const updatedCustomer = { ...customer, updatedAt: new Date() };
-        setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCustomer : c));
-    }, [setCustomers]);
-    const deleteCustomer = useCallback((id: string) => {
-        setCustomers(prev => prev.filter(c => c.id !== id));
-    }, [setCustomers]);
-    const setDefaultCustomer = useCallback((id: string) => {
-        setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
-    }, [setCustomers]);
-
-    
-    const updateSupplier = useCallback((supplier: Supplier) => {
-        const updatedSupplier = { ...supplier, updatedAt: new Date() };
-        setSuppliers(prev => prev.map(s => s.id === supplier.id ? updatedSupplier : s));
-    }, [setSuppliers]);
-    const deleteSupplier = useCallback((id: string) => {
-        setSuppliers(prev => prev.filter(s => s.id !== id));
-    }, [setSuppliers]);
-
-    
-    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>) => {
-        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
-    }, [setPaymentMethods]);
-    const updatePaymentMethod = useCallback((method: PaymentMethod) => {
-        const updatedMethod = { ...method, updatedAt: new Date() };
-        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? updatedMethod : pm));
-    }, [setPaymentMethods]);
-    const deletePaymentMethod = useCallback((id: string) => {
-        setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
-    }, [setPaymentMethods]);
-
-    
-    const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => {
-        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
-        setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
-    }, [vatRates, setVatRates]);
-    const updateVatRate = useCallback((vatRate: VatRate) => {
-        const updatedVatRate = { ...vatRate, updatedAt: new Date() };
-        setVatRates(prev => prev.map(v => v.id === vatRate.id ? updatedVatRate : v));
-    }, [setVatRates]);
-    const deleteVatRate = useCallback((id: string) => {
-        setVatRates(prev => prev.filter(v => v.id !== id));
-    }, [setVatRates]);
-  
   
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
@@ -1879,8 +1675,58 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const convertToInvoice = useCallback((saleId: string) => {
       router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
+    
+  const addMappingTemplate = useCallback((template: MappingTemplate) => {
+    setMappingTemplates(prev => {
+        const existingIndex = prev.findIndex(t => t.name === template.name);
+        if (existingIndex > -1) {
+            const newTemplates = [...prev];
+            newTemplates[existingIndex] = template;
+            return newTemplates;
+        }
+        return [...prev, template];
+    });
+    toast({ title: 'Modèle de mappage sauvegardé !'});
+  }, [setMappingTemplates, toast]);
 
-  const value: PosContextType = {
+  const deleteMappingTemplate = useCallback((templateName: string) => {
+    setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+    toast({ title: 'Modèle supprimé.'});
+  }, [setMappingTemplates, toast]);
+
+  const cycleCommercialViewLevel = useCallback(() => {
+    setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
+
+  const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
+    const dataSetters: Record<DeletableDataKeys, Function> = {
+        items: setItems,
+        categories: setCategories,
+        customers: setCustomers,
+        suppliers: setSuppliers,
+        tables: setTablesData,
+        sales: setSales,
+        paymentMethods: setPaymentMethods,
+        vatRates: setVatRates,
+        heldOrders: setHeldOrders,
+        auditLogs: setAuditLogs,
+    };
+    
+    Object.entries(dataToReset).forEach(([key, shouldReset]) => {
+        if (shouldReset) {
+            dataSetters[key as DeletableDataKeys]([]);
+        }
+    });
+
+    toast({
+        title: 'Réinitialisation terminée',
+        description: 'Les données sélectionnées ont été supprimées.',
+    });
+}, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, toast]);
+
+
+  const value: PosContextType = useMemo(
+    () => ({
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateItemPrice, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -1919,7 +1765,48 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       itemsPerPage, setItemsPerPage,
       importLimit, setImportLimit,
       mappingTemplates, addMappingTemplate, deleteMappingTemplate,
-  };
+    }),
+    [
+      order, systemDate, dynamicBgImage, readOnlyOrder,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateItemPrice, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
+      auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      seedInitialData, selectivelyResetData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+      isCalculatorOpen, setIsCalculatorOpen,
+      enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      commercialViewLevel, cycleCommercialViewLevel,
+      companyInfo, setCompanyInfo,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
+      sendEmailOnSale, setSendEmailOnSale, lastSelectedSaleId, setLastSelectedSaleId,
+      itemsPerPage, setItemsPerPage,
+      importLimit, setImportLimit,
+      mappingTemplates, addMappingTemplate, deleteMappingTemplate
+    ]
+  );
   
   return (
     <PosContext.Provider value={value}>
@@ -1931,7 +1818,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
-    throw new Error('usePos doit être utilisé dans un PosProvider');
+    throw new Error('usePos must be used within a PosProvider');
   }
   return context;
 }
