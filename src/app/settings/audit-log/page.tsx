@@ -81,7 +81,7 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = new Date(log.date as any);
+            const logDate = new Date(log.date as any); // Handle string date from local storage
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
@@ -200,7 +200,7 @@ export default function AuditLogPage() {
                                     <React.Fragment key={log.id}>
                                         <TableRow className="cursor-pointer" onClick={() => toggleCollapsible(log.id)}>
                                             <TableCell>
-                                                <ChevronDown className={cn("h-4 w-4 transition-transform", openCollapsibles[log.id] && "rotate-180")} />
+                                                <ChevronDown className={cn("h-4 w-4 transition-transform", openCollapsibles[log.id] ? "rotate-180" : "", !(log.richDetails && Object.keys(log.richDetails).length > 0) && "opacity-30")} />
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={log.date} /></TableCell>
                                             <TableCell className="font-medium">{log.userName}</TableCell>
@@ -220,11 +220,15 @@ export default function AuditLogPage() {
                                             </TableCell>
                                             <TableCell>{log.details}</TableCell>
                                         </TableRow>
-                                        {openCollapsibles[log.id] && log.richDetails && (
+                                        {openCollapsibles[log.id] && (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="p-0">
                                                     <div className="bg-secondary/50 p-4 pl-16 text-sm">
-                                                        <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(log.richDetails, null, 2)}</pre>
+                                                        {log.richDetails && Object.keys(log.richDetails).length > 0 ? (
+                                                            <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(log.richDetails, null, 2)}</pre>
+                                                        ) : (
+                                                            <p className="text-muted-foreground italic">Aucun détail enrichi disponible pour cette entrée.</p>
+                                                        )}
                                                     </div>
                                                     <Separator />
                                                 </TableCell>
