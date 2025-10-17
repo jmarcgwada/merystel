@@ -1,6 +1,7 @@
 
 'use client';
 
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +12,6 @@ import type { AuditLog } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, ArrowRight, X, Calendar as CalendarIcon, ChevronDown, SlidersHorizontal } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import type { Timestamp } from 'firebase/firestore';
@@ -81,7 +81,7 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = log.date instanceof Date ? log.date : new Date(log.date as string);
+            const logDate = new Date(log.date as any);
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
