@@ -86,12 +86,17 @@ export default function ImportDataPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="separator">Séparateur</Label>
-                <Input
-                  id="separator"
-                  value={separator}
-                  onChange={(e) => setSeparator(e.target.value)}
-                  placeholder="ex: , ou ;"
-                />
+                <Select value={separator} onValueChange={setSeparator}>
+                  <SelectTrigger id="separator">
+                    <SelectValue placeholder="Sélectionner un séparateur..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=",">Virgule (,)</SelectItem>
+                    <SelectItem value=";">Point-virgule (;)</SelectItem>
+                    <SelectItem value="|">Barre verticale (|)</SelectItem>
+                    <SelectItem value="\t">Tabulation</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center space-x-2">
