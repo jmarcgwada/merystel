@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -15,6 +14,7 @@ import { PosProvider, usePos } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { usePathname } from 'next/navigation';
+import { CalculatorModal } from '@/components/shared/calculator-modal';
 
 function AppLoading() {
   return (
@@ -54,6 +54,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <NavigationConfirmationDialog />
             <VirtualKeyboard />
             <ExternalLinkModal />
+            <CalculatorModal />
         </div>
     );
 }

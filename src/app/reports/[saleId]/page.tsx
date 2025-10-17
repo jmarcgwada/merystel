@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -285,6 +284,20 @@ function SaleDetailContent() {
     setConfirmEmailOpen(true);
   };
   
+    const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<{ content: string; filename: string } | null> => {
+        if (!printRef.current || !saleForPdf) {
+            toast({ variant: 'destructive', title: "Erreur de génération" });
+            return null;
+        }
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfContent = await pdf.html(printRef.current, { autoPaging: 'text', width: 210, windowWidth: printRef.current.scrollWidth }).output('datauristring');
+        return {
+            content: pdfContent.split(',')[1],
+            filename: `${saleForPdf.ticketNumber || 'document'}.pdf`,
+        };
+    }, [toast]);
+
+
   const handleConfirmSendEmail = async () => {
     if (!sale || !smtpConfig?.senderEmail) {
         toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
@@ -298,7 +311,7 @@ function SaleDetailContent() {
     setIsSendingEmail(true);
     toast({ title: 'Envoi en cours...' });
 
-    const pdfData = await generatePdfForEmail();
+    const pdfData = await generatePdfForEmail(sale);
     if (!pdfData) {
         setIsSendingEmail(false);
         return;
@@ -325,19 +338,6 @@ function SaleDetailContent() {
 
     setIsSendingEmail(false);
   };
-
-  const generatePdfForEmail = useCallback(async (): Promise<{ content: string; filename: string } | null> => {
-    if (!printRef.current || !sale) {
-        toast({ variant: 'destructive', title: "Erreur de génération" });
-        return null;
-    }
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfContent = await pdf.html(printRef.current, { autoPaging: 'text', width: 210, windowWidth: printRef.current.scrollWidth }).output('datauristring');
-    return {
-        content: pdfContent.split(',')[1],
-        filename: `${sale.ticketNumber || 'document'}.pdf`,
-    };
-  }, [sale, toast]);
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;

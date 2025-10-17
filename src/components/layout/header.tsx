@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -8,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart } from 'lucide-react';
+import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +57,7 @@ export default function Header() {
     user,
     setCurrentSaleContext,
     companyInfo,
+    setIsCalculatorOpen
   } = usePos();
 
   const router = useRouter();
@@ -209,6 +209,13 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsCalculatorOpen(true)}
+            >
+                <Calculator className="h-4 w-4" />
+            </Button>
             {!isPosLoading && isKeyboardVisibleInHeader && (
                 <Button 
                   variant="outline"

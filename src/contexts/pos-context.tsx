@@ -181,6 +181,8 @@ interface PosContextType {
   isLoading: boolean;
   user: any;
   toast: (props: any) => void;
+  isCalculatorOpen: boolean;
+  setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
   enableDynamicBg: boolean;
   setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
   dynamicBgOpacity: number;
@@ -425,6 +427,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
   const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -1222,21 +1225,72 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-  const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
-    // This is a placeholder. In a real app, you'd render an invisible component
-    // with the invoice layout and use html2canvas + jsPDF to generate the PDF.
-    // For now, we'll return a dummy PDF content.
-    const pdf = new jsPDF();
-    pdf.text(`Facture: ${sale.ticketNumber}`, 10, 10);
-    pdf.text(`Total: ${sale.total.toFixed(2)}€`, 10, 20);
-    const pdfData = pdf.output('datauristring');
-    return {
-        content: pdfData.split(',')[1],
-        filename: `${sale.ticketNumber || 'document'}.pdf`,
-    };
-  }, []);
+   const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string, filename: string } | null> => {
+        const saleCustomer = customers.find(c => c.id === sale.customerId) || null;
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        document.body.appendChild(tempDiv);
+        
+        const root = require('react-dom/client').createRoot(tempDiv);
+        await new Promise<void>(resolve => {
+            root.render(
+                <InvoicePrintTemplate 
+                    ref={(el) => {
+                        if (el) {
+                            const pdf = new jsPDF('p', 'mm', 'a4');
+                            pdf.html(el, { autoPaging: 'text', width: 210, windowWidth: el.scrollWidth })
+                               .then(() => {
+                                    const pdfContent = pdf.output('datauristring');
+                                    resolve({
+                                        content: pdfContent.split(',')[1],
+                                        filename: `${sale.ticketNumber || 'document'}.pdf`,
+                                    } as any);
+                               });
+                        } else {
+                            resolve();
+                        }
+                    }}
+                    sale={sale} 
+                    customer={saleCustomer} 
+                    companyInfo={companyInfo} 
+                    vatRates={vatRates} 
+                />
+            );
+        });
 
-    const sendNotificationEmail = useCallback(async (sale: Sale) => {
+        const pdfData = await new Promise<{ content: string; filename: string } | null>(resolve => {
+           root.render(
+                <InvoicePrintTemplate 
+                    ref={async (el) => {
+                        if (el) {
+                           const pdf = new jsPDF('p', 'mm', 'a4');
+                           const pdfContent = await pdf.html(el, { autoPaging: 'text', width: 210, windowWidth: el.scrollWidth }).output('datauristring');
+                           resolve({
+                                content: pdfContent.split(',')[1],
+                                filename: `${sale.ticketNumber || 'document'}.pdf`,
+                            });
+                        } else {
+                            resolve(null);
+                        }
+                    }}
+                    sale={sale} 
+                    customer={saleCustomer} 
+                    companyInfo={companyInfo} 
+                    vatRates={vatRates} 
+                />
+            );
+        });
+        
+        root.unmount();
+        document.body.removeChild(tempDiv);
+        return pdfData;
+
+    }, [customers, companyInfo, vatRates]);
+
+
+  const sendNotificationEmail = useCallback(async (sale: Sale) => {
         if (!sendEmailOnSale || !smtpConfig?.host || !smtpConfig.senderEmail || !companyInfo?.email) {
             return;
         }
@@ -1744,6 +1798,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+      isCalculatorOpen, setIsCalculatorOpen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
