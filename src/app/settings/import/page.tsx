@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,13 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ImportDataPage() {
   const [dataType, setDataType] = useState('clients');
   const [separator, setSeparator] = useState(',');
   const [hasHeader, setHasHeader] = useState(true);
-  const [filePreview, setFilePreview] = useState('');
+  const [fileContent, setFileContent] = useState('');
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,13 +29,20 @@ export default function ImportDataPage() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        // Show first 100 lines for preview
-        const firstLines = text.split('\n').slice(0, 100).join('\n');
-        setFilePreview(firstLines);
+        setFileContent(text);
       };
       reader.readAsText(file);
     }
   };
+
+  const parsedData = useMemo(() => {
+    if (!fileContent) return [];
+    const lines = fileContent.trim().split('\n');
+    return lines.map(line => line.split(separator));
+  }, [fileContent, separator]);
+
+  const headerRow = hasHeader && parsedData.length > 0 ? parsedData[0] : [];
+  const dataRows = hasHeader ? parsedData.slice(1) : parsedData;
 
   return (
     <>
@@ -54,9 +63,9 @@ export default function ImportDataPage() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Étape 1: Sélection</CardTitle>
+              <CardTitle>Étape 1: Sélection & Format</CardTitle>
               <CardDescription>
-                Choisissez le type de données et le fichier à importer.
+                Choisissez le type de données et le format du fichier à importer.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -121,21 +130,39 @@ export default function ImportDataPage() {
         <div className="lg:col-span-2">
             <Card>
                 <CardHeader>
-                    <CardTitle>Étape 2: Prévisualisation des données brutes</CardTitle>
+                    <CardTitle>Étape 2: Prévisualisation des données</CardTitle>
                     <CardDescription>
-                        Voici un aperçu des premières lignes de votre fichier. La prochaine étape sera de faire correspondre ces colonnes.
+                        Vérifiez que vos données sont correctement séparées en colonnes.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="bg-muted rounded-md p-4 min-h-[400px] font-mono text-xs">
-                        {filePreview ? (
-                            <pre className="whitespace-pre-wrap">{filePreview}</pre>
-                        ) : (
-                            <div className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
-                                <p>Aucun fichier sélectionné.</p>
-                            </div>
+                    <ScrollArea className="h-[400px] border rounded-md">
+                      <Table className="bg-muted">
+                        {hasHeader && headerRow.length > 0 && (
+                          <TableHeader>
+                            <TableRow>
+                              {headerRow.map((header, index) => (
+                                <TableHead key={index}>{header}</TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
                         )}
-                    </div>
+                        <TableBody>
+                          {dataRows.map((row, rowIndex) => (
+                            <TableRow key={rowIndex}>
+                              {row.map((cell, cellIndex) => (
+                                <TableCell key={cellIndex} className="text-xs">{cell}</TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {parsedData.length === 0 && (
+                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                          <p>Aucun fichier sélectionné.</p>
+                        </div>
+                      )}
+                    </ScrollArea>
                 </CardContent>
             </Card>
         </div>
