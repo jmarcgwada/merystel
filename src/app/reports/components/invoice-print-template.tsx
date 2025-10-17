@@ -123,8 +123,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm' }}>
-        <div className="p-10">
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col min-h-screen" style={{ width: '210mm' }}>
+        <div className="p-10 flex-grow">
             <header className="flex justify-between items-start pb-4 break-inside-avoid">
             <div className="w-1/2 space-y-0.5">
                 <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
@@ -220,7 +220,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                 <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
             </div>
         </footer>
-        <div style={{ breakAfter: 'always' }}></div>
     </div>
   );
 });
