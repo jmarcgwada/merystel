@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,8 @@ import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+
 
 const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
@@ -55,6 +57,40 @@ export default function ItemsPage() {
 
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+
+   useEffect(() => {
+        const storedColumns = localStorage.getItem('itemsVisibleColumns');
+        if (storedColumns) {
+            setVisibleColumns(JSON.parse(storedColumns));
+        } else {
+             setVisibleColumns({
+                image: true,
+                name: true,
+                category: true,
+                stock: true,
+                purchasePrice: true,
+                price: true,
+            });
+        }
+    }, []);
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('itemsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const columnsConfig = [
+        { id: 'image', label: 'Image' },
+        { id: 'name', label: 'Nom' },
+        { id: 'category', label: 'Catégorie' },
+        { id: 'stock', label: 'Stock' },
+        { id: 'purchasePrice', label: 'Prix Achat' },
+        { id: 'price', label: 'Prix Vente' },
+    ];
+
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
@@ -210,16 +246,39 @@ export default function ItemsPage() {
                                 Filtres
                             </Button>
                         </CollapsibleTrigger>
-                         <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder="Statut de l'article" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="no">Articles activés</SelectItem>
-                                <SelectItem value="yes">Articles désactivés</SelectItem>
-                                <SelectItem value="all">Tous les articles</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <Columns className="mr-2 h-4 w-4" />
+                                        Affichage
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {columnsConfig.map(column => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            checked={visibleColumns[column.id] ?? true}
+                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                        >
+                                            {column.label}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                             <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
+                                <SelectTrigger className="w-[220px]">
+                                    <SelectValue placeholder="Statut de l'article" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="no">Articles activés</SelectItem>
+                                    <SelectItem value="yes">Articles désactivés</SelectItem>
+                                    <SelectItem value="all">Tous les articles</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
@@ -295,50 +354,45 @@ export default function ItemsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Image</TableHead>
-                    <TableHead>
+                    {visibleColumns.image && <TableHead className="w-[80px]">Image</TableHead>}
+                    {visibleColumns.name && <TableHead>
                       <Button variant="ghost" onClick={() => requestSort('name')}>
                           Nom {getSortIcon('name')}
                       </Button>
-                    </TableHead>
-                    <TableHead>
+                    </TableHead>}
+                    {visibleColumns.category && <TableHead>
                       <Button variant="ghost" onClick={() => requestSort('categoryId')}>
                           Catégorie {getSortIcon('categoryId')}
                       </Button>
-                    </TableHead>
-                     <TableHead className="text-center">
+                    </TableHead>}
+                     {visibleColumns.stock && <TableHead className="text-center">
                         <Button variant="ghost" onClick={() => requestSort('stock')}>
                             Stock {getSortIcon('stock')}
                         </Button>
-                    </TableHead>
-                      <TableHead className="text-right">
-                          <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
-                              Prix Achat {getSortIcon('purchasePrice')}
-                          </Button>
-                      </TableHead>
-                    <TableHead className="text-right">
+                    </TableHead>}
+                    {visibleColumns.purchasePrice && <TableHead className="text-right">
+                        <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
+                            Prix Achat {getSortIcon('purchasePrice')}
+                        </Button>
+                    </TableHead>}
+                    {visibleColumns.price && <TableHead className="text-right">
                       <Button variant="ghost" onClick={() => requestSort('price')} className="justify-end w-full">
                           Prix Vente {getSortIcon('price')}
                       </Button>
-                    </TableHead>
+                    </TableHead>}
                     <TableHead className="w-[200px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(isLoading || !isClient) && Array.from({length: 10}).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell><Skeleton className="w-10 h-10 rounded-md"/></TableCell>
-                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                      {Object.values(visibleColumns).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
                   {isClient && !isLoading && paginatedItems && paginatedItems.map(item => (
                     <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground")}>
-                      <TableCell>
+                      {visibleColumns.image && <TableCell>
                         <Image 
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
                           alt={item.name}
@@ -347,16 +401,16 @@ export default function ItemsPage() {
                           className="rounded-md object-cover"
                           data-ai-hint="product image"
                         />
-                      </TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>
+                      </TableCell>}
+                      {visibleColumns.name && <TableCell className="font-medium">{item.name}</TableCell>}
+                      {visibleColumns.category && <TableCell>
                           <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
+                      </TableCell>}
+                      {visibleColumns.stock && <TableCell className="text-center">
                           <StockBadge item={item} />
-                      </TableCell>
-                      <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>
-                      <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
+                      </TableCell>}
+                      {visibleColumns.purchasePrice && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
+                      {visibleColumns.price && <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>}
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                             <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
