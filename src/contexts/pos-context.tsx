@@ -163,6 +163,7 @@ interface PosContextType {
   holdOrder: () => void;
   recallOrder: (orderId: string) => void;
   deleteHeldOrder: (orderId: string) => void;
+  auditLogs: AuditLog[];
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -774,7 +775,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 setIsForcedMode(config.settings.isForcedMode ?? false);
                 setRequirePinForAdmin(config.settings.requirePinForAdmin ?? true);
                 setDirectSaleBackgroundColor(config.settings.directSaleBackgroundColor ?? '#ffffff');
-                setRestaurantModeBackgroundColor(config.settings.restaurantModeBackgroundColor ?? '#eff6ff');
+                setRestaurantModeBackgroundColor(config.settings.restaurantModeBgColor ?? '#eff6ff');
                 setDirectSaleBgOpacity(config.settings.directSaleBgOpacity ?? 15);
                 setRestaurantModeBgOpacity(config.settings.restaurantModeBgOpacity ?? 15);
                 setDashboardBgType(config.settings.dashboardBgType ?? 'color');
@@ -1205,13 +1206,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       
       try {
           const pdf = new jsPDF('p', 'mm', 'a4');
-          await pdf.html(content, {
-              callback: (doc) => {
-                  // This callback might not work as expected in all environments.
-              },
-              autoPaging: 'text',
-              width: 210,
-          });
+          // This is a trick to render the React component to an invisible div, then to html2canvas, then to jsPDF.
+          // This is not a perfect solution but works for many cases.
+          const printElement = document.createElement('div');
+          printElement.style.position = 'absolute';
+          printElement.style.left = '-9999px';
+          document.body.appendChild(printElement);
+          
+          // Using a temporary React root to render the component off-screen
+          const ReactDOM = await import('react-dom');
+          ReactDOM.render(<InvoicePrintTemplate sale={sale} customer={customer} companyInfo={companyInfo} vatRates={vatRates} />, printElement);
+
+          const canvas = await (await import('html2canvas')).default(printElement);
+          const imgData = canvas.toDataURL('image/png');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+          document.body.removeChild(printElement);
+          
           const pdfData = pdf.output('datauristring');
            return {
               content: pdfData.split(',')[1],
@@ -1670,7 +1683,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,

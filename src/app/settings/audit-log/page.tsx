@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -16,6 +15,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import type { Timestamp } from 'firebase/firestore';
+import { usePos } from '@/contexts/pos-context';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -49,28 +49,19 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | undefined }) =
 
 export default function AuditLogPage() {
     const router = useRouter();
-    const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { auditLogs, isLoading } = usePos();
     const [currentPage, setCurrentPage] = useState(1);
 
-    // This is a mock implementation. Replace with actual data fetching.
-    useEffect(() => {
-        // Simulate fetching data
-        setTimeout(() => {
-            const logs: AuditLog[] = [
-                // Mock data - in a real app this would come from Firestore
-            ];
-            setAuditLogs(logs.sort((a,b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime()));
-            setIsLoading(false);
-        }, 1000);
-    }, []);
-
-    const totalPages = Math.ceil(auditLogs.length / ITEMS_PER_PAGE);
+    const sortedLogs = useMemo(() => {
+        return [...auditLogs].sort((a,b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime());
+    }, [auditLogs]);
+    
+    const totalPages = Math.ceil(sortedLogs.length / ITEMS_PER_PAGE);
 
     const paginatedLogs = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return auditLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [auditLogs, currentPage]);
+        return sortedLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [sortedLogs, currentPage]);
 
     return (
         <>
