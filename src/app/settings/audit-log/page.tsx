@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { AuditLog } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw, ArrowRight, X, Calendar as CalendarIcon, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ArrowRight, X, Calendar as CalendarIcon, ChevronDown, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import type { Timestamp } from 'firebase/firestore';
@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 const ITEMS_PER_PAGE = 20;
+
+type SortKey = 'date' | 'userName' | 'action' | 'documentType' | 'documentNumber';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp | string | undefined }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -68,6 +70,7 @@ export default function AuditLogPage() {
     const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
     
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
 
     const sortedLogs = useMemo(() => {
         if (!auditLogs || !Array.isArray(auditLogs)) {
@@ -81,19 +84,37 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = new Date(log.date as any); // Handle string date from local storage
+            const logDate = new Date(log.date as any);
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
             return userMatch && actionMatch && docTypeMatch && docNumberMatch && dateMatch;
         });
 
-        return filtered.sort((a,b) => {
-            const dateA = new Date(a.date as any);
-            const dateB = new Date(b.date as any);
-            return dateB.getTime() - dateA.getTime();
-        });
-    }, [auditLogs, filterUser, filterAction, filterDocType, filterDocNumber, dateRange]);
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                let aValue, bValue;
+
+                if (sortConfig.key === 'date') {
+                    aValue = new Date(a.date as any).getTime();
+                    bValue = new Date(b.date as any).getTime();
+                } else {
+                    aValue = a[sortConfig.key];
+                    bValue = b[sortConfig.key];
+                }
+
+                if (typeof aValue === 'string' && typeof bValue === 'string') {
+                    return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+                }
+                
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return filtered;
+    }, [auditLogs, filterUser, filterAction, filterDocType, filterDocNumber, dateRange, sortConfig]);
     
     const totalPages = Math.ceil(sortedLogs.length / ITEMS_PER_PAGE);
 
@@ -114,6 +135,22 @@ export default function AuditLogPage() {
     const toggleCollapsible = (id: string) => {
         setOpenCollapsibles(prev => ({ ...prev, [id]: !prev[id] }));
     };
+
+    const requestSort = (key: SortKey) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: SortKey) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+        }
+        return sortConfig.direction === 'asc' ? '▲' : '▼';
+    }
+
 
     return (
         <>
@@ -183,10 +220,10 @@ export default function AuditLogPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Utilisateur</TableHead>
-                                    <TableHead>Action</TableHead>
-                                    <TableHead>Pièce</TableHead>
+                                    <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>
+                                    <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Utilisateur {getSortIcon('userName')}</Button></TableHead>
+                                    <TableHead><Button variant="ghost" onClick={() => requestSort('action')}>Action {getSortIcon('action')}</Button></TableHead>
+                                    <TableHead><Button variant="ghost" onClick={() => requestSort('documentNumber')}>Pièce {getSortIcon('documentNumber')}</Button></TableHead>
                                     <TableHead>Détails</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -200,7 +237,7 @@ export default function AuditLogPage() {
                                     <React.Fragment key={log.id}>
                                         <TableRow className="cursor-pointer" onClick={() => toggleCollapsible(log.id)}>
                                             <TableCell>
-                                                <ChevronDown className={cn("h-4 w-4 transition-transform", openCollapsibles[log.id] ? "rotate-180" : "", !(log.richDetails && Object.keys(log.richDetails).length > 0) && "opacity-30")} />
+                                                <ChevronDown className={cn("h-4 w-4 transition-transform", openCollapsibles[log.id] && "rotate-180")} />
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={log.date} /></TableCell>
                                             <TableCell className="font-medium">{log.userName}</TableCell>
@@ -227,7 +264,7 @@ export default function AuditLogPage() {
                                                         {log.richDetails && Object.keys(log.richDetails).length > 0 ? (
                                                             <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(log.richDetails, null, 2)}</pre>
                                                         ) : (
-                                                            <p className="text-muted-foreground italic">Aucun détail enrichi disponible pour cette entrée.</p>
+                                                            <p className="text-muted-foreground italic">{log.details}</p>
                                                         )}
                                                     </div>
                                                     <Separator />
