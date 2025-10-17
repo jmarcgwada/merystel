@@ -118,8 +118,9 @@ export default function AnalyticsPage() {
                 saleDate: true,
                 ticketNumber: true,
                 name: true,
-                barcode: true,
-                customerName: true,
+                details: true,
+                barcode: false,
+                customerName: false,
                 userName: true,
                 quantity: true,
                 total: true,
@@ -137,6 +138,7 @@ export default function AnalyticsPage() {
         { id: 'saleDate', label: 'Date' },
         { id: 'ticketNumber', label: 'Pièce' },
         { id: 'name', label: 'Désignation' },
+        { id: 'details', label: 'Détails' },
         { id: 'barcode', label: 'Référence' },
         { id: 'customerName', label: 'Client' },
         { id: 'userName', label: 'Vendeur' },
@@ -605,6 +607,7 @@ export default function AnalyticsPage() {
                             {visibleColumns.saleDate && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
+                            {visibleColumns.details && <TableHead>Détails</TableHead>}
                             {visibleColumns.barcode && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('barcode', 'salesLines')}>Référence {getSortIcon('barcode', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
@@ -622,19 +625,21 @@ export default function AnalyticsPage() {
                                     </TableCell>}
                                     {visibleColumns.name && <TableCell>
                                         <div className="font-medium">{item.name}</div>
+                                    </TableCell>}
+                                    {visibleColumns.details && <TableCell className="text-xs text-muted-foreground max-w-xs">
                                         {item.selectedVariants && item.selectedVariants.length > 0 && (
-                                            <div className="text-xs text-muted-foreground capitalize">
+                                            <div className="capitalize">
                                                 {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
                                             </div>
                                         )}
                                         {item.note && (
-                                            <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5">
+                                            <div className="text-amber-600 mt-1 flex items-start gap-1.5">
                                                 <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
                                                 <span>{item.note}</span>
                                             </div>
                                         )}
                                         {item.serialNumbers && item.serialNumbers.length > 0 && (
-                                            <div className="text-xs text-muted-foreground mt-1">
+                                            <div className="mt-1">
                                                 <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
                                             </div>
                                         )}
