@@ -695,37 +695,37 @@ export const CommercialOrderForm = forwardRef<
                 </div>
               
               <div className="mt-auto">
-                  <Separator className="my-6"/>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                      <div className="space-y-4">
-                          <h4 className="font-semibold">Taux de TVA</h4>
-                          <div className="grid grid-cols-4 gap-4 p-2 border rounded-md">
-                             <div className="text-sm font-medium">Code</div>
-                             <div className="text-sm font-medium text-right">Taux</div>
-                             <div className="text-sm font-medium text-right">Base HT</div>
-                             <div className="text-sm font-medium text-right">Montant</div>
+                  <Separator className="my-4"/>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                      <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">Taux de TVA</h4>
+                          <div className="grid grid-cols-4 gap-x-4 p-1 border rounded-md text-xs">
+                             <div className="font-medium">Code</div>
+                             <div className="font-medium text-right">Taux</div>
+                             <div className="font-medium text-right">Base HT</div>
+                             <div className="font-medium text-right">Montant</div>
                               {Object.values(vatBreakdown).map(vat => (
                                   <React.Fragment key={vat.rate}>
-                                      <div className="text-sm font-mono">{vat.code}</div>
-                                      <div className="text-sm text-right">{vat.rate.toFixed(2)}%</div>
-                                      <div className="text-sm text-right">{vat.base.toFixed(2)}€</div>
-                                      <div className="text-sm text-right">{vat.total.toFixed(2)}€</div>
+                                      <div className="font-mono">{vat.code}</div>
+                                      <div className="text-right">{vat.rate.toFixed(2)}%</div>
+                                      <div className="text-right">{vat.base.toFixed(2)}€</div>
+                                      <div className="text-right">{vat.total.toFixed(2)}€</div>
                                   </React.Fragment>
                               ))}
                           </div>
                       </div>
-                      <div className="space-y-4">
-                          <div className="space-y-2 max-w-sm ml-auto">
-                              <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                          <div className="space-y-1 max-w-sm ml-auto">
+                              <div className="flex justify-between items-center text-sm">
                                   <Label>Total HT</Label>
                                   <span className="font-medium">{subTotalHT.toFixed(2)}€</span>
                               </div>
-                              <div className="flex justify-between items-center">
+                              <div className="flex justify-between items-center text-sm">
                                   <Label>Cumul TVA</Label>
                                   <span className="font-medium">{totalTVA.toFixed(2)}€</span>
                               </div>
-                               <Separator />
-                              <div className="flex justify-between items-center font-bold text-lg">
+                               <Separator className="my-1"/>
+                              <div className="flex justify-between items-center font-bold">
                                   <span>Total TTC</span>
                                   <span>{totalTTC.toFixed(2)}€</span>
                               </div>
@@ -733,11 +733,11 @@ export const CommercialOrderForm = forwardRef<
                                   <div className="flex justify-between items-center">
                                       <Label htmlFor="acompte">Acompte (€)</Label>
                                       <Controller control={form.control} name="acompte" render={({ field }) => (
-                                          <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right" placeholder="0.00"/>
+                                          <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right h-8" placeholder="0.00"/>
                                       )}/>
                                   </div>
                               )}
-                               <div className="flex justify-between items-center text-primary font-bold text-xl bg-primary/10 p-2 rounded-md">
+                               <div className="flex justify-between items-center text-primary font-bold text-base bg-primary/10 p-2 rounded-md">
                                   <span>Net à Payer</span>
                                   <span>{netAPayer.toFixed(2)}€</span>
                               </div>
