@@ -125,8 +125,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   return (
     <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
       <div className="print-content p-10 flex flex-col flex-grow">
-        <header className="mb-8">
-            <div className="flex justify-between items-start">
+        <header className="mb-8 break-inside-avoid">
+            <div className="flex justify-between items-start mb-6">
                 <div className="w-1/2 space-y-0.5">
                     <h1 className="text-xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
                     <p className="leading-tight">{companyInfo?.address}</p>
@@ -135,20 +135,20 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     <p className="leading-tight">{companyInfo?.email}</p>
                     <p className="leading-tight">{companyInfo?.website}</p>
                 </div>
-                <div className="w-1/2 flex flex-col items-end">
-                    <h2 className="text-3xl font-bold uppercase text-gray-400">{pieceType}</h2>
-                    <div className="mt-2 text-right">
-                        <p><span className="font-semibold">Numéro :</span> {sale.ticketNumber}</p>
-                        <p><span className="font-semibold">Date :</span> <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
+                 <div className="w-1/2 flex flex-col items-end">
+                    <div className="bg-gray-100 p-4 rounded-md space-y-0.5 w-full max-w-xs">
+                        <p className="text-xs text-gray-500">Adressé à :</p>
+                        <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
+                        <p className="leading-tight">{customer?.address}</p>
+                        <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
                     </div>
                 </div>
             </div>
-            <div className="flex justify-end mt-6">
-                <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
-                    <p className="text-xs text-gray-500">Adressé à :</p>
-                    <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
-                    <p className="leading-tight">{customer?.address}</p>
-                    <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
+             <div className="text-center mt-4">
+                <h2 className="text-3xl font-bold uppercase text-gray-400">{pieceType}</h2>
+                <div className="mt-2 text-gray-600">
+                    <p><span className="font-semibold">Numéro :</span> {sale.ticketNumber}</p>
+                    <p><span className="font-semibold">Date :</span> <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
                 </div>
             </div>
         </header>
@@ -170,7 +170,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                         const priceHT = item.price / (1 + (vatInfo?.rate || 0)/100);
                         const totalHT = (item.price * item.quantity * (1 - (item.discountPercent || 0)/100)) / (1 + (vatInfo?.rate || 0)/100);
                         return (
-                            <tr key={item.id} className="border-b break-inside-avoid">
+                            <tr key={item.id} className="border-b">
                                 <td className="p-2 align-top">{item.name}</td>
                                 <td className="p-2 text-right align-top">{item.quantity}</td>
                                 <td className="p-2 text-right align-top">{priceHT.toFixed(2)}€</td>
@@ -183,6 +183,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </table>
         </main>
         
+        <div className="flex-grow"></div>
+
         {companyInfo?.communicationDoc && (
         <section className="my-8 break-inside-avoid">
             <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
@@ -227,9 +229,14 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         @media print {
           html, body {
             font-family: sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .print-content {
             padding: 10mm;
+          }
+          .break-inside-avoid {
+            break-inside: avoid;
           }
         }
       `}</style>
@@ -238,4 +245,3 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 });
 
 InvoicePrintTemplate.displayName = 'InvoicePrintTemplate';
-
