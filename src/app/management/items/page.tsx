@@ -242,7 +242,7 @@ export default function ItemsPage() {
                 <CardHeader className="p-2">
                     <div className="flex items-center justify-between">
                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start text-lg font-semibold">
+                            <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
                                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                                 Filtres
                             </Button>
@@ -250,9 +250,8 @@ export default function ItemsPage() {
                          <div className="flex items-center gap-2 pr-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline">
-                                        <Columns className="mr-2 h-4 w-4" />
-                                        Affichage
+                                    <Button variant="outline" size="icon">
+                                        <Columns className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
@@ -283,7 +282,7 @@ export default function ItemsPage() {
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-xs font-medium">
+                                <span className="text-xs font-medium text-muted-foreground">
                                     Page {currentPage} / {totalPages || 1}
                                 </span>
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
