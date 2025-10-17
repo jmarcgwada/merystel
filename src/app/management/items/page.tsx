@@ -279,6 +279,17 @@ export default function ItemsPage() {
                                     <SelectItem value="all">Tous les articles</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                    <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-sm font-medium">
+                                    Page {currentPage} / {totalPages || 1}
+                                </span>
+                                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                    <ArrowRight className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -336,22 +347,6 @@ export default function ItemsPage() {
 
         <Card>
           <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-4">
-                  {/* Filters are now in the collapsible card */}
-                </div>
-                <div className="flex items-center gap-2">
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-medium">
-                        Page {currentPage} / {totalPages}
-                    </span>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </div>
-              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
