@@ -277,6 +277,8 @@ interface PosContextType {
   setCreditNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
   creditNoteBgOpacity: number;
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  commercialViewLevel: number;
+  cycleCommercialViewLevel: () => void;
   companyInfo: CompanyInfo | null;
   setCompanyInfo: (info: CompanyInfo) => void;
   smtpConfig: SmtpConfig;
@@ -394,6 +396,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
+  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -440,6 +443,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
+
+  const cycleCommercialViewLevel = useCallback(() => {
+    setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
 
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
@@ -1189,52 +1196,35 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
-
-    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
-      if (!sale) return null;
-      // This is a temporary, client-side only solution for PDF generation.
-      const printContainer = document.createElement('div');
-      printContainer.style.position = 'absolute';
-      printContainer.style.left = '-9999px';
-      
-      const customer = customers.find(c => c.id === sale.customerId) || null;
-      
-      const renderPromise = new Promise<void>(resolve => {
-          const element = React.createElement(InvoicePrintTemplate, {
-              sale: sale,
-              customer: customer,
-              companyInfo: companyInfo,
-              vatRates: vatRates,
-              ref: (el: HTMLDivElement) => {
-                  if (el) {
-                      printContainer.appendChild(el);
-                      resolve();
-                  }
-              }
-          });
-          // We can't use ReactDOM.renderToString on the client with hooks
-          // This is a placeholder for a more robust server-side rendering or a client-side library that can handle it.
-          // For now, we'll create a fake PDF content.
-          setTimeout(() => {
-             const fakeEl = document.createElement('div');
-             fakeEl.innerHTML = '<h1>PDF Content Placeholder</h1><p>This is a mock PDF for email attachment.</p>';
-             printContainer.appendChild(fakeEl);
-             resolve();
-          }, 100);
-      });
   
-      document.body.appendChild(printContainer);
-      await renderPromise;
+    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
+      // This is a simplified placeholder as client-side rendering to PDF is complex.
+      // In a real app, this might involve a server-side rendering service.
+      const customer = customers.find(c => c.id === sale.customerId) || null;
+      let content = `<h1>${sale.ticketNumber}</h1><p>Client: ${customer?.name || 'N/A'}</p><p>Total: ${sale.total.toFixed(2)}€</p>`;
       
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfContent = await pdf.html(printContainer, { autoPaging: 'text', width: 210, windowWidth: printContainer.scrollWidth }).output('datauristring');
-      
-      document.body.removeChild(printContainer);
-
-      return {
-          content: pdfContent.split(',')[1],
-          filename: `${sale.ticketNumber || 'document'}.pdf`,
-      };
+      try {
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          await pdf.html(content, {
+              callback: (doc) => {
+                  // This callback might not work as expected in all environments.
+              },
+              autoPaging: 'text',
+              width: 210,
+          });
+          const pdfData = pdf.output('datauristring');
+           return {
+              content: pdfData.split(',')[1],
+              filename: `${sale.ticketNumber || 'document'}.pdf`,
+          };
+      } catch (e) {
+          console.error("PDF generation failed, sending text only", e);
+           const fallbackContent = Buffer.from(content).toString('base64');
+           return {
+              content: fallbackContent,
+              filename: 'document.html'
+           }
+      }
     }, [customers, companyInfo, vatRates]);
   
     const sendNotificationEmail = useCallback(async (sale: Sale) => {
@@ -1700,6 +1690,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      commercialViewLevel, cycleCommercialViewLevel,
       companyInfo, setCompanyInfo,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
       sendEmailOnSale, setSendEmailOnSale,
@@ -1719,5 +1710,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

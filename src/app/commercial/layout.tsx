@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, List, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, FileText, ShoppingBag, Truck, UserCheck, List, LayoutDashboard, EyeOff, Eye } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -49,7 +48,7 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity } = usePos();
+  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity, commercialViewLevel, cycleCommercialViewLevel } = usePos();
   const [isClient, setIsClient] = useState(false);
   const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
 
@@ -118,39 +117,51 @@ export default function CommercialLayout({
     )
   }
 
+  const showNav = commercialViewLevel < 2;
+
   return (
     <>
     <div className="h-full flex flex-col" style={{ backgroundColor }}>
-        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <Tabs value={activeTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
-                        {navLinks.map(link => (
-                             <TabsTrigger value={link.value} asChild key={link.href} disabled={isCreditNotePage && link.value !== 'credit-notes'}>
-                                <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
-                                     <FileText className="h-4 w-4" />
-                                    <span className="hidden sm:inline-block">{link.label}</span>
+        {showNav && (
+            <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <Tabs value={activeTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-5">
+                            {navLinks.map(link => (
+                                <TabsTrigger value={link.value} asChild key={link.href} disabled={isCreditNotePage && link.value !== 'credit-notes'}>
+                                    <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        <span className="hidden sm:inline-block">{link.label}</span>
+                                    </Link>
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                    <div className="pl-4 flex items-center gap-2">
+                        {activeReportInfo && (
+                            <Button asChild variant="outline">
+                                <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
+                                    <List className="mr-2 h-4 w-4"/>
+                                    {activeReportInfo.reportLabel}
                                 </Link>
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </Tabs>
-                <div className="pl-4 flex items-center gap-2">
-                    {activeReportInfo && (
-                        <Button asChild variant="outline">
-                            <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
-                                <List className="mr-2 h-4 w-4"/>
-                                {activeReportInfo.reportLabel}
-                            </Link>
+                            </Button>
+                        )}
+                        <Button onClick={cycleCommercialViewLevel} variant="outline" size="icon">
+                            <EyeOff className="h-4 w-4" />
                         </Button>
-                    )}
-                    <Button onClick={handleBackToDashboard} variant="outline" size="icon" className="btn-back">
-                        <LayoutDashboard />
-                    </Button>
+                        <Button onClick={handleBackToDashboard} variant="outline" size="icon" className="btn-back">
+                            <LayoutDashboard />
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
+        )}
         <main className="flex-1 flex flex-col">
+          {!showNav && (
+            <Button onClick={cycleCommercialViewLevel} variant="ghost" size="icon" className="fixed top-2 right-2 z-20 bg-background/50 backdrop-blur-sm">
+                <Eye className="h-4 w-4" />
+            </Button>
+          )}
           <Suspense fallback={<div>Chargement...</div>}>
             {children}
           </Suspense>

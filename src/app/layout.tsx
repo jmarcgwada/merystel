@@ -11,9 +11,10 @@ import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
-import { PosProvider } from '@/contexts/pos-context';
+import { PosProvider, usePos } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
+import { usePathname } from 'next/navigation';
 
 function AppLoading() {
   return (
@@ -38,6 +39,26 @@ function AppLoading() {
   )
 }
 
+function AppContent({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const { commercialViewLevel } = usePos();
+    const isCommercialPage = pathname.startsWith('/commercial');
+    const showHeader = !isCommercialPage || commercialViewLevel < 1;
+
+    return (
+        <div className="antialiased flex flex-col h-screen overflow-hidden">
+            {showHeader && <Header />}
+            <main className="flex-1 overflow-auto">{children}</main>
+            <Toaster />
+            <NavigationGuard />
+            <NavigationConfirmationDialog />
+            <VirtualKeyboard />
+            <ExternalLinkModal />
+        </div>
+    );
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -55,19 +76,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased flex flex-col h-screen overflow-hidden">
+      <body className="font-body">
         <FirebaseClientProvider>
           <PosProvider>
             <KeyboardProvider>
                 <React.Suspense fallback={<AppLoading/>}>
                   <CompanyInfoGuard>
-                    <Header />
-                    <main className="flex-1 overflow-auto">{children}</main>
-                    <Toaster />
-                    <NavigationGuard />
-                    <NavigationConfirmationDialog />
-                    <VirtualKeyboard />
-                    <ExternalLinkModal />
+                    <AppContent>{children}</AppContent>
                   </CompanyInfoGuard>
                 </React.Suspense>
             </KeyboardProvider>
