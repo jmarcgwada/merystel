@@ -292,6 +292,8 @@ interface PosContextType {
   setTwilioConfig: React.Dispatch<React.SetStateAction<TwilioConfig>>;
   sendEmailOnSale: boolean;
   setSendEmailOnSale: React.Dispatch<React.SetStateAction<boolean>>;
+  lastSelectedSaleId: string | null;
+  setLastSelectedSaleId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -435,6 +437,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
   const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
   const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
+
+  const [lastSelectedSaleId, setLastSelectedSaleId] = useState<string | null>(null);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -1773,7 +1777,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       commercialViewLevel, cycleCommercialViewLevel,
       companyInfo, setCompanyInfo,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
-      sendEmailOnSale, setSendEmailOnSale,
+      sendEmailOnSale, setSendEmailOnSale, lastSelectedSaleId, setLastSelectedSaleId
   };
 
   return (

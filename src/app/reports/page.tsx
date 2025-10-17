@@ -43,6 +43,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { InvoicePrintTemplate } from './components/invoice-print-template';
 import jsPDF from 'jspdf';
 import { sendEmail } from '@/ai/flows/send-email-flow';
+import { Label } from '@/components/ui/label';
+
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 const ITEMS_PER_PAGE = 20;
@@ -136,6 +138,8 @@ export default function ReportsPage() {
         smtpConfig,
         companyInfo,
         vatRates,
+        lastSelectedSaleId,
+        setLastSelectedSaleId,
     } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
@@ -247,6 +251,8 @@ export default function ReportsPage() {
         credit_note: true,
     });
 
+    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
         if (!typeInfo) return;
@@ -289,6 +295,7 @@ export default function ReportsPage() {
     }, [users]);
 
     const handleEdit = useCallback((sale: Sale) => {
+      setLastSelectedSaleId(sale.id);
       const typeMap: Record<string, string> = {
           'quote': 'quotes',
           'delivery_note': 'delivery-notes',
@@ -311,7 +318,7 @@ export default function ReportsPage() {
       }
       
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
-    }, [router, toast]);
+    }, [router, toast, setLastSelectedSaleId]);
 
 
     const filteredAndSortedSales = useMemo(() => {
@@ -435,6 +442,27 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
+    useEffect(() => {
+        if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
+            const index = filteredAndSortedSales.findIndex((s) => s.id === lastSelectedSaleId);
+            if (index !== -1) {
+                const newPage = Math.floor(index / ITEMS_PER_PAGE) + 1;
+                if (newPage !== currentPage) {
+                    setCurrentPage(newPage);
+                }
+                setTimeout(() => {
+                    const rowElement = rowRefs.current[lastSelectedSaleId];
+                    if (rowElement) {
+                        rowElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        });
+                    }
+                }, 100);
+            }
+        }
+    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage]);
+
     const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
 
     const paginatedSales = useMemo(() => {
@@ -548,6 +576,7 @@ export default function ReportsPage() {
   };
     
     const getDetailLink = (saleId: string) => {
+        setLastSelectedSaleId(saleId);
         const params = new URLSearchParams();
         if (sortConfig) {
             params.set('sortKey', sortConfig.key);
@@ -578,84 +607,6 @@ export default function ReportsPage() {
             </div>
         );
     }
-    
-    const renderHeaderActions = () => {
-      if (initialFilter?.startsWith('Fact-')) {
-          return (
-              <Button asChild>
-                  <Link href="/commercial/invoices">
-                      <FilePlus className="mr-2 h-4 w-4" />
-                      Nouvelle facture
-                  </Link>
-              </Button>
-          )
-      }
-      if (initialFilter?.startsWith('Devis-')) {
-          return (
-               <Button asChild>
-                  <Link href="/commercial/quotes">
-                      <FilePlus className="mr-2 h-4 w-4" />
-                      Nouveau devis
-                  </Link>
-              </Button>
-          )
-      }
-      if (initialFilter?.startsWith('BL-')) {
-          return (
-              <Button asChild>
-                  <Link href="/commercial/delivery-notes">
-                      <FilePlus className="mr-2 h-4 w-4" />
-                      Nouveau BL
-                  </Link>
-              </Button>
-          )
-      }
-       if (initialFilter?.startsWith('CF-')) {
-          return (
-              <Button asChild>
-                  <Link href="/commercial/supplier-orders">
-                      <ShoppingBag className="mr-2 h-4 w-4" />
-                      Nouvelle Cde Fournisseur
-                  </Link>
-              </Button>
-          )
-      }
-      return null;
-    }
-    
-    const getRowStyle = (sale: Sale) => {
-        if (!isClient) return {};
-        const docType = sale.documentType;
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice':
-                color = invoiceBgColor;
-                opacity = invoiceBgOpacity;
-                break;
-            case 'quote':
-                color = quoteBgColor;
-                opacity = quoteBgOpacity;
-                break;
-            case 'delivery_note':
-                color = deliveryNoteBgColor;
-                opacity = deliveryNoteBgOpacity;
-                break;
-            case 'supplier_order':
-                color = supplierOrderBgColor;
-                opacity = supplierOrderBgOpacity;
-                break;
-            case 'credit_note':
-                color = creditNoteBgColor;
-                opacity = creditNoteBgOpacity;
-                break;
-        }
-
-        return {
-            backgroundColor: hexToRgba(color, opacity),
-        };
-    };
 
   return (
     <>
@@ -690,7 +641,6 @@ export default function ReportsPage() {
                     <LayoutDashboard />
                 </Link>
             </Button>
-            {!isCashier && renderHeaderActions()}
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
@@ -847,7 +797,18 @@ export default function ReportsPage() {
                             const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
 
                             return (
-                                <TableRow key={sale.id} style={getRowStyle(sale)}>
+                                <TableRow 
+                                  key={sale.id}
+                                  ref={(el) => (rowRefs.current[sale.id] = el)}
+                                  onClick={() => setLastSelectedSaleId(sale.id)}
+                                  className={cn(
+                                    'cursor-pointer',
+                                    sale.id === lastSelectedSaleId
+                                      ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
+                                      : 'hover:bg-muted/50'
+                                  )}
+                                  style={getRowStyle(sale)}
+                                >
                                     {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
                                     {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
                                     {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
@@ -861,18 +822,18 @@ export default function ReportsPage() {
                                     {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                            <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={() => handlePrint(sale)}>
+                                            <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
                                                 <Printer className="h-4 w-4" />
                                             </Button>
                                             {canBeConverted && (
-                                                <Button variant="ghost" size="icon" onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
+                                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
                                                     <FileCog className="h-4 w-4 text-blue-600" />
                                                 </Button>
                                             )}
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                            <Button asChild variant="ghost" size="icon">
+                                            <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                                 <Link href={getDetailLink(sale.id)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
