@@ -63,7 +63,7 @@ export default function AuditLogPage() {
     const [filterDocType, setFilterDocType] = useState('');
     const [filterDocNumber, setFilterDocNumber] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(false);
     
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -79,7 +79,7 @@ export default function AuditLogPage() {
             const docNumberMatch = !filterDocNumber || log.documentNumber.toLowerCase().includes(filterDocNumber.toLowerCase());
 
             let dateMatch = true;
-            const logDate = log.date instanceof Date ? log.date : (log.date as Timestamp).toDate();
+            const logDate = log.date instanceof Date ? log.date : typeof log.date === 'string' ? new Date(log.date) : (log.date as Timestamp)?.toDate ? (log.date as Timestamp).toDate() : new Date();
             if (dateRange?.from) dateMatch = logDate >= startOfDay(dateRange.from);
             if (dateRange?.to) dateMatch = dateMatch && logDate <= endOfDay(dateRange.to);
 
@@ -87,8 +87,8 @@ export default function AuditLogPage() {
         });
 
         return filtered.sort((a,b) => {
-            const dateA = a.date instanceof Date ? a.date : (a.date as Timestamp).toDate();
-            const dateB = b.date instanceof Date ? b.date : (b.date as Timestamp).toDate();
+            const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+            const dateB = b.date instanceof Date ? b.date : new Date(b.date);
             return dateB.getTime() - dateA.getTime();
         });
     }, [auditLogs, filterUser, filterAction, filterDocType, filterDocNumber, dateRange]);
@@ -129,7 +129,7 @@ export default function AuditLogPage() {
             </PageHeader>
 
             <div className="mt-8">
-                <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+                <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                     <Card className="mb-4">
                         <CardHeader className="p-4">
                             <div className="flex items-center justify-between">
