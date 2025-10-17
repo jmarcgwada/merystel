@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -6,21 +5,61 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Item, Customer, Supplier } from '@/lib/types';
+
+// Define available fields for each data type
+const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
+const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
+const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
+
+const fieldLabels: Record<string, string> = {
+  ignore: 'Ignorer cette colonne',
+  id: 'ID / Code',
+  name: 'Nom',
+  email: 'Email',
+  phone: 'Téléphone',
+  phone2: 'Téléphone 2',
+  address: 'Adresse',
+  postalCode: 'Code Postal',
+  city: 'Ville',
+  country: 'Pays',
+  iban: 'IBAN',
+  notes: 'Notes',
+  isDisabled: 'Désactivé (oui/non)',
+  price: 'Prix de vente',
+  purchasePrice: "Prix d'achat",
+  categoryId: 'Nom de la Catégorie',
+  vatId: 'Nom ou Taux de TVA',
+  description: 'Description',
+  description2: 'Description 2',
+  barcode: 'Code-barres',
+  marginPercentage: 'Marge (%)',
+  stock: 'Stock actuel',
+  lowStockThreshold: 'Seuil de stock bas',
+  contactName: 'Nom du contact',
+  siret: 'SIRET',
+  website: 'Site Web',
+  bic: 'BIC / SWIFT',
+};
+
 
 export default function ImportDataPage() {
+  const [activeTab, setActiveTab] = useState('file');
   const [dataType, setDataType] = useState('clients');
   const [separator, setSeparator] = useState(',');
   const [hasHeader, setHasHeader] = useState(true);
   const [fileContent, setFileContent] = useState('');
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [mappings, setMappings] = useState<Record<number, string>>({});
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,8 +80,19 @@ export default function ImportDataPage() {
     return lines.map(line => line.split(separator));
   }, [fileContent, separator]);
 
-  const headerRow = hasHeader && parsedData.length > 0 ? parsedData[0] : [];
-  const dataRows = hasHeader ? parsedData.slice(1) : parsedData;
+  const headerRow = useMemo(() => (hasHeader && parsedData.length > 0) ? parsedData[0] : (parsedData.length > 0 ? parsedData[0].map((_, i) => `Colonne ${i + 1}`) : []), [parsedData, hasHeader]);
+  const dataRows = useMemo(() => hasHeader ? parsedData.slice(1) : parsedData, [parsedData, hasHeader]);
+  
+  const getAvailableFields = () => {
+    switch (dataType) {
+        case 'clients': return customerFields;
+        case 'articles': return itemFields;
+        case 'fournisseurs': return supplierFields;
+        default: return [];
+    }
+  };
+
+  const availableFields = getAvailableFields();
 
   return (
     <>
@@ -57,123 +107,174 @@ export default function ImportDataPage() {
           </Link>
         </Button>
       </PageHeader>
-
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Step 1: Selection */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Étape 1: Sélection & Format</CardTitle>
-              <CardDescription>
-                Choisissez le type de données et le format du fichier à importer.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="data-type">Type de données</Label>
-                <Select value={dataType} onValueChange={setDataType}>
-                  <SelectTrigger id="data-type">
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="clients">Clients</SelectItem>
-                    <SelectItem value="articles">Articles</SelectItem>
-                    <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
-                    <SelectItem value="pieces">Pièces de vente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="separator">Séparateur</Label>
-                <Select value={separator} onValueChange={setSeparator}>
-                  <SelectTrigger id="separator">
-                    <SelectValue placeholder="Sélectionner un séparateur..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value=",">Virgule (,)</SelectItem>
-                    <SelectItem value=";">Point-virgule (;)</SelectItem>
-                    <SelectItem value="|">Barre verticale (|)</SelectItem>
-                    <SelectItem value="\t">Tabulation</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="has-header"
-                  checked={hasHeader}
-                  onCheckedChange={(checked) => setHasHeader(checked as boolean)}
-                />
-                <label
-                  htmlFor="has-header"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  La première ligne est un en-tête
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                 <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
-                <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    <span>{fileName || 'Choisir un fichier'}</span>
-                </Button>
-                <input 
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept=".csv,.txt"
-                    onChange={handleFileChange}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Step 2: Preview */}
-        <div className="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Étape 2: Prévisualisation des données</CardTitle>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="file">Étape 1: Fichier & Format</TabsTrigger>
+            <TabsTrigger value="mapping" disabled={!fileContent}>Étape 2: Mappage</TabsTrigger>
+        </TabsList>
+        <TabsContent value="file">
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-1">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Sélection & Format</CardTitle>
                     <CardDescription>
-                        Vérifiez que vos données sont correctement séparées en colonnes. Utilisez la barre de défilement horizontale si nécessaire.
+                        Choisissez le type de données et le format du fichier à importer.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="data-type">Type de données</Label>
+                        <Select value={dataType} onValueChange={setDataType}>
+                        <SelectTrigger id="data-type">
+                            <SelectValue placeholder="Sélectionner..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="clients">Clients</SelectItem>
+                            <SelectItem value="articles">Articles</SelectItem>
+                            <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="separator">Séparateur</Label>
+                        <Select value={separator} onValueChange={setSeparator}>
+                        <SelectTrigger id="separator">
+                            <SelectValue placeholder="Sélectionner un séparateur..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value=",">Virgule (,)</SelectItem>
+                            <SelectItem value=";">Point-virgule (;)</SelectItem>
+                            <SelectItem value="|">Barre verticale (|)</SelectItem>
+                            <SelectItem value="\t">Tabulation</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                        id="has-header"
+                        checked={hasHeader}
+                        onCheckedChange={(checked) => setHasHeader(checked as boolean)}
+                        />
+                        <label
+                        htmlFor="has-header"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                        La première ligne est un en-tête
+                        </label>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            <span>{fileName || 'Choisir un fichier'}</span>
+                        </Button>
+                        <input 
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".csv,.txt"
+                            onChange={handleFileChange}
+                        />
+                    </div>
+                    </CardContent>
+                </Card>
+                </div>
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Prévisualisation des données</CardTitle>
+                            <CardDescription>
+                                Vérifiez que vos données sont correctement séparées.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ScrollArea className="h-[400px] border rounded-md">
+                            <div className="relative w-full overflow-auto">
+                              <Table className="min-w-max">
+                                {headerRow.length > 0 && (
+                                  <TableHeader>
+                                    <TableRow>
+                                      {headerRow.map((header, index) => (
+                                        <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
+                                      ))}
+                                    </TableRow>
+                                  </TableHeader>
+                                )}
+                                <TableBody>
+                                  {dataRows.slice(0, 10).map((row, rowIndex) => (
+                                    <TableRow key={rowIndex}>
+                                      {row.map((cell, cellIndex) => (
+                                        <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                             {parsedData.length === 0 && (
+                              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                                <p>Aucun fichier sélectionné ou fichier vide.</p>
+                              </div>
+                            )}
+                          </ScrollArea>
+                           <div className="mt-4 flex justify-end">
+                                <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
+                                    Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </TabsContent>
+        <TabsContent value="mapping">
+            <Card className="mt-4">
+                <CardHeader>
+                    <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
+                    <CardDescription>
+                        Faites correspondre chaque colonne de votre fichier à un champ de l'application.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="h-[400px] border rounded-md">
-                      <div className="relative w-full overflow-auto">
-                        <Table className="bg-muted min-w-max">
-                          {hasHeader && headerRow.length > 0 && (
-                            <TableHeader>
-                              <TableRow>
-                                {headerRow.map((header, index) => (
-                                  <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
-                                ))}
-                              </TableRow>
-                            </TableHeader>
-                          )}
-                          <TableBody>
-                            {dataRows.map((row, rowIndex) => (
-                              <TableRow key={rowIndex}>
-                                {row.map((cell, cellIndex) => (
-                                  <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
-                                ))}
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      {parsedData.length === 0 && (
-                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                          <p>Aucun fichier sélectionné.</p>
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    {headerRow.map((header, index) => (
+                      <div key={index} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
+                        <div className="font-semibold text-sm">
+                            <p>{header}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                                Ex: "{dataRows[0] ? dataRows[0][index] : ''}"
+                            </p>
                         </div>
-                      )}
-                    </ScrollArea>
+                        <Select value={mappings[index] || 'ignore'} onValueChange={(value) => setMappings(prev => ({...prev, [index]: value}))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Choisir un champ..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableFields.map(field => (
+                                    <SelectItem key={field as string} value={field as string}>
+                                        {fieldLabels[field as string] || field}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                   <div className="mt-6 flex justify-end">
+                        <Button>
+                            <Check className="mr-2 h-4 w-4" />
+                            Prévisualiser l'importation
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
