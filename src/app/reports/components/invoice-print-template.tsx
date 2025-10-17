@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -57,7 +56,7 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
             <tbody>
                 {Object.entries(breakdown).map(([rate, values]) => (
                     <tr key={rate}>
-                        <td className="p-1">{values.code} ({values.rate.toFixed(2)}%)</td>
+                        <td className="p-1">{values.code} ({parseFloat(rate).toFixed(2)}%)</td>
                         <td className="p-1 text-right">{values.base.toFixed(2)}€</td>
                         <td className="p-1 text-right">{values.total.toFixed(2)}€</td>
                     </tr>
@@ -123,8 +122,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
-      <div className="print-content p-10 flex flex-col flex-grow">
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm' }}>
+      <div className="print-content p-10 pb-28"> 
         <header className="mb-8 break-inside-avoid">
             <div className="flex justify-between items-start mb-6">
                 <div className="w-1/2 space-y-0.5">
@@ -153,7 +152,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </div>
         </header>
         
-        <main className="flex-grow">
+        <main>
             <table className="w-full">
                 <thead>
                     <tr className="bg-gray-800 text-white">
@@ -183,22 +182,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </table>
         </main>
         
-        <div className="flex-grow"></div>
-
-        {companyInfo?.communicationDoc && (
-        <section className="my-8 break-inside-avoid">
-            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
-                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {companyInfo.communicationDoc.startsWith('data:image') ? (
-                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    ) : (
-                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
-                    )}
-                </div>
-            </div>
-        </section>
-        )}
-
         <section className="mt-8 flex justify-between items-start break-inside-avoid">
             <div className="w-1/2 space-y-4">
                 <VatBreakdownTable sale={sale} vatRates={vatRates} />
@@ -215,6 +198,20 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </div>
         </section>
 
+        {companyInfo?.communicationDoc && (
+        <section className="my-8 break-inside-avoid">
+            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
+                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {companyInfo.communicationDoc.startsWith('data:image') ? (
+                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
+                    )}
+                </div>
+            </div>
+        </section>
+        )}
+
         {companyInfo?.notes && (
             <div className="mt-8 pt-4 border-t text-xs text-gray-500 break-inside-avoid">
                 <p className="whitespace-pre-wrap">{companyInfo.notes}</p>
@@ -222,7 +219,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         )}
       </div>
 
-       <footer className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
+       <footer className="print-footer p-10 pt-4 text-center text-xs text-gray-500 border-t">
           <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
       </footer>
       <style jsx global>{`
@@ -233,6 +230,13 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             print-color-adjust: exact;
           }
           .print-content {
+             padding-bottom: 3cm; /* Margin for the footer */
+          }
+          .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             padding: 10mm;
           }
           .break-inside-avoid {
