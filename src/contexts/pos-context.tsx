@@ -1201,21 +1201,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setTablesData]);
   
     const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
-      // This is a simplified placeholder as client-side rendering to PDF is complex.
-      // In a real app, this might involve a server-side rendering service.
       const customer = customers.find(c => c.id === sale.customerId) || null;
       let content = `<h1>${sale.ticketNumber}</h1><p>Client: ${customer?.name || 'N/A'}</p><p>Total: ${sale.total.toFixed(2)}€</p>`;
       
       try {
           const pdf = new jsPDF('p', 'mm', 'a4');
-          // This is a trick to render the React component to an invisible div, then to html2canvas, then to jsPDF.
-          // This is not a perfect solution but works for many cases.
           const printElement = document.createElement('div');
           printElement.style.position = 'absolute';
           printElement.style.left = '-9999px';
           document.body.appendChild(printElement);
           
-          // Using a temporary React root to render the component off-screen
           const ReactDOM = await import('react-dom');
           ReactDOM.render(<InvoicePrintTemplate sale={sale} customer={customer} companyInfo={companyInfo} vatRates={vatRates} />, printElement);
 
@@ -1285,24 +1280,56 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const existingSale = sales.find(s => s.id === saleIdToUpdate);
             if (!existingSale) return null;
             
+            const richDetails: Record<string, any> = {};
+            const details: string[] = [];
+
+            if (Math.abs(existingSale.total - saleData.total) > 0.01) {
+                details.push(`Montant changé (${existingSale.total.toFixed(2)}€ -> ${saleData.total.toFixed(2)}€)`);
+                richDetails.totalChange = { from: existingSale.total, to: saleData.total };
+            }
+            if (existingSale.customerId !== saleData.customerId) {
+                const oldCustomer = customers.find(c => c.id === existingSale.customerId)?.name || 'N/A';
+                const newCustomer = customers.find(c => c.id === saleData.customerId)?.name || 'N/A';
+                details.push(`Client changé (${oldCustomer} -> ${newCustomer})`);
+                richDetails.customerChange = { from: oldCustomer, to: newCustomer };
+            }
+            const addedPayments = (saleData.payments || []).filter(p => !(existingSale.payments || []).some(ep => ep.amount === p.amount && ep.method.id === p.method.id));
+            if (addedPayments.length > 0) {
+                const paymentDetails = addedPayments.map(p => `${p.method.name} ${p.amount.toFixed(2)}€`).join(', ');
+                details.push(`Paiement(s) ajouté(s): ${paymentDetails}`);
+                richDetails.paymentsAdded = addedPayments;
+            }
+
+            const oldItems = new Map(existingSale.items.map(i => [i.itemId, i]));
+            const newItems = new Map(saleData.items.map(i => [i.itemId, i]));
+            const itemChanges: string[] = [];
+            
+            oldItems.forEach((oldItem, itemId) => {
+              if (!newItems.has(itemId)) {
+                itemChanges.push(`Supprimé: ${oldItem.quantity}x ${oldItem.name}`);
+              }
+            });
+
+            newItems.forEach((newItem, itemId) => {
+              const oldItem = oldItems.get(itemId);
+              if (!oldItem) {
+                itemChanges.push(`Ajouté: ${newItem.quantity}x ${newItem.name}`);
+              } else if (oldItem.quantity !== newItem.quantity) {
+                itemChanges.push(`Qté modifiée: ${newItem.name} (${oldItem.quantity} -> ${newItem.quantity})`);
+              }
+            });
+
+            if (itemChanges.length > 0) {
+              details.push(`Articles modifiés`);
+              richDetails.itemChanges = itemChanges;
+            }
+            
             finalSale = {
                 ...existingSale,
                 ...saleData,
                 date: existingSale.date, 
                 modifiedAt: today, 
             };
-            
-            const details: string[] = [];
-            if (!isEqual(existingSale.items, finalSale.items)) details.push("Articles modifiés");
-            if (existingSale.total !== finalSale.total) details.push(`Montant changé (${existingSale.total.toFixed(2)}€ -> ${finalSale.total.toFixed(2)}€)`);
-            if (existingSale.customerId !== finalSale.customerId) {
-                const oldCustomer = customers.find(c => c.id === existingSale.customerId)?.name || 'N/A';
-                const newCustomer = customers.find(c => c.id === finalSale.customerId)?.name || 'N/A';
-                details.push(`Client changé (${oldCustomer} -> ${newCustomer})`);
-            }
-             (saleData.payments || []).filter(p => !(existingSale.payments || []).some(ep => ep.amount === p.amount && ep.method.id === p.method.id))
-                .forEach(p => details.push(`Paiement ajouté: ${p.method.name} ${p.amount.toFixed(2)}€`));
-
 
              addAuditLog({
                 userId: user?.id,
@@ -1311,7 +1338,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: details.join(', ') || 'Pièce mise à jour sans changement majeur.'
+                details: details.length > 0 ? details.join(', ') : 'Mise à jour sans changement majeur.',
+                richDetails: richDetails
             });
         } else {
             const dayMonth = format(today, 'ddMM');
@@ -1348,7 +1376,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€`
+                details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€`,
+                richDetails: { total: finalSale.total }
             });
         }
         
@@ -1376,7 +1405,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: `Pièce transformée depuis ${originalDoc?.documentType || 'document'} #${originalDoc?.ticketNumber}`
+                details: `Pièce transformée depuis ${originalDoc?.documentType || 'document'} #${originalDoc?.ticketNumber}`,
+                richDetails: { from: { type: originalDoc?.documentType, number: originalDoc?.ticketNumber }}
             });
         }
 
@@ -1396,7 +1426,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               documentType: 'Stock',
               documentId: finalSale.id,
               documentNumber: finalSale.ticketNumber,
-              details: `Stock mis à jour via Cde Fournisseur`
+              details: `Stock mis à jour via Cde Fournisseur`,
+              richDetails: { items: finalSale.items.map(i => ({ name: i.name, quantityAdded: i.quantity }))}
           });
         }
 
@@ -1438,7 +1469,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: type,
                 documentId: finalDoc.id,
                 documentNumber: finalDoc.ticketNumber,
-                details: `Pièce modifiée: ${finalDoc.ticketNumber}`
+                details: `Pièce modifiée: ${finalDoc.ticketNumber}`,
+                richDetails: {}
             });
         } else {
              const count = sales.filter(s => s.documentType === type).length;
@@ -1460,7 +1492,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: type,
                 documentId: finalDoc.id,
                 documentNumber: finalDoc.ticketNumber,
-                details: `Pièce créée: ${finalDoc.ticketNumber}`
+                details: `Pièce créée: ${finalDoc.ticketNumber}`,
+                richDetails: { total: finalDoc.total }
             });
         }
         
