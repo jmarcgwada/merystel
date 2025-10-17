@@ -406,6 +406,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
   const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
+  const [lastSelectedSaleId, setLastSelectedSaleId] = useState<string | null>(null);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -437,8 +438,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
   const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
   const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
-
-  const [lastSelectedSaleId, setLastSelectedSaleId] = useState<string | null>(null);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -1693,6 +1692,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const saleToEdit = sales.find(s => s.id === saleId);
       if (saleToEdit) {
         const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
+        
         const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
         setOrder(saleToEdit.items);

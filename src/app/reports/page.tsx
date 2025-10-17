@@ -115,7 +115,7 @@ const getDateFromSale = (sale: Sale): Date => {
     return isNaN(d.getTime()) ? new Date(0) : d;
 };
 
-const columns = [
+const columnsConfig = [
     { id: 'type', label: 'Type' },
     { id: 'ticketNumber', label: 'Numéro' },
     { id: 'date', label: 'Date' },
@@ -169,6 +169,7 @@ export default function ReportsPage() {
     const printRef = useRef<HTMLDivElement>(null);
     const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
+    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
@@ -249,7 +250,39 @@ export default function ReportsPage() {
         credit_note: true,
     });
 
-    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+    const getRowStyle = (sale: Sale) => {
+        if (!isClient) return {};
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice':
+                color = invoiceBgColor;
+                opacity = invoiceBgOpacity;
+                break;
+            case 'quote':
+                color = quoteBgColor;
+                opacity = quoteBgOpacity;
+                break;
+            case 'delivery_note':
+                color = deliveryNoteBgColor;
+                opacity = deliveryNoteBgOpacity;
+                break;
+            case 'supplier_order':
+                color = supplierOrderBgColor;
+                opacity = supplierOrderBgOpacity;
+                break;
+            case 'credit_note':
+                color = creditNoteBgColor;
+                opacity = creditNoteBgOpacity;
+                break;
+        }
+
+        return {
+            backgroundColor: hexToRgba(color, opacity),
+        };
+    };
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
@@ -439,14 +472,7 @@ export default function ReportsPage() {
         }
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
-
-    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
-
-    const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredAndSortedSales, currentPage]);
-
+    
     useEffect(() => {
         if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
             const index = filteredAndSortedSales.findIndex((s) => s.id === lastSelectedSaleId);
@@ -463,11 +489,17 @@ export default function ReportsPage() {
                             block: 'center',
                         });
                     }
-                }, 100);
+                }, 100); 
             }
         }
     }, [lastSelectedSaleId, filteredAndSortedSales, currentPage]);
 
+    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredAndSortedSales, currentPage]);
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -590,40 +622,6 @@ export default function ReportsPage() {
       return `/reports/${saleId}?${params.toString()}`;
   }
 
-    const getRowStyle = (sale: Sale) => {
-        if (!isClient) return {};
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice':
-                color = invoiceBgColor;
-                opacity = invoiceBgOpacity;
-                break;
-            case 'quote':
-                color = quoteBgColor;
-                opacity = quoteBgOpacity;
-                break;
-            case 'delivery_note':
-                color = deliveryNoteBgColor;
-                opacity = deliveryNoteBgOpacity;
-                break;
-            case 'supplier_order':
-                color = supplierOrderBgColor;
-                opacity = supplierOrderBgOpacity;
-                break;
-            case 'credit_note':
-                color = creditNoteBgColor;
-                opacity = creditNoteBgOpacity;
-                break;
-        }
-
-        return {
-            backgroundColor: hexToRgba(color, opacity),
-        };
-    };
-
     if (isCashier) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -738,7 +736,7 @@ export default function ReportsPage() {
                             <DropdownMenuContent>
                                 <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                {columns.map(column => (
+                                {columnsConfig.map(column => (
                                     <DropdownMenuCheckboxItem
                                         key={column.id}
                                         checked={visibleColumns[column.id] ?? false}
@@ -814,7 +812,7 @@ export default function ReportsPage() {
                     <TableBody>
                         {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
                             <TableRow key={i}>
-                                {Object.values(visibleColumns).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
+                                {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
                                 <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                             </TableRow>
                         )) : null}
@@ -864,7 +862,7 @@ export default function ReportsPage() {
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                            <Button asChild variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id); }}>
+                                            <Button asChild variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id) }}>
                                                 <Link href={getDetailLink(sale.id)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
