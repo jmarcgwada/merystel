@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -79,7 +78,7 @@ export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-    const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(true);
+    const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(false);
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
     const itemFilterRef = useRef<HTMLInputElement>(null);
@@ -626,24 +625,26 @@ export default function AnalyticsPage() {
                                     {visibleColumns.name && <TableCell>
                                         <div className="font-medium">{item.name}</div>
                                     </TableCell>}
-                                    {visibleColumns.details && <TableCell className="text-xs text-muted-foreground max-w-xs">
-                                        {item.selectedVariants && item.selectedVariants.length > 0 && (
-                                            <div className="capitalize">
-                                                {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
-                                            </div>
-                                        )}
-                                        {item.note && (
-                                            <div className="text-amber-600 mt-1 flex items-start gap-1.5">
-                                                <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
-                                                <span>{item.note}</span>
-                                            </div>
-                                        )}
-                                        {item.serialNumbers && item.serialNumbers.length > 0 && (
-                                            <div className="mt-1">
-                                                <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
-                                            </div>
-                                        )}
-                                    </TableCell>}
+                                    {visibleColumns.details && (
+                                        <TableCell className="text-xs text-muted-foreground max-w-xs">
+                                            {item.selectedVariants && item.selectedVariants.length > 0 && (
+                                                <div className="capitalize">
+                                                    {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                                </div>
+                                            )}
+                                            {item.note && (
+                                                <div className="text-amber-600 mt-1 flex items-start gap-1.5">
+                                                    <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
+                                                    <span>{item.note}</span>
+                                                </div>
+                                            )}
+                                            {item.serialNumbers && item.serialNumbers.length > 0 && (
+                                                <div className="mt-1">
+                                                    <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                    )}
                                     {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                                     {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
                                     {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
