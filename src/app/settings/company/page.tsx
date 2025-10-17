@@ -105,18 +105,19 @@ function CompanyPageContent() {
 
   return (
     <>
+        {!isInitialSetup && (
+            <div className="fixed top-24 right-8 z-50">
+                <Button asChild variant="outline" size="icon" className="h-12 w-12 rounded-full shadow-lg btn-back">
+                  <Link href={backUrl}>
+                    <ArrowLeft className="h-6 w-6" />
+                  </Link>
+                </Button>
+            </div>
+        )}
       <PageHeader
         title="Détails de l'entreprise"
         subtitle="Gérez les informations légales et commerciales de votre entreprise."
       >
-        {!isInitialSetup && (
-            <Button asChild variant="outline" className="btn-back">
-              <Link href={backUrl}>
-                <ArrowLeft />
-                Retour
-              </Link>
-            </Button>
-        )}
       </PageHeader>
         
       <div className="mt-4 space-y-8">
