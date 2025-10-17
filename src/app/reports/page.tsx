@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,6 +40,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { InvoicePrintTemplate } from './components/invoice-print-template';
+import jsPDF from 'jspdf';
+import { sendEmail } from '@/ai/flows/send-email-flow';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 const ITEMS_PER_PAGE = 20;
@@ -64,7 +67,7 @@ const hexToRgba = (hex: string, opacity: number) => {
         c = '0x' + c.join('');
         return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
     }
-    return `hsla(var(--background), ${opacity / 100})`;
+    return `hsla(var(--background), ${opacity/100})`;
 };
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
@@ -129,7 +132,10 @@ export default function ReportsPage() {
         supplierOrderBgColor, 
         supplierOrderBgOpacity,
         creditNoteBgColor,
-        creditNoteBgOpacity
+        creditNoteBgOpacity,
+        smtpConfig,
+        companyInfo,
+        vatRates,
     } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
@@ -142,6 +148,12 @@ export default function ReportsPage() {
     const dateFilterParam = searchParams.get('date');
 
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+
+    const printRef = useRef<HTMLDivElement>(null);
+    const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [saleToSend, setSaleToSend] = useState<Sale | null>(null);
+
 
     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
@@ -511,7 +523,7 @@ export default function ReportsPage() {
 
       return <Badge variant="destructive" className="font-normal">En attente</Badge>;
   };
-
+    
     const getDetailLink = (saleId: string) => {
         const params = new URLSearchParams();
         if (sortConfig) {
@@ -528,6 +540,76 @@ export default function ReportsPage() {
         
         return `/reports/${saleId}?${params.toString()}`;
     }
+
+    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
+        setSaleToPrint(sale);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Allow state to update and component to render
+
+        if (!printRef.current) {
+            toast({ variant: "destructive", title: "Erreur d'impression" });
+            return null;
+        }
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfContent = await pdf.html(printRef.current, {
+            autoPaging: 'text',
+            width: 210,
+            windowWidth: printRef.current.scrollWidth
+        }).output('datauristring');
+        
+        setSaleToPrint(null);
+
+        return {
+            content: pdfContent.split(',')[1],
+            filename: `${sale.ticketNumber || 'document'}.pdf`
+        };
+    }, [toast]);
+    
+    const handleSendEmail = useCallback(async (sale: Sale) => {
+        if (!smtpConfig?.senderEmail) {
+            toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
+            return;
+        }
+
+        const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
+        if (!customer?.email) {
+            toast({ variant: 'destructive', title: 'E-mail du client manquant' });
+            return;
+        }
+        
+        setSaleToSend(sale);
+        setIsSendingEmail(true);
+        toast({ title: 'Envoi en cours...' });
+
+        const pdfData = await generatePdfForEmail(sale);
+        if (!pdfData) {
+            setIsSendingEmail(false);
+            setSaleToSend(null);
+            return;
+        }
+
+        const emailResult = await sendEmail({
+            smtpConfig: {
+                host: smtpConfig.host!, port: smtpConfig.port!, secure: smtpConfig.secure || false,
+                auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+                senderEmail: smtpConfig.senderEmail!,
+            },
+            to: customer.email, cc: smtpConfig.senderEmail,
+            subject: `Votre document #${sale.ticketNumber}`,
+            text: `Veuillez trouver ci-joint votre document #${sale.ticketNumber}.`,
+            html: `<p>Veuillez trouver ci-joint votre document #${sale.ticketNumber}.</p>`,
+            attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
+        });
+
+        toast({
+            variant: emailResult.success ? 'default' : 'destructive',
+            title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
+            description: emailResult.message,
+        });
+
+        setIsSendingEmail(false);
+        setSaleToSend(null);
+    }, [smtpConfig, customers, toast, generatePdfForEmail]);
 
     if (isCashier) {
         return (
@@ -624,6 +706,17 @@ export default function ReportsPage() {
 
   return (
     <>
+        <div className="absolute -left-[9999px] -top-[9999px]">
+            {saleToPrint && vatRates && (
+                <InvoicePrintTemplate 
+                    ref={printRef} 
+                    sale={saleToPrint} 
+                    customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
+                    companyInfo={companyInfo} 
+                    vatRates={vatRates} 
+                />
+            )}
+        </div>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Rapports des pièces"
@@ -946,6 +1039,9 @@ export default function ReportsPage() {
                                     {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
+                                             <Button variant="ghost" size="icon" onClick={() => handleSendEmail(sale)} disabled={isSendingEmail && saleToSend?.id === sale.id}>
+                                                <Send className="h-4 w-4" />
+                                            </Button>
                                             {canBeConverted && (
                                                 <Button variant="ghost" size="icon" onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
                                                     <FileCog className="h-4 w-4 text-blue-600" />

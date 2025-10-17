@@ -373,32 +373,40 @@ function SaleDetailContent() {
   const { subtotal, tax, vatBreakdown } = useMemo(() => {
     if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {} };
     
-    let breakdown: VatBreakdown = sale.vatBreakdown || {};
-
-    // Fallback calculation if vatBreakdown is not in the sale object
-    if (!sale.vatBreakdown || Object.keys(sale.vatBreakdown).length === 0) {
-        breakdown = {};
-        sale.items.forEach(item => {
-            const vatInfo = vatRates.find(v => v.id === item.vatId);
-            if (vatInfo) {
-                const priceHT = item.total / (1 + vatInfo.rate / 100);
-                const taxAmount = item.total - priceHT;
-                const rateKey = vatInfo.rate.toString();
-                if (breakdown[rateKey]) {
-                    breakdown[rateKey].base += priceHT;
-                    breakdown[rateKey].total += taxAmount;
-                } else {
-                    breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
-                }
-            }
-        });
+    // Always use stored values if they exist, otherwise calculate
+    if (sale.vatBreakdown && sale.subtotal !== undefined && sale.tax !== undefined) {
+        return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown };
     }
+    
+    let calcSubtotal = 0;
+    const breakdown: VatBreakdown = {};
 
-    const finalSubtotal = sale.subtotal;
-    const finalTax = sale.tax;
+    sale.items.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        const rate = vatInfo ? vatInfo.rate : 0;
+        const priceHT = item.total / (1 + rate / 100);
+        const taxAmount = item.total - priceHT;
 
-    return { subtotal: finalSubtotal, tax: finalTax, vatBreakdown: breakdown };
-  }, [sale, vatRates]);
+        calcSubtotal += priceHT;
+
+        const rateKey = rate.toString();
+        if (breakdown[rateKey]) {
+            breakdown[rateKey].base += priceHT;
+            breakdown[rateKey].total += taxAmount;
+        } else {
+            breakdown[rateKey] = {
+                rate: rate,
+                total: taxAmount,
+                base: priceHT,
+                code: vatInfo?.code || 0,
+            };
+        }
+    });
+
+    const calcTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
+
+    return { subtotal: calcSubtotal, tax: calcTax, vatBreakdown: breakdown };
+}, [sale, vatRates]);
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
