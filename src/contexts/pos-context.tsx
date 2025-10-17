@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -303,17 +302,43 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
 
-    useEffect(() => {
+    const rehydrate = useCallback(() => {
         try {
             const storedValue = localStorage.getItem(key);
-            if (storedValue && storedValue !== 'undefined') { // Check for 'undefined' string
-                setState(JSON.parse(storedValue));
+            if (storedValue && storedValue !== 'undefined') {
+                const parsedValue = JSON.parse(storedValue);
+                // Recursively convert date strings to Date objects
+                const reviveDates = (obj: any): any => {
+                    if (typeof obj === 'string') {
+                        // This regex is a simple check for ISO-like date strings
+                        const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
+                        if (isoDateRegex.test(obj)) {
+                            const date = new Date(obj);
+                            if (!isNaN(date.getTime())) {
+                                return date;
+                            }
+                        }
+                    } else if (Array.isArray(obj)) {
+                        return obj.map(item => reviveDates(item));
+                    } else if (typeof obj === 'object' && obj !== null) {
+                        return Object.entries(obj).reduce((acc, [k, v]) => {
+                            acc[k] = reviveDates(v);
+                            return acc;
+                        }, {} as { [key: string]: any });
+                    }
+                    return obj;
+                };
+                setState(reviveDates(parsedValue));
             }
         } catch (error) {
             console.error("Error reading localStorage key " + key + ":", error);
         }
         setIsHydrated(true);
     }, [key]);
+
+    useEffect(() => {
+        rehydrate();
+    }, [rehydrate]);
 
     useEffect(() => {
         if (isHydrated) {
@@ -329,16 +354,6 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
         }
     }, [key, state, isHydrated]);
 
-    const rehydrate = useCallback(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue && storedValue !== 'undefined') {
-                setState(JSON.parse(storedValue));
-            }
-        } catch (error) {
-            console.error("Error re-reading localStorage key " + key + ":", error);
-        }
-    }, [key]);
 
     return [state, setState, rehydrate];
 }
@@ -1775,3 +1790,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
