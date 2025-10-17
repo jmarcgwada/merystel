@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -29,7 +30,13 @@ interface FileInfo {
 }
 
 export default function ConnectivityPage() {
-    const { companyInfo, setCompanyInfo, smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig } = usePos();
+    const { 
+        companyInfo, setCompanyInfo, 
+        smtpConfig, setSmtpConfig, 
+        ftpConfig, setFtpConfig, 
+        twilioConfig, setTwilioConfig,
+        sendEmailOnSale, setSendEmailOnSale
+    } = usePos();
     const { toast } = useToast();
 
     const [localSmtp, setLocalSmtp] = useState<SmtpConfig>(smtpConfig || {});
@@ -270,6 +277,10 @@ export default function ConnectivityPage() {
                         <div className="flex items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5"><Label htmlFor="smtp-secure" className="text-base">Connexion sécurisée (TLS)</Label><p className="text-sm text-muted-foreground">Recommandé pour la plupart des serveurs.</p></div>
                             <Switch id="smtp-secure" checked={localSmtp.secure || false} onCheckedChange={(checked) => handleSmtpChange('secure', checked)} />
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5"><Label htmlFor="sendEmailOnSale" className="text-base">Notification par e-mail après chaque vente</Label><p className="text-sm text-muted-foreground">Envoie un e-mail de confirmation après chaque transaction finalisée.</p></div>
+                            <Switch id="sendEmailOnSale" checked={sendEmailOnSale} onCheckedChange={setSendEmailOnSale} />
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">

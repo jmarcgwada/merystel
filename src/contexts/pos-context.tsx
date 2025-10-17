@@ -286,6 +286,8 @@ interface PosContextType {
   setFtpConfig: React.Dispatch<React.SetStateAction<FtpConfig>>;
   twilioConfig: TwilioConfig;
   setTwilioConfig: React.Dispatch<React.SetStateAction<TwilioConfig>>;
+  sendEmailOnSale: boolean;
+  setSendEmailOnSale: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -396,6 +398,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
+  const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -700,6 +703,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             smtpConfig,
             ftpConfig,
             twilioConfig,
+            sendEmailOnSale,
         }
     };
     return JSON.stringify(config, null, 2);
@@ -717,7 +721,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder,
     dashboardButtonBorderColor, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity,
     deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity,
-    creditNoteBgColor, creditNoteBgOpacity, smtpConfig, ftpConfig, twilioConfig
+    creditNoteBgColor, creditNoteBgOpacity, smtpConfig, ftpConfig, twilioConfig, sendEmailOnSale
   ]);
 
   const importConfiguration = useCallback(async (file: File) => {
@@ -788,6 +792,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 setSmtpConfig(config.settings.smtpConfig ?? {});
                 setFtpConfig(config.settings.ftpConfig ?? {});
                 setTwilioConfig(config.settings.twilioConfig ?? {});
+                setSendEmailOnSale(config.settings.sendEmailOnSale ?? false);
             }
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
@@ -809,7 +814,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setDashboardButtonBackgroundColor, setDashboardButtonOpacity, setDashboardButtonShowBorder,
       setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, setQuoteBgOpacity,
       setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity,
-      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig
+      setCreditNoteBgColor, setCreditNoteBgOpacity, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale
   ]);
   
   
@@ -1186,40 +1191,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
-        const customerForSale = customers?.find(c => c.id === sale.customerId) || null;
-        
-        // This is a bit of a hack: render the component to a string on the server, then create a PDF.
-        // In a real app, you might use a dedicated PDF library or a server-side rendering service.
-        const printComponent = React.createElement(InvoicePrintTemplate, {
-            sale,
-            customer: customerForSale,
-            companyInfo,
-            vatRates: vatRates || [],
-        });
-        const htmlString = ReactDOMServer.renderToString(printComponent);
-
-        // We can't use browser-only `jsPDF` here. We will create a simplified HTML structure for the email.
-        // For a real PDF, we'd need a server-side PDF generation library.
-        // For now, let's fake the PDF generation for the email flow.
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const tempElement = document.createElement('div');
-        tempElement.innerHTML = htmlString;
-        document.body.appendChild(tempElement);
-        
-        const pdfContent = await pdf.html(tempElement, { autoPaging: 'text', width: 210, windowWidth: tempElement.scrollWidth }).output('datauristring');
-        document.body.removeChild(tempElement);
-        
-        return {
-            content: pdfContent.split(',')[1],
-            filename: `${sale.ticketNumber || 'document'}.pdf`,
-        };
-    }, [customers, companyInfo, vatRates]);
-
-
     const sendNotificationEmail = useCallback(async (sale: Sale) => {
-        if (!smtpConfig?.host || !smtpConfig.senderEmail || !companyInfo?.email) {
-            console.warn("SMTP or company email not configured. Skipping notification.");
+        if (!sendEmailOnSale || !smtpConfig?.host || !smtpConfig.senderEmail || !companyInfo?.email) {
             return;
         }
 
@@ -1250,7 +1223,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Error sending notification email:", error);
         }
-    }, [smtpConfig, companyInfo, toast, generatePdfForEmail]);
+    }, [smtpConfig, companyInfo, toast, generatePdfForEmail, sendEmailOnSale]);
 
 
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
@@ -1683,6 +1656,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
       companyInfo, setCompanyInfo,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig,
+      sendEmailOnSale, setSendEmailOnSale,
   };
 
   return (
