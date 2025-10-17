@@ -53,6 +53,9 @@ export default function AuditLogPage() {
     const [currentPage, setCurrentPage] = useState(1);
 
     const sortedLogs = useMemo(() => {
+        if (!auditLogs || !Array.isArray(auditLogs)) {
+            return [];
+        }
         return [...auditLogs].sort((a,b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime());
     }, [auditLogs]);
     
