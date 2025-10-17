@@ -187,12 +187,12 @@ const FileExplorer = ({ ftpConfig, onTest }: { ftpConfig: FtpConfig, onTest: () 
 
 
 export default function ConnectivityPage() {
-    const { companyInfo, setCompanyInfo } = usePos();
+    const { companyInfo, setCompanyInfo, smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig } = usePos();
     const { toast } = useToast();
 
-    const [localSmtp, setLocalSmtp] = useState<SmtpConfig>(companyInfo?.smtpConfig || {});
-    const [localFtp, setLocalFtp] = useState<FtpConfig>(companyInfo?.ftpConfig || {});
-    const [localTwilio, setLocalTwilio] = useState<TwilioConfig>(companyInfo?.twilioConfig || {});
+    const [localSmtp, setLocalSmtp] = useState<SmtpConfig>(smtpConfig || {});
+    const [localFtp, setLocalFtp] = useState<FtpConfig>(ftpConfig || {});
+    const [localTwilio, setLocalTwilio] = useState<TwilioConfig>(twilioConfig || {});
 
     const [isTestingSmtp, setIsTestingSmtp] = useState(false);
     const [isTestingFtp, setIsTestingFtp] = useState(false);
@@ -201,19 +201,15 @@ export default function ConnectivityPage() {
 
 
     useEffect(() => {
-        setLocalSmtp(companyInfo?.smtpConfig || {});
-        setLocalFtp(companyInfo?.ftpConfig || {});
-        setLocalTwilio(companyInfo?.twilioConfig || {});
-    }, [companyInfo]);
+        setLocalSmtp(smtpConfig || {});
+        setLocalFtp(ftpConfig || {});
+        setLocalTwilio(twilioConfig || {});
+    }, [smtpConfig, ftpConfig, twilioConfig]);
 
     const handleSave = () => {
-        if (!companyInfo) return;
-        setCompanyInfo({
-            ...companyInfo,
-            smtpConfig: localSmtp,
-            ftpConfig: localFtp,
-            twilioConfig: localTwilio,
-        });
+        setSmtpConfig(localSmtp);
+        setFtpConfig(localFtp);
+        setTwilioConfig(localTwilio);
         toast({ title: 'Configurations sauvegardées' });
     };
 
