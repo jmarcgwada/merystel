@@ -697,7 +697,7 @@ export default function ReportsPage() {
             <Card>
                 <CardHeader className="p-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                     <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-2 flex-wrap">
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm">
                                 <SlidersHorizontal className="mr-2 h-4 w-4" />
@@ -715,7 +715,7 @@ export default function ReportsPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuLabel>Filtrer par type</DropdownMenuLabel>
+                                <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {Object.entries(documentTypes).map(([type, { label }]) => (
                                     <DropdownMenuCheckboxItem

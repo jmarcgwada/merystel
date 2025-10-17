@@ -21,11 +21,11 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const navLinks = [
-    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', reportLabel: 'Liste Factures', reportFilter: 'Fact-' },
-    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', reportLabel: 'Liste Devis', reportFilter: 'Devis-' },
-    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', reportLabel: 'Liste BL', reportFilter: 'BL-' },
-    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'CF-' },
-    { href: '/commercial/credit-notes', value: 'credit-notes', label: 'Avoirs', reportLabel: 'Liste Avoirs', reportFilter: 'Avoir-' },
+    { href: '/commercial/invoices', value: 'invoices', label: 'Factures', reportLabel: 'Liste Factures', reportFilter: 'invoice' },
+    { href: '/commercial/quotes', value: 'quotes', label: 'Devis', reportLabel: 'Liste Devis', reportFilter: 'quote' },
+    { href: '/commercial/delivery-notes', value: 'delivery-notes', label: 'BL', reportLabel: 'Liste BL', reportFilter: 'delivery_note' },
+    { href: '/commercial/supplier-orders', value: 'supplier-orders', label: 'Cdes Fournisseur', reportLabel: 'Liste Cdes Fournisseur', reportFilter: 'supplier_order' },
+    { href: '/commercial/credit-notes', value: 'credit-notes', label: 'Avoirs', reportLabel: 'Liste Avoirs', reportFilter: 'credit_note' },
 ]
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -105,7 +105,7 @@ export default function CommercialLayout({
   const handleListClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (order.length > 0 && activeReportInfo) {
       e.preventDefault();
-      showNavConfirm(`/reports?filter=${activeReportInfo.reportFilter}`);
+      showNavConfirm(`/reports?docType=${activeReportInfo.reportFilter}`);
     }
   };
 
@@ -147,7 +147,7 @@ export default function CommercialLayout({
                     <div className="pl-4 flex items-center gap-2">
                         {activeReportInfo && (
                             <Button asChild variant="outline">
-                                <Link href={`/reports?filter=${activeReportInfo.reportFilter}`} onClick={handleListClick}>
+                                <Link href={`/reports?docType=${activeReportInfo.reportFilter}`} onClick={handleListClick}>
                                     <List className="mr-2 h-4 w-4"/>
                                     {activeReportInfo.reportLabel}
                                 </Link>
