@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -68,9 +67,10 @@ export default function ItemsPage() {
              setVisibleColumns({
                 image: true,
                 name: true,
+                barcode: true,
                 category: true,
                 stock: true,
-                purchasePrice: true,
+                purchasePrice: false,
                 price: true,
             });
         }
@@ -85,6 +85,7 @@ export default function ItemsPage() {
     const columnsConfig = [
         { id: 'image', label: 'Image' },
         { id: 'name', label: 'Nom' },
+        { id: 'barcode', label: 'Référence' },
         { id: 'category', label: 'Catégorie' },
         { id: 'stock', label: 'Stock' },
         { id: 'purchasePrice', label: 'Prix Achat' },
@@ -360,6 +361,11 @@ export default function ItemsPage() {
                           Nom {getSortIcon('name')}
                       </Button>
                     </TableHead>}
+                    {visibleColumns.barcode && <TableHead>
+                      <Button variant="ghost" onClick={() => requestSort('barcode')}>
+                          Référence {getSortIcon('barcode')}
+                      </Button>
+                    </TableHead>}
                     {visibleColumns.category && <TableHead>
                       <Button variant="ghost" onClick={() => requestSort('categoryId')}>
                           Catégorie {getSortIcon('categoryId')}
@@ -403,6 +409,7 @@ export default function ItemsPage() {
                         />
                       </TableCell>}
                       {visibleColumns.name && <TableCell className="font-medium">{item.name}</TableCell>}
+                      {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                       {visibleColumns.category && <TableCell>
                           <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
                       </TableCell>}
@@ -447,3 +454,4 @@ export default function ItemsPage() {
     </>
   );
 }
+
