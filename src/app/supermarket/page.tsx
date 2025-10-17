@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { OrderSummary } from '@/app/pos/components/order-summary';
 import { usePos } from '@/contexts/pos-context';
 import { Input } from '@/components/ui/input';
-import { Hand, ScanLine, List, ArrowUp, ArrowDown } from 'lucide-react';
+import { Hand, ScanLine, List, ArrowUp, ArrowDown, ArrowLeftRight } from 'lucide-react';
 import { HeldOrdersDrawer } from '@/app/pos/components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import Image from 'next/image';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { useKeyboard } from '@/contexts/keyboard-context';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const MAX_INITIAL_ITEMS = 100;
 
@@ -196,16 +197,26 @@ export default function SupermarketPage() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyDown={handleKeyDown}
                       onFocus={handleSearchFocus}
-                      className="h-16 text-2xl pl-14 pr-40"
+                      className="h-16 text-2xl pl-14 pr-28"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      onClick={handleChangeSearchType}
-                      className="h-12 text-xs w-28"
-                    >
-                      {searchType === 'contains' ? 'Contient' : 'Commence par'}
-                    </Button>
+                      <TooltipProvider>
+                           <Tooltip>
+                               <TooltipTrigger asChild>
+                                   <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleChangeSearchType}
+                                        className="h-12 w-12"
+                                    >
+                                        <ArrowLeftRight className="h-5 w-5" />
+                                    </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                   <p>Type de recherche : {searchType === 'contains' ? 'Contient' : 'Commence par'}</p>
+                               </TooltipContent>
+                           </Tooltip>
+                      </TooltipProvider>
                     <Button variant="ghost" size="icon" className="h-12 w-12" onClick={() => { handleShowAll(); searchInputRef.current?.focus(); }}>
                         <List className="h-6 w-6" />
                     </Button>

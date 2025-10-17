@@ -10,7 +10,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -422,16 +422,26 @@ export const CommercialOrderForm = forwardRef<
                         performSearch(e.target.value, searchType);
                     }}
                     onKeyDown={handleKeyDown}
-                    className="h-14 text-xl pl-12 pr-40"
+                    className="h-14 text-xl pl-12 pr-28"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button
-                        variant="outline"
-                        onClick={handleChangeSearchType}
-                        className="h-12 text-xs w-28"
-                    >
-                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
-                    </Button>
+                    <TooltipProvider>
+                       <Tooltip>
+                           <TooltipTrigger asChild>
+                               <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleChangeSearchType}
+                                    className="h-12 w-12"
+                                >
+                                    <ArrowLeftRight className="h-5 w-5" />
+                                </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                               <p>Type de recherche : {searchType === 'contains' ? 'Contient' : 'Commence par'}</p>
+                           </TooltipContent>
+                       </Tooltip>
+                    </TooltipProvider>
                     <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
                         <List className="h-6 w-6" />
                     </Button>
@@ -489,49 +499,49 @@ export const CommercialOrderForm = forwardRef<
                 </CardContent>
             </Card>
         </div>
-         <div className="flex items-center gap-2 self-end">
-                 <h3 className="text-lg font-semibold text-muted-foreground">Détails de la pièce</h3>
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <Columns className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {columns.map(column => (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            checked={visibleColumns[column.id]}
-                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                        >
-                                            {column.label}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                    <DropdownMenuCheckboxItem
-                                        checked={visibleColumns.discount}
-                                        onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
-                                    >
-                                        Remise %
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
-                                    <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
-                                    <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Options d'affichage</p>
-                        </TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
+        <div className="flex items-center gap-2 self-end">
+            <h3 className="text-lg font-semibold text-muted-foreground">Détails de la pièce</h3>
+            <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Columns className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columns.map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    checked={visibleColumns[column.id]}
+                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                >
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.discount}
+                                onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
+                            >
+                                Remise %
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
+                            <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Options d'affichage</p>
+                </TooltipContent>
+            </Tooltip>
+            </TooltipProvider>
         </div>
       </div>
 
@@ -686,9 +696,9 @@ export const CommercialOrderForm = forwardRef<
                     )}
                 </div>
               
-              <div className="mt-auto">
-                  <Separator className="my-1"/>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+              <div className="mt-auto pt-2 space-y-2">
+                  <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                       <div className="space-y-1">
                           <h4 className="font-semibold text-xs">Taux de TVA</h4>
                           <div className="grid grid-cols-4 gap-x-4 p-1 border rounded-md text-xs">
