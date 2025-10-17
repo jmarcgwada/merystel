@@ -1,44 +1,37 @@
-
 'use client';
 
+import { useState, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Sparkles, FileJson, Users, Truck } from 'lucide-react';
-import { usePos } from '@/contexts/pos-context';
-import { useRef, useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Upload, FileText } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 
-export default function ImportPage() {
-  const { importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers } = usePos();
+export default function ImportDataPage() {
+  const [dataType, setDataType] = useState('clients');
+  const [separator, setSeparator] = useState(',');
+  const [hasHeader, setHasHeader] = useState(true);
+  const [filePreview, setFilePreview] = useState('');
+  const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    await importConfiguration(file);
-    setIsImporting(false);
-    
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
+    if (file) {
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        // Show first 100 lines for preview
+        const firstLines = text.split('\n').slice(0, 100).join('\n');
+        setFilePreview(firstLines);
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -46,7 +39,7 @@ export default function ImportPage() {
     <>
       <PageHeader
         title="Importation de Données"
-        subtitle="Importez votre configuration ou des jeux de données."
+        subtitle="Importez vos données depuis un fichier CSV ou texte."
       >
         <Button asChild variant="outline" className="btn-back">
           <Link href="/settings">
@@ -56,95 +49,96 @@ export default function ImportPage() {
         </Button>
       </PageHeader>
 
-      <div className="mt-8 grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileJson />
-              Importer une Configuration Complète
-            </CardTitle>
-            <CardDescription>
-              Restaurez l'application à partir d'un fichier de configuration (.json) exporté précédemment. Cette action écrasera toutes les données actuelles.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
-                  <Upload className="mr-2" />
-                  Importer un Fichier de Configuration
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cette action est irréversible. L'importation d'un nouveau fichier de configuration écrasera et remplacera TOUTES les données actuelles (articles, clients, paramètres, etc.).
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleImportClick} disabled={isImporting}>
-                    {isImporting ? "Importation en cours..." : "Continuer et importer"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <input 
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".json"
-                onChange={handleFileChange}
-            />
-          </CardContent>
-        </Card>
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Step 1: Selection */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Étape 1: Sélection</CardTitle>
+              <CardDescription>
+                Choisissez le type de données et le fichier à importer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="data-type">Type de données</Label>
+                <Select value={dataType} onValueChange={setDataType}>
+                  <SelectTrigger id="data-type">
+                    <SelectValue placeholder="Sélectionner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clients">Clients</SelectItem>
+                    <SelectItem value="articles">Articles</SelectItem>
+                    <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
+                    <SelectItem value="pieces">Pièces de vente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <Sparkles />
-                Données de Démonstration
-            </CardTitle>
-            <CardDescription>
-              Peuplez rapidement l'application avec des jeux de données pour tester les fonctionnalités. Recommandé pour une application vide.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="secondary" className="w-full justify-start">
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Importer le jeu de démo complet
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Importer les données de démo ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action ajoutera des articles, catégories, clients et fournisseurs à vos données actuelles.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={importDemoData}>
-                            Confirmer et importer
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <div className="flex gap-4">
-                <Button variant="outline" className="w-full justify-start" onClick={importDemoCustomers}>
-                    <Users className="mr-2 h-4 w-4" />
-                    Importer clients de démo
+              <div className="space-y-2">
+                <Label htmlFor="separator">Séparateur</Label>
+                <Input
+                  id="separator"
+                  value={separator}
+                  onChange={(e) => setSeparator(e.target.value)}
+                  placeholder="ex: , ou ;"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has-header"
+                  checked={hasHeader}
+                  onCheckedChange={(checked) => setHasHeader(checked as boolean)}
+                />
+                <label
+                  htmlFor="has-header"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  La première ligne est un en-tête
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                 <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
+                <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    <span>{fileName || 'Choisir un fichier'}</span>
                 </Button>
-                 <Button variant="outline" className="w-full justify-start" onClick={importDemoSuppliers}>
-                    <Truck className="mr-2 h-4 w-4" />
-                    Importer fournisseurs de démo
-                </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <input 
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".csv,.txt"
+                    onChange={handleFileChange}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Step 2: Preview */}
+        <div className="lg:col-span-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Étape 2: Prévisualisation des données brutes</CardTitle>
+                    <CardDescription>
+                        Voici un aperçu des premières lignes de votre fichier. La prochaine étape sera de faire correspondre ces colonnes.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="bg-muted rounded-md p-4 min-h-[400px] font-mono text-xs">
+                        {filePreview ? (
+                            <pre className="whitespace-pre-wrap">{filePreview}</pre>
+                        ) : (
+                            <div className="flex items-center justify-center h-full min-h-[300px] text-muted-foreground">
+                                <p>Aucun fichier sélectionné.</p>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </>
   );
