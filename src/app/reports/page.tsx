@@ -697,14 +697,38 @@ export default function ReportsPage() {
             <Card>
                 <CardHeader className="p-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                            <SlidersHorizontal className="mr-2 h-4 w-4" />
-                            Filtres
-                            <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
-                        </Button>
-                    </CollapsibleTrigger>
-                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                     <div className="flex items-center gap-2">
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                Filtres
+                                <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                            </Button>
+                        </CollapsibleTrigger>
+                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
+                                    {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
+                                    <span>Types de pièce</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Filtrer par type</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {Object.entries(documentTypes).map(([type, { label }]) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={type}
+                                        checked={filterDocTypes[type]}
+                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                    >
+                                        {label}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                     </div>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -763,7 +787,6 @@ export default function ReportsPage() {
                         <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
                         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
                         <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
-                        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>{isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}<span>Types de pièce</span><ChevronDown className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Filtrer par type</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(documentTypes).map(([type, { label }]) => (<DropdownMenuCheckboxItem key={type} checked={filterDocTypes[type]} onCheckedChange={(checked) => handleDocTypeChange(type, checked)}>{label}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
