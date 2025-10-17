@@ -173,6 +173,7 @@ interface PosContextType {
   resetAllData: () => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
+  importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number, errorCount: number, errors: string[] }>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
   importDemoSuppliers: () => Promise<void>;
@@ -493,6 +494,59 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
+  
+  const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
+      const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
+      setCategories(prev => [...prev, newCategory]);
+      return newCategory;
+  }, [setCategories]);
+
+  const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
+      const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
+      setItems(prev => [newItem, ...prev]);
+      return newItem;
+  }, [setItems]);
+
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'> & {id: string}) => {
+      if (customers.some(c => c.id === customer.id)) {
+          throw new Error('Un client avec ce code existe déjà.');
+      }
+      const newCustomer = { ...customer, isDefault: customers.length === 0, createdAt: new Date() };
+      setCustomers(prev => [...prev, newCustomer]);
+      return newCustomer;
+  }, [customers, setCustomers]);
+
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'> & {id: string}) => {
+      if (suppliers.some(s => s.id === supplier.id)) {
+          throw new Error('Un fournisseur avec ce code existe déjà.');
+      }
+      const newSupplier = { ...supplier, id: supplier.id || uuidv4(), createdAt: new Date() };
+      setSuppliers(prev => [...prev, newSupplier]);
+      return newSupplier;
+  }, [suppliers, setSuppliers]);
+
+  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]) => {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    for (const record of jsonData) {
+        try {
+            if (dataType === 'clients') {
+                await addCustomer(record);
+            } else if (dataType === 'articles') {
+                await addItem(record);
+            } else if (dataType === 'fournisseurs') {
+                await addSupplier(record);
+            }
+            successCount++;
+        } catch (e: any) {
+            errorCount++;
+            errors.push(e.message);
+        }
+    }
+    return { successCount, errorCount, errors };
+  }, [addCustomer, addItem, addSupplier]);
 
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
@@ -1039,7 +1093,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         })
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
+    [order, removeFromOrder, enableSerialNumber, items]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -1464,6 +1518,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
         }
 
+        // Handle invoice conversion: update original doc status
         if (currentSaleContext?.originalSaleId) {
           const originalDoc = sales.find(s => s.id === currentSaleContext.originalSaleId);
           setSales(currentSales =>
@@ -1589,12 +1644,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-
-    const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
-        const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
-        setCategories(prev => [...prev, newCategory]);
-        return newCategory;
-    }, [setCategories]);
+    
     const updateCategory = useCallback((category: Category) => {
         const updatedCategory = { ...category, updatedAt: new Date() };
         setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
@@ -1611,11 +1661,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       return categories.find(c => c.id === categoryId)?.color;
     }, [categories]);
 
-    const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
-        const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
-        setItems(prev => [newItem, ...prev]);
-        return newItem;
-    }, [setItems]);
+    
     const updateItem = useCallback((item: Item) => {
         const updatedItem = { ...item, updatedAt: new Date() };
         setItems(prev => prev.map(i => i.id === item.id ? updatedItem : i));
@@ -1630,14 +1676,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
     }, [setItems]);
 
-    const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'> & {id: string}) => {
-        if (customers.some(c => c.id === customer.id)) {
-            throw new Error('Un client avec ce code existe déjà.');
-        }
-        const newCustomer = { ...customer, isDefault: customers.length === 0, createdAt: new Date() };
-        setCustomers(prev => [...prev, newCustomer]);
-        return newCustomer;
-    }, [customers, setCustomers]);
+    
     const updateCustomer = useCallback((customer: Customer) => {
         const updatedCustomer = { ...customer, updatedAt: new Date() };
         setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCustomer : c));
@@ -1649,14 +1688,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
     }, [setCustomers]);
 
-    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'> & {id: string}) => {
-        if (suppliers.some(s => s.id === supplier.id)) {
-            throw new Error('Un fournisseur avec ce code existe déjà.');
-        }
-        const newSupplier = { ...supplier, id: supplier.id || uuidv4(), createdAt: new Date() };
-        setSuppliers(prev => [...prev, newSupplier]);
-        return newSupplier;
-    }, [suppliers, setSuppliers]);
+    
     const updateSupplier = useCallback((supplier: Supplier) => {
         const updatedSupplier = { ...supplier, updatedAt: new Date() };
         setSuppliers(prev => prev.map(s => s.id === supplier.id ? updatedSupplier : s));
@@ -1665,6 +1697,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setSuppliers(prev => prev.filter(s => s.id !== id));
     }, [setSuppliers]);
 
+    
     const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
         setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
     }, [setPaymentMethods]);
@@ -1676,6 +1709,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
     }, [setPaymentMethods]);
 
+    
     const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
         const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
         setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
@@ -1687,6 +1721,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteVatRate = useCallback((id: string) => {
         setVatRates(prev => prev.filter(v => v.id !== id));
     }, [setVatRates]);
+  
   
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
@@ -1810,7 +1845,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
       auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,

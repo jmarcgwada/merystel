@@ -6,14 +6,28 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import type { Item, Customer, Supplier } from '@/lib/types';
+import { usePos } from '@/contexts/pos-context';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+
 
 // Define available fields for each data type
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -52,6 +66,8 @@ const fieldLabels: Record<string, string> = {
 
 
 export default function ImportDataPage() {
+  const { toast } = useToast();
+  const { importDataFromJson } = usePos();
   const [activeTab, setActiveTab] = useState('file');
   const [dataType, setDataType] = useState('clients');
   const [separator, setSeparator] = useState(',');
@@ -62,6 +78,8 @@ export default function ImportDataPage() {
   
   const [mappings, setMappings] = useState<Record<number, string>>({});
   const [jsonData, setJsonData] = useState<any[] | null>(null);
+  const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -71,8 +89,8 @@ export default function ImportDataPage() {
       reader.onload = (e) => {
         const text = e.target?.result as string;
         setFileContent(text);
-        setJsonData(null); // Reset generated JSON when file changes
-        setActiveTab('file'); // Go back to the first tab
+        setJsonData(null); 
+        setActiveTab('file'); 
       };
       reader.readAsText(file);
     }
@@ -99,16 +117,32 @@ export default function ImportDataPage() {
   const availableFields = getAvailableFields();
 
   const handleGenerateJson = () => {
+    const requiredFields = dataType === 'clients' ? ['id', 'name']
+                         : dataType === 'articles' ? ['name', 'price', 'categoryId', 'vatId', 'barcode']
+                         : ['id', 'name'];
+
+    const mappedFields = Object.values(mappings);
+    const missingFields = requiredFields.filter(field => !mappedFields.includes(field));
+
+    if (missingFields.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Champs obligatoires manquants',
+        description: `Veuillez mapper les champs suivants: ${missingFields.join(', ')}`,
+      });
+      return;
+    }
+
     const generated: any[] = [];
     dataRows.forEach(row => {
         const obj: any = {};
         headerRow.forEach((_, index) => {
             const field = mappings[index];
             if (field && field !== 'ignore') {
-                let value: any = row[index];
+                let value: any = row[index] ? row[index].trim() : '';
                 // Basic type conversion
                 if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(field)) {
-                    value = parseFloat(value) || 0;
+                    value = parseFloat(value.replace(',', '.')) || 0;
                 } else if (['isDisabled'].includes(field)) {
                     value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
                 }
@@ -122,6 +156,35 @@ export default function ImportDataPage() {
     setJsonData(generated);
     setActiveTab('json');
   };
+
+  const handleImport = async () => {
+    setConfirmImportOpen(false);
+    if (!jsonData || jsonData.length === 0) {
+        toast({ variant: 'destructive', title: 'Aucune donnée à importer' });
+        return;
+    }
+
+    setIsImporting(true);
+    toast({ title: 'Importation en cours...', description: 'Veuillez patienter.' });
+
+    const { successCount, errorCount, errors } = await importDataFromJson(dataType, jsonData);
+
+    setIsImporting(false);
+
+    if (errorCount > 0) {
+        toast({
+            variant: 'destructive',
+            title: `Importation terminée avec ${errorCount} erreur(s)`,
+            description: `Détails : ${errors.join(', ')}`,
+            duration: 10000,
+        });
+    } else {
+        toast({
+            title: 'Importation réussie !',
+            description: `${successCount} élément(s) ont été importés avec succès.`,
+        });
+    }
+  }
 
   return (
     <>
@@ -168,7 +231,7 @@ export default function ImportDataPage() {
                         </Select>
                     </div>
 
-                    <div className="space-y-2">
+                     <div className="space-y-2">
                         <Label htmlFor="separator">Séparateur</Label>
                         <Select value={separator} onValueChange={setSeparator}>
                             <SelectTrigger id="separator">
@@ -182,6 +245,7 @@ export default function ImportDataPage() {
                             </SelectContent>
                         </Select>
                     </div>
+
 
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -265,34 +329,36 @@ export default function ImportDataPage() {
                 <CardHeader>
                     <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
                     <CardDescription>
-                        Faites correspondre chaque colonne de votre fichier à un champ de l'application.
+                        Faites correspondre chaque colonne de votre fichier à un champ de l'application. Les champs avec * sont obligatoires.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                    {headerRow.map((header, index) => (
-                      <div key={index} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
-                        <div className="font-semibold text-sm">
-                            <p>{header}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                                Ex: "{dataRows[0] ? dataRows[0][index] : ''}"
-                            </p>
+                  <ScrollArea className="max-h-[60vh] overflow-y-auto">
+                    <div className="space-y-4 pr-6">
+                      {headerRow.map((header, index) => (
+                        <div key={index} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
+                          <div className="font-semibold text-sm">
+                              <p>{header}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                  Ex: "{dataRows[0] ? dataRows[0][index] : ''}"
+                              </p>
+                          </div>
+                          <Select value={mappings[index] || 'ignore'} onValueChange={(value) => setMappings(prev => ({...prev, [index]: value}))}>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Choisir un champ..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {availableFields.map(field => (
+                                      <SelectItem key={field as string} value={field as string}>
+                                          {fieldLabels[field as string] || field}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
                         </div>
-                        <Select value={mappings[index] || 'ignore'} onValueChange={(value) => setMappings(prev => ({...prev, [index]: value}))}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Choisir un champ..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableFields.map(field => (
-                                    <SelectItem key={field as string} value={field as string}>
-                                        {fieldLabels[field as string] || field}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                   </ScrollArea>
                    <div className="mt-6 flex justify-between">
                         <Button variant="outline" onClick={() => setActiveTab('file')}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
@@ -321,10 +387,43 @@ export default function ImportDataPage() {
                      <Button variant="outline" onClick={() => setActiveTab('mapping')}>
                         <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
                     </Button>
+                    <Button onClick={() => setConfirmImportOpen(true)} disabled={isImporting}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        {isImporting ? 'Importation en cours...' : 'Importer les Données'}
+                    </Button>
                 </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>
+      <AlertDialog open={isConfirmImportOpen} onOpenChange={setConfirmImportOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <p>
+                  Vous êtes sur le point d'importer {jsonData?.length || 0} {dataType}.
+                  Cette action est irréversible et ajoutera de nouvelles données à votre application.
+              </p>
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Attention</AlertTitle>
+                <p>
+                    Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur) n'existent pas déjà.
+                    Les doublons provoqueront des erreurs.
+                </p>
+              </Alert>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImport}>
+              <Check className="mr-2 h-4 w-4" />
+              Confirmer et Importer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
