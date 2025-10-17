@@ -4,6 +4,12 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import * as nodemailer from 'nodemailer';
 
+const AttachmentSchema = z.object({
+    filename: z.string(),
+    content: z.string(), // Base64 encoded content
+    encoding: z.literal('base64'),
+});
+
 const SendEmailInputSchema = z.object({
     smtpConfig: z.object({
         host: z.string(),
@@ -16,9 +22,11 @@ const SendEmailInputSchema = z.object({
         senderEmail: z.string().email(),
     }),
     to: z.string().email(),
+    cc: z.string().email().optional(),
     subject: z.string(),
     text: z.string(),
     html: z.string().optional(),
+    attachments: z.array(AttachmentSchema).optional(),
 });
 export type SendEmailInput = z.infer<typeof SendEmailInputSchema>;
 
@@ -51,9 +59,11 @@ const sendEmailFlow = ai.defineFlow(
         const info = await transporter.sendMail({
             from: `"${input.smtpConfig.senderEmail}" <${input.smtpConfig.senderEmail}>`,
             to: input.to,
+            cc: input.cc,
             subject: input.subject,
             text: input.text,
             html: input.html,
+            attachments: input.attachments,
         });
         console.log("Message sent: %s", info.messageId);
         return { success: true, message: `E-mail envoyé avec succès à ${input.to}` };

@@ -12,7 +12,7 @@ import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +22,8 @@ import type { Sale, Payment, Item, OrderItem, VatBreakdown } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
+import { sendEmail } from '@/ai/flows/send-email-flow';
+import { useToast } from '@/hooks/use-toast';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -88,6 +90,7 @@ function SaleDetailContent() {
   const { saleId } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { toast } = useToast();
   
   const fromPos = searchParams.get('from') === 'pos';
   const fromAnalytics = searchParams.get('from') === 'analytics';
@@ -104,10 +107,11 @@ function SaleDetailContent() {
   const articleFilter = searchParams.get('article');
 
 
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo, smtpConfig } = usePos();
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const [sale, setSale] = useState<Sale | null>(null);
 
@@ -262,14 +266,36 @@ function SaleDetailContent() {
     return `/reports/${id}?${params.toString()}`;
   };
 
+  const generatePdf = async (): Promise<{ content: string; filename: string } | null> => {
+      if (!printRef.current || !sale) return null;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      await pdf.html(printRef.current, {
+          callback: function (pdf) {
+              // This callback is used when saving, but we can get the data before that
+          },
+          x: 0,
+          y: 0,
+          width: 210,
+          windowWidth: printRef.current.scrollWidth,
+          autoPaging: 'text',
+      });
+      
+      const pdfContent = pdf.output('datauristring');
+      const base64Content = pdfContent.split(',')[1]; // Remove the data URI prefix
+      const filename = `${sale.ticketNumber || 'document'}.pdf`;
+
+      return { content: base64Content, filename };
+  };
+
+
   const handlePrint = async () => {
     if (!printRef.current) return;
     setIsPrinting(true);
     
     const pdf = new jsPDF('p', 'mm', 'a4');
     
-    // jsPDF's html method handles pagination.
-    // The scale option helps with fitting content.
     await pdf.html(printRef.current, {
         callback: function (pdf) {
             pdf.save(`${sale?.ticketNumber || 'document'}.pdf`);
@@ -277,10 +303,61 @@ function SaleDetailContent() {
         },
         x: 0,
         y: 0,
-        width: 210, // A4 width in mm
+        width: 210,
         windowWidth: printRef.current.scrollWidth,
         autoPaging: 'text',
     });
+  };
+
+  const handleSendEmail = async () => {
+      if (!sale || !smtpConfig?.senderEmail) {
+          toast({ variant: 'destructive', title: 'Erreur de configuration', description: "Veuillez configurer le SMTP et l'e-mail de l'expéditeur dans les paramètres." });
+          return;
+      }
+      
+      const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
+      if (!customer?.email && !smtpConfig.senderEmail) {
+          toast({ variant: 'destructive', title: 'Destinataire manquant', description: "Aucun e-mail client n'est renseigné et aucun e-mail expéditeur n'est configuré pour recevoir une copie." });
+          return;
+      }
+
+      setIsSendingEmail(true);
+      toast({ title: "Envoi en cours..." });
+
+      const pdfData = await generatePdf();
+
+      if (!pdfData) {
+          toast({ variant: 'destructive', title: "Erreur de génération PDF" });
+          setIsSendingEmail(false);
+          return;
+      }
+
+      const emailResult = await sendEmail({
+          smtpConfig: {
+              host: smtpConfig.host!,
+              port: smtpConfig.port!,
+              secure: smtpConfig.secure || false,
+              auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+              senderEmail: smtpConfig.senderEmail!,
+          },
+          to: customer?.email || smtpConfig.senderEmail,
+          cc: customer?.email ? smtpConfig.senderEmail : undefined,
+          subject: `Votre ${pieceType} #${sale.ticketNumber}`,
+          text: `Veuillez trouver ci-joint votre ${pieceType} #${sale.ticketNumber}.\n\nMerci de votre confiance,\nL'équipe ${companyInfo?.name || ''}`,
+          html: `<p>Bonjour,</p><p>Veuillez trouver ci-joint votre ${pieceType} <b>#${sale.ticketNumber}</b>.</p><p>Merci de votre confiance,<br>L'équipe ${companyInfo?.name || ''}</p>`,
+          attachments: [{
+              filename: pdfData.filename,
+              content: pdfData.content,
+              encoding: 'base64',
+          }],
+      });
+
+      if (emailResult.success) {
+          toast({ title: "E-mail envoyé avec succès !", description: emailResult.message });
+      } else {
+          toast({ variant: 'destructive', title: "Échec de l'envoi de l'e-mail", description: emailResult.message });
+      }
+      setIsSendingEmail(false);
   };
 
 
@@ -296,41 +373,29 @@ function SaleDetailContent() {
   const { subtotal, tax, vatBreakdown } = useMemo(() => {
     if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {} };
     
-    const breakdown: VatBreakdown = {};
-    let calculatedSubtotal = 0;
-    
-    sale.items.forEach(item => {
-        const vatInfo = vatRates.find(v => v.id === item.vatId);
-        if (vatInfo) {
-            const priceHT = item.total / (1 + vatInfo.rate / 100);
-            const taxAmount = item.total - priceHT;
-            calculatedSubtotal += priceHT;
-            
-            const rateKey = vatInfo.rate.toString();
-            if (breakdown[rateKey]) {
-                breakdown[rateKey].base += priceHT;
-                breakdown[rateKey].total += taxAmount;
-            } else {
-                breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
-            }
-        } else {
-            // For items with no/unknown VAT, consider them as HT
-            calculatedSubtotal += item.total;
-        }
-    });
+    let breakdown: VatBreakdown = sale.vatBreakdown || {};
 
-    // We prioritize the stored totals for accuracy and use calculated values for breakdown.
+    // Fallback calculation if vatBreakdown is not in the sale object
+    if (!sale.vatBreakdown || Object.keys(sale.vatBreakdown).length === 0) {
+        breakdown = {};
+        sale.items.forEach(item => {
+            const vatInfo = vatRates.find(v => v.id === item.vatId);
+            if (vatInfo) {
+                const priceHT = item.total / (1 + vatInfo.rate / 100);
+                const taxAmount = item.total - priceHT;
+                const rateKey = vatInfo.rate.toString();
+                if (breakdown[rateKey]) {
+                    breakdown[rateKey].base += priceHT;
+                    breakdown[rateKey].total += taxAmount;
+                } else {
+                    breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
+                }
+            }
+        });
+    }
+
     const finalSubtotal = sale.subtotal;
     const finalTax = sale.tax;
-
-    // Adjust breakdown to match stored totals if there's a small discrepancy
-    const calculatedBreakdownTotalTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
-    const taxDiff = finalTax - calculatedBreakdownTotalTax;
-    if (taxDiff !== 0 && Object.keys(breakdown).length > 0) {
-        const highestRateKey = Object.keys(breakdown).sort((a,b) => b-a)[0];
-        breakdown[highestRateKey].total += taxDiff;
-        breakdown[highestRateKey].base = (breakdown[highestRateKey].total * 100) / breakdown[highestRateKey].rate;
-    }
 
     return { subtotal: finalSubtotal, tax: finalTax, vatBreakdown: breakdown };
   }, [sale, vatRates]);
@@ -398,6 +463,10 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
+             <Button onClick={handleSendEmail} variant="outline" disabled={isSendingEmail}>
+                <Send className="mr-2 h-4 w-4" />
+                {isSendingEmail ? 'Envoi...' : 'Envoyer par E-mail'}
+            </Button>
             <Button onClick={handlePrint} variant="outline" disabled={isPrinting}>
                 <Printer className="mr-2 h-4 w-4" />
                 {isPrinting ? 'Génération...' : 'Imprimer / PDF'}
