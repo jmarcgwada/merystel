@@ -471,13 +471,6 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
-    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
-
-    const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
-
     useEffect(() => {
       if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
         const index = filteredAndSortedSales.findIndex(
@@ -500,6 +493,13 @@ export default function ReportsPage() {
         }
       }
     }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
+
+    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
 
      const summaryStats = useMemo(() => {
@@ -873,3 +873,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
