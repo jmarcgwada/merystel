@@ -132,31 +132,33 @@ export default function ImportDataPage() {
                 <CardHeader>
                     <CardTitle>Étape 2: Prévisualisation des données</CardTitle>
                     <CardDescription>
-                        Vérifiez que vos données sont correctement séparées en colonnes.
+                        Vérifiez que vos données sont correctement séparées en colonnes. Utilisez la barre de défilement horizontale si nécessaire.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-[400px] border rounded-md">
-                      <Table className="bg-muted">
-                        {hasHeader && headerRow.length > 0 && (
-                          <TableHeader>
-                            <TableRow>
-                              {headerRow.map((header, index) => (
-                                <TableHead key={index}>{header}</TableHead>
-                              ))}
-                            </TableRow>
-                          </TableHeader>
-                        )}
-                        <TableBody>
-                          {dataRows.map((row, rowIndex) => (
-                            <TableRow key={rowIndex}>
-                              {row.map((cell, cellIndex) => (
-                                <TableCell key={cellIndex} className="text-xs">{cell}</TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="relative w-full overflow-auto">
+                        <Table className="bg-muted min-w-max">
+                          {hasHeader && headerRow.length > 0 && (
+                            <TableHeader>
+                              <TableRow>
+                                {headerRow.map((header, index) => (
+                                  <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
+                                ))}
+                              </TableRow>
+                            </TableHeader>
+                          )}
+                          <TableBody>
+                            {dataRows.map((row, rowIndex) => (
+                              <TableRow key={rowIndex}>
+                                {row.map((cell, cellIndex) => (
+                                  <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                       {parsedData.length === 0 && (
                         <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                           <p>Aucun fichier sélectionné.</p>
