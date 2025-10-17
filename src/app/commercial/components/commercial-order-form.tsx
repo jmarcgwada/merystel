@@ -490,10 +490,6 @@ export const CommercialOrderForm = forwardRef<
         </div>
 
       <div className="flex justify-between items-center mt-4 mb-2">
-          
-        </div>
-      <Card className="flex-1 flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
            <div className="flex items-center gap-2">
                  <h3 className="text-lg font-semibold">Détails de la pièce</h3>
                  <TooltipProvider>
@@ -544,7 +540,8 @@ export const CommercialOrderForm = forwardRef<
                 Tout effacer
               </Button>
             )}
-        </CardHeader>
+        </div>
+      <Card className="flex-1 flex flex-col">
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
           <Form {...form}>
             <form className="flex-1 flex flex-col h-full">
@@ -778,3 +775,5 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
+
+    
