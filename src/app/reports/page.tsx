@@ -77,6 +77,7 @@ const columnsConfig = [
     { id: 'origin', label: 'Origine' },
     { id: 'customerName', label: 'Client' },
     { id: 'itemCount', label: 'Articles' },
+    { id: 'details', label: 'Détails' },
     { id: 'subtotal', label: 'Total HT' },
     { id: 'tax', label: 'Total TVA' },
     { id: 'total', label: 'Total TTC' },
@@ -95,7 +96,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         
         let jsDate: Date;
         if (date instanceof Date) jsDate = date;
-        else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
+        else if (date && typeof (date as Timestamp).toDate === 'function') jsDate = (date as Timestamp).toDate();
         else jsDate = new Date(date as any);
 
         if (!isNaN(jsDate.getTime())) {
@@ -210,6 +211,7 @@ export default function ReportsPage() {
                 origin: false,
                 customerName: true,
                 itemCount: false,
+                details: false,
                 subtotal: false,
                 tax: false,
                 total: true,
@@ -219,7 +221,7 @@ export default function ReportsPage() {
     }, []);
 
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
-        const newVisibility = { ...columnsConfig, [columnId]: isVisible };
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
         setVisibleColumns(newVisibility);
         localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
     };
@@ -726,8 +728,7 @@ export default function ReportsPage() {
             
             <Card>
                  <CardHeader className="p-2">
-                    <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
-                    <div>
+                    <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm" className="justify-start px-2 text-lg font-semibold">
@@ -747,7 +748,6 @@ export default function ReportsPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
                                     <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
                                         Tout désélectionner
                                     </DropdownMenuItem>
@@ -829,6 +829,7 @@ export default function ReportsPage() {
                                 {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
                                 {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
                                 {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
+                                {visibleColumns.details && <TableHead>Détails</TableHead>}
                                 {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
                                 {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
                                 {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
@@ -872,6 +873,19 @@ export default function ReportsPage() {
                                         {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
                                         {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
                                         {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
+                                        {visibleColumns.details && (
+                                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                                {sale.items.map(item => {
+                                                    const details = [];
+                                                    if(item.selectedVariants && item.selectedVariants.length > 0) {
+                                                        details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
+                                                    }
+                                                    if(item.note) details.push(`Note: ${item.note}`);
+                                                    if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
+                                                    return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
+                                                }).join(' | ')}
+                                            </TableCell>
+                                        )}
                                         {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
                                         {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
                                         {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
