@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Server, TestTube2, MessageSquare, Folder, File, Download, FolderUp, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Server, TestTube2, MessageSquare, Folder, File, Download, FolderUp, RefreshCw, Loader2, Eye, EyeOff } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -52,6 +52,9 @@ export default function ConnectivityPage() {
     const [isExplorerOpen, setIsExplorerOpen] = useState(false);
     const [ftpPath, setFtpPath] = useState(localFtp.path || '/');
     const [ftpFiles, setFtpFiles] = useState<FileInfo[]>([]);
+    
+    const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+    const [showFtpPassword, setShowFtpPassword] = useState(false);
     
     useEffect(() => {
         setLocalSmtp(smtpConfig || {});
@@ -271,7 +274,13 @@ export default function ConnectivityPage() {
                         </div>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2"><Label htmlFor="smtp-user">Utilisateur</Label><Input id="smtp-user" placeholder="user@example.com" value={localSmtp.user || ''} onChange={(e) => handleSmtpChange('user', e.target.value)} /></div>
-                            <div className="grid gap-2"><Label htmlFor="smtp-password">Mot de passe</Label><Input id="smtp-password" type="password" value={localSmtp.password || ''} onChange={(e) => handleSmtpChange('password', e.target.value)} /></div>
+                            <div className="grid gap-2 relative">
+                                <Label htmlFor="smtp-password">Mot de passe</Label>
+                                <Input id="smtp-password" type={showSmtpPassword ? 'text' : 'password'} value={localSmtp.password || ''} onChange={(e) => handleSmtpChange('password', e.target.value)} />
+                                <Button variant="ghost" size="icon" className="absolute right-1 top-6 h-7 w-7 text-muted-foreground" onClick={() => setShowSmtpPassword(!showSmtpPassword)}>
+                                    {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
                         </div>
                         <div className="grid gap-2"><Label htmlFor="smtp-sender">Email de l'expéditeur</Label><Input id="smtp-sender" type="email" placeholder="noreply@example.com" value={localSmtp.senderEmail || ''} onChange={(e) => handleSmtpChange('senderEmail', e.target.value)} /></div>
                         <div className="flex items-center justify-between rounded-lg border p-4">
@@ -302,7 +311,13 @@ export default function ConnectivityPage() {
                         </div>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2"><Label htmlFor="ftp-user">Utilisateur</Label><Input id="ftp-user" placeholder="ftpuser" value={localFtp.user || ''} onChange={(e) => handleFtpChange('user', e.target.value)} /></div>
-                            <div className="grid gap-2"><Label htmlFor="ftp-password">Mot de passe</Label><Input id="ftp-password" type="password" value={localFtp.password || ''} onChange={(e) => handleFtpChange('password', e.target.value)} /></div>
+                            <div className="grid gap-2 relative">
+                                <Label htmlFor="ftp-password">Mot de passe</Label>
+                                <Input id="ftp-password" type={showFtpPassword ? 'text' : 'password'} value={localFtp.password || ''} onChange={(e) => handleFtpChange('password', e.target.value)} />
+                                <Button variant="ghost" size="icon" className="absolute right-1 top-6 h-7 w-7 text-muted-foreground" onClick={() => setShowFtpPassword(!showFtpPassword)}>
+                                    {showFtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
                         </div>
                         <div className="grid gap-2"><Label htmlFor="ftp-path">Chemin du dossier</Label><Input id="ftp-path" placeholder="/exports" value={localFtp.path || ''} onChange={(e) => handleFtpChange('path', e.target.value)} /></div>
                         <div className="flex items-center justify-between rounded-lg border p-4">
