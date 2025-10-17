@@ -213,6 +213,16 @@ export default function ItemsPage() {
     updateItem({ ...item, isDisabled: !item.isDisabled });
   };
 
+  const resetFilters = () => {
+    setFilterName('');
+    setFilterCategoryName('');
+    setFilterVatId('all');
+    setFilterRequiresSerialNumber('all');
+    setFilterHasVariants('all');
+    setFilterIsDisabled('no');
+    setCurrentPage(1);
+  };
+
 
   return (
     <>
@@ -248,26 +258,34 @@ export default function ItemsPage() {
                             </Button>
                         </CollapsibleTrigger>
                          <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="icon">
-                                        <Columns className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {columnsConfig.map(column => (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            checked={visibleColumns[column.id] ?? true}
-                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                        >
-                                            {column.label}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="outline" size="icon">
+                                              <Columns className="h-4 w-4" />
+                                          </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                          <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                          <DropdownMenuSeparator />
+                                          {columnsConfig.map(column => (
+                                              <DropdownMenuCheckboxItem
+                                                  key={column.id}
+                                                  checked={visibleColumns[column.id] ?? true}
+                                                  onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                              >
+                                                  {column.label}
+                                              </DropdownMenuCheckboxItem>
+                                          ))}
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Affichage des colonnes</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
                              <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
                                 <SelectTrigger className="w-[220px] h-9">
                                     <SelectValue placeholder="Statut de l'article" />
@@ -278,6 +296,14 @@ export default function ItemsPage() {
                                     <SelectItem value="all">Tous les articles</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={resetFilters}><X className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <div className="flex items-center gap-1 shrink-0">
                                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
