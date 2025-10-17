@@ -263,19 +263,9 @@ function SaleDetailContent() {
   }, [searchParams]);
 
   const handleBack = () => {
-    const backParams = new URLSearchParams(navigationParams);
-    
-    if (fromPos && sale) {
-        loadTicketForViewing(sale);
-        router.push('/pos');
-    } else if (fromAnalytics) {
-        backParams.delete('from');
-        router.push(`/reports/analytics?${backParams.toString()}`);
-    } else {
-        backParams.delete('id'); // Remove current saleId
-        router.push(`/reports?${backParams.toString()}`);
-    }
-  }
+    const backUrl = fromAnalytics ? `/reports/analytics` : `/reports`;
+    router.push(`${backUrl}?${navigationParams}`);
+  };
 
   const getDetailLink = (id: string | null) => {
     if (!id) return '#';
@@ -661,3 +651,5 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
+
+    
