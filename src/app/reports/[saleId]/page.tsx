@@ -22,7 +22,6 @@ import type { Sale, Payment, Item, OrderItem, VatBreakdown } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
-import { sendEmail } from '@/ai/flows/send-email-flow';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -111,7 +110,6 @@ function SaleDetailContent() {
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const [sale, setSale] = useState<Sale | null>(null);
 
@@ -266,30 +264,6 @@ function SaleDetailContent() {
     return `/reports/${id}?${params.toString()}`;
   };
 
-  const generatePdf = async (): Promise<{ content: string; filename: string } | null> => {
-      if (!printRef.current || !sale) return null;
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      await pdf.html(printRef.current, {
-          callback: function (pdf) {
-              // This callback is used when saving, but we can get the data before that
-          },
-          x: 0,
-          y: 0,
-          width: 210,
-          windowWidth: printRef.current.scrollWidth,
-          autoPaging: 'text',
-      });
-      
-      const pdfContent = pdf.output('datauristring');
-      const base64Content = pdfContent.split(',')[1]; // Remove the data URI prefix
-      const filename = `${sale.ticketNumber || 'document'}.pdf`;
-
-      return { content: base64Content, filename };
-  };
-
-
   const handlePrint = async () => {
     if (!printRef.current) return;
     setIsPrinting(true);
@@ -308,58 +282,6 @@ function SaleDetailContent() {
         autoPaging: 'text',
     });
   };
-
-  const handleSendEmail = async () => {
-      if (!sale || !smtpConfig?.senderEmail) {
-          toast({ variant: 'destructive', title: 'Erreur de configuration', description: "Veuillez configurer le SMTP et l'e-mail de l'expéditeur dans les paramètres." });
-          return;
-      }
-      
-      const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
-      if (!customer?.email && !smtpConfig.senderEmail) {
-          toast({ variant: 'destructive', title: 'Destinataire manquant', description: "Aucun e-mail client n'est renseigné et aucun e-mail expéditeur n'est configuré pour recevoir une copie." });
-          return;
-      }
-
-      setIsSendingEmail(true);
-      toast({ title: "Envoi en cours..." });
-
-      const pdfData = await generatePdf();
-
-      if (!pdfData) {
-          toast({ variant: 'destructive', title: "Erreur de génération PDF" });
-          setIsSendingEmail(false);
-          return;
-      }
-
-      const emailResult = await sendEmail({
-          smtpConfig: {
-              host: smtpConfig.host!,
-              port: smtpConfig.port!,
-              secure: smtpConfig.secure || false,
-              auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
-              senderEmail: smtpConfig.senderEmail!,
-          },
-          to: customer?.email || smtpConfig.senderEmail,
-          cc: customer?.email ? smtpConfig.senderEmail : undefined,
-          subject: `Votre ${pieceType} #${sale.ticketNumber}`,
-          text: `Veuillez trouver ci-joint votre ${pieceType} #${sale.ticketNumber}.\n\nMerci de votre confiance,\nL'équipe ${companyInfo?.name || ''}`,
-          html: `<p>Bonjour,</p><p>Veuillez trouver ci-joint votre ${pieceType} <b>#${sale.ticketNumber}</b>.</p><p>Merci de votre confiance,<br>L'équipe ${companyInfo?.name || ''}</p>`,
-          attachments: [{
-              filename: pdfData.filename,
-              content: pdfData.content,
-              encoding: 'base64',
-          }],
-      });
-
-      if (emailResult.success) {
-          toast({ title: "E-mail envoyé avec succès !", description: emailResult.message });
-      } else {
-          toast({ variant: 'destructive', title: "Échec de l'envoi de l'e-mail", description: emailResult.message });
-      }
-      setIsSendingEmail(false);
-  };
-
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -471,10 +393,6 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
-             <Button onClick={handleSendEmail} variant="outline" disabled={isSendingEmail}>
-                <Send className="mr-2 h-4 w-4" />
-                {isSendingEmail ? 'Envoi...' : 'Envoyer par E-mail'}
-            </Button>
             <Button onClick={handlePrint} variant="outline" disabled={isPrinting}>
                 <Printer className="mr-2 h-4 w-4" />
                 {isPrinting ? 'Génération...' : 'Imprimer / PDF'}
@@ -657,3 +575,5 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
+
+    
