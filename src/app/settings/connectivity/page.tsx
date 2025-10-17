@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Server, TestTube2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mail, Server, TestTube2, MessageSquare, Folder, File, Download, FolderUp, RefreshCw, Loader2 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,174 @@ import type { SmtpConfig, FtpConfig, TwilioConfig, CompanyInfo } from '@/lib/typ
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 import { sendWhatsApp } from '@/ai/flows/send-whatsapp-flow';
+import { listFtpFiles } from '@/ai/flows/list-ftp-files-flow';
+import { downloadFtpFile } from '@/ai/flows/download-ftp-file-flow';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+
+interface FileInfo {
+  name: string;
+  type: number;
+  size: number;
+  modifiedAt: string;
+}
+
+const FileExplorer = ({ ftpConfig, onTest }: { ftpConfig: FtpConfig, onTest: () => void }) => {
+    const [path, setPath] = useState(ftpConfig.path || '/');
+    const [files, setFiles] = useState<FileInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const fetchFiles = async (newPath: string) => {
+        if (!ftpConfig.host || !ftpConfig.port || !ftpConfig.user || !ftpConfig.password) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs FTP.' });
+            return;
+        }
+        setIsLoading(true);
+        setPath(newPath);
+        try {
+            const result = await listFtpFiles({
+                ftpConfig: {
+                    host: ftpConfig.host,
+                    port: ftpConfig.port,
+                    user: ftpConfig.user,
+                    password: ftpConfig.password,
+                    secure: ftpConfig.secure || false,
+                },
+                path: newPath,
+            });
+
+            if (result.success && result.files) {
+                const sortedFiles = result.files.sort((a, b) => {
+                    if (a.type !== b.type) {
+                        return a.type === 2 ? -1 : 1; // Directories first
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+                setFiles(sortedFiles);
+            } else {
+                toast({ variant: 'destructive', title: 'Erreur FTP', description: result.message });
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Erreur critique', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleItemClick = (item: FileInfo) => {
+        if (item.type === 2) { // Directory
+            const newPath = path.endsWith('/') ? `${path}${item.name}` : `${path}/${item.name}`;
+            fetchFiles(newPath);
+        }
+    };
+    
+    const handleDownloadClick = async (fileName: string) => {
+        if (!ftpConfig.host || !ftpConfig.port || !ftpConfig.user || !ftpConfig.password) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez remplir tous les champs FTP.' });
+            return;
+        }
+        toast({ title: 'Téléchargement en cours...'});
+        
+        try {
+            const result = await downloadFtpFile({
+                 ftpConfig: {
+                    host: ftpConfig.host,
+                    port: ftpConfig.port,
+                    user: ftpConfig.user,
+                    password: ftpConfig.password,
+                    secure: ftpConfig.secure || false,
+                },
+                filePath: path.endsWith('/') ? `${path}${fileName}` : `${path}/${fileName}`,
+            });
+
+            if (result.success && result.content) {
+                const byteCharacters = atob(result.content);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast({ title: 'Téléchargement réussi !' });
+            } else {
+                 toast({ variant: 'destructive', title: 'Erreur de téléchargement', description: result.message });
+            }
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Erreur critique', description: error.message });
+        }
+    }
+
+
+    const goUp = () => {
+        if (path === '/') return;
+        const newPath = path.substring(0, path.lastIndexOf('/')) || '/';
+        fetchFiles(newPath);
+    };
+
+    return (
+        <Card className="col-span-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">Explorateur FTP</CardTitle>
+                <CardDescription>
+                    Parcourez les fichiers de votre serveur FTP. Le chemin de départ est celui que vous avez défini ci-dessus.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-2 mb-4">
+                     <Button onClick={onTest} disabled={isLoading}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>
+                        Explorer le chemin
+                    </Button>
+                    <Input value={path} readOnly className="font-mono bg-muted" />
+                    <Button variant="outline" size="icon" onClick={goUp} disabled={path === '/' || isLoading}>
+                        <FolderUp className="h-4 w-4" />
+                    </Button>
+                </div>
+                 <div className="h-96 overflow-auto border rounded-md relative">
+                    {isLoading && <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>}
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
+                            <TableRow>
+                                <TableHead className="w-12"></TableHead>
+                                <TableHead>Nom</TableHead>
+                                <TableHead>Dern. modif.</TableHead>
+                                <TableHead className="text-right">Taille</TableHead>
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {files.map(file => (
+                                <TableRow key={file.name} onDoubleClick={() => handleItemClick(file)} className={file.type === 2 ? 'cursor-pointer' : ''}>
+                                    <TableCell>
+                                        {file.type === 2 ? <Folder className="h-5 w-5 text-amber-500" /> : <File className="h-5 w-5 text-muted-foreground" />}
+                                    </TableCell>
+                                    <TableCell className="font-medium">{file.name}</TableCell>
+                                    <TableCell>{format(new Date(file.modifiedAt), 'dd/MM/yyyy HH:mm')}</TableCell>
+                                    <TableCell className="text-right font-mono text-sm">{file.type === 1 ? `${(file.size / 1024).toFixed(2)} Ko` : '-'}</TableCell>
+                                    <TableCell>
+                                        {file.type === 1 && (
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownloadClick(file.name)}>
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                 </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 
 export default function ConnectivityPage() {
@@ -261,6 +429,8 @@ export default function ConnectivityPage() {
                         </Button>
                     </CardFooter>
                 </Card>
+
+                <FileExplorer ftpConfig={localFtp} onTest={handleTestFtp} />
 
                 <Card className="lg:col-span-2">
                     <CardHeader>
