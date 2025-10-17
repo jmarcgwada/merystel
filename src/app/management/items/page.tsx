@@ -247,7 +247,7 @@ export default function ItemsPage() {
                                 Filtres
                             </Button>
                         </CollapsibleTrigger>
-                         <div className="flex items-center gap-2 pr-2">
+                         <div className="flex items-center gap-4">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="icon">
@@ -278,11 +278,11 @@ export default function ItemsPage() {
                                     <SelectItem value="all">Tous les articles</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 shrink-0">
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-xs font-medium text-muted-foreground">
+                                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                                     Page {currentPage} / {totalPages || 1}
                                 </span>
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
