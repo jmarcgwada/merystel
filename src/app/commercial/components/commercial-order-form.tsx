@@ -226,6 +226,7 @@ export const CommercialOrderForm = forwardRef<
     }
 
     const filtered = allItems.filter((item) => {
+      if (item.isDisabled) return false;
       const name = item.name.toLowerCase();
       const barcode = item.barcode ? item.barcode.toLowerCase() : '';
       if (type === 'startsWith') {
@@ -277,7 +278,8 @@ export const CommercialOrderForm = forwardRef<
   const handleShowAll = () => {
     if (allItems) {
       setSearchTerm('');
-      setListContent(allItems.slice(0, MAX_INITIAL_ITEMS));
+      const activeItems = allItems.filter(item => !item.isDisabled);
+      setListContent(activeItems.slice(0, MAX_INITIAL_ITEMS));
       setHighlightedIndex(-1);
       searchInputRef.current?.focus();
     }
