@@ -425,23 +425,13 @@ export const CommercialOrderForm = forwardRef<
                     className="h-14 text-xl pl-12 pr-28"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <TooltipProvider>
-                       <Tooltip>
-                           <TooltipTrigger asChild>
-                               <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleChangeSearchType}
-                                    className="h-12 w-12"
-                                >
-                                    <ArrowLeftRight className="h-5 w-5" />
-                                </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                               <p>Type de recherche : {searchType === 'contains' ? 'Contient' : 'Commence par'}</p>
-                           </TooltipContent>
-                       </Tooltip>
-                    </TooltipProvider>
+                    <Button
+                        variant="outline"
+                        onClick={handleChangeSearchType}
+                        className="h-12 text-xs w-28"
+                    >
+                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
                         <List className="h-6 w-6" />
                     </Button>
@@ -698,7 +688,7 @@ export const CommercialOrderForm = forwardRef<
               
               <div className="mt-auto pt-2 space-y-2">
                   <Separator />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                       <div className="space-y-1">
                           <h4 className="font-semibold text-xs">Taux de TVA</h4>
                           <div className="grid grid-cols-4 gap-x-4 p-1 border rounded-md text-xs">
@@ -779,5 +769,7 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
+
+    
 
     

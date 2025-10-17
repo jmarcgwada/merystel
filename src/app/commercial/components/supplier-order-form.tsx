@@ -294,7 +294,7 @@ export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) =>
                         performSearch(e.target.value, searchType);
                     }}
                     onKeyDown={handleKeyDown}
-                    className="h-14 text-xl pl-12 pr-40"
+                    className="h-14 text-xl pl-12 pr-28"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <Button
@@ -548,3 +548,5 @@ export const SupplierOrderForm = forwardRef<{ submit: (andValidate?: boolean) =>
 });
 
 SupplierOrderForm.displayName = "SupplierOrderForm";
+
+    
