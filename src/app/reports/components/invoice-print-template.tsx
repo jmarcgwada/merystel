@@ -183,6 +183,20 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </table>
         </main>
         
+        {companyInfo?.communicationDoc && (
+        <section className="my-8 break-inside-avoid">
+            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
+                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {companyInfo.communicationDoc.startsWith('data:image') ? (
+                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
+                    )}
+                </div>
+            </div>
+        </section>
+        )}
+
         <section className="mt-8 flex justify-between items-start break-inside-avoid">
             <div className="w-1/2 space-y-4">
                 <VatBreakdownTable sale={sale} vatRates={vatRates} />
@@ -198,20 +212,6 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                 </table>
             </div>
         </section>
-
-        {companyInfo?.communicationDoc && (
-        <section className="my-8 break-inside-avoid">
-            <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
-                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {companyInfo.communicationDoc.startsWith('data:image') ? (
-                    <img src={companyInfo.communicationDoc} alt="Communication" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    ) : (
-                    <p className="text-gray-500">Aperçu PDF non disponible, mais le document sera inclus.</p>
-                    )}
-                </div>
-            </div>
-        </section>
-        )}
 
         {companyInfo?.notes && (
             <div className="mt-8 pt-4 border-t text-xs text-gray-500 break-inside-avoid">
@@ -257,4 +257,3 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 });
 
 InvoicePrintTemplate.displayName = 'InvoicePrintTemplate';
-
