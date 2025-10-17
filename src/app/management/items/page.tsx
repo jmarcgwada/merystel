@@ -33,11 +33,10 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 
 
-const ITEMS_PER_PAGE = 15;
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading } = usePos();
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -144,12 +143,12 @@ export default function ItemsPage() {
     return filtered;
   }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, sortConfig, categories]);
 
-  const totalPages = Math.ceil(sortedAndFilteredItems.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedAndFilteredItems.length / itemsPerPage);
 
   const paginatedItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sortedAndFilteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [sortedAndFilteredItems, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedAndFilteredItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedAndFilteredItems, currentPage, itemsPerPage]);
 
 
   const requestSort = (key: SortKey) => {

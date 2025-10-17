@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -31,8 +32,6 @@ import { collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import Link from 'next/link';
 
-const ITEMS_PER_PAGE = 15;
-
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
     const Icon = icon;
@@ -52,7 +51,7 @@ export default function SuppliersPage() {
   const { user } = useUser();
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
   const [isEditSupplierOpen, setEditSupplierOpen] = useState(false);
-  const { deleteSupplier, isLoading: isPosLoading } = usePos();
+  const { deleteSupplier, isLoading: isPosLoading, itemsPerPage } = usePos();
 
   const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'suppliers') : null, [firestore, user]);
   const { data: suppliers, isLoading: isSuppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
@@ -94,11 +93,11 @@ export default function SuppliersPage() {
   [suppliers, filter]);
 
   const paginatedSuppliers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredSuppliers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredSuppliers, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSuppliers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSuppliers, currentPage, itemsPerPage]);
   
-  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
 
   const toggleCollapsible = (id: string) => {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));

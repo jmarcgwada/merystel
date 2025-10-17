@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Link as LinkIcon, BarChart3, Image, Wallpaper } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, BarChart3, Image, Wallpaper, Rows } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -55,12 +54,15 @@ export default function CustomizationPage() {
     setEnableDynamicBg,
     dynamicBgOpacity,
     setDynamicBgOpacity,
+    itemsPerPage,
+    setItemsPerPage,
    } = usePos();
 
   const [isClient, setIsClient] = useState(false);
   const [currentPopularItemsCount, setCurrentPopularItemsCount] = useState(popularItemsCount);
   const [currentWidth, setCurrentWidth] = useState(externalLinkModalWidth);
   const [currentHeight, setCurrentHeight] = useState(externalLinkModalHeight);
+  const [currentItemsPerPage, setCurrentItemsPerPage] = useState(itemsPerPage);
 
 
   useEffect(() => {
@@ -72,8 +74,9 @@ export default function CustomizationPage() {
       setCurrentPopularItemsCount(popularItemsCount);
       setCurrentWidth(externalLinkModalWidth);
       setCurrentHeight(externalLinkModalHeight);
+      setCurrentItemsPerPage(itemsPerPage);
     }
-  }, [popularItemsCount, externalLinkModalWidth, externalLinkModalHeight, isClient]);
+  }, [popularItemsCount, externalLinkModalWidth, externalLinkModalHeight, itemsPerPage, isClient]);
 
   const handlePopularItemsChange = (value: number[]) => {
       setCurrentPopularItemsCount(value[0]);
@@ -81,6 +84,14 @@ export default function CustomizationPage() {
 
   const handlePopularItemsCommit = (value: number[]) => {
       setPopularItemsCount(value[0]);
+  }
+  
+  const handleItemsPerPageChange = (value: number[]) => {
+      setCurrentItemsPerPage(value[0]);
+  }
+
+  const handleItemsPerPageCommit = (value: number[]) => {
+      setItemsPerPage(value[0]);
   }
 
   return (
@@ -300,8 +311,20 @@ export default function CustomizationPage() {
                     </div>
                     <Separator/>
                      <div className="grid gap-2 pt-2">
-                        <div className="flex justify-between items-center"><Label htmlFor="payment-method-image-opacity">Opacité image des paiements</Label>{isClient ? <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span> : <Skeleton className="h-5 w-10" />}</div>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="payment-method-image-opacity">Opacité image des paiements</Label>{isClient ? <span className="text-sm font-bold text-primary">{paymentMethodImageOpacity}%</span> : <Skeleton className="h-5 w-10" />}</div>
                         {isClient ? <Slider id="payment-method-image-opacity" value={[paymentMethodImageOpacity]} onValueChange={(value) => setPaymentMethodImageOpacity(value[0])} min={0} max={100} step={5} /> : <Skeleton className="h-5 w-full" />}
+                    </div>
+                    <Separator/>
+                    <div className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="items-per-page-slider" className="flex items-center gap-2"><Rows/>Éléments par page</Label>
+                            {isClient ? <span className="text-sm font-bold text-primary">{currentItemsPerPage} lignes</span> : <Skeleton className="h-5 w-20" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Définissez le nombre de lignes à afficher dans les listes paginées.
+                        </p>
+                        {isClient ? <Slider id="items-per-page-slider" value={[currentItemsPerPage]} onValueChange={handleItemsPerPageChange} onValueCommit={handleItemsPerPageCommit} min={5} max={50} step={5} /> : <Skeleton className="h-5 w-full" />}
                     </div>
                 </CardContent>
             </Card>
@@ -310,4 +333,3 @@ export default function CustomizationPage() {
     </>
   );
 }
-

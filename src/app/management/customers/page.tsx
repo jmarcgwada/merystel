@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -32,8 +31,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const ITEMS_PER_PAGE = 15;
-
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
     const Icon = icon;
@@ -49,7 +46,7 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 function CustomersPageContent() {
-  const { customers, deleteCustomer, setDefaultCustomer, isLoading } = usePos();
+  const { customers, deleteCustomer, setDefaultCustomer, isLoading, itemsPerPage } = usePos();
   const searchParams = useSearchParams();
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
@@ -110,11 +107,11 @@ function CustomersPageContent() {
   [customers, filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled]);
 
   const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredCustomers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredCustomers, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredCustomers, currentPage, itemsPerPage]);
   
-  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
 
   const toggleCollapsible = (id: string) => {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));

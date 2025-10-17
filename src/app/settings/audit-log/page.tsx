@@ -25,8 +25,6 @@ import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
-const ITEMS_PER_PAGE = 20;
-
 type SortKey = 'date' | 'userName' | 'action' | 'documentType' | 'documentNumber';
 
 const ClientFormattedDate = ({ date }: { date: Date | Timestamp | string | undefined }) => {
@@ -59,7 +57,7 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | string | undef
 
 export default function AuditLogPage() {
     const router = useRouter();
-    const { auditLogs, isLoading } = usePos();
+    const { auditLogs, isLoading, itemsPerPage } = usePos();
     
     const [filterUser, setFilterUser] = useState('');
     const [filterAction, setFilterAction] = useState('all');
@@ -116,12 +114,12 @@ export default function AuditLogPage() {
         return filtered;
     }, [auditLogs, filterUser, filterAction, filterDocType, filterDocNumber, dateRange, sortConfig]);
     
-    const totalPages = Math.ceil(sortedLogs.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(sortedLogs.length / itemsPerPage);
 
     const paginatedLogs = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sortedLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [sortedLogs, currentPage]);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return sortedLogs.slice(startIndex, startIndex + itemsPerPage);
+    }, [sortedLogs, currentPage, itemsPerPage]);
 
     const resetFilters = () => {
         setFilterUser('');

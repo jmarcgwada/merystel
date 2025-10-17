@@ -45,9 +45,7 @@ import jsPDF from 'jspdf';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { Label } from '@/components/ui/label';
 
-
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
-const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in' },
@@ -70,6 +68,20 @@ const hexToRgba = (hex: string, opacity: number) => {
     }
     return `hsla(var(--background), ${opacity/100})`;
 };
+
+const columnsConfig = [
+    { id: 'type', label: 'Type' },
+    { id: 'ticketNumber', label: 'Numéro' },
+    { id: 'date', label: 'Date' },
+    { id: 'userName', label: 'Vendeur' },
+    { id: 'origin', label: 'Origine' },
+    { id: 'customerName', label: 'Client' },
+    { id: 'itemCount', label: 'Articles' },
+    { id: 'subtotal', label: 'Total HT' },
+    { id: 'tax', label: 'Total TVA' },
+    { id: 'total', label: 'Total TTC' },
+    { id: 'payment', label: 'Paiement' },
+];
 
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
@@ -115,20 +127,6 @@ const getDateFromSale = (sale: Sale): Date => {
     return isNaN(d.getTime()) ? new Date(0) : d;
 };
 
-const columnsConfig = [
-    { id: 'type', label: 'Type' },
-    { id: 'ticketNumber', label: 'Numéro' },
-    { id: 'date', label: 'Date' },
-    { id: 'userName', label: 'Vendeur' },
-    { id: 'origin', label: 'Origine' },
-    { id: 'customerName', label: 'Client' },
-    { id: 'itemCount', label: 'Articles' },
-    { id: 'subtotal', label: 'Total HT' },
-    { id: 'tax', label: 'Total TVA' },
-    { id: 'total', label: 'Total TTC' },
-    { id: 'payment', label: 'Paiement' },
-];
-
 export default function ReportsPage() {
     const { 
         sales: allSales, 
@@ -153,6 +151,7 @@ export default function ReportsPage() {
         vatRates,
         lastSelectedSaleId,
         setLastSelectedSaleId,
+        itemsPerPage,
     } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
@@ -477,7 +476,7 @@ export default function ReportsPage() {
         if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
             const index = filteredAndSortedSales.findIndex((s) => s.id === lastSelectedSaleId);
             if (index !== -1) {
-                const newPage = Math.floor(index / ITEMS_PER_PAGE) + 1;
+                const newPage = Math.floor(index / itemsPerPage) + 1;
                 if (newPage !== currentPage) {
                     setCurrentPage(newPage);
                 }
@@ -492,14 +491,14 @@ export default function ReportsPage() {
                 }, 100); 
             }
         }
-    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage]);
+    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
 
-    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
     const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredAndSortedSales, currentPage]);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');

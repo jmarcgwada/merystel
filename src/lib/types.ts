@@ -250,4 +250,5 @@ export interface AuditLog {
     documentId: string;
     documentNumber: string;
     details: string;
+    richDetails?: Record<string, any>;
 }
