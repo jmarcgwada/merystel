@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -391,7 +391,7 @@ export default function ImportDataPage() {
          <TabsContent value="json">
             <Card className="mt-4">
                  <CardHeader>
-                    <CardTitle>Étape 3: JSON Généré & Importation</CardTitle>
+                    <CardTitle>Étape 3: JSON & Importation</CardTitle>
                     <CardDescription>
                         Voici les données formatées en JSON. Vérifiez-les avant d'importer.
                     </CardDescription>
@@ -409,7 +409,7 @@ export default function ImportDataPage() {
                         />
                     </div>
                     <ScrollArea className="h-[400px] border rounded-md bg-muted/50 p-4">
-                        <pre className="text-xs">{jsonData ? JSON.stringify(jsonData, null, 2) : "Aucune donnée générée."}</pre>
+                        <pre className="text-xs">{jsonData ? JSON.stringify(jsonData.slice(0, importLimit), null, 2) : "Aucune donnée générée."}</pre>
                     </ScrollArea>
                 </CardContent>
                 <CardFooter className="justify-between">
@@ -429,20 +429,18 @@ export default function ImportDataPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
-              <div>
-                  Vous êtes sur le point d'importer {jsonData?.length || 0} {dataType}.
-                  Cette action est irréversible et ajoutera de nouvelles données à votre application.
-              </div>
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Attention</AlertTitle>
-                <p>
-                    Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur) n'existent pas déjà.
-                    Les doublons provoqueront des erreurs.
-                </p>
-              </Alert>
+              Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit).length || 0} {dataType}.
+              Cette action est irréversible et ajoutera de nouvelles données à votre application.
             </AlertDialogDescription>
           </AlertDialogHeader>
+            <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Attention</AlertTitle>
+              <p>
+                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur) n'existent pas déjà.
+                  Les doublons provoqueront des erreurs.
+              </p>
+            </Alert>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleImport}>
