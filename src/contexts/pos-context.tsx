@@ -323,7 +323,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                         return obj.map(item => reviveDates(item));
                     } else if (typeof obj === 'object' && obj !== null) {
                         return Object.entries(obj).reduce((acc, [k, v]) => {
-                            acc[k] = reviveDates(v);
+                            (acc as any)[k] = reviveDates(v);
                             return acc;
                         }, {} as { [key: string]: any });
                     }
@@ -1460,7 +1460,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           quote: 'Devis',
           delivery_note: 'BL',
           supplier_order: 'CF',
-          credit_note: 'AVOIR'
+          credit_note: 'Avoir'
         };
         const prefix = prefixMap[type];
         
@@ -1515,11 +1515,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         sendNotificationEmail(finalDoc);
 
-        const reportPath = type === 'quote' ? '/reports?filter=Devis-'
-                        : type === 'delivery_note' ? '/reports?filter=BL-'
-                        : type === 'supplier_order' ? '/reports?filter=CF-'
-                        : type === 'credit_note' ? '/reports?filter=Avoir-'
-                        : '/reports';
+        const reportPath = `/reports?docType=${type}`;
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, sendNotificationEmail]);
 

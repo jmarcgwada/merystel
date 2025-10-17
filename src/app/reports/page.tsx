@@ -159,7 +159,8 @@ export default function ReportsPage() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     
-    const initialFilter = searchParams.get('filter');
+    const generalFilterParam = searchParams.get('filter');
+    const docTypeFilterParam = searchParams.get('docType');
     const initialStatusFilter = searchParams.get('filterStatus');
     const dateFilterParam = searchParams.get('date');
 
@@ -223,9 +224,9 @@ export default function ReportsPage() {
         }
         return undefined;
     });
-    const [generalFilter, setGeneralFilter] = useState(initialFilter || '');
+    const [generalFilter, setGeneralFilter] = useState(generalFilterParam || '');
     const [isSummaryOpen, setSummaryOpen] = useState(true);
-    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter);
+    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter || !!docTypeFilterParam);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     
@@ -238,15 +239,18 @@ export default function ReportsPage() {
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
     const originFilterRef = useRef<HTMLInputElement>(null);
     
-    const isContextualFilterActive = !!initialFilter;
+    const isDocTypeFilterLocked = !!docTypeFilterParam;
 
-    const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
-        ticket: true,
-        invoice: true,
-        quote: true,
-        delivery_note: true,
-        supplier_order: true,
-        credit_note: true,
+    const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>(() => {
+        const initialTypes: Record<string, boolean> = {
+            ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
+        };
+        if (docTypeFilterParam) {
+            Object.keys(initialTypes).forEach(key => {
+                initialTypes[key] = key === docTypeFilterParam;
+            });
+        }
+        return initialTypes;
     });
 
     const getRowStyle = (sale: Sale) => {
@@ -532,7 +536,11 @@ export default function ReportsPage() {
     }
 
     const resetFilters = () => {
-        if (isContextualFilterActive || isDateFilterLocked) return;
+        if (isDateFilterLocked) return;
+        if(isDocTypeFilterLocked) {
+            router.push('/reports');
+            return;
+        }
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
@@ -696,7 +704,7 @@ export default function ReportsPage() {
                             <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                         </Button>
                     </CollapsibleTrigger>
-                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} disabled={isContextualFilterActive} />
+                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} disabled={isDocTypeFilterLocked} />
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -730,7 +738,7 @@ export default function ReportsPage() {
                         </Popover>
                         <TooltipProvider>
                             <Tooltip>
-                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDocTypeFilterLocked || isDateFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
                                 <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -755,14 +763,14 @@ export default function ReportsPage() {
                         <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
                         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
                         <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
-                        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-[220px] justify-between h-9"><span>Types de pièce</span><ChevronDown className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Filtrer par type</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(documentTypes).map(([type, { label }]) => (<DropdownMenuCheckboxItem key={type} checked={filterDocTypes[type]} onCheckedChange={(checked) => handleDocTypeChange(type, checked)}>{label}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu>
+                        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>{isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}<span>Types de pièce</span><ChevronDown className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Filtrer par type</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(documentTypes).map(([type, { label }]) => (<DropdownMenuCheckboxItem key={type} checked={filterDocTypes[type]} onCheckedChange={(checked) => handleDocTypeChange(type, checked)}>{label}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
         </Collapsible>
         
         <Card>
-            <CardContent className="pt-0">
+            <CardContent className="pt-6">
                 <Table>
                     <TableHeader>
                         <TableRow>
