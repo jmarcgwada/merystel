@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Upload, FileText, ChevronRight, Check } from 'lucide-react';
@@ -60,6 +61,7 @@ export default function ImportDataPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [mappings, setMappings] = useState<Record<number, string>>({});
+  const [jsonData, setJsonData] = useState<any[] | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -69,6 +71,8 @@ export default function ImportDataPage() {
       reader.onload = (e) => {
         const text = e.target?.result as string;
         setFileContent(text);
+        setJsonData(null); // Reset generated JSON when file changes
+        setActiveTab('file'); // Go back to the first tab
       };
       reader.readAsText(file);
     }
@@ -94,6 +98,31 @@ export default function ImportDataPage() {
 
   const availableFields = getAvailableFields();
 
+  const handleGenerateJson = () => {
+    const generated: any[] = [];
+    dataRows.forEach(row => {
+        const obj: any = {};
+        headerRow.forEach((_, index) => {
+            const field = mappings[index];
+            if (field && field !== 'ignore') {
+                let value: any = row[index];
+                // Basic type conversion
+                if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(field)) {
+                    value = parseFloat(value) || 0;
+                } else if (['isDisabled'].includes(field)) {
+                    value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
+                }
+                obj[field] = value;
+            }
+        });
+        if (Object.keys(obj).length > 0) {
+            generated.push(obj);
+        }
+    });
+    setJsonData(generated);
+    setActiveTab('json');
+  };
+
   return (
     <>
       <PageHeader
@@ -109,9 +138,10 @@ export default function ImportDataPage() {
       </PageHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="file">Étape 1: Fichier & Format</TabsTrigger>
             <TabsTrigger value="mapping" disabled={!fileContent}>Étape 2: Mappage</TabsTrigger>
+            <TabsTrigger value="json" disabled={!jsonData}>Étape 3: JSON & Import</TabsTrigger>
         </TabsList>
         <TabsContent value="file">
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -141,15 +171,15 @@ export default function ImportDataPage() {
                     <div className="space-y-2">
                         <Label htmlFor="separator">Séparateur</Label>
                         <Select value={separator} onValueChange={setSeparator}>
-                        <SelectTrigger id="separator">
-                            <SelectValue placeholder="Sélectionner un séparateur..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value=",">Virgule (,)</SelectItem>
-                            <SelectItem value=";">Point-virgule (;)</SelectItem>
-                            <SelectItem value="|">Barre verticale (|)</SelectItem>
-                            <SelectItem value="\t">Tabulation</SelectItem>
-                        </SelectContent>
+                            <SelectTrigger id="separator">
+                                <SelectValue placeholder="Sélectionner un séparateur..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value=",">Virgule (,)</SelectItem>
+                                <SelectItem value=";">Point-virgule (;)</SelectItem>
+                                <SelectItem value="|">Barre verticale (|)</SelectItem>
+                                <SelectItem value="\t">Tabulation</SelectItem>
+                            </SelectContent>
                         </Select>
                     </div>
 
@@ -194,8 +224,7 @@ export default function ImportDataPage() {
                         </CardHeader>
                         <CardContent>
                           <ScrollArea className="h-[400px] border rounded-md">
-                            <div className="relative w-full overflow-auto">
-                              <Table className="min-w-max">
+                            <Table>
                                 {headerRow.length > 0 && (
                                   <TableHeader>
                                     <TableRow>
@@ -215,7 +244,6 @@ export default function ImportDataPage() {
                                   ))}
                                 </TableBody>
                               </Table>
-                            </div>
                              {parsedData.length === 0 && (
                               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                                 <p>Aucun fichier sélectionné ou fichier vide.</p>
@@ -265,13 +293,35 @@ export default function ImportDataPage() {
                       </div>
                     ))}
                   </div>
-                   <div className="mt-6 flex justify-end">
-                        <Button>
-                            <Check className="mr-2 h-4 w-4" />
-                            Prévisualiser l'importation
+                   <div className="mt-6 flex justify-between">
+                        <Button variant="outline" onClick={() => setActiveTab('file')}>
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
+                        </Button>
+                        <Button onClick={handleGenerateJson}>
+                            Générer le JSON <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>
                 </CardContent>
+            </Card>
+        </TabsContent>
+         <TabsContent value="json">
+            <Card className="mt-4">
+                 <CardHeader>
+                    <CardTitle>Étape 3: JSON Généré & Importation</CardTitle>
+                    <CardDescription>
+                        Voici les données formatées en JSON. Vérifiez-les avant d'importer.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-[400px] border rounded-md bg-muted/50 p-4">
+                        <pre className="text-xs">{jsonData ? JSON.stringify(jsonData, null, 2) : "Aucune donnée générée."}</pre>
+                    </ScrollArea>
+                </CardContent>
+                <CardFooter className="justify-between">
+                     <Button variant="outline" onClick={() => setActiveTab('mapping')}>
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
+                    </Button>
+                </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>
