@@ -102,6 +102,13 @@ export default function CommercialLayout({
     }
   };
 
+  const handleListClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (order.length > 0 && activeReportInfo) {
+      e.preventDefault();
+      showNavConfirm(`/reports?filter=${activeReportInfo.reportFilter}`);
+    }
+  };
+
   if (!isClient) {
     return (
         <div className="h-full flex flex-col">
@@ -140,7 +147,7 @@ export default function CommercialLayout({
                     <div className="pl-4 flex items-center gap-2">
                         {activeReportInfo && (
                             <Button asChild variant="outline">
-                                <Link href={`/reports?filter=${activeReportInfo.reportFilter}`}>
+                                <Link href={`/reports?filter=${activeReportInfo.reportFilter}`} onClick={handleListClick}>
                                     <List className="mr-2 h-4 w-4"/>
                                     {activeReportInfo.reportLabel}
                                 </Link>
