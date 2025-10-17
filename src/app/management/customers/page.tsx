@@ -152,17 +152,26 @@ function CustomersPageContent() {
        <div className="mt-8">
         <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
           <Card className="mb-4">
-              <CardHeader>
-                  <div className="flex items-center justify-between">
-                       <CollapsibleTrigger asChild>
-                          <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+               <CardHeader className="p-2">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                      <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
                               <SlidersHorizontal className="h-4 w-4 mr-2" />
                               Filtres
                           </Button>
                       </CollapsibleTrigger>
-                       <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 justify-end">
+                           <Input 
+                              placeholder="Rechercher par nom ou code..."
+                              value={filter}
+                              onChange={(e) => {
+                                setFilter(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="max-w-xs h-9"
+                          />
                            <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
-                              <SelectTrigger className="w-[220px]">
+                              <SelectTrigger className="w-[180px] h-9">
                                   <SelectValue placeholder="Statut du client" />
                               </SelectTrigger>
                               <SelectContent>
@@ -172,43 +181,32 @@ function CustomersPageContent() {
                               </SelectContent>
                           </Select>
                           <Button variant="ghost" size="sm" onClick={resetFilters}><X className="mr-2 h-4 w-4" />Réinitialiser</Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                               <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                  <ArrowLeft className="h-4 w-4" />
+                              </Button>
+                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center">
+                                  Page {currentPage} / {totalPages || 1}
+                              </span>
+                               <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                  <ArrowRight className="h-4 w-4" />
+                              </Button>
+                          </div>
                        </div>
                   </div>
               </CardHeader>
                <CollapsibleContent>
                   <CardContent className="flex flex-wrap items-center gap-4 pt-0">
-                      <Input placeholder="Filtrer par code postal..." value={filterPostalCode} onChange={(e) => { setFilterPostalCode(e.target.value); setCurrentPage(1); }} className="max-w-xs" />
-                      <Input placeholder="Filtrer par téléphone..." value={filterPhone} onChange={(e) => { setFilterPhone(e.target.value); setCurrentPage(1); }} className="max-w-xs" />
-                      <Input placeholder="Filtrer par adresse..." value={filterAddress} onChange={(e) => { setFilterAddress(e.target.value); setCurrentPage(1); }} className="max-w-xs" />
-                      <Input placeholder="Filtrer par email..." value={filterEmail} onChange={(e) => { setFilterEmail(e.target.value); setCurrentPage(1); }} className="max-w-xs" />
+                      <Input placeholder="Filtrer par code postal..." value={filterPostalCode} onChange={(e) => { setFilterPostalCode(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
+                      <Input placeholder="Filtrer par téléphone..." value={filterPhone} onChange={(e) => { setFilterPhone(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
+                      <Input placeholder="Filtrer par adresse..." value={filterAddress} onChange={(e) => { setFilterAddress(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
+                      <Input placeholder="Filtrer par email..." value={filterEmail} onChange={(e) => { setFilterEmail(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
                   </CardContent>
                </CollapsibleContent>
           </Card>
         </Collapsible>
         <Card>
           <CardContent className="pt-6">
-              <div className="flex justify-between items-center mb-4">
-                  <Input 
-                    placeholder="Rechercher par nom ou code client..."
-                    value={filter}
-                    onChange={(e) => {
-                      setFilter(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="max-w-sm"
-                  />
-                  <div className="flex items-center gap-2">
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-medium">
-                        Page {currentPage} / {totalPages || 1}
-                    </span>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-              </div>
               <Table>
                   <TableHeader>
                       <TableRow>
