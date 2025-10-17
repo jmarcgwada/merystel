@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -23,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
 import { useToast } from '@/hooks/use-toast';
+import { sendEmail } from '@/ai/flows/send-email-flow';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -109,7 +109,7 @@ function SaleDetailContent() {
   const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo, smtpConfig } = usePos();
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const [sale, setSale] = useState<Sale | null>(null);
 
@@ -264,24 +264,61 @@ function SaleDetailContent() {
     return `/reports/${id}?${params.toString()}`;
   };
 
-  const handlePrint = async () => {
-    if (!printRef.current) return;
-    setIsPrinting(true);
-    
+  const generatePdfForEmail = useCallback(async (): Promise<{ content: string; filename: string } | null> => {
+    if (!printRef.current || !sale) {
+        toast({ variant: 'destructive', title: "Erreur de génération" });
+        return null;
+    }
     const pdf = new jsPDF('p', 'mm', 'a4');
-    
-    await pdf.html(printRef.current, {
-        callback: function (pdf) {
-            pdf.save(`${sale?.ticketNumber || 'document'}.pdf`);
-            setIsPrinting(false);
-        },
-        x: 0,
-        y: 0,
-        width: 210,
-        windowWidth: printRef.current.scrollWidth,
-        autoPaging: 'text',
-    });
-  };
+    const pdfContent = await pdf.html(printRef.current, { autoPaging: 'text', width: 210, windowWidth: printRef.current.scrollWidth }).output('datauristring');
+    return {
+        content: pdfContent.split(',')[1],
+        filename: `${sale.ticketNumber || 'document'}.pdf`,
+    };
+  }, [sale, toast]);
+
+  const handleSendEmail = useCallback(async () => {
+      if (!sale || !smtpConfig?.senderEmail) {
+          toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
+          return;
+      }
+      const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
+      if (!customer?.email) {
+          toast({ variant: 'destructive', title: 'E-mail du client manquant' });
+          return;
+      }
+      
+      setIsSendingEmail(true);
+      toast({ title: 'Envoi en cours...' });
+
+      const pdfData = await generatePdfForEmail();
+      if (!pdfData) {
+          setIsSendingEmail(false);
+          return;
+      }
+
+      const emailResult = await sendEmail({
+          smtpConfig: {
+              host: smtpConfig.host!, port: smtpConfig.port!, secure: smtpConfig.secure || false,
+              auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+              senderEmail: smtpConfig.senderEmail!,
+          },
+          to: customer.email, cc: smtpConfig.senderEmail,
+          subject: `Votre document #${sale.ticketNumber}`,
+          text: `Veuillez trouver ci-joint votre document #${sale.ticketNumber}.`,
+          html: `<p>Veuillez trouver ci-joint votre document #${sale.ticketNumber}.</p>`,
+          attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
+      });
+
+      toast({
+          variant: emailResult.success ? 'default' : 'destructive',
+          title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
+          description: emailResult.message,
+      });
+
+      setIsSendingEmail(false);
+  }, [sale, smtpConfig, customers, toast, generatePdfForEmail]);
+
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -295,7 +332,6 @@ function SaleDetailContent() {
   const { subtotal, tax, vatBreakdown } = useMemo(() => {
     if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {} };
     
-    // Always use stored values if they exist, otherwise calculate
     if (sale.vatBreakdown && sale.subtotal !== undefined && sale.tax !== undefined) {
         return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown };
     }
@@ -393,9 +429,9 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
-            <Button onClick={handlePrint} variant="outline" disabled={isPrinting}>
-                <Printer className="mr-2 h-4 w-4" />
-                {isPrinting ? 'Génération...' : 'Imprimer / PDF'}
+            <Button onClick={handleSendEmail} variant="outline" disabled={isSendingEmail}>
+                <Send className="mr-2 h-4 w-4" />
+                {isSendingEmail ? 'Envoi...' : 'Envoyer par E-mail'}
             </Button>
             <Button onClick={handleBack} variant="outline" className="btn-back">
                 <ArrowLeft />
@@ -575,5 +611,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-
-    

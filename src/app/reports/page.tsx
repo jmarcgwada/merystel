@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -151,9 +150,7 @@ export default function ReportsPage() {
 
     const printRef = useRef<HTMLDivElement>(null);
     const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
-    const [isSendingEmail, setIsSendingEmail] = useState(false);
-    const [saleToSend, setSaleToSend] = useState<Sale | null>(null);
-
+    const [isPrinting, setIsPrinting] = useState(false);
 
     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
@@ -435,7 +432,7 @@ export default function ReportsPage() {
             });
         }
         return filteredSales;
-    }, [allSales, customers, users, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
+    }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
 
@@ -523,6 +520,31 @@ export default function ReportsPage() {
 
       return <Badge variant="destructive" className="font-normal">En attente</Badge>;
   };
+
+  const handlePrint = async (sale: Sale) => {
+    setSaleToPrint(sale);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow state to render
+
+    if (!printRef.current) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de préparer l'impression." });
+      return;
+    }
+    setIsPrinting(true);
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await pdf.html(printRef.current, {
+      callback: function (pdf) {
+        pdf.save(`${sale.ticketNumber || 'document'}.pdf`);
+        setIsPrinting(false);
+        setSaleToPrint(null);
+      },
+      x: 0,
+      y: 0,
+      width: 210,
+      windowWidth: printRef.current.scrollWidth,
+      autoPaging: 'text',
+    });
+  };
     
     const getDetailLink = (saleId: string) => {
         const params = new URLSearchParams();
@@ -540,76 +562,6 @@ export default function ReportsPage() {
         
         return `/reports/${saleId}?${params.toString()}`;
     }
-
-    const generatePdfForEmail = useCallback(async (sale: Sale): Promise<{ content: string; filename: string } | null> => {
-        setSaleToPrint(sale);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Allow state to update and component to render
-
-        if (!printRef.current) {
-            toast({ variant: "destructive", title: "Erreur d'impression" });
-            return null;
-        }
-        
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfContent = await pdf.html(printRef.current, {
-            autoPaging: 'text',
-            width: 210,
-            windowWidth: printRef.current.scrollWidth
-        }).output('datauristring');
-        
-        setSaleToPrint(null);
-
-        return {
-            content: pdfContent.split(',')[1],
-            filename: `${sale.ticketNumber || 'document'}.pdf`
-        };
-    }, [toast]);
-    
-    const handleSendEmail = useCallback(async (sale: Sale) => {
-        if (!smtpConfig?.senderEmail) {
-            toast({ variant: 'destructive', title: 'Erreur de configuration SMTP' });
-            return;
-        }
-
-        const customer = sale.customerId ? customers?.find(c => c.id === sale.customerId) : null;
-        if (!customer?.email) {
-            toast({ variant: 'destructive', title: 'E-mail du client manquant' });
-            return;
-        }
-        
-        setSaleToSend(sale);
-        setIsSendingEmail(true);
-        toast({ title: 'Envoi en cours...' });
-
-        const pdfData = await generatePdfForEmail(sale);
-        if (!pdfData) {
-            setIsSendingEmail(false);
-            setSaleToSend(null);
-            return;
-        }
-
-        const emailResult = await sendEmail({
-            smtpConfig: {
-                host: smtpConfig.host!, port: smtpConfig.port!, secure: smtpConfig.secure || false,
-                auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
-                senderEmail: smtpConfig.senderEmail!,
-            },
-            to: customer.email, cc: smtpConfig.senderEmail,
-            subject: `Votre document #${sale.ticketNumber}`,
-            text: `Veuillez trouver ci-joint votre document #${sale.ticketNumber}.`,
-            html: `<p>Veuillez trouver ci-joint votre document #${sale.ticketNumber}.</p>`,
-            attachments: [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }],
-        });
-
-        toast({
-            variant: emailResult.success ? 'default' : 'destructive',
-            title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
-            description: emailResult.message,
-        });
-
-        setIsSendingEmail(false);
-        setSaleToSend(null);
-    }, [smtpConfig, customers, toast, generatePdfForEmail]);
 
     if (isCashier) {
         return (
@@ -706,7 +658,7 @@ export default function ReportsPage() {
 
   return (
     <>
-        <div className="absolute -left-[9999px] -top-[9999px]">
+      <div className="absolute -left-[9999px] -top-[9999px]">
             {saleToPrint && vatRates && (
                 <InvoicePrintTemplate 
                     ref={printRef} 
@@ -1039,8 +991,8 @@ export default function ReportsPage() {
                                     {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end">
-                                             <Button variant="ghost" size="icon" onClick={() => handleSendEmail(sale)} disabled={isSendingEmail && saleToSend?.id === sale.id}>
-                                                <Send className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={() => handlePrint(sale)}>
+                                                <Printer className="h-4 w-4" />
                                             </Button>
                                             {canBeConverted && (
                                                 <Button variant="ghost" size="icon" onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
