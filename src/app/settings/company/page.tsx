@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
@@ -108,17 +109,17 @@ function CompanyPageContent() {
       <PageHeader
         title="Détails de l'entreprise"
         subtitle="Gérez les informations légales et commerciales de votre entreprise."
-      >
-        {!isInitialSetup && (
-            <Button asChild variant="outline" className="btn-back">
-            <Link href={backUrl}>
-                <ArrowLeft />
-                Retour
-            </Link>
-            </Button>
-        )}
-      </PageHeader>
+      />
         
+      {!isInitialSetup && (
+        <Button asChild className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full shadow-lg" size="icon">
+          <Link href={backUrl}>
+            <ArrowLeft />
+            <span className="sr-only">Retour</span>
+          </Link>
+        </Button>
+      )}
+
       <div className="mt-4 space-y-8">
         {isInitialSetup && (
             <Alert variant="destructive">
