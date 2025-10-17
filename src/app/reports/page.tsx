@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -784,97 +785,95 @@ export default function ReportsPage() {
                     </div>
                 </CardHeader>
                 <CollapsibleContent asChild>
-                    <CardContent>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <Input
-                                ref={generalFilterRef}
-                                placeholder="Recherche générale..."
-                                value={generalFilter}
-                                onChange={(e) => setGeneralFilter(e.target.value)}
-                                className="max-w-sm"
-                                onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}
-                                disabled={isContextualFilterActive}
-                            />
-                            <Popover>
-                                <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                    <Button
-                                        id="date"
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-[300px] justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
-                                        {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                            {format(dateRange.from, "LLL dd, y")} -{" "}
-                                            {format(dateRange.to, "LLL dd, y")}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, "LLL dd, y")
-                                        )
-                                        ) : (
-                                        <span>Choisir une période</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                            </Popover>
+                    <CardContent className="flex items-center gap-2 flex-wrap">
+                        <Input
+                            ref={generalFilterRef}
+                            placeholder="Recherche générale..."
+                            value={generalFilter}
+                            onChange={(e) => setGeneralFilter(e.target.value)}
+                            className="max-w-sm"
+                            onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}
+                            disabled={isContextualFilterActive}
+                        />
+                        <Popover>
+                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-[300px] justify-start text-left font-normal",
+                                    !dateRange && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                    {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                                        {format(dateRange.to, "LLL dd, y")}
+                                        </>
+                                    ) : (
+                                        format(dateRange.from, "LLL dd, y")
+                                    )
+                                    ) : (
+                                    <span>Choisir une période</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                        </Popover>
 
-                            <Input
-                                ref={customerNameFilterRef}
-                                placeholder="Filtrer par client..."
-                                value={filterCustomerName}
-                                onChange={(e) => setFilterCustomerName(e.target.value)}
-                                className="max-w-xs"
-                                onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}
-                            />
+                        <Input
+                            ref={customerNameFilterRef}
+                            placeholder="Filtrer par client..."
+                            value={filterCustomerName}
+                            onChange={(e) => setFilterCustomerName(e.target.value)}
+                            className="max-w-xs"
+                            onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}
+                        />
 
-                            <Input
-                                ref={sellerNameFilterRef}
-                                placeholder="Filtrer par vendeur..."
-                                value={filterSellerName}
-                                onChange={(e) => setFilterSellerName(e.target.value)}
-                                className="max-w-xs"
-                                onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}
-                            />
+                        <Input
+                            ref={sellerNameFilterRef}
+                            placeholder="Filtrer par vendeur..."
+                            value={filterSellerName}
+                            onChange={(e) => setFilterSellerName(e.target.value)}
+                            className="max-w-xs"
+                            onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}
+                        />
 
-                            <Input
-                                ref={originFilterRef}
-                                placeholder="Filtrer par origine (table)..."
-                                value={filterOrigin}
-                                onChange={(e) => setFilterOrigin(e.target.value)}
-                                className="max-w-xs"
-                                onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}
-                            />
-                            
-                            <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Statut de paiement" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tous les statuts</SelectItem>
-                                    <SelectItem value="paid">Payé</SelectItem>
-                                    <SelectItem value="invoiced">Facturé</SelectItem>
-                                    <SelectItem value="partial">Partiellement payé</SelectItem>
-                                    <SelectItem value="pending">En attente</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Moyen de paiement" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tous les moyens</SelectItem>
-                                    {paymentMethods.map(method => (
-                                      <SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Input
+                            ref={originFilterRef}
+                            placeholder="Filtrer par origine (table)..."
+                            value={filterOrigin}
+                            onChange={(e) => setFilterOrigin(e.target.value)}
+                            className="max-w-xs"
+                            onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}
+                        />
+                        
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Statut de paiement" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les statuts</SelectItem>
+                                <SelectItem value="paid">Payé</SelectItem>
+                                <SelectItem value="invoiced">Facturé</SelectItem>
+                                <SelectItem value="partial">Partiellement payé</SelectItem>
+                                <SelectItem value="pending">En attente</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Moyen de paiement" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les moyens</SelectItem>
+                                {paymentMethods.map(method => (
+                                  <SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
@@ -906,28 +905,6 @@ export default function ReportsPage() {
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Supprimer toutes les ventes
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Cette action est irréversible. Toutes vos pièces de vente seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">
-                                    Oui, supprimer les ventes
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
