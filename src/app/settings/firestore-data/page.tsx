@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -324,7 +325,7 @@ export default function FirestoreDataPage() {
                         <CardContent>
                           <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Réinitialiser les données
+                            Réinitialisation sélective
                           </Button>
                         </CardContent>
                     </Card>

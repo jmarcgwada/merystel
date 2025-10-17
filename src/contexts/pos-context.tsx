@@ -26,6 +26,7 @@ import type {
   SmtpConfig,
   FtpConfig,
   TwilioConfig,
+  MappingTemplate,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay } from 'date-fns';
@@ -312,6 +313,9 @@ export interface PosContextType {
   setItemsPerPage: React.Dispatch<React.SetStateAction<number>>;
   importLimit: number;
   setImportLimit: React.Dispatch<React.SetStateAction<number>>;
+  mappingTemplates: MappingTemplate[];
+  addMappingTemplate: (template: MappingTemplate) => void;
+  deleteMappingTemplate: (templateName: string) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -425,6 +429,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
+  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+
 
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
@@ -490,59 +496,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-  
-  const addCategory = useCallback(async (category: Omit<Category, 'id'| 'createdAt' | 'updatedAt'>): Promise<Category | null> => {
-      const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
-      setCategories(prev => [...prev, newCategory]);
-      return newCategory;
-  }, [setCategories]);
-
-  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>): Promise<Item | null> => {
-      const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
-      setItems(prev => [newItem, ...prev]);
-      return newItem;
-  }, [setItems]);
-
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>): Promise<Customer | null> => {
-    const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
-    if (customers.some(c => c.id === newCustomer.id)) {
-        throw new Error('Un client avec ce code existe déjà.');
-    }
-      setCustomers(prev => [...prev, newCustomer]);
-      return newCustomer;
-  }, [customers, setCustomers]);
-
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>): Promise<Supplier | null> => {
-    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}` , createdAt: new Date()};
-    if (suppliers.some(s => s.id === newSupplier.id)) {
-        throw new Error('Un fournisseur avec ce code existe déjà.');
-    }
-    setSuppliers(prev => [...prev, newSupplier]);
-    return newSupplier;
-  }, [suppliers, setSuppliers]);
-  
-  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]) => {
-    let successCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
-
-    for (const record of jsonData) {
-        try {
-            if (dataType === 'clients') {
-                await addCustomer(record);
-            } else if (dataType === 'articles') {
-                await addItem(record);
-            } else if (dataType === 'fournisseurs') {
-                await addSupplier(record);
-            }
-            successCount++;
-        } catch (e: any) {
-            errorCount++;
-            errors.push(e.message);
-        }
-    }
-    return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier]);
 
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
@@ -593,6 +546,59 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
   }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
     
+  const addCategory = useCallback(async (category: Omit<Category, 'id'| 'createdAt' | 'updatedAt'>): Promise<Category | null> => {
+      const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
+      setCategories(prev => [...prev, newCategory]);
+      return newCategory;
+  }, [setCategories]);
+  
+  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>): Promise<Item | null> => {
+      const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
+      setItems(prev => [newItem, ...prev]);
+      return newItem;
+  }, [setItems]);
+  
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault' | 'createdAt' | 'id'>): Promise<Customer | null> => {
+    const newCustomer = { ...customer, id: `C${uuidv4().substring(0,6)}`, isDefault: customers.length === 0, createdAt: new Date() };
+    if (customers.some(c => c.id === newCustomer.id)) {
+        throw new Error('Un client avec ce code existe déjà.');
+    }
+      setCustomers(prev => [...prev, newCustomer]);
+      return newCustomer;
+  }, [customers, setCustomers]);
+  
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>): Promise<Supplier | null> => {
+    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0,6)}` , createdAt: new Date()};
+    if (suppliers.some(s => s.id === newSupplier.id)) {
+        throw new Error('Un fournisseur avec ce code existe déjà.');
+    }
+    setSuppliers(prev => [...prev, newSupplier]);
+    return newSupplier;
+  }, [suppliers, setSuppliers]);
+
+  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]) => {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+  
+    for (const record of jsonData) {
+      try {
+        if (dataType === 'clients') {
+          await addCustomer(record);
+        } else if (dataType === 'articles') {
+          await addItem(record);
+        } else if (dataType === 'fournisseurs') {
+          await addSupplier(record);
+        }
+        successCount++;
+      } catch (e: any) {
+        errorCount++;
+        errors.push(e.message);
+      }
+    }
+    return { successCount, errorCount, errors };
+  }, [addCustomer, addItem, addSupplier]);
+  
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
     const newItems: Item[] = [];
@@ -658,7 +664,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Données de démo importées !' });
   }, [vatRates, setCategories, setItems, setCustomers, setSuppliers, toast]);
-
+  
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
         id: `C${uuidv4().substring(0,6)}`,
@@ -723,6 +729,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ title: 'Aucune donnée sélectionnée', variant: 'destructive' });
     }
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setAuditLogs, setPaymentMethods, setVatRates, toast]);
+  
+  const addMappingTemplate = useCallback((template: MappingTemplate) => {
+    setMappingTemplates(prev => {
+        const existingIndex = prev.findIndex(t => t.name === template.name);
+        if (existingIndex > -1) {
+            const newTemplates = [...prev];
+            newTemplates[existingIndex] = template;
+            return newTemplates;
+        }
+        return [...prev, template];
+    });
+    toast({ title: 'Modèle de mappage sauvegardé !' });
+  }, [setMappingTemplates, toast]);
+
+  const deleteMappingTemplate = useCallback((templateName: string) => {
+    setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+    toast({ title: 'Modèle supprimé.' });
+  }, [setMappingTemplates, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -1668,7 +1692,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
-    
     const updateCategory = useCallback((category: Category) => {
         const updatedCategory = { ...category, updatedAt: new Date() };
         setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
@@ -1895,8 +1918,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       sendEmailOnSale, setSendEmailOnSale, lastSelectedSaleId, setLastSelectedSaleId,
       itemsPerPage, setItemsPerPage,
       importLimit, setImportLimit,
+      mappingTemplates, addMappingTemplate, deleteMappingTemplate,
   };
-
+  
   return (
     <PosContext.Provider value={value}>
       {children}
@@ -1907,7 +1931,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
-    throw new Error('usePos must be used within a PosProvider');
+    throw new Error('usePos doit être utilisé dans un PosProvider');
   }
   return context;
 }
