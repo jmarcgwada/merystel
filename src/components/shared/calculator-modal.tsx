@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const KeypadButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
-    <Button variant="outline" className={`text-xl h-14 ${className}`} onClick={onClick}>
+const KeypadButton = ({ children, onClick, className, 'data-key': dataKey }: { children: React.ReactNode, onClick: () => void, className?: string, 'data-key'?: string }) => (
+    <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick} data-key={dataKey}>
         {children}
     </Button>
 );
@@ -30,6 +30,7 @@ const StandardCalculator = () => {
     const [firstOperand, setFirstOperand] = useState<number | null>(null);
     const [operator, setOperator] = useState<string | null>(null);
     const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false);
+    const [activeKey, setActiveKey] = useState<string | null>(null);
 
     const handleDigitClick = useCallback((digit: string) => {
         if (waitingForSecondOperand) {
@@ -96,9 +97,16 @@ const StandardCalculator = () => {
         setDisplayValue(displayValue.length > 1 ? displayValue.slice(0, -1) : '0');
     }, [displayValue]);
 
+    const triggerVisualFeedback = useCallback((key: string) => {
+        setActiveKey(key);
+        setTimeout(() => setActiveKey(null), 150);
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             const { key } = event;
+            triggerVisualFeedback(key);
+
             if (key >= '0' && key <= '9') {
                 handleDigitClick(key);
             } else if (key === '.' || key === ',') {
@@ -110,7 +118,7 @@ const StandardCalculator = () => {
                 handleEqualsClick();
             } else if (key === 'Backspace') {
                 handleBackspaceClick();
-            } else if (key === 'Escape' || key === 'Delete') {
+            } else if (key === 'Escape' || key.toLowerCase() === 'c' || key === 'Delete') {
                 handleClearClick();
             }
         };
@@ -119,7 +127,7 @@ const StandardCalculator = () => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [handleDigitClick, handleDecimalClick, handleOperatorClick, handleEqualsClick, handleBackspaceClick, handleClearClick]);
+    }, [handleDigitClick, handleDecimalClick, handleOperatorClick, handleEqualsClick, handleBackspaceClick, handleClearClick, triggerVisualFeedback]);
 
 
      return (
@@ -131,28 +139,28 @@ const StandardCalculator = () => {
                 className="h-16 text-3xl text-right font-mono pr-4 bg-muted"
             />
             <div className="grid grid-cols-4 gap-2">
-                <KeypadButton onClick={handleClearClick} className="col-span-2 bg-destructive/20 text-destructive">C</KeypadButton>
-                <KeypadButton onClick={handleBackspaceClick}><Delete /></KeypadButton>
-                <KeypadButton onClick={() => handleOperatorClick('/')}>÷</KeypadButton>
+                <KeypadButton onClick={handleClearClick} className={cn("col-span-2 bg-destructive/20 text-destructive", (activeKey === 'Escape' || activeKey?.toLowerCase() === 'c' || activeKey === 'Delete') && 'bg-destructive text-destructive-foreground')} data-key="c">C</KeypadButton>
+                <KeypadButton onClick={handleBackspaceClick} className={cn(activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} data-key="Backspace"><Delete /></KeypadButton>
+                <KeypadButton onClick={() => handleOperatorClick('/')} className={cn(activeKey === '/' && 'bg-primary text-primary-foreground')} data-key="/">÷</KeypadButton>
 
-                <KeypadButton onClick={() => handleDigitClick('7')}>7</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('8')}>8</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('9')}>9</KeypadButton>
-                <KeypadButton onClick={() => handleOperatorClick('*')}>×</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('7')} className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} data-key="7">7</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('8')} className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} data-key="8">8</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('9')} className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} data-key="9">9</KeypadButton>
+                <KeypadButton onClick={() => handleOperatorClick('*')} className={cn(activeKey === '*' && 'bg-primary text-primary-foreground')} data-key="*">×</KeypadButton>
                 
-                <KeypadButton onClick={() => handleDigitClick('4')}>4</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('5')}>5</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('6')}>6</KeypadButton>
-                <KeypadButton onClick={() => handleOperatorClick('-')}>-</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('4')} className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} data-key="4">4</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('5')} className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} data-key="5">5</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('6')} className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} data-key="6">6</KeypadButton>
+                <KeypadButton onClick={() => handleOperatorClick('-')} className={cn(activeKey === '-' && 'bg-primary text-primary-foreground')} data-key="-">-</KeypadButton>
 
-                <KeypadButton onClick={() => handleDigitClick('1')}>1</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('2')}>2</KeypadButton>
-                <KeypadButton onClick={() => handleDigitClick('3')}>3</KeypadButton>
-                <KeypadButton onClick={() => handleOperatorClick('+')}>+</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('1')} className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} data-key="1">1</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('2')} className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} data-key="2">2</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('3')} className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} data-key="3">3</KeypadButton>
+                <KeypadButton onClick={() => handleOperatorClick('+')} className={cn(activeKey === '+' && 'bg-primary text-primary-foreground')} data-key="+">+</KeypadButton>
                 
-                <KeypadButton onClick={() => handleDigitClick('0')} className="col-span-2">0</KeypadButton>
-                <KeypadButton onClick={handleDecimalClick}>.</KeypadButton>
-                <KeypadButton onClick={handleEqualsClick} className="bg-primary/20 text-primary">=</KeypadButton>
+                <KeypadButton onClick={() => handleDigitClick('0')} className={cn("col-span-2", activeKey === '0' && 'bg-primary text-primary-foreground')} data-key="0">0</KeypadButton>
+                <KeypadButton onClick={handleDecimalClick} className={cn((activeKey === '.' || activeKey === ',') && 'bg-primary text-primary-foreground')} data-key=".">.</KeypadButton>
+                <KeypadButton onClick={handleEqualsClick} className={cn("bg-primary/20 text-primary", (activeKey === 'Enter' || activeKey === '=') && 'bg-primary text-primary-foreground')} data-key="Enter">=</KeypadButton>
             </div>
         </div>
     );
