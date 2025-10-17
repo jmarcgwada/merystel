@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock, Upload } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
@@ -60,9 +59,15 @@ export default function SettingsPage() {
         icon: History,
     },
     {
+        href: '/settings/import',
+        title: "Importation de Données",
+        description: 'Importez des configurations, articles, clients et autres données.',
+        icon: Upload,
+    },
+    {
         href: '/settings/firestore-data',
         title: 'Données Firestore',
-        description: "Gérez les données brutes de l'application (import, export, réinitialisation).",
+        description: "Gérez les données brutes de l'application (export, réinitialisation).",
         icon: Database,
     }
   ]

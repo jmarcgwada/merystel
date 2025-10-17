@@ -48,11 +48,6 @@ export default function FirestoreDataPage() {
   const { 
       resetAllData, 
       exportConfiguration, 
-      importConfiguration, 
-      importDemoData, 
-      deleteAllSales,
-      importDemoCustomers,
-      importDemoSuppliers,
       ftpConfig,
       smtpConfig,
       requirePinForAdmin,
@@ -63,8 +58,6 @@ export default function FirestoreDataPage() {
   const [isDeleteSalesDialogOpen, setDeleteSalesDialogOpen] = useState(false);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImporting, setIsImporting] = useState(false);
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
@@ -133,23 +126,6 @@ export default function FirestoreDataPage() {
   const handleDeleteSales = () => {
     deleteAllSales();
     setDeleteSalesDialogOpen(false);
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    await importConfiguration(file);
-    setIsImporting(false);
-    
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
   };
   
   const handleDownload = () => {
@@ -321,45 +297,12 @@ export default function FirestoreDataPage() {
                 </Card>
 
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Données de l'application</h2>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Données de démonstration</CardTitle>
-                            <CardDescription>
-                                Peuplez l'application avec un jeu de données complet (articles, clients, fournisseurs etc.) pour des tests.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Initialiser avec données de base
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Importer les données de démo ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action ajoutera des articles, catégories, clients et fournisseurs à vos données actuelles. Elle est recommandée pour une application vide.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={importDemoData}>
-                                            Confirmer et importer
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </CardContent>
-                    </Card>
-
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Exportation des données</h2>
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Gestion de la configuration</CardTitle>
                             <CardDescription>
-                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
+                                Sauvegardez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row gap-4">
@@ -371,35 +314,6 @@ export default function FirestoreDataPage() {
                                 <Server className="mr-2 h-4 w-4"/>
                                 {isExportingToFtp ? 'Export en cours...' : 'Exporter vers FTP'}
                             </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Upload className="mr-2" />
-                                        Importer la configuration
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Cette action est irréversible. L'importation d'un nouveau fichier de configuration écrasera et remplacera TOUTES les données actuelles (articles, catégories, paramètres, etc.).
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleImportClick} disabled={isImporting}>
-                                        {isImporting ? "Importation en cours..." : "Continuer et importer"}
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            <input 
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept=".json"
-                                onChange={handleFileChange}
-                            />
                         </CardContent>
                     </Card>
                     <Separator className="my-6" />
