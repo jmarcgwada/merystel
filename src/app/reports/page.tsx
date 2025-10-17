@@ -455,7 +455,7 @@ export default function ReportsPage() {
                 }
                 
                 if (aValue instanceof Date && bValue instanceof Date) {
-                    return sortConfig.direction === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - dateA.getTime();
+                    return sortConfig.direction === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
                 }
 
                 if(typeof aValue === 'string' && typeof bValue === 'string') {
@@ -702,9 +702,7 @@ export default function ReportsPage() {
                             <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                         </Button>
                         <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                       <DropdownMenu>
+                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
                                     {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
@@ -726,6 +724,9 @@ export default function ReportsPage() {
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                       
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-9 w-9">
@@ -891,4 +892,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
