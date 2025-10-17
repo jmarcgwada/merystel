@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -180,7 +181,18 @@ function CustomersPageContent() {
                                   <SelectItem value="all">Tous les clients</SelectItem>
                               </SelectContent>
                           </Select>
-                          <Button variant="ghost" size="sm" onClick={resetFilters}><X className="mr-2 h-4 w-4" />Réinitialiser</Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={resetFilters}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Réinitialiser les filtres</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           <div className="flex items-center gap-1 shrink-0">
                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                   <ArrowLeft className="h-4 w-4" />
