@@ -259,11 +259,12 @@ function SaleDetailContent() {
   
   const navigationParams = useMemo(() => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
-    return params;
+    return params.toString();
   }, [searchParams]);
 
   const handleBack = () => {
     const backParams = new URLSearchParams(navigationParams);
+    
     if (fromPos && sale) {
         loadTicketForViewing(sale);
         router.push('/pos');
@@ -271,6 +272,7 @@ function SaleDetailContent() {
         backParams.delete('from');
         router.push(`/reports/analytics?${backParams.toString()}`);
     } else {
+        backParams.delete('id'); // Remove current saleId
         router.push(`/reports?${backParams.toString()}`);
     }
   }
