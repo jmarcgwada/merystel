@@ -200,6 +200,8 @@ export default function ReportsPage() {
 
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
+    const [isDocTypeFilterLocked, setIsDocTypeFilterLocked] = useState(!!docTypeFilterParam);
+
 
     useEffect(() => {
         if (isCashier) {
@@ -239,8 +241,6 @@ export default function ReportsPage() {
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
     const originFilterRef = useRef<HTMLInputElement>(null);
     
-    const isDocTypeFilterLocked = !!docTypeFilterParam;
-
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>(() => {
         const initialTypes: Record<string, boolean> = {
             ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
@@ -704,7 +704,7 @@ export default function ReportsPage() {
                             <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                         </Button>
                     </CollapsibleTrigger>
-                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} disabled={isDocTypeFilterLocked} />
+                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -881,4 +881,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
