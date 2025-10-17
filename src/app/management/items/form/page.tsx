@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -19,8 +18,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus } from 'lucide-react';
-import type { Item, Category } from '@/lib/types';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock } from 'lucide-react';
+import type { Item, Category, Timestamp } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +30,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { AddCategoryDialog } from '@/app/management/categories/components/add-category-dialog';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
+
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
@@ -259,7 +272,7 @@ function ItemForm() {
         return;
     }
 
-    const submissionData: Omit<Item, 'id'> & { id?: string } = {
+    const submissionData: Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
         ...data,
         variantOptions: data.variantOptions?.map(opt => ({
             name: opt.name,
@@ -271,6 +284,7 @@ function ItemForm() {
       const updatedItem: Item = {
         ...itemToEdit,
         ...submissionData,
+        updatedAt: new Date(),
       };
       updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
@@ -284,7 +298,7 @@ function ItemForm() {
       }
 
     } else {
-      const newItem = await addItem({ ...submissionData, image: data.image || defaultImage });
+      const newItem = await addItem({ ...submissionData, createdAt: new Date() });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
 
       if (redirectUrlParam && newItem?.id) {
@@ -452,6 +466,18 @@ function ItemForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
+            {isEditMode && itemToEdit && (
+                <Card>
+                    <CardContent className="p-3 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                            <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={itemToEdit.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                            {itemToEdit.updatedAt && (
+                                <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={itemToEdit.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Détails</TabsTrigger>
@@ -995,3 +1021,5 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
+
+    
