@@ -193,26 +193,26 @@ function CustomersPageContent() {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          <div className="flex items-center gap-1 shrink-0">
-                               <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                                  <ArrowLeft className="h-4 w-4" />
-                              </Button>
-                              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center">
-                                  Page {currentPage} / {totalPages || 1}
-                              </span>
-                               <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
-                                  <ArrowRight className="h-4 w-4" />
-                              </Button>
-                          </div>
+                           <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                            <div className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center">
+                                Page {currentPage} / {totalPages || 1}
+                            </div>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                <ArrowRight className="h-4 w-4" />
+                            </Button>
+                        </div>
                        </div>
                   </div>
               </CardHeader>
                <CollapsibleContent>
-                  <CardContent className="flex flex-wrap items-center gap-4 pt-0">
-                      <Input placeholder="Filtrer par code postal..." value={filterPostalCode} onChange={(e) => { setFilterPostalCode(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
-                      <Input placeholder="Filtrer par téléphone..." value={filterPhone} onChange={(e) => { setFilterPhone(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
-                      <Input placeholder="Filtrer par adresse..." value={filterAddress} onChange={(e) => { setFilterAddress(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
-                      <Input placeholder="Filtrer par email..." value={filterEmail} onChange={(e) => { setFilterEmail(e.target.value); setCurrentPage(1); }} className="max-w-xs h-9" />
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-0">
+                      <Input placeholder="Filtrer par code postal..." value={filterPostalCode} onChange={(e) => { setFilterPostalCode(e.target.value); setCurrentPage(1); }} className="h-9" />
+                      <Input placeholder="Filtrer par téléphone..." value={filterPhone} onChange={(e) => { setFilterPhone(e.target.value); setCurrentPage(1); }} className="h-9" />
+                      <Input placeholder="Filtrer par adresse..." value={filterAddress} onChange={(e) => { setFilterAddress(e.target.value); setCurrentPage(1); }} className="h-9" />
+                      <Input placeholder="Filtrer par email..." value={filterEmail} onChange={(e) => { setFilterEmail(e.target.value); setCurrentPage(1); }} className="h-9" />
                   </CardContent>
                </CollapsibleContent>
           </Card>
