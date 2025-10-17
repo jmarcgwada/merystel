@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -123,9 +124,9 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 
   return (
     <div ref={ref} className="bg-white text-gray-800 font-sans text-sm" style={{ width: '210mm' }}>
-      <div className="print-content p-10 pb-28"> 
+      <div className="print-content p-10"> 
         <header className="mb-8 break-inside-avoid">
-            <div className="flex justify-between items-start mb-6">
+             <div className="flex justify-between items-start mb-6">
                 <div className="w-1/2 space-y-0.5">
                     <h1 className="text-xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
                     <p className="leading-tight">{companyInfo?.address}</p>
@@ -224,13 +225,19 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
       </footer>
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 0;
+          }
           html, body {
+            width: 210mm;
+            height: 297mm;
             font-family: sans-serif;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
           .print-content {
-             padding-bottom: 3cm; /* Margin for the footer */
+             padding-bottom: 2cm; /* Margin for the footer */
           }
           .print-footer {
             position: fixed;
@@ -238,6 +245,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             left: 0;
             right: 0;
             padding: 10mm;
+            font-size: 9pt;
           }
           .break-inside-avoid {
             break-inside: avoid;
@@ -249,3 +257,4 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 });
 
 InvoicePrintTemplate.displayName = 'InvoicePrintTemplate';
+
