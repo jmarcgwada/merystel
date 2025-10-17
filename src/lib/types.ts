@@ -10,6 +10,8 @@ export interface Category {
   image?: string;
   isFavorite?: boolean;
   isRestaurantOnly?: boolean;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface VatRate {
@@ -17,6 +19,8 @@ export interface VatRate {
   name:string;
   rate: number;
   code: number;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface VariantOption {
@@ -51,6 +55,8 @@ export interface Item {
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
   isDisabled?: boolean;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 // OrderItem will no longer extend Item to reduce document size in Firestore
@@ -87,6 +93,8 @@ export interface Table {
   occupiedAt?: Date | Timestamp;
   closedByUserId?: string;
   closedAt?: Date | Timestamp;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface Customer {
@@ -103,6 +111,8 @@ export interface Customer {
     iban?: string;
     notes?: string;
     isDisabled?: boolean;
+    createdAt?: Date | Timestamp;
+    updatedAt?: Date | Timestamp;
 }
 
 export interface Supplier {
@@ -120,6 +130,8 @@ export interface Supplier {
   website?: string;
   iban?: string;
   bic?: string;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface PaymentMethod {
@@ -130,6 +142,8 @@ export interface PaymentMethod {
   value?: number;
   isActive?: boolean;
   image?: string;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface Payment {

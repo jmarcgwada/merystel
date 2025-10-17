@@ -525,18 +525,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
 
     const defaultVatRates: VatRate[] = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1 },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2 },
-        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3 },
-        { id: 'vat_0', name: 'Taux Nul', rate: 0, code: 4 },
+        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1, createdAt: new Date() },
+        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2, createdAt: new Date() },
+        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
+        { id: 'vat_0', name: 'Taux Nul', rate: 0, code: 4, createdAt: new Date() },
     ];
     setVatRates(defaultVatRates);
 
     const defaultPaymentMethods: PaymentMethod[] = [
-        { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true },
-        { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true },
-        { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true },
-        { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true },
+        { id: 'pm_cash', name: 'Espèces', icon: 'cash' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
+        { id: 'pm_card', name: 'Carte Bancaire', icon: 'card' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
+        { id: 'pm_check', name: 'Chèque', icon: 'check' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
+        { id: 'pm_other', name: 'AUTRE', icon: 'other' as const, type: 'direct' as const, isActive: true, createdAt: new Date() },
     ];
     setPaymentMethods(defaultPaymentMethods);
     
@@ -566,7 +566,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             id: catId,
             name: categoryData.name,
             image: `https://picsum.photos/seed/${catId}/200/150`,
-            color: '#e2e8f0'
+            color: '#e2e8f0',
+            createdAt: new Date(),
         });
         categoryIdMap[categoryData.name] = catId;
 
@@ -581,7 +582,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 categoryId: catId,
                 vatId: findVatIdByRate(itemData.vatRate),
                 image: `https://picsum.photos/seed/${itemId}/200/150`,
-                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`,
+                createdAt: new Date(),
             });
         });
     });
@@ -589,13 +591,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
         id: `C${uuidv4().substring(0,6)}`,
         name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`
+        email: `client${i+1}@demo.com`,
+        createdAt: new Date(),
     }));
     
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
         id: `S-${uuidv4().substring(0,6)}`,
         name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`
+        email: `fournisseur${i+1}@demo.com`,
+        createdAt: new Date(),
     }));
 
     setCategories(prev => [...prev, ...newCategories]);
@@ -609,7 +613,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
         id: `C${uuidv4().substring(0,6)}`,
         name: `Client Démo ${i + 1}`,
-        email: `client${i+1}@demo.com`
+        email: `client${i+1}@demo.com`,
+        createdAt: new Date(),
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
     toast({ title: 'Clients de démo importés !' });
@@ -619,7 +624,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
         id: `S-${uuidv4().substring(0,6)}`,
         name: `Fournisseur Démo ${i + 1}`,
-        email: `fournisseur${i+1}@demo.com`
+        email: `fournisseur${i+1}@demo.com`,
+        createdAt: new Date(),
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
@@ -1213,12 +1219,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         number: (tablesData.length > 0 ? Math.max(...tablesData.map(t => t.number)) : 0) + 1,
         status: 'available',
         order: [],
+        createdAt: new Date(),
       };
       setTablesData(prev => [...prev, newTable]);
     }, [tablesData, setTablesData]);
 
     const updateTable = useCallback((table: Table) => {
-      setTablesData(prev => prev.map(t => t.id === table.id ? table : t));
+      const updatedTable = { ...table, updatedAt: new Date() };
+      setTablesData(prev => prev.map(t => t.id === table.id ? updatedTable : t));
     }, [setTablesData]);
 
     const deleteTable = useCallback((tableId: string) => {
@@ -1583,12 +1591,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
     const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
-        const newCategory = { ...category, id: uuidv4() };
+        const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
         setCategories(prev => [...prev, newCategory]);
         return newCategory;
     }, [setCategories]);
     const updateCategory = useCallback((category: Category) => {
-        setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+        const updatedCategory = { ...category, updatedAt: new Date() };
+        setCategories(prev => prev.map(c => c.id === category.id ? updatedCategory : c));
     }, [setCategories]);
     const deleteCategory = useCallback((id: string) => {
         setCategories(prev => prev.filter(c => c.id !== id));
@@ -1603,12 +1612,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [categories]);
 
     const addItem = useCallback(async (item: Omit<Item, 'id'>) => {
-        const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13) };
+        const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
         setItems(prev => [newItem, ...prev]);
         return newItem;
     }, [setItems]);
     const updateItem = useCallback((item: Item) => {
-        setItems(prev => prev.map(i => i.id === item.id ? item : i));
+        const updatedItem = { ...item, updatedAt: new Date() };
+        setItems(prev => prev.map(i => i.id === item.id ? updatedItem : i));
     }, [setItems]);
     const deleteItem = useCallback((id: string) => {
         setItems(prev => prev.filter(i => i.id !== id));
@@ -1624,12 +1634,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (customers.some(c => c.id === customer.id)) {
             throw new Error('Un client avec ce code existe déjà.');
         }
-        const newCustomer = { ...customer, isDefault: customers.length === 0 };
+        const newCustomer = { ...customer, isDefault: customers.length === 0, createdAt: new Date() };
         setCustomers(prev => [...prev, newCustomer]);
         return newCustomer;
     }, [customers, setCustomers]);
     const updateCustomer = useCallback((customer: Customer) => {
-        setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
+        const updatedCustomer = { ...customer, updatedAt: new Date() };
+        setCustomers(prev => prev.map(c => c.id === customer.id ? updatedCustomer : c));
     }, [setCustomers]);
     const deleteCustomer = useCallback((id: string) => {
         setCustomers(prev => prev.filter(c => c.id !== id));
@@ -1642,22 +1653,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (suppliers.some(s => s.id === supplier.id)) {
             throw new Error('Un fournisseur avec ce code existe déjà.');
         }
-        const newSupplier = { ...supplier, id: supplier.id || uuidv4() };
+        const newSupplier = { ...supplier, id: supplier.id || uuidv4(), createdAt: new Date() };
         setSuppliers(prev => [...prev, newSupplier]);
         return newSupplier;
     }, [suppliers, setSuppliers]);
     const updateSupplier = useCallback((supplier: Supplier) => {
-        setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
+        const updatedSupplier = { ...supplier, updatedAt: new Date() };
+        setSuppliers(prev => prev.map(s => s.id === supplier.id ? updatedSupplier : s));
     }, [setSuppliers]);
     const deleteSupplier = useCallback((id: string) => {
         setSuppliers(prev => prev.filter(s => s.id !== id));
     }, [setSuppliers]);
 
     const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'>) => {
-        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4() }]);
+        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
     }, [setPaymentMethods]);
     const updatePaymentMethod = useCallback((method: PaymentMethod) => {
-        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? method : pm));
+        const updatedMethod = { ...method, updatedAt: new Date() };
+        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? updatedMethod : pm));
     }, [setPaymentMethods]);
     const deletePaymentMethod = useCallback((id: string) => {
         setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
@@ -1665,10 +1678,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code'>) => {
         const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
-        setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode }]);
+        setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
     }, [vatRates, setVatRates]);
     const updateVatRate = useCallback((vatRate: VatRate) => {
-        setVatRates(prev => prev.map(v => v.id === vatRate.id ? vatRate : v));
+        const updatedVatRate = { ...vatRate, updatedAt: new Date() };
+        setVatRates(prev => prev.map(v => v.id === vatRate.id ? updatedVatRate : v));
     }, [setVatRates]);
     const deleteVatRate = useCallback((id: string) => {
         setVatRates(prev => prev.filter(v => v.id !== id));
