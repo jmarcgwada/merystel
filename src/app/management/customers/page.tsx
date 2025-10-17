@@ -94,8 +94,11 @@ function CustomersPageContent() {
 
   const filteredCustomers = useMemo(() => 
     customers?.filter(c => {
-        const nameMatch = c.name.toLowerCase().includes(filter.toLowerCase());
-        const idMatch = c.id.toLowerCase().includes(filter.toLowerCase());
+        if (!c) return false;
+        const lowerFilter = filter.toLowerCase();
+
+        const nameMatch = c.name && c.name.toLowerCase().includes(lowerFilter);
+        const idMatch = c.id && c.id.toLowerCase().includes(lowerFilter);
         const postalCodeMatch = !filterPostalCode || (c.postalCode && c.postalCode.toLowerCase().includes(filterPostalCode.toLowerCase()));
         const phoneMatch = !filterPhone || (c.phone && c.phone.includes(filterPhone)) || (c.phone2 && c.phone2.includes(filterPhone));
         const addressMatch = !filterAddress || (c.address && c.address.toLowerCase().includes(filterAddress.toLowerCase()));
