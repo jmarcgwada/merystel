@@ -425,13 +425,23 @@ export const CommercialOrderForm = forwardRef<
                     className="h-14 text-xl pl-12 pr-28"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button
-                        variant="outline"
-                        onClick={handleChangeSearchType}
-                        className="h-12 text-xs w-28"
-                    >
-                        {searchType === 'contains' ? 'Contient' : 'Commence par'}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={handleChangeSearchType}
+                              className="h-12 w-12"
+                            >
+                              <ArrowLeftRight className="h-5 w-5" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>Type de recherche : {searchType === 'contains' ? 'Contient' : 'Commence par'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
                         <List className="h-6 w-6" />
                     </Button>
@@ -490,7 +500,7 @@ export const CommercialOrderForm = forwardRef<
             </Card>
         </div>
         <div className="flex items-center gap-2 self-end">
-            <h3 className="text-lg font-semibold text-muted-foreground">Détails de la pièce</h3>
+            
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
