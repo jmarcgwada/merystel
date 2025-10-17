@@ -123,31 +123,35 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm' }}>
       <div className="print-content p-10 flex-grow">
-        <header className="flex justify-between items-start pb-4">
-          <div className="w-1/2 space-y-0.5">
-            <h1 className="text-2xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
-            <div className="leading-tight">{companyInfo?.address}</div>
-            <div className="leading-tight">{companyInfo?.postalCode} {companyInfo?.city}</div>
-            <div className="leading-tight">{companyInfo?.phone}</div>
-            <div className="leading-tight">{companyInfo?.email}</div>
-            <div className="leading-tight">{companyInfo?.website}</div>
-          </div>
-          <div className="w-1/2 flex flex-col items-end">
-            <h2 className="text-4xl font-bold uppercase text-gray-400">{pieceType}</h2>
-            <p className="font-semibold mt-4">Numéro : {sale.ticketNumber}</p>
-            <p>Date : <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
-          </div>
+        <header className="mb-8">
+            <div className="flex justify-between items-start">
+                <div className="w-1/2 space-y-0.5">
+                    <h1 className="text-xl font-bold uppercase mb-2">{companyInfo?.name || 'Votre Entreprise'}</h1>
+                    <p className="leading-tight">{companyInfo?.address}</p>
+                    <p className="leading-tight">{companyInfo?.postalCode} {companyInfo?.city}</p>
+                    <p className="leading-tight">{companyInfo?.phone}</p>
+                    <p className="leading-tight">{companyInfo?.email}</p>
+                    <p className="leading-tight">{companyInfo?.website}</p>
+                </div>
+                <div className="w-1/2 flex items-end flex-col">
+                    <h2 className="text-3xl font-bold uppercase text-gray-400">{pieceType}</h2>
+                    <div className="mt-2 text-right">
+                        <p><span className="font-semibold">Numéro :</span> {sale.ticketNumber}</p>
+                        <p><span className="font-semibold">Date :</span> <ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></p>
+                    </div>
+                </div>
+            </div>
+            <div className="flex justify-end mt-6">
+                <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
+                    <p className="text-xs text-gray-500">Adressé à :</p>
+                    <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
+                    <p className="leading-tight">{customer?.address}</p>
+                    <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
+                </div>
+            </div>
         </header>
-
-        <section className="flex justify-end mt-4">
-          <div className="w-1/2 bg-gray-100 p-4 rounded-md space-y-0.5">
-            <p className="font-bold leading-tight">{customer?.name || 'Client au comptoir'}</p>
-            <p className="leading-tight">{customer?.address}</p>
-            <p className="leading-tight">{customer?.postalCode} {customer?.city}</p>
-          </div>
-        </section>
         
         <section className="mt-8">
             <table className="w-full">
@@ -214,12 +218,31 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
         )}
       </div>
 
-      <footer className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
-        <div className="pt-2">
+       <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '30mm', display: 'none' }} className="print-footer-area">
+        <div className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
           <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
           <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
         </div>
       </footer>
+      <div style={{ pageBreakAfter: 'always' }}></div>
+
+      <style jsx global>{`
+        @media print {
+          .print-content {
+            padding: 10mm;
+          }
+          .print-footer-area {
+            display: block;
+          }
+          @page {
+            size: A4;
+            margin: 0;
+          }
+          body {
+            margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 });
