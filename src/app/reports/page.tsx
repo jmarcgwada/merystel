@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -734,7 +735,7 @@ export default function ReportsPage() {
             </CollapsibleContent>
         </Collapsible>
         
-        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
             <Card>
                 <CardHeader className="p-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -918,3 +919,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    
