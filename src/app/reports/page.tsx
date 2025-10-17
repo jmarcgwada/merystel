@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -735,145 +734,45 @@ export default function ReportsPage() {
             </CollapsibleContent>
         </Collapsible>
         
-        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
             <Card>
-                <CardHeader>
-                    <div className="relative">
-                         <div className="flex items-center justify-between">
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" className="justify-start px-0 -ml-2 text-lg font-semibold">
-                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
-                                    Filtres
-                                </Button>
-                            </CollapsibleTrigger>
-                             <div className="flex items-center gap-2">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="w-[220px] justify-between">
-                                            <span>Types de pièce</span>
-                                            <ChevronDown className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {Object.entries(documentTypes).map(([type, { label }]) => (
-                                            <DropdownMenuCheckboxItem
-                                                key={type}
-                                                checked={filterDocTypes[type]}
-                                                onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                            >
-                                                {label}
-                                            </DropdownMenuCheckboxItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                 <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}>
-                                                <X className="mr-2 h-4 w-4"/>Réinitialiser
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Réinitialiser les filtres</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CollapsibleContent asChild>
-                    <CardContent className="flex items-center gap-2 flex-wrap">
-                        <Input
-                            ref={generalFilterRef}
-                            placeholder="Recherche générale..."
-                            value={generalFilter}
-                            onChange={(e) => setGeneralFilter(e.target.value)}
-                            className="max-w-sm"
-                            onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}
-                            disabled={isContextualFilterActive}
-                        />
+                <CardHeader className="p-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
+                            <SlidersHorizontal className="h-4 w-4 mr-2" />
+                            Filtres
+                        </Button>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
+                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} disabled={isContextualFilterActive} />
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-[300px] justify-start text-left font-normal",
-                                    !dateRange && "text-muted-foreground"
-                                    )}
-                                >
+                                <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                    {dateRange?.from ? (
-                                    dateRange.to ? (
-                                        <>
-                                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                                        {format(dateRange.to, "LLL dd, y")}
-                                        </>
-                                    ) : (
-                                        format(dateRange.from, "LLL dd, y")
-                                    )
-                                    ) : (
-                                    <span>Choisir une période</span>
-                                    )}
+                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                         </Popover>
-
-                        <Input
-                            ref={customerNameFilterRef}
-                            placeholder="Filtrer par client..."
-                            value={filterCustomerName}
-                            onChange={(e) => setFilterCustomerName(e.target.value)}
-                            className="max-w-xs"
-                            onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}
-                        />
-
-                        <Input
-                            ref={sellerNameFilterRef}
-                            placeholder="Filtrer par vendeur..."
-                            value={filterSellerName}
-                            onChange={(e) => setFilterSellerName(e.target.value)}
-                            className="max-w-xs"
-                            onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}
-                        />
-
-                        <Input
-                            ref={originFilterRef}
-                            placeholder="Filtrer par origine (table)..."
-                            value={filterOrigin}
-                            onChange={(e) => setFilterOrigin(e.target.value)}
-                            className="max-w-xs"
-                            onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}
-                        />
-                        
-                        <Select value={filterStatus} onValueChange={setFilterStatus}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Statut de paiement" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous les statuts</SelectItem>
-                                <SelectItem value="paid">Payé</SelectItem>
-                                <SelectItem value="invoiced">Facturé</SelectItem>
-                                <SelectItem value="partial">Partiellement payé</SelectItem>
-                                <SelectItem value="pending">En attente</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Moyen de paiement" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous les moyens</SelectItem>
-                                {paymentMethods.map(method => (
-                                  <SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={resetFilters} disabled={isContextualFilterActive || isDateFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent asChild>
+                    <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                        <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                        <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                        <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
+                        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-[220px] justify-between h-9"><span>Types de pièce</span><ChevronDown className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Filtrer par type</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(documentTypes).map(([type, { label }]) => (<DropdownMenuCheckboxItem key={type} checked={filterDocTypes[type]} onCheckedChange={(checked) => handleDocTypeChange(type, checked)}>{label}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu>
                     </CardContent>
                 </CollapsibleContent>
             </Card>
@@ -957,7 +856,7 @@ export default function ReportsPage() {
                                 <TableRow key={sale.id} style={getRowStyle(sale)}>
                                     {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
                                     {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
-                                    {visibleColumns.date && <TableCell className="font-medium"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
+                                    {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
                                     {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
                                     {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
                                     {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
