@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -128,7 +129,7 @@ export default function AuditLogPage() {
                                             } className="capitalize">{log.action}</Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/reports/${log.documentId}`} className="text-blue-600 hover:underline">
+                                            <Link href={`/reports/${log.documentId}?from=audit-log`} className="text-blue-600 hover:underline">
                                                 {log.documentNumber}
                                             </Link>
                                             <span className="text-xs text-muted-foreground ml-2">({log.documentType})</span>

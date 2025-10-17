@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -106,8 +107,7 @@ function SaleDetailContent() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const fromPos = searchParams.get('from') === 'pos';
-  const fromAnalytics = searchParams.get('from') === 'analytics';
+  const from = searchParams.get('from');
   
   const sortKey = searchParams.get('sortKey') as SortKey | null;
   const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
@@ -161,7 +161,7 @@ function SaleDetailContent() {
     }
 
     let filteredSales = allSales.filter(s => {
-        if (fromPos && !s.ticketNumber?.startsWith('Tick-')) {
+        if (from === 'pos' && !s.ticketNumber?.startsWith('Tick-')) {
             return false;
         }
 
@@ -255,7 +255,7 @@ function SaleDetailContent() {
         previousSaleId: previousSale ? previousSale.id : null,
         nextSaleId: nextSale ? nextSale.id : null
     };
-  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter, fromPos]);
+  }, [allSales, saleId, sortKey, sortDirection, getCustomerName, getUserName, allItems, customerFilter, sellerFilter, originFilter, articleFilter, dateFromFilter, dateToFilter, statusFilter, generalFilter, from]);
   
   const navigationParams = useMemo(() => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -263,7 +263,12 @@ function SaleDetailContent() {
   }, [searchParams]);
 
   const handleBack = () => {
-    const backUrl = fromAnalytics ? `/reports/analytics` : `/reports`;
+    let backUrl = '/reports';
+    if (from === 'analytics') {
+      backUrl = '/reports/analytics';
+    } else if (from === 'audit-log') {
+      backUrl = '/settings/audit-log';
+    }
     router.push(`${backUrl}?${navigationParams}`);
   };
 
@@ -382,7 +387,7 @@ function SaleDetailContent() {
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
-                  : sale?.documentType === 'delivery_note' ? 'BL'
+                  : sale?.documentType === 'delivery_note' ? 'Bon de Livraison'
                   : sale?.documentType === 'credit_note' ? 'Avoir'
                   : 'Ticket';
 
@@ -651,5 +656,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-
-    
