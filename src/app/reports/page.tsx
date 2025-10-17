@@ -58,7 +58,6 @@ const documentTypes = {
     supplier_order: { label: 'Cde Fournisseur', type: 'out' },
 };
 
-
 const hexToRgba = (hex: string, opacity: number) => {
     let c: any;
     if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
@@ -71,6 +70,7 @@ const hexToRgba = (hex: string, opacity: number) => {
     }
     return `hsla(var(--background), ${opacity/100})`;
 };
+
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -115,6 +115,19 @@ const getDateFromSale = (sale: Sale): Date => {
     return isNaN(d.getTime()) ? new Date(0) : d;
 };
 
+const columns = [
+    { id: 'type', label: 'Type' },
+    { id: 'ticketNumber', label: 'Numéro' },
+    { id: 'date', label: 'Date' },
+    { id: 'userName', label: 'Vendeur' },
+    { id: 'origin', label: 'Origine' },
+    { id: 'customerName', label: 'Client' },
+    { id: 'itemCount', label: 'Articles' },
+    { id: 'subtotal', label: 'Total HT' },
+    { id: 'tax', label: 'Total TVA' },
+    { id: 'total', label: 'Total TTC' },
+    { id: 'payment', label: 'Paiement' },
+];
 
 export default function ReportsPage() {
     const { 
@@ -162,7 +175,6 @@ export default function ReportsPage() {
         if (storedColumns) {
             setVisibleColumns(JSON.parse(storedColumns));
         } else {
-            // Default visibility
              setVisibleColumns({
                 type: true,
                 ticketNumber: true,
@@ -184,20 +196,6 @@ export default function ReportsPage() {
         setVisibleColumns(newVisibility);
         localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
     };
-
-    const columns = [
-        { id: 'type', label: 'Type' },
-        { id: 'ticketNumber', label: 'Numéro' },
-        { id: 'date', label: 'Date' },
-        { id: 'userName', label: 'Vendeur' },
-        { id: 'origin', label: 'Origine' },
-        { id: 'customerName', label: 'Client' },
-        { id: 'itemCount', label: 'Articles' },
-        { id: 'subtotal', label: 'Total HT' },
-        { id: 'tax', label: 'Total TVA' },
-        { id: 'total', label: 'Total TTC' },
-        { id: 'payment', label: 'Paiement' },
-    ];
 
 
     const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
@@ -442,6 +440,13 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
+    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredAndSortedSales, currentPage]);
+
     useEffect(() => {
         if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
             const index = filteredAndSortedSales.findIndex((s) => s.id === lastSelectedSaleId);
@@ -462,13 +467,6 @@ export default function ReportsPage() {
             }
         }
     }, [lastSelectedSaleId, filteredAndSortedSales, currentPage]);
-
-    const totalPages = Math.ceil(filteredAndSortedSales.length / ITEMS_PER_PAGE);
-
-    const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredAndSortedSales.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredAndSortedSales, currentPage]);
 
 
      const summaryStats = useMemo(() => {
@@ -575,23 +573,22 @@ export default function ReportsPage() {
     });
   };
     
-    const getDetailLink = (saleId: string) => {
-        setLastSelectedSaleId(saleId);
-        const params = new URLSearchParams();
-        if (sortConfig) {
-            params.set('sortKey', sortConfig.key);
-            params.set('sortDirection', sortConfig.direction);
-        }
-        if (generalFilter) params.set('filter', generalFilter);
-        if (filterStatus !== 'all') params.set('filterStatus', filterStatus);
-        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
-        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
-        if (filterCustomerName) params.set('customer', filterCustomerName);
-        if (filterSellerName) params.set('seller', filterSellerName);
-        if (filterOrigin) params.set('origin', filterOrigin);
-        
-        return `/reports/${saleId}?${params.toString()}`;
-    }
+  const getDetailLink = (saleId: string) => {
+      const params = new URLSearchParams();
+      if (sortConfig) {
+          params.set('sortKey', sortConfig.key);
+          params.set('sortDirection', sortConfig.direction);
+      }
+      if (generalFilter) params.set('filter', generalFilter);
+      if (filterStatus !== 'all') params.set('filterStatus', filterStatus);
+      if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
+      if (filterCustomerName) params.set('customer', filterCustomerName);
+      if (filterSellerName) params.set('seller', filterSellerName);
+      if (filterOrigin) params.set('origin', filterOrigin);
+      
+      return `/reports/${saleId}?${params.toString()}`;
+  }
 
     const getRowStyle = (sale: Sale) => {
         if (!isClient) return {};
@@ -867,7 +864,7 @@ export default function ReportsPage() {
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                            <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                            <Button asChild variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id); }}>
                                                 <Link href={getDetailLink(sale.id)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
@@ -907,4 +904,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
