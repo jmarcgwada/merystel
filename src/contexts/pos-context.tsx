@@ -782,7 +782,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 setRestaurantModeBgOpacity(config.settings.restaurantModeBgOpacity ?? 15);
                 setDashboardBgType(config.settings.dashboardBgType ?? 'color');
                 setDashboardBackgroundColor(config.settings.dashboardBgColor ?? '#f8fafc');
-                setDashboardBackgroundImage(config.settings.dashboardBgImage ?? '');
+                setDashboardBackgroundImage(config.settings.dashboardBackgroundImage ?? '');
                 setDashboardBgOpacity(config.settings.dashboardBgOpacity ?? 100);
                 setDashboardButtonBackgroundColor(config.settings.dashboardButtonBgColor ?? '#ffffff');
                 setDashboardButtonOpacity(config.settings.dashboardButtonOpacity ?? 100);
@@ -1293,29 +1293,40 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 details.push(`Client changé (${oldCustomer} -> ${newCustomer})`);
                 richDetails.customerChange = { from: oldCustomer, to: newCustomer };
             }
-            const addedPayments = (saleData.payments || []).filter(p => !(existingSale.payments || []).some(ep => ep.amount === p.amount && ep.method.id === p.method.id));
+            
+            const existingPayments = existingSale.payments || [];
+            const newPayments = saleData.payments || [];
+
+            const addedPayments = newPayments.filter(p => 
+                !existingPayments.some(ep => 
+                    ep.amount === p.amount && ep.method.id === p.method.id && new Date(ep.date as any).getTime() === new Date(p.date as any).getTime()
+                )
+            );
+             
             if (addedPayments.length > 0) {
                 const paymentDetails = addedPayments.map(p => `${p.method.name} ${p.amount.toFixed(2)}€`).join(', ');
                 details.push(`Paiement(s) ajouté(s): ${paymentDetails}`);
-                richDetails.paymentsAdded = addedPayments;
+                richDetails.paymentsAdded = addedPayments.map(p => ({ method: p.method.name, amount: p.amount }));
             }
 
-            const oldItems = new Map(existingSale.items.map(i => [i.itemId, i]));
-            const newItems = new Map(saleData.items.map(i => [i.itemId, i]));
+            const oldItems = new Map(existingSale.items.map(i => [i.id, i]));
+            const currentItems = new Map(saleData.items.map(i => [i.id, i]));
             const itemChanges: string[] = [];
             
             oldItems.forEach((oldItem, itemId) => {
-              if (!newItems.has(itemId)) {
+              if (!currentItems.has(itemId)) {
                 itemChanges.push(`Supprimé: ${oldItem.quantity}x ${oldItem.name}`);
               }
             });
 
-            newItems.forEach((newItem, itemId) => {
+            currentItems.forEach((newItem, itemId) => {
               const oldItem = oldItems.get(itemId);
               if (!oldItem) {
                 itemChanges.push(`Ajouté: ${newItem.quantity}x ${newItem.name}`);
-              } else if (oldItem.quantity !== newItem.quantity) {
-                itemChanges.push(`Qté modifiée: ${newItem.name} (${oldItem.quantity} -> ${newItem.quantity})`);
+              } else if (!isEqual(oldItem, newItem)) {
+                if(oldItem.quantity !== newItem.quantity) itemChanges.push(`Qté modifiée: ${newItem.name} (${oldItem.quantity} -> ${newItem.quantity})`);
+                if(oldItem.price !== newItem.price) itemChanges.push(`Prix modifié: ${newItem.name} (${oldItem.price.toFixed(2)}€ -> ${newItem.price.toFixed(2)}€)`);
+                if(oldItem.discount !== newItem.discount) itemChanges.push(`Remise modifiée: ${newItem.name}`);
               }
             });
 
@@ -1369,6 +1380,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 date: today
             };
+            
+            const paymentDetails = (saleData.payments || [])
+                .map(p => `${p.method.name} ${p.amount.toFixed(2)}€`)
+                .join(', ');
+
             addAuditLog({
                 userId: user?.id,
                 userName: `${user?.firstName} ${user?.lastName}`,
@@ -1376,8 +1392,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: finalSale.documentType || 'ticket',
                 documentId: finalSale.id,
                 documentNumber: finalSale.ticketNumber,
-                details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€`,
-                richDetails: { total: finalSale.total }
+                details: `Pièce créée, total: ${finalSale.total.toFixed(2)}€. ${paymentDetails ? 'Payé via: ' + paymentDetails : ''}`,
+                richDetails: { 
+                  total: finalSale.total,
+                  ...(paymentDetails && { payments: saleData.payments?.map(p => ({ method: p.method.name, amount: p.amount })) })
+                }
             });
         }
         
