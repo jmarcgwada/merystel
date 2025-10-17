@@ -536,12 +536,6 @@ export const CommercialOrderForm = forwardRef<
                     </Tooltip>
                  </TooltipProvider>
             </div>
-            {order.length > 0 && (
-              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Tout effacer
-              </Button>
-            )}
         </div>
       <Card className="flex-1 flex flex-col">
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
@@ -695,10 +689,10 @@ export const CommercialOrderForm = forwardRef<
                 </div>
               
               <div className="mt-auto">
-                  <Separator className="my-4"/>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                      <div className="space-y-2">
-                          <h4 className="font-semibold text-sm">Taux de TVA</h4>
+                  <Separator className="my-2"/>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                      <div className="space-y-1">
+                          <h4 className="font-semibold text-xs">Taux de TVA</h4>
                           <div className="grid grid-cols-4 gap-x-4 p-1 border rounded-md text-xs">
                              <div className="font-medium">Code</div>
                              <div className="font-medium text-right">Taux</div>

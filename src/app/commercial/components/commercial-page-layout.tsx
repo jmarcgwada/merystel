@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -9,7 +10,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock, Copy } from 'lucide-react';
+import { Sparkles, FileCog, Lock, Copy, Trash2 } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -206,6 +207,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                     <FileCog className="mr-2 h-4 w-4"/>
                     Transformer en Facture
                 </Button>
+            )}
+
+             {order.length > 0 && !isReadOnly && (
+              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Tout effacer
+              </Button>
             )}
 
             {isReadOnly ? (
