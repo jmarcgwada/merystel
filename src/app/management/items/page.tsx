@@ -283,7 +283,7 @@ export default function ItemsPage() {
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-sm font-medium">
+                                <span className="text-xs font-medium">
                                     Page {currentPage} / {totalPages || 1}
                                 </span>
                                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
