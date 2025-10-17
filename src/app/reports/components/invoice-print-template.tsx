@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Sale, Customer, CompanyInfo, VatRate, Item, Payment } from '@/lib/types';
+import type { Sale, Customer, CompanyInfo, VatRate, Payment } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Timestamp } from 'firebase/firestore';
@@ -44,7 +44,8 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
   });
 
   return (
-    <div className="border rounded-md p-2 break-inside-avoid">
+    <div className="border rounded-md p-2 break-inside-avoid w-full">
+        <h3 className="font-semibold text-gray-500 text-sm mb-2">Détail TVA</h3>
         <table className="w-full text-xs">
             <thead>
                 <tr className="bg-gray-100">
@@ -63,7 +64,6 @@ const VatBreakdownTable = ({ sale, vatRates }: { sale: Sale, vatRates: VatRate[]
                 ))}
             </tbody>
         </table>
-         <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
     </div>
   );
 };
@@ -75,8 +75,8 @@ const PaymentsDetails = ({ payments, total, change }: { payments: Payment[], tot
     if (payments.length === 0 && balanceDue <= 0.01) return null;
 
     return (
-        <div className="mt-4 space-y-2">
-            <h3 className="font-semibold text-gray-500 text-sm">Règlements</h3>
+        <div className="border rounded-md p-2 break-inside-avoid w-full">
+            <h3 className="font-semibold text-gray-500 text-sm mb-2">Règlements</h3>
             <div className="space-y-1 text-sm border-t pt-2">
                 {payments.map((p, index) => (
                     <div key={index} className="flex justify-between">
@@ -85,7 +85,7 @@ const PaymentsDetails = ({ payments, total, change }: { payments: Payment[], tot
                     </div>
                 ))}
             </div>
-             <div className="border-t pt-2 space-y-1 text-sm">
+             <div className="border-t pt-2 mt-2 space-y-1 text-sm">
                 {payments.length > 0 && (
                     <div className="flex justify-between font-bold">
                         <span>Total Payé</span>
@@ -123,8 +123,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
   }, 0);
 
   return (
-    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm' }}>
-      <div className="print-content p-10 flex-grow">
+    <div ref={ref} className="bg-white text-gray-800 font-sans text-sm flex flex-col" style={{ width: '210mm', minHeight: '297mm' }}>
+      <div className="print-content p-10 flex flex-col flex-grow">
         <header className="mb-8">
             <div className="flex justify-between items-start">
                 <div className="w-1/2 space-y-0.5">
@@ -135,7 +135,7 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     <p className="leading-tight">{companyInfo?.email}</p>
                     <p className="leading-tight">{companyInfo?.website}</p>
                 </div>
-                <div className="w-1/2 flex items-end flex-col">
+                <div className="w-1/2 flex flex-col items-end">
                     <h2 className="text-3xl font-bold uppercase text-gray-400">{pieceType}</h2>
                     <div className="mt-2 text-right">
                         <p><span className="font-semibold">Numéro :</span> {sale.ticketNumber}</p>
@@ -153,32 +153,27 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </div>
         </header>
         
-        <section className="mt-8">
+        <main className="flex-grow">
             <table className="w-full">
                 <thead>
                     <tr className="bg-gray-800 text-white">
-                        <th className="p-2 text-left w-[15%]">Référence</th>
-                        <th className="p-2 text-left w-[40%]">Désignation</th>
-                        <th className="p-2 text-right w-[5%]">Qté</th>
-                        <th className="p-2 text-right w-[10%]">P.U. HT</th>
-                        <th className="p-2 text-right w-[10%]">Remise</th>
-                        <th className="p-2 text-right w-[10%]">Code TVA</th>
-                        <th className="p-2 text-right w-[10%]">Total HT</th>
+                        <th className="p-2 text-left w-[45%]">Désignation</th>
+                        <th className="p-2 text-right w-[10%]">Qté</th>
+                        <th className="p-2 text-right w-[15%]">P.U. HT</th>
+                        <th className="p-2 text-right w-[15%]">Code TVA</th>
+                        <th className="p-2 text-right w-[15%]">Total HT</th>
                     </tr>
                 </thead>
                 <tbody>
                     {sale.items.map((item) => {
                         const vatInfo = vatRates.find(v => v.id === item.vatId);
                         const priceHT = item.price / (1 + (vatInfo?.rate || 0)/100);
-                        const totalHT = item.price * item.quantity * (1 - (item.discountPercent || 0)/100) / (1 + (vatInfo?.rate || 0)/100);
-                        const discountAmount = item.discount;
+                        const totalHT = (item.price * item.quantity * (1 - (item.discountPercent || 0)/100)) / (1 + (vatInfo?.rate || 0)/100);
                         return (
                             <tr key={item.id} className="border-b break-inside-avoid">
-                                <td className="p-2 align-top">{item.barcode}</td>
                                 <td className="p-2 align-top">{item.name}</td>
                                 <td className="p-2 text-right align-top">{item.quantity}</td>
                                 <td className="p-2 text-right align-top">{priceHT.toFixed(2)}€</td>
-                                <td className="p-2 text-right align-top text-red-600">{discountAmount > 0 ? `-${discountAmount.toFixed(2)}€` : ''}</td>
                                 <td className="p-2 text-right align-top">{vatInfo?.code || ''}</td>
                                 <td className="p-2 text-right align-top">{totalHT.toFixed(2)}€</td>
                             </tr>
@@ -186,23 +181,8 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                     })}
                 </tbody>
             </table>
-        </section>
-
-        <section className="mt-8 flex justify-between items-start break-before-page">
-            <div className="w-2/5">
-                <VatBreakdownTable sale={sale} vatRates={vatRates} />
-            </div>
-            <div className="w-2/5 space-y-2">
-                <table className="w-full">
-                    <tbody>
-                        <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
-                        <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
-                        <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
+        </main>
+        
         {companyInfo?.communicationDoc && (
         <section className="my-8 break-inside-avoid">
             <div className="w-full border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center p-4 min-h-[4cm]">
@@ -216,30 +196,40 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
             </div>
         </section>
         )}
+
+        <section className="mt-8 flex justify-between items-start break-inside-avoid">
+            <div className="w-1/2 space-y-4">
+                <VatBreakdownTable sale={sale} vatRates={vatRates} />
+                <PaymentsDetails payments={sale.payments || []} total={sale.total} change={sale.change}/>
+            </div>
+            <div className="w-2/5 space-y-2">
+                <table className="w-full">
+                    <tbody>
+                        <tr><td className="p-2">Total HT</td><td className="p-2 text-right font-bold">{subtotal.toFixed(2)}€</td></tr>
+                        <tr><td className="p-2">Total TVA</td><td className="p-2 text-right font-bold">{sale.tax.toFixed(2)}€</td></tr>
+                        <tr className="bg-gray-800 text-white text-lg"><td className="p-2 font-bold">Total TTC</td><td className="p-2 text-right font-bold">{sale.total.toFixed(2)}€</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        {companyInfo?.notes && (
+            <div className="mt-8 pt-4 border-t text-xs text-gray-500 break-inside-avoid">
+                <p className="whitespace-pre-wrap">{companyInfo.notes}</p>
+            </div>
+        )}
       </div>
 
-       <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '30mm', display: 'none' }} className="print-footer-area">
-        <div className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
-          <p className="whitespace-pre-wrap">{companyInfo?.notes}</p>
+       <footer className="p-10 pt-4 text-center text-xs text-gray-500 border-t">
           <p>{companyInfo?.name} - {companyInfo?.legalForm} - SIRET : {companyInfo?.siret} - IBAN : {companyInfo?.iban} - BIC : {companyInfo?.bic}</p>
-        </div>
       </footer>
-      <div style={{ pageBreakAfter: 'always' }}></div>
-
       <style jsx global>{`
         @media print {
+          html, body {
+            font-family: sans-serif;
+          }
           .print-content {
             padding: 10mm;
-          }
-          .print-footer-area {
-            display: block;
-          }
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          body {
-            margin: 0;
           }
         }
       `}</style>
@@ -248,3 +238,4 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
 });
 
 InvoicePrintTemplate.displayName = 'InvoicePrintTemplate';
+
