@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -51,7 +52,7 @@ const fieldLabels: Record<string, string> = {
   isDisabled: 'Désactivé (oui/non)',
   price: 'Prix de vente *',
   purchasePrice: "Prix d'achat",
-  categoryId: 'Nom de la Catégorie *',
+  categoryId: 'Nom de la Catégorie',
   vatId: 'Nom ou Taux de TVA *',
   description: 'Description',
   description2: 'Description 2',
@@ -67,7 +68,7 @@ const fieldLabels: Record<string, string> = {
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
-    articles: ['name', 'price', 'categoryId', 'vatId', 'barcode'],
+    articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
 };
 
@@ -461,7 +462,7 @@ export default function ImportDataPage() {
                     <div className="space-y-4 pr-6">
                       {availableFields.filter(f => f !== 'ignore').map((field) => {
                         const required = requiredFieldsMap[dataType]?.includes(field as string);
-                        const currentMode = mappingModes[field] || 'column';
+                        const currentMode = mappingModes[field as string] || 'column';
                         return (
                             <div key={field as string} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
                                 <div className="flex items-center gap-2">
@@ -470,7 +471,6 @@ export default function ImportDataPage() {
                                   </Button>
                                   <Label className="font-semibold text-sm">
                                     {fieldLabels[field as string] || field}
-                                    {required && <span className="text-destructive"> *</span>}
                                   </Label>
                                 </div>
                                 {currentMode === 'column' ? (
