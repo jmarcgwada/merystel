@@ -6,3 +6,4 @@ import './flows/upload-file-ftp-flow';
 import './flows/send-whatsapp-flow';
 import './flows/list-ftp-files-flow';
 import './flows/download-ftp-file-flow';
+import './flows/delete-ftp-file-flow';

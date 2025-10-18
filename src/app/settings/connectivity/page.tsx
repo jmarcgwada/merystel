@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Server, TestTube2, MessageSquare, Folder, File, Download, FolderUp, RefreshCw, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Mail, Server, TestTube2, MessageSquare, Folder, File, Download, FolderUp, RefreshCw, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -18,9 +18,12 @@ import { uploadFileFtp } from '@/ai/flows/upload-file-ftp-flow';
 import { sendWhatsApp } from '@/ai/flows/send-whatsapp-flow';
 import { listFtpFiles } from '@/ai/flows/list-ftp-files-flow';
 import { downloadFtpFile } from '@/ai/flows/download-ftp-file-flow';
+import { deleteFtpFile } from '@/ai/flows/delete-ftp-file-flow';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 interface FileInfo {
   name: string;
@@ -55,6 +58,8 @@ export default function ConnectivityPage() {
     
     const [showSmtpPassword, setShowSmtpPassword] = useState(false);
     const [showFtpPassword, setShowFtpPassword] = useState(false);
+
+    const [fileToDelete, setFileToDelete] = useState<string | null>(null);
     
     useEffect(() => {
         setLocalSmtp(smtpConfig || {});
@@ -239,6 +244,31 @@ export default function ConnectivityPage() {
         }
     }
 
+    const handleDeleteFile = async () => {
+        if (!fileToDelete) return;
+        toast({ title: 'Suppression en cours...' });
+        try {
+            const result = await deleteFtpFile({
+                ftpConfig: {
+                    host: localFtp.host!, port: localFtp.port!, user: localFtp.user!,
+                    password: localFtp.password!, secure: localFtp.secure || false,
+                },
+                filePath: ftpPath.endsWith('/') ? `${ftpPath}${fileToDelete}` : `${ftpPath}/${fileToDelete}`,
+            });
+
+            if (result.success) {
+                toast({ title: 'Fichier supprimé !' });
+                exploreFtpPath(ftpPath); // Refresh file list
+            } else {
+                toast({ variant: 'destructive', title: 'Erreur de suppression', description: result.message });
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Erreur critique', description: error.message });
+        } finally {
+            setFileToDelete(null);
+        }
+    }
+
     const goUpFtp = () => {
         if (ftpPath === '/') return;
         const newPath = ftpPath.substring(0, ftpPath.lastIndexOf('/')) || '/';
@@ -383,7 +413,7 @@ export default function ConnectivityPage() {
                                         <TableHead>Nom</TableHead>
                                         <TableHead>Dern. modif.</TableHead>
                                         <TableHead className="text-right">Taille</TableHead>
-                                        <TableHead className="w-12"></TableHead>
+                                        <TableHead className="text-right w-24">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -393,9 +423,12 @@ export default function ConnectivityPage() {
                                             <TableCell className="font-medium">{file.name}</TableCell>
                                             <TableCell>{format(new Date(file.modifiedAt), 'dd/MM/yyyy HH:mm')}</TableCell>
                                             <TableCell className="text-right font-mono text-sm">{file.type === 1 ? `${(file.size / 1024).toFixed(2)} Ko` : '-'}</TableCell>
-                                            <TableCell>
+                                            <TableCell className="text-right">
                                                 {file.type === 1 && (
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDownloadClick(file.name)}><Download className="h-4 w-4" /></Button>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDownloadClick(file.name)}><Download className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setFileToDelete(file.name)}><Trash2 className="h-4 w-4" /></Button>
+                                                    </div>
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -406,6 +439,22 @@ export default function ConnectivityPage() {
                     </div>
                 </SheetContent>
             </Sheet>
+            <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmer la suppression ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le fichier "{fileToDelete}" sera supprimé définitivement du serveur FTP.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setFileToDelete(null)}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteFile} className="bg-destructive hover:bg-destructive/90">
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
