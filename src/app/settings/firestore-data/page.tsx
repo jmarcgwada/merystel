@@ -131,11 +131,11 @@ export default function FirestoreDataPage() {
   };
   
   const handleExportToFtp = async () => {
-    if (!ftpConfig?.host || !smtpConfig?.host) {
+    if (!ftpConfig?.host) {
       toast({
         variant: 'destructive',
-        title: 'Configuration requise',
-        description: 'Veuillez configurer vos serveurs FTP et SMTP dans la page "Connectivité".',
+        title: 'Configuration FTP requise',
+        description: 'Veuillez configurer votre serveur FTP dans la page "Connectivité".',
       });
       return;
     }
@@ -163,20 +163,30 @@ export default function FirestoreDataPage() {
       if (ftpResult.success) {
         toast({ title: 'Exportation FTP réussie', description: 'Le fichier de configuration a été envoyé.' });
 
-        // Send email notification
-        await sendEmail({
-          smtpConfig: {
-            host: smtpConfig.host,
-            port: smtpConfig.port || 587,
-            secure: smtpConfig.secure || false,
-            auth: { user: smtpConfig.user || '', pass: smtpConfig.password || '' },
-            senderEmail: smtpConfig.senderEmail || '',
-          },
-          to: 'datamonetik@gmail.com',
-          subject: `Sauvegarde Zenith POS réussie - ${format(new Date(), 'd MMM yyyy HH:mm')}`,
-          text: `La sauvegarde de la configuration de Zenith POS a été effectuée avec succès sur le serveur FTP.\nNom du fichier : ${fileName}`,
-          html: `<p>La sauvegarde de la configuration de <b>Zenith POS</b> a été effectuée avec succès sur le serveur FTP.</p><p><b>Nom du fichier :</b> ${fileName}</p>`,
-        });
+        // Send email notification only if SMTP is fully configured
+        const isSmtpConfigured = smtpConfig?.host && smtpConfig?.port && smtpConfig?.user && smtpConfig?.password && smtpConfig?.senderEmail;
+
+        if (isSmtpConfigured) {
+          await sendEmail({
+            smtpConfig: {
+              host: smtpConfig.host!,
+              port: smtpConfig.port!,
+              secure: smtpConfig.secure || false,
+              auth: { user: smtpConfig.user!, pass: smtpConfig.password! },
+              senderEmail: smtpConfig.senderEmail!,
+            },
+            to: 'datamonetik@gmail.com',
+            subject: `Sauvegarde Zenith POS réussie - ${format(new Date(), 'd MMM yyyy HH:mm')}`,
+            text: `La sauvegarde de la configuration de Zenith POS a été effectuée avec succès sur le serveur FTP.\nNom du fichier : ${fileName}`,
+            html: `<p>La sauvegarde de la configuration de <b>Zenith POS</b> a été effectuée avec succès sur le serveur FTP.</p><p><b>Nom du fichier :</b> ${fileName}</p>`,
+          });
+        } else {
+            toast({
+                variant: 'default',
+                title: 'Notification par e-mail ignorée',
+                description: 'La configuration SMTP est incomplète, aucun e-mail n\'a été envoyé.'
+            })
+        }
 
       } else {
         toast({ variant: 'destructive', title: 'Échec de l\'exportation FTP', description: ftpResult.message });
