@@ -38,7 +38,7 @@ export interface Item {
   name: string;
   price: number;
   purchasePrice?: number;
-  categoryId: string;
+  categoryId?: string;
   vatId: string;
   image?: string;
   isFavorite?: boolean;
@@ -265,4 +265,12 @@ export interface AuditLog {
     documentNumber: string;
     details: string;
     richDetails?: Record<string, any>;
+}
+
+export interface MappingTemplate {
+  name: string;
+  dataType: string;
+  mappings: Record<string, number | null>;
+  mappingModes: Record<string, 'column' | 'fixed'>;
+  fixedValues: Record<string, string>;
 }

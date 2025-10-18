@@ -130,7 +130,7 @@
         "lowStockThreshold": { "type": "number" },
         "isDisabled": { "type": "boolean", "description": "Whether the item is disabled and cannot be sold." }
       },
-      "required": ["name", "price", "categoryId", "vatId", "barcode"]
+      "required": ["name", "price", "vatId", "barcode"]
     },
     "Table": {
       "$schema": "http://json-schema.org/draft-07/schema#",

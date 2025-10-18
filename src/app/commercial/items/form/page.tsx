@@ -18,8 +18,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus } from 'lucide-react';
-import type { Item, Category } from '@/lib/types';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock } from 'lucide-react';
+import type { Item, Category, Timestamp } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,12 +30,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { AddCategoryDialog } from '@/app/management/categories/components/add-category-dialog';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
+
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
   purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
-  categoryId: z.string().min(1, { message: 'Veuillez sélectionner une catégorie.' }),
+  categoryId: z.string().optional(),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
   description2: z.string().optional(),
@@ -49,6 +63,7 @@ const formSchema = z.object({
   manageStock: z.boolean().default(false),
   stock: z.coerce.number().optional(),
   lowStockThreshold: z.coerce.number().optional(),
+  isDisabled: z.boolean().default(false),
   hasVariants: z.boolean().default(false),
   variantOptions: z.array(z.object({
     name: z.string().min(1, { message: "Le nom est requis." }),
@@ -100,6 +115,7 @@ function ItemForm() {
       manageStock: false,
       stock: 0,
       lowStockThreshold: 0,
+      isDisabled: false,
       hasVariants: false,
       variantOptions: [],
     },
@@ -197,6 +213,7 @@ function ItemForm() {
         manageStock: itemToEdit.manageStock || false,
         stock: itemToEdit.stock || 0,
         lowStockThreshold: itemToEdit.lowStockThreshold || 0,
+        isDisabled: itemToEdit.isDisabled || false,
         hasVariants: itemToEdit.hasVariants || false,
         variantOptions: itemToEdit.variantOptions?.map(opt => ({
             name: opt.name,
@@ -222,6 +239,7 @@ function ItemForm() {
           manageStock: false,
           stock: 0,
           lowStockThreshold: 0,
+          isDisabled: false,
           hasVariants: false,
           variantOptions: [],
         };
@@ -254,7 +272,7 @@ function ItemForm() {
         return;
     }
 
-    const submissionData: Omit<Item, 'id'> & { id?: string } = {
+    const submissionData: Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
         ...data,
         variantOptions: data.variantOptions?.map(opt => ({
             name: opt.name,
@@ -266,8 +284,9 @@ function ItemForm() {
       const updatedItem: Item = {
         ...itemToEdit,
         ...submissionData,
+        updatedAt: new Date(),
       };
-      await updateItem(updatedItem);
+      updateItem(updatedItem);
       toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
       
       if (redirectUrlParam) {
@@ -279,7 +298,7 @@ function ItemForm() {
       }
 
     } else {
-      const newItem = await addItem({ ...submissionData, image: data.image || defaultImage });
+      const newItem = await addItem({ ...submissionData, createdAt: new Date() });
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
 
       if (redirectUrlParam && newItem?.id) {
@@ -447,6 +466,18 @@ function ItemForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
+            {isEditMode && itemToEdit && (
+                <Card>
+                    <CardContent className="p-3 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                            <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={itemToEdit.createdAt} formatString="d MMM yyyy, HH:mm" /></span>
+                            {itemToEdit.updatedAt && (
+                                <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={itemToEdit.updatedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Détails</TabsTrigger>
@@ -724,6 +755,26 @@ function ItemForm() {
                                     <CardTitle>Statut & Visibilité</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="isDisabled"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-amber-50 border-amber-200">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base text-amber-900">Désactiver l'article</FormLabel>
+                                                <FormDescription className="text-amber-800">
+                                                Un article désactivé ne pourra plus être vendu.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
                                     <FormField
                                         control={form.control}
                                         name="isFavorite"
