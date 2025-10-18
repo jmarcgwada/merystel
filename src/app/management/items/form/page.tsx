@@ -49,7 +49,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
   purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
-  categoryId: z.string().min(1, { message: 'Veuillez sélectionner une catégorie.' }),
+  categoryId: z.string().optional(),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
   description2: z.string().optional(),
