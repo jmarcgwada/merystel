@@ -1,12 +1,11 @@
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,6 +29,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -78,7 +78,7 @@ export default function ImportDataPage() {
   const { toast } = useToast();
   const { importDataFromJson, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate } = usePos();
   const [activeTab, setActiveTab] = useState('file');
-  const [dataType, setDataType] = useState('clients');
+  const [dataType, setDataType] = usePersistentState('import.dataType', 'clients');
   const [separator, setSeparator] = useState(';');
   const [hasHeader, setHasHeader] = useState(true);
   const [fileContent, setFileContent] = useState('');
@@ -95,6 +95,28 @@ export default function ImportDataPage() {
   
   const [templateName, setTemplateName] = useState('');
   const [isTemplatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+  
+  function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(() => {
+        if (typeof window === 'undefined') {
+            return defaultValue;
+        }
+        try {
+            const storedValue = localStorage.getItem(key);
+            return storedValue ? JSON.parse(storedValue) : defaultValue;
+        } catch {
+            return defaultValue;
+        }
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(key, JSON.stringify(state));
+        }
+    }, [key, state]);
+
+    return [state, setState];
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -113,6 +135,15 @@ export default function ImportDataPage() {
       reader.readAsText(file);
     }
   };
+
+  const clearFile = () => {
+    setFileName('');
+    setFileContent('');
+    setJsonData(null);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  }
 
   const parsedData = useMemo(() => {
     if (!fileContent) return [];
@@ -336,10 +367,17 @@ export default function ImportDataPage() {
 
                     <div className="space-y-2">
                         <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
-                        <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="mr-2 h-4 w-4" />
-                            <span>{fileName || 'Choisir un fichier'}</span>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                <span>{fileName || 'Choisir un fichier'}</span>
+                            </Button>
+                            {fileName && (
+                                <Button variant="ghost" size="icon" onClick={clearFile}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
                         <input 
                             ref={fileInputRef}
                             type="file"
@@ -464,7 +502,7 @@ export default function ImportDataPage() {
                         const required = requiredFieldsMap[dataType]?.includes(field as string);
                         const currentMode = mappingModes[field as string] || 'column';
                         return (
-                            <div key={field as string} className="grid grid-cols-2 gap-4 items-center p-2 border rounded-md">
+                            <div key={field as string} className={cn("grid grid-cols-2 gap-4 items-center p-2 border rounded-md", currentMode === 'fixed' && "bg-blue-50 dark:bg-blue-900/20")}>
                                 <div className="flex items-center gap-2">
                                   <Button variant="ghost" size="icon" onClick={() => toggleMappingMode(field as string)}>
                                     <Type className="h-4 w-4" />
@@ -502,6 +540,7 @@ export default function ImportDataPage() {
                                     placeholder="Saisir la valeur fixe..."
                                     value={fixedValues[field as string] || ''}
                                     onChange={e => setFixedValues(prev => ({...prev, [field as string]: e.target.value}))}
+                                    className="bg-background border-blue-300 focus-visible:ring-blue-400"
                                   />
                                 )}
                             </div>
