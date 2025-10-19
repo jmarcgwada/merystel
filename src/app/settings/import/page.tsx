@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -74,29 +75,7 @@ const requiredFieldsMap: Record<string, string[]> = {
 
 type MappingMode = 'column' | 'fixed';
 
-export default function ImportDataPage() {
-  const { toast } = useToast();
-  const { importDataFromJson, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate } = usePos();
-  const [activeTab, setActiveTab] = useState('file');
-  const [dataType, setDataType] = usePersistentState('import.dataType', 'clients');
-  const [separator, setSeparator] = useState(';');
-  const [hasHeader, setHasHeader] = useState(true);
-  const [fileContent, setFileContent] = useState('');
-  const [fileName, setFileName] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [mappings, setMappings] = useState<Record<string, number | null>>({});
-  const [mappingModes, setMappingModes] = useState<Record<string, MappingMode>>({});
-  const [fixedValues, setFixedValues] = useState<Record<string, string>>({});
-  
-  const [jsonData, setJsonData] = useState<any[] | null>(null);
-  const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  
-  const [templateName, setTemplateName] = useState('');
-  const [isTemplatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-  
-  function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
         if (typeof window === 'undefined') {
             return defaultValue;
@@ -117,6 +96,29 @@ export default function ImportDataPage() {
 
     return [state, setState];
   }
+
+
+export default function ImportDataPage() {
+  const { toast } = useToast();
+  const { importDataFromJson, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate } = usePos();
+  const [activeTab, setActiveTab] = useState('file');
+  const [dataType, setDataType] = usePersistentState('import.dataType', 'clients');
+  const [separator, setSeparator] = useState(';');
+  const [hasHeader, setHasHeader] = useState(true);
+  const [fileContent, setFileContent] = useState('');
+  const [fileName, setFileName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [mappings, setMappings] = useState<Record<string, number | null>>({});
+  const [mappingModes, setMappingModes] = useState<Record<string, 'column' | 'fixed'>>({});
+  const [fixedValues, setFixedValues] = useState<Record<string, string>>({});
+  
+  const [jsonData, setJsonData] = useState<any[] | null>(null);
+  const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  
+  const [templateName, setTemplateName] = useState('');
+  const [isTemplatePopoverOpen, setTemplatePopoverOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -502,10 +504,10 @@ export default function ImportDataPage() {
                         const required = requiredFieldsMap[dataType]?.includes(field as string);
                         const currentMode = mappingModes[field as string] || 'column';
                         return (
-                            <div key={field as string} className={cn("grid grid-cols-2 gap-4 items-center p-2 border rounded-md", currentMode === 'fixed' && "bg-blue-50 dark:bg-blue-900/20")}>
+                            <div key={field as string} className={cn("grid grid-cols-2 gap-4 items-center p-2 border rounded-md transition-colors", currentMode === 'fixed' && "bg-blue-50 dark:bg-blue-900/20")}>
                                 <div className="flex items-center gap-2">
                                   <Button variant="ghost" size="icon" onClick={() => toggleMappingMode(field as string)}>
-                                    <Type className="h-4 w-4" />
+                                    <Type className={cn("h-4 w-4 transition-colors", currentMode === 'fixed' && "text-blue-600")} />
                                   </Button>
                                   <Label className="font-semibold text-sm">
                                     {fieldLabels[field as string] || field}
@@ -601,14 +603,13 @@ export default function ImportDataPage() {
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
                 Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit).length || 0} {dataType}.
-                Cette action est irréversible et ajoutera de nouvelles données à votre application.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Attention</AlertTitle>
               <p>
-                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur) n'existent pas déjà.
+                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur, Code-barres Article) n'existent pas déjà.
                   Les doublons provoqueront des erreurs.
               </p>
             </Alert>

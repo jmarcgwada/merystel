@@ -121,7 +121,7 @@ export interface PosContextType {
   sessionInvalidated: boolean;
   setSessionInvalidated: React.Dispatch<React.SetStateAction<boolean>>;
   items: Item[];
-  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Item | null>;
+  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { barcode: string }) => Promise<Item | null>;
   updateItem: (item: Item) => void;
   deleteItem: (itemId: string) => void;
   toggleItemFavorite: (itemId: string) => void;
@@ -373,64 +373,64 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
   // Settings States
-  const [showNotifications, setShowNotifications, rehydrateShowNotifications] = usePersistentState('settings.showNotifications', true);
-  const [notificationDuration, setNotificationDuration, rehydrateNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
-  const [enableDynamicBg, setEnableDynamicBg, rehydrateEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
-  const [dynamicBgOpacity, setDynamicBgOpacity, rehydrateDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
-  const [showTicketImages, setShowTicketImages, rehydrateShowTicketImages] = usePersistentState('settings.showTicketImages', true);
-  const [showItemImagesInGrid, setShowItemImagesInGrid, rehydrateShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
-  const [descriptionDisplay, setDescriptionDisplay, rehydrateDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
-  const [popularItemsCount, setPopularItemsCount, rehydratePopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
-  const [itemCardOpacity, setItemCardOpacity, rehydrateItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
-  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity, rehydratePaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
-  const [itemDisplayMode, setItemDisplayMode, rehydrateItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
-  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground, rehydrateItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
-  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, rehydrateItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
-  const [itemCardTextColor, setItemCardTextColor, rehydrateItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
-  const [itemCardShowPrice, setItemCardShowPrice, rehydrateItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
-  const [externalLinkModalEnabled, setExternalLinkModalEnabled, rehydrateExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
-  const [externalLinkUrl, setExternalLinkUrl, rehydrateExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
-  const [externalLinkTitle, setExternalLinkTitle, rehydrateExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
-  const [externalLinkModalWidth, setExternalLinkModalWidth, rehydrateExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
-  const [externalLinkModalHeight, setExternalLinkModalHeight, rehydrateExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [showDashboardStats, setShowDashboardStats, rehydrateShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
-  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, rehydrateEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
-  const [enableSerialNumber, setEnableSerialNumber, rehydrateEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
-  const [defaultSalesMode, setDefaultSalesMode, rehydrateDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
-  const [isForcedMode, setIsForcedMode, rehydrateIsForcedMode] = usePersistentState('settings.isForcedMode', false);
-  const [requirePinForAdmin, setRequirePinForAdmin, rehydrateRequirePinForAdmin] = usePersistentState('settings.requirePinForAdmin', true);
-  const [directSaleBackgroundColor, setDirectSaleBackgroundColor, rehydrateDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
-  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, rehydrateRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
-  const [directSaleBgOpacity, setDirectSaleBgOpacity, rehydrateDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
-  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity, rehydrateRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
-  const [dashboardBgType, setDashboardBgType, rehydrateDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
-  const [dashboardBackgroundColor, setDashboardBackgroundColor, rehydrateDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
-  const [dashboardBackgroundImage, setDashboardBackgroundImage, rehydrateDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
-  const [dashboardBgOpacity, setDashboardBgOpacity, rehydrateDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
-  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, rehydrateDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
-  const [dashboardButtonOpacity, setDashboardButtonOpacity, rehydrateDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
-  const [dashboardButtonShowBorder, setDashboardButtonShowBorder, rehydrateDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
-  const [dashboardButtonBorderColor, setDashboardButtonBorderColor, rehydrateDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
-  const [invoiceBgColor, setInvoiceBgColor, rehydrateInvoiceBgColor] = usePersistentState('settings.invoiceBgColor', '#eef2ff');
-  const [invoiceBgOpacity, setInvoiceBgOpacity, rehydrateInvoiceBgOpacity] = usePersistentState('settings.invoiceBgOpacity', 100);
-  const [quoteBgColor, setQuoteBgColor, rehydrateQuoteBgColor] = usePersistentState('settings.quoteBgColor', '#f0fdf4');
-  const [quoteBgOpacity, setQuoteBgOpacity, rehydrateQuoteBgOpacity] = usePersistentState('settings.quoteBgOpacity', 100);
-  const [deliveryNoteBgColor, setDeliveryNoteBgColor, rehydrateDeliveryNoteBgColor] = usePersistentState('settings.deliveryNoteBgColor', '#fefce8');
-  const [deliveryNoteBgOpacity, setDeliveryNoteBgOpacity, rehydrateDeliveryNoteBgOpacity] = usePersistentState('settings.deliveryNoteBgOpacity', 100);
-  const [supplierOrderBgColor, setSupplierOrderBgColor, rehydrateSupplierOrderBgColor] = usePersistentState('settings.supplierOrderBgColor', '#faf5ff');
-  const [supplierOrderBgOpacity, setSupplierOrderBgOpacity, rehydrateSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
-  const [creditNoteBgColor, setCreditNoteBgColor, rehydrateCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
-  const [creditNoteBgOpacity, setCreditNoteBgOpacity, rehydrateCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
-  const [commercialViewLevel, setCommercialViewLevel, rehydrateCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
-  const [smtpConfig, setSmtpConfig, rehydrateSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
-  const [ftpConfig, setFtpConfig, rehydrateFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
-  const [twilioConfig, setTwilioConfig, rehydrateTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
-  const [sendEmailOnSale, setSendEmailOnSale, rehydrateSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
-  const [itemsPerPage, setItemsPerPage, rehydrateItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
-  const [lastSelectedSaleId, setLastSelectedSaleId, rehydrateLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
+  const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
+  const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
+  const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
+  const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
+  const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
+  const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
+  const [popularItemsCount, setPopularItemsCount] = usePersistentState('settings.popularItemsCount', 10);
+  const [itemCardOpacity, setItemCardOpacity] = usePersistentState('settings.itemCardOpacity', 30);
+  const [paymentMethodImageOpacity, setPaymentMethodImageOpacity] = usePersistentState('settings.paymentMethodImageOpacity', 20);
+  const [itemDisplayMode, setItemDisplayMode] = usePersistentState<'grid' | 'list'>('settings.itemDisplayMode', 'grid');
+  const [itemCardShowImageAsBackground, setItemCardShowImageAsBackground] = usePersistentState('settings.itemCardShowImageAsBackground', false);
+  const [itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity] = usePersistentState('settings.itemCardImageOverlayOpacity', 30);
+  const [itemCardTextColor, setItemCardTextColor] = usePersistentState<'light' | 'dark'>('settings.itemCardTextColor', 'dark');
+  const [itemCardShowPrice, setItemCardShowPrice] = usePersistentState('settings.itemCardShowPrice', true);
+  const [externalLinkModalEnabled, setExternalLinkModalEnabled] = usePersistentState('settings.externalLinkModalEnabled', false);
+  const [externalLinkUrl, setExternalLinkUrl] = usePersistentState('settings.externalLinkUrl', '');
+  const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
+  const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
+  const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
+  const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
+  const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
+  const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
+  const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
+  const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
+  const [requirePinForAdmin, setRequirePinForAdmin] = usePersistentState('settings.requirePinForAdmin', true);
+  const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
+  const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
+  const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
+  const [restaurantModeBgOpacity, setRestaurantModeBgOpacity] = usePersistentState('settings.restaurantModeBgOpacity', 15);
+  const [dashboardBgType, setDashboardBgType] = usePersistentState<'color' | 'image'>('settings.dashboardBgType', 'color');
+  const [dashboardBackgroundColor, setDashboardBackgroundColor] = usePersistentState('settings.dashboardBgColor', '#f8fafc');
+  const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
+  const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
+  const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
+  const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
+  const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
+  const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
+  const [invoiceBgColor, setInvoiceBgColor] = usePersistentState('settings.invoiceBgColor', '#eef2ff');
+  const [invoiceBgOpacity, setInvoiceBgOpacity] = usePersistentState('settings.invoiceBgOpacity', 100);
+  const [quoteBgColor, setQuoteBgColor] = usePersistentState('settings.quoteBgColor', '#f0fdf4');
+  const [quoteBgOpacity, setQuoteBgOpacity] = usePersistentState('settings.quoteBgOpacity', 100);
+  const [deliveryNoteBgColor, setDeliveryNoteBgColor] = usePersistentState('settings.deliveryNoteBgColor', '#fefce8');
+  const [deliveryNoteBgOpacity, setDeliveryNoteBgOpacity] = usePersistentState('settings.deliveryNoteBgOpacity', 100);
+  const [supplierOrderBgColor, setSupplierOrderBgColor] = usePersistentState('settings.supplierOrderBgColor', '#faf5ff');
+  const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
+  const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
+  const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
+  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
+  const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
+  const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
+  const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
+  const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
+  const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
+  const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [importLimit, setImportLimit, rehydrateImportLimit] = usePersistentState('settings.importLimit', 100);
-  const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
+  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -542,11 +542,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return categories.find(c => c.id === categoryId)?.color;
   }, [categories]);
 
-  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
-      setItems(prev => [newItem, ...prev]);
-      return newItem;
-  }, [setItems]);
+  const addItem = useCallback(async (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { barcode: string }) => {
+    if (item.barcode && items.some(i => i.barcode === item.barcode)) {
+        throw new Error('Un article avec ce code-barres existe déjà.');
+    }
+    const newItem = { ...item, id: uuidv4(), barcode: item.barcode || uuidv4().substring(0, 13), createdAt: new Date() };
+    setItems(prev => [newItem, ...prev]);
+    return newItem;
+  }, [items, setItems]);
+
 
   const updateItem = useCallback((item: Item) => {
       const updatedItem = { ...item, updatedAt: new Date() };
@@ -688,6 +692,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
 }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, toast]);
 
+    const addMappingTemplate = useCallback((template: MappingTemplate) => {
+        setMappingTemplates(prev => {
+            const existingIndex = prev.findIndex(t => t.name === template.name);
+            if (existingIndex > -1) {
+                const newTemplates = [...prev];
+                newTemplates[existingIndex] = template;
+                return newTemplates;
+            }
+            return [...prev, template];
+        });
+        toast({ title: 'Modèle sauvegardé !' });
+    }, [setMappingTemplates, toast]);
+
+    const deleteMappingTemplate = useCallback((templateName: string) => {
+        setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+        toast({ title: 'Modèle supprimé.' });
+    }, [setMappingTemplates, toast]);
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
@@ -794,29 +815,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(prev => [...prev, ...demoSuppliers]);
     toast({ title: 'Fournisseurs de démo importés !' });
   }, [setSuppliers, toast]);
-
-  const addMappingTemplate = useCallback((template: MappingTemplate) => {
-    setMappingTemplates(prev => {
-        const existingIndex = prev.findIndex(t => t.name === template.name);
-        if (existingIndex > -1) {
-            const newTemplates = [...prev];
-            newTemplates[existingIndex] = template;
-            return newTemplates;
-        }
-        return [...prev, template];
-    });
-    toast({ title: 'Modèle de mappage sauvegardé !'});
-  }, [setMappingTemplates, toast]);
-
-  const deleteMappingTemplate = useCallback((templateName: string) => {
-    setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
-    toast({ title: 'Modèle supprimé.'});
-  }, [setMappingTemplates, toast]);
-
-  const cycleCommercialViewLevel = useCallback(() => {
-    setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
-
+  
   useEffect(() => {
     if(isHydrated) {
         const isSeeded = localStorage.getItem('data.seeded');
@@ -1441,6 +1440,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const convertToInvoice = useCallback((saleId: string) => {
       router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
+  
+  const cycleCommercialViewLevel = useCallback(() => {
+    setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
