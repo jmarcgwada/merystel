@@ -1410,12 +1410,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
-    const salesMap = new Map<string, { sale: Sale; processedPayments: Set<string> }>();
     let lastProcessedTicketNumber: string | null = null;
-    
-    const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
-    const tempNewItems = new Map<string, Item>();
+    const salesMap = new Map<string, { sale: Sale; paymentTotals: Record<string, number> }>();
     const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+
+    const limitedJsonData = (importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
+    const tempNewItems = new Map<string, Item>();
+
+    const processPayment = (saleEntry: { sale: Sale; paymentTotals: Record<string, number> }, row: any) => {
+        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
+            const paymentValue = parseFloat(row[pmtKey]);
+            if (!isNaN(paymentValue) && paymentValue > 0) {
+                const methodName = pmtKey.replace('payment', '').toLowerCase();
+                saleEntry.paymentTotals[methodName] = (saleEntry.paymentTotals[methodName] || 0) + paymentValue;
+            }
+        });
+    };
 
     switch (dataType) {
         case 'clients':
@@ -1469,8 +1479,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 
                 let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
-                    const vatValue = parseFloat(row.vatRate);
-                    const vatRate = vatRates.find(v => v.code === vatValue || v.rate === vatValue);
+                    const vatRateInput = String(row.vatRate);
+                    const vatValue = parseFloat(vatRateInput);
+                    const vatRate = vatRates.find(v => String(v.code) === vatRateInput || v.rate === vatValue);
                     const category = categories.find(c => c.name === row.itemCategory);
                     
                     if (vatRate) {
@@ -1498,10 +1509,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 let saleEntry = salesMap.get(row.ticketNumber);
                 if (!saleEntry) {
                     const seller = users.find(u => `${u.firstName} ${u.lastName}` === row.sellerName);
-                    const documentType = row.pieceName?.toLowerCase().includes('facture') ? 'invoice'
-                                   : row.pieceName?.toLowerCase().includes('devis') ? 'quote'
-                                   : row.pieceName?.toLowerCase().includes('livraison') ? 'delivery_note'
-                                   : row.pieceName?.toLowerCase().includes('avoir') ? 'credit_note'
+                    const docName = row.pieceName?.toLowerCase() || '';
+                    const documentType = docName.includes('facture') ? 'invoice'
+                                   : docName.includes('devis') ? 'quote'
+                                   : docName.includes('livraison') ? 'delivery_note'
+                                   : docName.includes('avoir') ? 'credit_note'
                                    : 'ticket';
                     
                     const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
@@ -1515,7 +1527,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                             customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
                             documentType: documentType,
                         },
-                        processedPayments: new Set<string>(),
+                        paymentTotals: {},
                     };
                 }
         
@@ -1525,24 +1537,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 };
                 saleEntry.sale.items.push(orderItem);
                 
-                ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
-                    const paymentValue = parseFloat(row[pmtKey]);
-                    if (paymentValue > 0) {
-                        const methodName = pmtKey.replace('payment','');
-                        const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
-                        if (method && !saleEntry!.processedPayments.has(method.name)) {
-                            saleEntry!.sale.payments.push({ method, amount: paymentValue, date: saleEntry!.sale.date });
-                            saleEntry!.processedPayments.add(method.name);
-                        }
-                    }
-                });
+                processPayment(saleEntry, row);
 
                 salesMap.set(row.ticketNumber, saleEntry);
                 lastProcessedTicketNumber = row.ticketNumber;
                 lastProcessedItem = orderItem;
             }
 
-            for (const { sale } of salesMap.values()) {
+            for (const { sale, paymentTotals } of salesMap.values()) {
                 const total = sale.items.reduce((acc, item) => acc + item.total, 0);
                 let totalTax = 0;
                 let totalSub = 0;
@@ -1557,6 +1559,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 sale.total = total;
                 sale.tax = totalTax;
                 sale.subtotal = totalSub;
+
+                 Object.entries(paymentTotals).forEach(([methodName, amount]) => {
+                    const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
+                    if (method && amount > 0) {
+                        sale.payments.push({ method, amount, date: sale.date });
+                    }
+                });
 
                 setSales(prev => [sale, ...prev]);
                 successCount++;
