@@ -37,7 +37,7 @@ import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader a
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
 const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
-const saleFields: string[] = ['ignore', 'ticketNumber', 'date', 'customerCode', 'itemBarcode', 'quantity', 'unitPrice'];
+const saleFields: string[] = ['ignore', 'ticketNumber', 'date', 'customerCode', 'customerName', 'itemBarcode', 'itemName', 'quantity', 'unitPrice', 'totalPrice'];
 
 
 const fieldLabels: Record<string, string> = {
@@ -71,9 +71,12 @@ const fieldLabels: Record<string, string> = {
   ticketNumber: 'Numéro de pièce *',
   date: 'Date (YYYY-MM-DD HH:mm)',
   customerCode: 'Code Client',
+  customerName: 'Nom du Client',
   itemBarcode: "Code-barres de l'article *",
+  itemName: "Désignation de l'article",
   quantity: 'Quantité *',
   unitPrice: 'Prix de vente unitaire TTC *',
+  totalPrice: 'Prix total de la ligne TTC',
 };
 
 const requiredFieldsMap: Record<string, string[]> = {
@@ -266,7 +269,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity', 'totalPrice'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -276,7 +279,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity', 'totalPrice'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
@@ -687,3 +690,4 @@ export default function ImportDataPage() {
     </>
   );
 }
+
