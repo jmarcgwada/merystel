@@ -33,6 +33,7 @@ import { Slider } from '@/components/ui/slider';
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total' | 'categoryName';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
 type TopCustomersSortKey = 'name' | 'visits' | 'basketTotal' | 'revenue';
+type TopCategoriesSortKey = 'name' | 'quantity' | 'revenue';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -96,9 +97,13 @@ export default function AnalyticsPage() {
     const [salesLinesSortConfig, setSalesLinesSortConfig] = useState<{ key: SalesLinesSortKey, direction: 'asc' | 'desc' }>({ key: 'saleDate', direction: 'desc' });
     const [topItemsSortConfig, setTopItemsSortConfig] = useState<{ key: TopItemsSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
     const [topCustomersSortConfig, setTopCustomersSortConfig] = useState<{ key: TopCustomersSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
+    const [topCategoriesSortConfig, setTopCategoriesSortConfig] = useState<{ key: TopCategoriesSortKey, direction: 'asc' | 'desc' }>({ key: 'revenue', direction: 'desc' });
+
 
     const [selectedTopItems, setSelectedTopItems] = useState<string[]>([]);
     const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
+    const [selectedTopCategories, setSelectedTopCategories] = useState<string[]>([]);
+
     
     useEffect(() => {
         setIsClient(true);
@@ -158,7 +163,7 @@ export default function AnalyticsPage() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${'user.firstName'} ${'user.lastName.charAt(0)'}.` : (fallbackName || 'Utilisateur supprimé');
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
@@ -195,7 +200,7 @@ export default function AnalyticsPage() {
                         userId: sale.userId,
                         userName: getUserName(sale.userId, sale.userName),
                         categoryId: fullItem?.categoryId,
-                        categoryName: categories.find(c => c.id === fullItem?.categoryId)?.name || 'N/A',
+                        categoryName: categories.find(c => c.id === fullItem?.categoryId)?.name || 'Non Catégorisée',
                     }
                 })
             );
@@ -233,13 +238,15 @@ export default function AnalyticsPage() {
              
             const selectedItemsMatch = selectedTopItems.length === 0 || selectedTopItems.includes(item.name);
             const selectedCustomersMatch = selectedTopCustomers.length === 0 || selectedTopCustomers.includes(item.customerName);
+            const selectedCategoriesMatch = selectedTopCategories.length === 0 || selectedTopCategories.includes(item.categoryName);
 
-            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch && categoryMatch && selectedItemsMatch && selectedCustomersMatch;
+
+            return customerMatch && itemMatch && sellerMatch && dateMatch && docTypeMatch && generalMatch && categoryMatch && selectedItemsMatch && selectedCustomersMatch && selectedCategoriesMatch;
         });
-    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory, selectedTopItems, selectedTopCustomers]);
+    }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory, selectedTopItems, selectedTopCustomers, selectedTopCategories]);
     
 
-    const { stats, topItems, topCustomers } = useMemo(() => {
+    const { stats, topItems, topCustomers, topCategories } = useMemo(() => {
         const revenue = filteredItems.reduce((acc, item) => acc + item.total, 0);
         const totalSold = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
         const uniqueSales = new Set(filteredItems.map(item => item.saleId)).size;
@@ -266,6 +273,18 @@ export default function AnalyticsPage() {
             }
             return acc;
         }, {} as Record<string, {name: string, sales: Set<string>, revenue: number, visits: number, basketTotal: number}>);
+        
+        const categoryStats = filteredItems.reduce((acc, item) => {
+            const categoryId = item.categoryId || 'uncategorized';
+            const categoryName = item.categoryName || 'Non Catégorisée';
+
+            if(!acc[categoryId]) {
+                acc[categoryId] = { name: categoryName, quantity: 0, revenue: 0 };
+            }
+            acc[categoryId].quantity += item.quantity;
+            acc[categoryId].revenue += item.total;
+            return acc;
+        }, {} as Record<string, {name: string, quantity: number, revenue: number}>);
 
         Object.values(customerStats).forEach(cust => {
             cust.basketTotal = cust.visits > 0 ? cust.revenue / cust.visits : 0;
@@ -275,6 +294,7 @@ export default function AnalyticsPage() {
             stats: { revenue, totalSold, uniqueSales, averageBasket },
             topItems: Object.values(itemStats),
             topCustomers: Object.values(customerStats),
+            topCategories: Object.values(categoryStats),
         };
     }, [filteredItems]);
 
@@ -310,10 +330,25 @@ export default function AnalyticsPage() {
         }).slice(0, topClients);
     }, [topCustomers, topClients, topCustomersSortConfig]);
     
-    const requestSort = (key: SalesLinesSortKey | TopItemsSortKey | TopCustomersSortKey, table: 'salesLines' | 'topItems' | 'topCustomers') => {
+    const sortedTopCategories = useMemo(() => {
+        return [...topCategories].sort((a, b) => {
+            const { key, direction } = topCategoriesSortConfig;
+            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [topCategories, topCategoriesSortConfig]);
+    
+    const requestSort = (key: SalesLinesSortKey | TopItemsSortKey | TopCustomersSortKey | TopCategoriesSortKey, table: 'salesLines' | 'topItems' | 'topCustomers' | 'topCategories') => {
         let direction: 'asc' | 'desc' = 'asc';
-        const sortConfig = table === 'salesLines' ? salesLinesSortConfig : table === 'topItems' ? topItemsSortConfig : topCustomersSortConfig;
-        const setSortConfig = table === 'salesLines' ? setSalesLinesSortConfig : table === 'topItems' ? setTopItemsSortConfig : setTopCustomersSortConfig;
+        let sortConfig: any, setSortConfig: any;
+
+        switch (table) {
+            case 'salesLines': sortConfig = salesLinesSortConfig; setSortConfig = setSalesLinesSortConfig; break;
+            case 'topItems': sortConfig = topItemsSortConfig; setSortConfig = setTopItemsSortConfig; break;
+            case 'topCustomers': sortConfig = topCustomersSortConfig; setSortConfig = setTopCustomersSortConfig; break;
+            case 'topCategories': sortConfig = topCategoriesSortConfig; setSortConfig = setTopCategoriesSortConfig; break;
+        }
 
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
@@ -321,8 +356,8 @@ export default function AnalyticsPage() {
         setSortConfig({ key, direction } as any);
     };
 
-    const getSortIcon = (key: string, table: 'salesLines' | 'topItems' | 'topCustomers') => {
-        const sortConfig = table === 'salesLines' ? salesLinesSortConfig : table === 'topItems' ? topItemsSortConfig : topCustomersSortConfig;
+    const getSortIcon = (key: string, table: 'salesLines' | 'topItems' | 'topCustomers' | 'topCategories') => {
+        const sortConfig = table === 'salesLines' ? salesLinesSortConfig : table === 'topItems' ? topItemsSortConfig : table === 'topCustomers' ? topCustomersSortConfig : topCategoriesSortConfig;
         if (!sortConfig || sortConfig.key !== key) {
             return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
         }
@@ -341,6 +376,7 @@ export default function AnalyticsPage() {
         setGeneralFilter('');
         setSelectedTopItems([]);
         setSelectedTopCustomers([]);
+        setSelectedTopCategories([]);
         setCurrentPage(1);
     }
 
@@ -368,6 +404,13 @@ export default function AnalyticsPage() {
             isSelected ? [...prev, customerName] : prev.filter(name => name !== customerName)
         );
     };
+
+    const handleTopCategorySelect = (categoryName: string, isSelected: boolean) => {
+        setSelectedTopCategories(prev => 
+            isSelected ? [...prev, categoryName] : prev.filter(name => name !== categoryName)
+        );
+    };
+
   
   if (!isClient || isLoading) {
       return (
@@ -516,62 +559,105 @@ export default function AnalyticsPage() {
           </Card>
         </Collapsible>
 
-        <div className="grid lg:grid-cols-2 gap-4">
-            <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
-                                    Top {topArticles} Articles
-                                </Button>
-                            </CollapsibleTrigger>
-                             {selectedTopItems.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopItems([]) }}>
-                                    <X className="mr-2 h-4 w-4" /> Effacer
-                                </Button>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CollapsibleContent>
-                        <CardContent><Table><TableHeader><TableRow>
-                            <TableHead className="w-10"><Checkbox onCheckedChange={(checked) => setSelectedTopItems(checked ? sortedTopItems.map(i => i.name) : [])} checked={selectedTopItems.length === sortedTopItems.length && sortedTopItems.length > 0} /></TableHead>
-                            <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
-                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
-                            <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
-                        </TableRow></TableHeader><TableBody>{sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}><TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell><TableCell>{i.name}</TableCell><TableCell className="text-right">{i.quantity}</TableCell><TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
-            <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} asChild>
-                <Card>
-                    <CardHeader>
-                         <div className="flex items-center justify-between">
-                             <CollapsibleTrigger asChild>
-                                <Button variant="ghost" className="w-full justify-start px-0 text-lg font-semibold">
-                                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
-                                    Top {topClients} Clients
-                                </Button>
-                            </CollapsibleTrigger>
-                              {selectedTopCustomers.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTopCustomers([]) }}>
-                                    <X className="mr-2 h-4 w-4" /> Effacer
-                                </Button>
-                            )}
-                         </div>
-                    </CardHeader>
-                    <CollapsibleContent>
-                    <CardContent><Table><TableHeader><TableRow>
-                        <TableHead className="w-10"><Checkbox onCheckedChange={(checked) => setSelectedTopCustomers(checked ? sortedTopCustomers.map(c => c.name) : [])} checked={selectedTopCustomers.length === sortedTopCustomers.length && sortedTopCustomers.length > 0} /></TableHead>
-                        <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
-                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
-                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
-                        <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
-                    </TableRow></TableHeader><TableBody>{sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}><TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)}/></TableCell><TableCell>{c.name}</TableCell><TableCell className="text-right">{c.visits}</TableCell><TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell><TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell></TableRow>)}</TableBody></Table></CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
+        <div className="grid lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-1">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Top {topArticles} Articles</CardTitle>
+                        {selectedTopItems.length > 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
+                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-10"></TableHead>
+                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}>
+                                <TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell>
+                                <TableCell>{i.name}</TableCell>
+                                <TableCell className="text-right">{i.quantity}</TableCell>
+                                <TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+            <Card className="lg:col-span-1">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CardTitle>Top {topClients} Clients</CardTitle>
+                          {selectedTopCustomers.length > 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
+                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-10"></TableHead>
+                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                <TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)} /></TableCell>
+                                <TableCell>{c.name}</TableCell>
+                                <TableCell className="text-right">{c.visits}</TableCell>
+                                <TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell>
+                                <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+             <Card className="lg:col-span-1">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CardTitle>Chiffre d'affaires par Catégorie</CardTitle>
+                          {selectedTopCategories.length > 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
+                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-10"></TableHead>
+                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCategories')}>Catégorie {getSortIcon('name', 'topCategories')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topCategories')}>Quantité {getSortIcon('quantity', 'topCategories')}</Button></TableHead>
+                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCategories')}>Revenu {getSortIcon('revenue', 'topCategories')}</Button></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedTopCategories.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                <TableCell><Checkbox checked={selectedTopCategories.includes(c.name)} onCheckedChange={(checked) => handleTopCategorySelect(c.name, !!checked)}/></TableCell>
+                                <TableCell>{c.name}</TableCell>
+                                <TableCell className="text-right">{c.quantity}</TableCell>
+                                <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
         
         <Card>
@@ -672,4 +758,3 @@ export default function AnalyticsPage() {
   );
 }
 
-    
