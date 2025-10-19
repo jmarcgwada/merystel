@@ -37,6 +37,27 @@ type TopCategoriesSortKey = 'name' | 'quantity' | 'revenue';
 
 const ITEMS_PER_PAGE = 20;
 
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      let jsDate: Date;
+      if (date instanceof Date) {
+        jsDate = date;
+      } else if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') {
+        jsDate = (date as Timestamp).toDate();
+      } else {
+        jsDate = new Date(date as any);
+      }
+      
+      if (!isNaN(jsDate.getTime())) {
+        setFormatted(format(jsDate, formatString, { locale: fr }));
+      }
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
+
 const getDateFromSale = (sale: Sale): Date => {
     if (!sale.date) return new Date(0);
     if (sale.date instanceof Date) return sale.date;
@@ -734,7 +755,7 @@ export default function AnalyticsPage() {
                         <TableBody>
                             {sortedAndPaginatedSalesLines.map((item, index) => (
                                 <TableRow key={item.id + index}>
-                                    {visibleColumns.saleDate && <TableCell className="text-xs">{format(item.saleDate, 'dd/MM/yy HH:mm')}</TableCell>}
+                                    {visibleColumns.saleDate && <TableCell className="text-xs"><ClientFormattedDate date={item.saleDate} formatString="dd/MM/yy HH:mm" /></TableCell>}
                                     {visibleColumns.ticketNumber && <TableCell>
                                         <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
                                             <Badge variant="secondary">{item.ticketNumber}</Badge>
