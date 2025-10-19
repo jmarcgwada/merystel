@@ -32,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader as ReportDialogHeader, DialogTitle as ReportDialogTitle, DialogDescription as ReportDialogDescription, DialogContent as ReportDialogContent } from '@/components/ui/dialog';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -104,13 +104,13 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Rapport d'Importation</DialogTitle>
-          <DialogDescription>
+      <ReportDialogContent className="max-w-2xl">
+        <ReportDialogHeader>
+          <ReportDialogTitle>Rapport d'Importation</ReportDialogTitle>
+          <ReportDialogDescription>
             Résumé de l'opération d'importation des données.
-          </DialogDescription>
-        </DialogHeader>
+          </ReportDialogDescription>
+        </ReportDialogHeader>
         <div className="py-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Card>
@@ -147,12 +147,12 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
             </div>
           )}
         </div>
-        <DialogFooter>
+        <ReportDialogFooter>
           <DialogClose asChild>
             <Button>Fermer</Button>
           </DialogClose>
-        </DialogFooter>
-      </DialogContent>
+        </ReportDialogFooter>
+      </ReportDialogContent>
     </Dialog>
   );
 }
