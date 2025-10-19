@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -40,7 +39,7 @@ export default function RestaurantPage() {
           title="Mode Restaurant"
           subtitle="Sélectionnez une table pour voir ou commencer une commande."
         >
-          <Button asChild variant="outline" className="btn-back">
+          <Button asChild className="btn-back">
             <Link href="/dashboard">
               <ArrowLeft />
               Tableau de bord

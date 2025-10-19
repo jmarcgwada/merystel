@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -22,7 +23,7 @@ export default function HelpLayout({
             title="Assistance et Aide"
             subtitle="Trouvez les réponses à vos questions sur l'utilisation de l'application."
         >
-            <Button asChild variant="outline" size="icon" className="btn-back">
+            <Button asChild size="icon" className="btn-back">
                 <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>

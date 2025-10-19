@@ -156,7 +156,7 @@ export default function CommercialLayout({
                         <Button onClick={cycleCommercialViewLevel} variant="outline" size="icon">
                             <EyeOff className="h-4 w-4" />
                         </Button>
-                        <Button onClick={handleBackToDashboard} variant="outline" size="icon" className="btn-back">
+                        <Button onClick={handleBackToDashboard} size="icon" className="btn-back">
                             <LayoutDashboard />
                         </Button>
                     </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -96,7 +97,7 @@ export default function TablesPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button asChild variant="outline" size="icon" className="btn-back">
+            <Button asChild size="icon" className="btn-back">
                 <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>

@@ -12,7 +12,7 @@ export default function AboutPage() {
         title="Bienvenue sur Zenith POS"
         subtitle="Votre solution de point de vente moderne, puissante et intuitive."
       >
-        <Button asChild variant="outline" className="btn-back">
+        <Button asChild className="btn-back">
           <Link href="/login">
             <ArrowLeft />
             Retour à l'authentification

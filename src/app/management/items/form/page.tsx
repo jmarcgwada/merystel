@@ -470,7 +470,7 @@ function ItemForm() {
         title={isEditMode ? (watchedName || "Modifier l'article") : 'Nouvel article'}
         subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
-        <Button variant="outline" asChild className="btn-back">
+        <Button asChild className="btn-back">
           <Link href={redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items"}>
             <ArrowLeft />
             Retour

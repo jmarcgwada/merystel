@@ -260,7 +260,7 @@ export default function FirestoreDataPage() {
             subtitle="Gérez les données brutes de votre application."
         >
             <div className="flex items-center gap-2">
-                 <Button asChild variant="outline" className="btn-back">
+                 <Button asChild className="btn-back">
                     <Link href="/settings">
                         <ArrowLeft />
                         Retour aux paramètres

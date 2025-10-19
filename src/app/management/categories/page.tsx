@@ -81,7 +81,7 @@ export default function CategoriesPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-             <Button asChild variant="outline" size="icon" className="btn-back">
+             <Button asChild size="icon" className="btn-back">
                 <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>
@@ -201,8 +201,7 @@ export default function CategoriesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Article</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead className="text-right">Prix</TableHead>
+                  <TableHead>Prix</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -210,15 +209,12 @@ export default function CategoriesPage() {
                   selectedCategoryItems.map(item => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{selectedCategoryName}</Badge>
-                      </TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
                       Aucun article dans cette catégorie.
                     </TableCell>
                   </TableRow>
