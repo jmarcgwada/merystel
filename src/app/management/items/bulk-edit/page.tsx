@@ -15,10 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { Item } from '@/lib/types';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const fieldOptions: { value: keyof Item; label: string; type: 'text' | 'number' | 'boolean' | 'select'; options?: any[] }[] = [
-  { value: 'price', label: 'Prix de vente', type: 'number' },
-  { value: 'purchasePrice', label: "Prix d'achat", type: 'number' },
+  { value: 'price', label: 'Prix de vente TTC', type: 'number' },
+  { value: 'purchasePrice', label: "Prix d'achat HT", type: 'number' },
   { value: 'categoryId', label: 'Catégorie', type: 'select', options: [] },
   { value: 'vatId', label: 'TVA', type: 'select', options: [] },
   { value: 'marginPercentage', label: 'Marge (%)', type: 'number' },
@@ -56,6 +57,12 @@ function BulkEditPageContent() {
     }
     return field;
   }, [fieldToEdit, categories, vatRates]);
+  
+  const backLink = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('ids');
+    return `/management/items?${params.toString()}`;
+  }, [searchParams]);
 
   const handleApplyChanges = async () => {
     if (!currentField || newValue === '') {
@@ -75,15 +82,41 @@ function BulkEditPageContent() {
     }
 
     const promises = selectedItems.map(item => {
-      const updatedItem = { ...item, [fieldToEdit]: parsedValue };
+      let updatedItem = { ...item, [fieldToEdit]: parsedValue };
+      
+      const purchasePrice = fieldToEdit === 'purchasePrice' ? parsedValue : (item.purchasePrice || 0);
+      const additionalCosts = item.additionalCosts || 0;
+      const costPrice = purchasePrice * (1 + additionalCosts / 100);
+      const marginPercentage = fieldToEdit === 'marginPercentage' ? parsedValue : (item.marginPercentage || 0);
+      const newVatId = fieldToEdit === 'vatId' ? parsedValue : item.vatId;
+      const vatRateInfo = vatRates.find(v => v.id === newVatId);
+      const vatRate = vatRateInfo ? vatRateInfo.rate / 100 : 0;
+      
+      if (fieldToEdit === 'purchasePrice' || fieldToEdit === 'marginPercentage' || fieldToEdit === 'vatId') {
+        // Recalculate selling price
+        const sellingPriceHT = costPrice * (1 + marginPercentage / 100);
+        const newSellingPriceTTC = sellingPriceHT * (1 + vatRate);
+        updatedItem.price = parseFloat(newSellingPriceTTC.toFixed(2));
+      } else if (fieldToEdit === 'price') {
+        // Recalculate margin
+        const newSellingPriceTTC = parsedValue;
+        if(costPrice > 0) {
+            const sellingPriceHT = newSellingPriceTTC / (1 + vatRate);
+            const newMargin = ((sellingPriceHT / costPrice) - 1) * 100;
+            updatedItem.marginPercentage = parseFloat(newMargin.toFixed(2));
+        }
+      }
+
       return updateItem(updatedItem);
     });
 
     await Promise.all(promises);
 
     toast({ title: 'Mise à jour réussie', description: `${selectedItems.length} article(s) ont été mis à jour.` });
-    router.push('/management/items');
+    router.push(backLink);
   };
+  
+  const isPricingField = ['price', 'purchasePrice', 'vatId', 'marginPercentage'].includes(fieldToEdit);
 
   return (
     <>
@@ -92,7 +125,7 @@ function BulkEditPageContent() {
         subtitle={`Vous modifiez ${selectedItems.length} article(s).`}
       >
         <Button asChild variant="outline" className="btn-back">
-          <Link href="/management/items">
+          <Link href={backLink}>
             <ArrowLeft />
             Annuler
           </Link>
@@ -154,6 +187,15 @@ function BulkEditPageContent() {
                     <Input id="new-value" type={currentField.type} value={newValue} onChange={e => setNewValue(e.target.value)} />
                   )}
                 </div>
+              )}
+              
+               {isPricingField && (
+                <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900">
+                  <AlertTitle>Calcul automatique</AlertTitle>
+                  <AlertDescription>
+                    La modification de ce champ entraînera un recalcul automatique des prix et des marges pour les articles sélectionnés.
+                  </AlertDescription>
+                </Alert>
               )}
             </CardContent>
             <CardFooter>
