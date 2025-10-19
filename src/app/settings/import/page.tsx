@@ -36,7 +36,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
-const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
+const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'supplierId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
 const saleFields: string[] = [
     'ignore', 
@@ -80,6 +80,7 @@ const fieldLabels: Record<string, string> = {
   price: 'Prix de vente *',
   purchasePrice: "Prix d'achat",
   categoryId: 'Nom de la Catégorie',
+  supplierId: 'ID Fournisseur',
   vatId: 'Nom ou Taux de TVA *',
   description: 'Description',
   description2: 'Description 2',
@@ -165,7 +166,7 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{report.successCount}</div>
-                <p className="text-xs text-muted-foreground">{report.successCount > 1 ? 'pièces importées' : 'pièce importée'}</p>
+                <p className="text-xs text-muted-foreground">{report.successCount > 1 ? 'lignes importées' : 'ligne importée'}</p>
               </CardContent>
             </Card>
             <Card>
@@ -256,7 +257,8 @@ export default function ImportDataPage() {
 
   const parsedData = useMemo(() => {
     if (!fileContent) return [];
-    const lines = fileContent.trim().split('\n');
+    // Handles both \n (Unix/Mac) and \r\n (Windows) line endings
+    const lines = fileContent.trim().split(/\r?\n/);
     return lines.map(line => line.split(separator));
   }, [fileContent, separator]);
 
@@ -293,7 +295,7 @@ export default function ImportDataPage() {
     }
 
     const generated: any[] = [];
-    const rowsToProcess = dataRows.slice(0, importLimit);
+    const rowsToProcess = dataRows.slice(0, importLimit || undefined);
 
     rowsToProcess.forEach(row => {
         const obj: any = {};
@@ -341,7 +343,7 @@ export default function ImportDataPage() {
     setIsImporting(true);
     toast({ title: 'Importation en cours...', description: 'Veuillez patienter.' });
 
-    const dataToImport = jsonData.slice(0, importLimit);
+    const dataToImport = jsonData.slice(0, importLimit || undefined);
     const report = await importDataFromJson(dataType, dataToImport);
 
     setIsImporting(false);
@@ -509,7 +511,7 @@ export default function ImportDataPage() {
                                   </TableHeader>
                                 )}
                                 <TableBody>
-                                  {dataRows.slice(0, importLimit).map((row, rowIndex) => (
+                                  {dataRows.slice(0, 100).map((row, rowIndex) => (
                                     <TableRow key={rowIndex}>
                                       {row.map((cell, cellIndex) => (
                                         <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
@@ -601,6 +603,7 @@ export default function ImportDataPage() {
                                     <li>Utilisez le champ <strong>Numéro de pièce</strong> pour regrouper les lignes d'articles appartenant à la même transaction.</li>
                                     <li>Les champs obligatoires sont marqués d'un astérisque (*). Assurez-vous qu'ils sont bien mappés.</li>
                                     <li>Pour les paiements, vous pouvez utiliser une ou plusieurs colonnes (ex: `paymentCash`, `paymentCard`). Le système additionnera les montants pour obtenir le paiement total.</li>
+                                     <li>Si une ligne ne contient pas de numéro de pièce, son champ 'Désignation' sera ajouté aux notes de la pièce précédente.</li>
                                 </ul>
                                 </div>
                             </AccordionContent>
@@ -688,18 +691,18 @@ export default function ImportDataPage() {
                         </p>
                     </Alert>
                     <div className="mb-4 space-y-2">
-                        <Label htmlFor="import-limit">Nombre de lignes à importer</Label>
+                        <Label htmlFor="import-limit">Nombre de lignes à importer (0 ou vide pour tout importer)</Label>
                         <Input 
                             id="import-limit" 
                             type="number" 
                             value={importLimit} 
                             onChange={(e) => setImportLimit(Number(e.target.value))} 
-                            min={1} 
+                            min={0} 
                             className="w-48"
                         />
                     </div>
                     <ScrollArea className="h-[400px] border rounded-md bg-muted/50 p-4">
-                        <pre className="text-xs">{jsonData ? JSON.stringify(jsonData.slice(0, importLimit), null, 2) : "Aucune donnée générée."}</pre>
+                        <pre className="text-xs">{jsonData ? JSON.stringify(jsonData.slice(0, importLimit || undefined), null, 2) : "Aucune donnée générée."}</pre>
                     </ScrollArea>
                 </CardContent>
                 <CardFooter className="justify-between">
@@ -719,7 +722,7 @@ export default function ImportDataPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
-                Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit).length || 0} {dataType}.
+                Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit || undefined).length || 0} {dataType}.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <Alert variant="destructive" className="mt-4">
