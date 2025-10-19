@@ -593,14 +593,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
   }, [setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'> & {id?: string}) => {
-    if (supplier.id && suppliers.some(s => s.id === supplier.id)) {
-        throw new Error('Un fournisseur avec ce code existe déjà.');
-    }
-    const newSupplier = { ...supplier, id: supplier.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>) => {
+    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
     setSuppliers(prev => [...prev, newSupplier]);
     return newSupplier;
-  }, [suppliers, setSuppliers]);
+}, [setSuppliers]);
 
   const updateSupplier = useCallback((supplier: Supplier) => {
       const updatedSupplier = { ...supplier, updatedAt: new Date() };
@@ -647,67 +644,161 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let currentCategories = [...categories];
     let currentCustomers = [...customers];
     let currentSuppliers = [...suppliers];
+    let currentSales = [...sales];
 
-    const operations: { [key: string]: (data: any) => Promise<any> } = {
-        clients: async (data: any) => {
-            if (data.id && currentCustomers.some(c => c.id === data.id)) {
-              throw new Error(`Le client avec le code "${data.id}" existe déjà.`);
-            }
-            const newCustomer = { ...data, id: data.id || `C${uuidv4().substring(0, 6)}`, createdAt: new Date() };
-            currentCustomers.push(newCustomer);
-            return newCustomer;
-        },
-        articles: async (data: any) => {
-            if (!data.barcode) {
-              throw new Error(`Code-barres manquant pour l'article "${data.name}"`);
-            }
-            if (currentItems.some(i => i.barcode === data.barcode)) {
-                throw new Error(`Le code-barres "${data.barcode}" pour l'article "${data.name}" existe déjà.`);
-            }
-            
-            if (data.categoryId) {
-                let category = currentCategories.find(c => c.name.toLowerCase() === data.categoryId.toLowerCase());
-                if (!category) {
-                    const newCategoryData = { name: data.categoryId, code: `${data.categoryId.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, color: '#e2e8f0', image: `https://picsum.photos/seed/${data.categoryId}/200/150`, createdAt: new Date() };
-                    const newCategory = { ...newCategoryData, id: uuidv4() };
-                    currentCategories.push(newCategory);
-                    category = newCategory;
+    if (dataType === 'ventes') {
+        const salesMap = new Map<string, Sale>();
+        for (const row of jsonData) {
+            try {
+                if (!row.ticketNumber || !row.itemBarcode) {
+                    errors.push(`Ligne ignorée : ticketNumber ou itemBarcode manquant. Données : ${JSON.stringify(row)}`);
+                    continue;
                 }
-                data.categoryId = category.id;
+
+                const item = currentItems.find(i => i.barcode === row.itemBarcode);
+                if (!item) {
+                    errors.push(`Ligne pour la pièce ${row.ticketNumber} ignorée : Article avec code-barres "${row.itemBarcode}" introuvable.`);
+                    continue;
+                }
+                
+                let sale = salesMap.get(row.ticketNumber);
+
+                if (!sale) {
+                    const customer = currentCustomers.find(c => c.id === row.customerCode);
+                    sale = {
+                        id: uuidv4(),
+                        ticketNumber: row.ticketNumber,
+                        date: row.date ? new Date(row.date) : new Date(),
+                        customerId: customer?.id,
+                        documentType: 'invoice',
+                        items: [],
+                        payments: [],
+                        status: 'paid',
+                        subtotal: 0,
+                        tax: 0,
+                        total: 0,
+                    };
+                }
+
+                const quantity = parseFloat(row.quantity) || 1;
+                const price = parseFloat(row.unitPrice) || item.price;
+                
+                const orderItem: OrderItem = {
+                    id: uuidv4(),
+                    itemId: item.id,
+                    name: item.name,
+                    price: price,
+                    quantity: quantity,
+                    total: price * quantity,
+                    vatId: item.vatId,
+                    barcode: item.barcode,
+                    discount: 0,
+                };
+                sale.items.push(orderItem);
+                salesMap.set(row.ticketNumber, sale);
+            } catch (e: any) {
+                errors.push(`Erreur à la ligne ${JSON.stringify(row)}: ${e.message}`);
             }
-            const newItem = { ...data, id: uuidv4(), barcode: data.barcode, createdAt: new Date() };
-            currentItems.push(newItem);
-            return newItem;
-        },
-        fournisseurs: addSupplier,
-    };
-
-    const importFn = operations[dataType];
-    if (!importFn) {
-        errors.push('Type de données non supporté.');
-        return { successCount, errorCount: jsonData.length, errors };
-    }
-
-    for (const data of jsonData) {
-        try {
-            await importFn(data);
-            successCount++;
-        } catch (e: any) {
-            errorCount++;
-            errors.push(e.message || 'Erreur inconnue');
         }
-    }
 
-    if (dataType === 'articles') {
-        setItems(currentItems);
-        setCategories(currentCategories);
-    }
-    if (dataType === 'clients') {
-      setCustomers(currentCustomers);
+        salesMap.forEach(sale => {
+            const { subtotal, tax, total } = sale.items.reduce((acc, item) => {
+                const vatRate = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+                const itemTotal = item.price * item.quantity;
+                const itemTax = itemTotal / (1 + vatRate / 100) * (vatRate / 100);
+                acc.total += itemTotal;
+                acc.tax += itemTax;
+                acc.subtotal += itemTotal - itemTax;
+                return acc;
+            }, { subtotal: 0, tax: 0, total: 0 });
+
+            sale.subtotal = subtotal;
+            sale.tax = tax;
+            sale.total = total;
+            
+            if (!currentSales.some(s => s.ticketNumber === sale.ticketNumber)) {
+                currentSales.push(sale);
+                successCount++;
+            } else {
+                 errors.push(`La pièce ${sale.ticketNumber} existe déjà et a été ignorée.`);
+                 errorCount++;
+            }
+        });
+
+        setSales(currentSales);
+
+    } else {
+      const operations: { [key: string]: (data: any) => Promise<any> } = {
+          clients: async (data: any) => {
+              if (data.id && currentCustomers.some(c => c.id === data.id)) {
+                throw new Error(`Le client avec le code "${data.id}" existe déjà.`);
+              }
+              const newCustomer = { ...data, id: data.id || `C${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+              currentCustomers.push(newCustomer);
+              return newCustomer;
+          },
+          articles: async (data: any) => {
+              if (!data.barcode) {
+                throw new Error(`Code-barres manquant pour l'article "${data.name}"`);
+              }
+              if (currentItems.some(i => i.barcode === data.barcode)) {
+                  throw new Error(`Le code-barres "${data.barcode}" pour l'article "${data.name}" existe déjà.`);
+              }
+              
+              if (data.categoryId) {
+                  let category = currentCategories.find(c => c.name.toLowerCase() === data.categoryId.toLowerCase());
+                  if (!category) {
+                      const newCategoryData = { name: data.categoryId, code: `${data.categoryId.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, color: '#e2e8f0', image: `https://picsum.photos/seed/${data.categoryId}/200/150`, createdAt: new Date() };
+                      const newCategory = { ...newCategoryData, id: uuidv4() };
+                      currentCategories.push(newCategory);
+                      category = newCategory;
+                  }
+                  data.categoryId = category.id;
+              }
+              const newItem = { ...data, id: uuidv4(), barcode: data.barcode, createdAt: new Date() };
+              currentItems.push(newItem);
+              return newItem;
+          },
+          fournisseurs: async (data: any) => {
+              if (data.id && currentSuppliers.some(s => s.id === data.id)) {
+                  throw new Error(`Le fournisseur avec le code "${data.id}" existe déjà.`);
+              }
+              const newSupplier = { ...data, id: data.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+              currentSuppliers.push(newSupplier);
+              return newSupplier;
+          },
+      };
+
+      const importFn = operations[dataType];
+      if (!importFn) {
+          errors.push('Type de données non supporté.');
+          return { successCount, errorCount: jsonData.length, errors };
+      }
+
+      for (const data of jsonData) {
+          try {
+              await importFn(data);
+              successCount++;
+          } catch (e: any) {
+              errorCount++;
+              errors.push(e.message || 'Erreur inconnue');
+          }
+      }
+
+      if (dataType === 'articles') {
+          setItems(currentItems);
+          setCategories(currentCategories);
+      }
+      if (dataType === 'clients') {
+        setCustomers(currentCustomers);
+      }
+      if (dataType === 'fournisseurs') {
+          setSuppliers(currentSuppliers);
+      }
     }
 
     return { successCount, errorCount, errors };
-  }, [addCustomer, addSupplier, items, categories, customers, suppliers, addCategory, setItems, setCategories, setCustomers]);
+  }, [addCustomer, addSupplier, items, categories, customers, suppliers, addCategory, setItems, setCategories, setCustomers, setSuppliers, sales, vatRates]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     const dataSetters: Record<DeletableDataKeys, Function> = {
