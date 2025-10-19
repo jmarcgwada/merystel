@@ -254,6 +254,12 @@ function ItemsPageContent() {
     setCurrentPage(1);
   };
 
+  const bulkEditLink = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('ids', selectedItemIds.join(','));
+    return `/management/items/bulk-edit?${params.toString()}`;
+  }, [selectedItemIds, searchParams]);
+
 
   return (
     <>
@@ -264,7 +270,7 @@ function ItemsPageContent() {
         <div className="flex items-center gap-2">
             {selectedItemIds.length > 0 && (
                 <Button asChild>
-                    <Link href={`/management/items/bulk-edit?ids=${selectedItemIds.join(',')}`}>
+                    <Link href={bulkEditLink}>
                         <FilePen className="mr-2 h-4 w-4" />
                         Modifier la sélection ({selectedItemIds.length})
                     </Link>
