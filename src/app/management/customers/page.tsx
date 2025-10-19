@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -31,6 +31,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
@@ -47,7 +50,7 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 function CustomersPageContent() {
-  const { customers, deleteCustomer, setDefaultCustomer, isLoading, itemsPerPage } = usePos();
+  const { customers, deleteCustomer, setDefaultCustomer, isLoading, itemsPerPage, setItemsPerPage } = usePos();
   const searchParams = useSearchParams();
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
@@ -67,6 +70,7 @@ function CustomersPageContent() {
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+  const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
   const router = useRouter();
 
@@ -81,6 +85,11 @@ function CustomersPageContent() {
       }, 100);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    setItemsPerPageState(itemsPerPage);
+  }, [itemsPerPage]);
+
 
   const handleDeleteCustomer = () => {
     if (customerToDelete) {
@@ -223,9 +232,30 @@ function CustomersPageContent() {
                             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
-                            <div className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center">
-                                Page {currentPage} / {totalPages || 1}
-                            </div>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                        Page {currentPage} / {totalPages || 1}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                         <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                            <span>{itemsPerPageState}</span>
+                                        </div>
+                                        <Slider
+                                            id="items-per-page-slider"
+                                            value={[itemsPerPageState]}
+                                            onValueChange={(value) => setItemsPerPageState(value[0])}
+                                            onValueCommit={(value) => setItemsPerPage(value[0])}
+                                            min={5}
+                                            max={50}
+                                            step={5}
+                                        />
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
