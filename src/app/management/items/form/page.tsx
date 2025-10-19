@@ -19,8 +19,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock } from 'lucide-react';
-import type { Item, Category, Timestamp } from '@/lib/types';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock, Truck } from 'lucide-react';
+import type { Item, Category, Timestamp, Supplier } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { AddCategoryDialog } from '@/app/management/categories/components/add-category-dialog';
+import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -38,22 +39,8 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
     if (date) {
-      let jsDate: Date;
-      if (date instanceof Date) {
-        jsDate = date;
-      } else if (date && typeof (date as Timestamp).toDate === 'function') {
-        jsDate = (date as Timestamp).toDate();
-      } else if (date && typeof (date as any).seconds === 'number') {
-        // Handle serialized Firestore Timestamp
-        jsDate = new Date((date as any).seconds * 1000);
-      } else {
-        // Fallback for string or number representations
-        jsDate = new Date(date as any);
-      }
-      
-      if (!isNaN(jsDate.getTime())) {
-        setFormatted(format(jsDate, formatString, { locale: fr }));
-      }
+      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
+      setFormatted(format(jsDate, formatString, { locale: fr }));
     }
   }, [date, formatString]);
   return <>{formatted}</>;
@@ -65,6 +52,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
   purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
   categoryId: z.string().optional(),
+  supplierId: z.string().optional(),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
   description2: z.string().optional(),
@@ -94,7 +82,7 @@ function ItemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { items, categories, vatRates, addItem, updateItem, isLoading } = usePos();
+  const { items, categories, suppliers, vatRates, addItem, updateItem, isLoading } = usePos();
   const { user } = useUser();
   const isCashier = user?.role === 'cashier';
   const [isGenerating, setIsGenerating] = useState(false);
@@ -102,6 +90,7 @@ function ItemForm() {
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
 
 
   const itemId = searchParams.get('id');
@@ -110,16 +99,6 @@ function ItemForm() {
   const isEditMode = Boolean(itemId);
   const itemToEdit = isEditMode && items ? items.find(i => i.id === itemId) : null;
 
-  const backLink = useMemo(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('id');
-    params.delete('redirectUrl');
-    params.delete('barcode');
-    const queryString = params.toString();
-    const basePath = redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items";
-    return queryString ? `${basePath}?${queryString}` : basePath;
-  }, [searchParams, redirectUrlParam]);
-
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -127,6 +106,7 @@ function ItemForm() {
       price: 0,
       purchasePrice: 0,
       categoryId: '',
+      supplierId: '',
       vatId: '',
       description: '',
       description2: '',
@@ -225,6 +205,7 @@ function ItemForm() {
         price: itemToEdit.price,
         purchasePrice: itemToEdit.purchasePrice || 0,
         categoryId: itemToEdit.categoryId,
+        supplierId: itemToEdit.supplierId,
         vatId: itemToEdit.vatId,
         description: itemToEdit.description || '',
         description2: itemToEdit.description2 || '',
@@ -251,6 +232,7 @@ function ItemForm() {
           price: 0,
           purchasePrice: 0,
           categoryId: '',
+          supplierId: '',
           vatId: '',
           description: '',
           description2: '',
@@ -319,7 +301,7 @@ function ItemForm() {
         const separator = redirectURL.includes('?') ? '&' : '?';
         router.push(`${redirectURL}${separator}updatedItemId=${itemId}`);
       } else {
-        router.push(backLink);
+        router.push('/management/items');
       }
 
     } else {
@@ -331,7 +313,7 @@ function ItemForm() {
           const separator = redirectURL.includes('?') ? '&' : '?';
           router.push(`${redirectURL}${separator}newItemId=${newItem.id}`);
       } else {
-        router.push(backLink);
+        router.push('/management/items');
       }
     }
   }
@@ -420,6 +402,7 @@ function ItemForm() {
                         <CardContent className="space-y-6">
                             <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
                             <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
+                            <p><span className="font-semibold">Fournisseur:</span> {suppliers?.find(s => s.id === itemToEdit?.supplierId)?.name || 'N/A'}</p>
                             <p><span className="font-semibold">Description 1:</span> {itemToEdit?.description || 'N/A'}</p>
                             <p><span className="font-semibold">Description 2:</span> {itemToEdit?.description2 || 'N/A'}</p>
                         </CardContent>
@@ -481,8 +464,8 @@ function ItemForm() {
         title={isEditMode ? (watchedName || "Modifier l'article") : 'Nouvel article'}
         subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
-        <Button asChild className="btn-back">
-          <Link href={backLink}>
+        <Button variant="outline" asChild className="btn-back">
+          <Link href={redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items"}>
             <ArrowLeft />
             Retour
           </Link>
@@ -574,33 +557,63 @@ function ItemForm() {
                                 />
                             </div>
                            
-                             <FormField
-                                control={form.control}
-                                name="categoryId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Catégorie</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez une catégorie" />
-                                            </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                            {categories && categories.map((cat) => (
-                                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                            ))}
-                                            </SelectContent>
-                                        </Select>
-                                         <Button variant="outline" size="icon" type="button" onClick={() => setAddCategoryOpen(true)}>
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="categoryId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Catégorie</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sélectionnez une catégorie" />
+                                                </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                {categories && categories.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button variant="outline" size="icon" type="button" onClick={() => setAddCategoryOpen(true)}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="supplierId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Fournisseur</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sélectionnez un fournisseur" />
+                                                </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="">Aucun</SelectItem>
+                                                    {suppliers && suppliers.map((sup) => (
+                                                        <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button variant="outline" size="icon" type="button" onClick={() => setAddSupplierOpen(true)}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -990,6 +1003,15 @@ function ItemForm() {
         onCategoryAdded={(newCategory) => {
             if(newCategory?.id) {
                 setValue('categoryId', newCategory.id);
+            }
+        }}
+    />
+     <AddSupplierDialog 
+        isOpen={isAddSupplierOpen} 
+        onClose={() => setAddSupplierOpen(false)} 
+        onSupplierAdded={(newSupplier) => {
+            if(newSupplier?.id) {
+                setValue('supplierId', newSupplier.id);
             }
         }}
     />
