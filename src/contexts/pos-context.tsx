@@ -1413,8 +1413,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
     let lastProcessedTicketNumber: string | null = null;
+    let lastProcessedSale: Sale | null = null;
 
-    const limitedJsonData = jsonData.slice(0, importLimit || jsonData.length);
+    const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
     const tempNewItems = new Map<string, Item>();
 
     switch (dataType) {
@@ -1451,12 +1452,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const newCustomers = new Map<string, Customer>();
         
             for (const [index, row] of limitedJsonData.entries()) {
-                if (!row.ticketNumber) {
-                    if (lastProcessedTicketNumber) {
-                        const saleToUpdate = salesMap.get(lastProcessedTicketNumber);
-                        if (saleToUpdate) {
-                            saleToUpdate.notes = (saleToUpdate.notes ? saleToUpdate.notes + '\n' : '') + (row.itemName || '');
-                        }
+                 if (!row.ticketNumber) {
+                    if (lastProcessedSale) {
+                        lastProcessedSale.notes = (lastProcessedSale.notes ? lastProcessedSale.notes + '\n' : '') + (row.itemName || '');
                     }
                     continue;
                 }
@@ -1538,6 +1536,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 salesMap.set(row.ticketNumber, sale);
                 lastProcessedTicketNumber = row.ticketNumber;
+                lastProcessedSale = sale;
             }
 
             for (const sale of salesMap.values()) {
@@ -1898,79 +1897,43 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
   
-  const value: PosContextType = useMemo(() => ({
-    order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-    addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
-    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-    variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
-    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-    seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
-    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-    isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-    updateItemPrice,
-    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
-    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
-    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-    commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
-    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-    lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
-    mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
-  }), [
-    order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-    addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
-    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-    variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
-    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-    seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
-    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-    isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-    updateItemPrice,
-    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
-    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
-    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-    commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
-    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-    lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
-    mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
-  ]);
+  const value: PosContextType = {
+      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+      isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      updateItemPrice,
+      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+      lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
+      mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
+  };
 
   return (
     <PosContext.Provider value={value}>
