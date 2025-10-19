@@ -318,8 +318,8 @@ export interface PosContextType {
   mappingTemplates: MappingTemplate[];
   addMappingTemplate: (template: MappingTemplate) => void;
   deleteMappingTemplate: (templateName: string) => void;
-  removeDuplicateItems: () => void;
   selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
+  removeDuplicateItems: () => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -521,7 +521,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [user, setAuditLogs]);
 
   const addCategory = useCallback(async (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
+      const newCategory = { ...category, id: uuidv4(), code: category.code || `${category.name.substring(0,3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, createdAt: new Date() };
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
   }, [setCategories]);
@@ -594,10 +594,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [setCustomers]);
 
   const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+    if (supplier.id && suppliers.some(s => s.id === supplier.id)) {
+        throw new Error('Un fournisseur avec ce code existe déjà.');
+    }
+    const newSupplier = { ...supplier, id: supplier.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
     setSuppliers(prev => [...prev, newSupplier]);
     return newSupplier;
-  }, [setSuppliers]);
+  }, [suppliers, setSuppliers]);
 
   const updateSupplier = useCallback((supplier: Supplier) => {
       const updatedSupplier = { ...supplier, updatedAt: new Date() };
@@ -640,38 +643,69 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
 
+    let currentItems = [...items];
+    let currentCategories = [...categories];
+
     const operations: { [key: string]: (data: any) => Promise<any> } = {
-      clients: addCustomer,
-      articles: async (data: any) => {
-        if (!data.barcode) {
-          throw new Error('Code-barres manquant pour l\'article ' + data.name);
-        }
-        if (items.some(i => i.barcode === data.barcode)) {
-            throw new Error(`Le code-barres "${data.barcode}" pour l'article "${data.name}" existe déjà.`);
-        }
-        return addItem(data);
-      },
-      fournisseurs: addSupplier,
+        clients: addCustomer,
+        articles: async (data: any) => {
+            if (!data.barcode) {
+              throw new Error('Code-barres manquant pour l\'article ' + data.name);
+            }
+            if (currentItems.some(i => i.barcode === data.barcode)) {
+                throw new Error(`Le code-barres "${data.barcode}" pour l'article "${data.name}" existe déjà.`);
+            }
+            
+            // Handle category
+            if (data.categoryId) { // categoryId from mapping is a category NAME
+                let category = currentCategories.find(c => c.name.toLowerCase() === data.categoryId.toLowerCase());
+                if (!category) {
+                    // Create category if it doesn't exist
+                    const newCategory = await addCategory({
+                        name: data.categoryId,
+                        color: '#e2e8f0', // default color
+                        image: `https://picsum.photos/seed/${data.categoryId}/200/150`,
+                    });
+                    if (newCategory) {
+                        currentCategories.push(newCategory);
+                        category = newCategory;
+                    } else {
+                        throw new Error(`Impossible de créer la catégorie "${data.categoryId}"`);
+                    }
+                }
+                data.categoryId = category.id;
+            }
+            const newItem = { ...data, id: uuidv4(), barcode: data.barcode, createdAt: new Date() };
+            currentItems.push(newItem);
+            return newItem;
+        },
+        fournisseurs: addSupplier,
     };
 
     const importFn = operations[dataType];
     if (!importFn) {
-      errors.push('Type de données non supporté.');
-      return { successCount, errorCount: jsonData.length, errors };
+        errors.push('Type de données non supporté.');
+        return { successCount, errorCount: jsonData.length, errors };
     }
 
     for (const data of jsonData) {
-      try {
-        await importFn(data);
-        successCount++;
-      } catch (e: any) {
-        errorCount++;
-        errors.push(e.message || 'Erreur inconnue');
-      }
+        try {
+            await importFn(data);
+            successCount++;
+        } catch (e: any) {
+            errorCount++;
+            errors.push(e.message || 'Erreur inconnue');
+        }
+    }
+
+    // Update main states after the loop
+    if (dataType === 'articles') {
+        setItems(currentItems);
+        setCategories(currentCategories);
     }
 
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, items]);
+  }, [addCustomer, addItem, addSupplier, items, categories, addCategory, setItems, setCategories]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     const dataSetters: Record<DeletableDataKeys, Function> = {
@@ -788,6 +822,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         newCategories.push({
             id: catId,
             name: categoryData.name,
+            code: `${categoryData.name.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
             image: `https://picsum.photos/seed/${catId}/200/150`,
             color: '#e2e8f0',
             createdAt: new Date(),
@@ -1566,4 +1601,3 @@ export function usePos() {
   }
   return context;
 }
-
