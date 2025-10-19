@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -99,6 +100,7 @@ export default function CategoriesPage() {
                 <TableRow>
                   <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Nom</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Articles</TableHead>
                   <TableHead className="w-[100px]">Couleur</TableHead>
                   <TableHead>Mode Restaurant</TableHead>
@@ -110,6 +112,7 @@ export default function CategoriesPage() {
                   <TableRow key={i}>
                       <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20" /></TableCell>
@@ -129,6 +132,7 @@ export default function CategoriesPage() {
                         />
                       </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell><Badge variant="outline">{category.code}</Badge></TableCell>
                     <TableCell>
                         <Button variant="link" className="p-0 h-auto" onClick={() => handleShowItems(category)}>
                             <Badge variant="secondary">{getItemCountForCategory(category.id)}</Badge>

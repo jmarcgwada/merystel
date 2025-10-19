@@ -98,6 +98,7 @@
       "description": "Represents an item category.",
       "properties": {
         "name": { "type": "string" },
+        "code": { "type": "string" },
         "color": { "type": "string" },
         "image": { "type": "string" },
         "isFavorite": { "type": "boolean" },

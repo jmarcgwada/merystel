@@ -7,6 +7,7 @@ export type SpecialCategory = 'all' | 'popular';
 export interface Category {
   id: string;
   name: string;
+  code?: string;
   color?: string;
   image?: string;
   isFavorite?: boolean;
@@ -238,9 +239,6 @@ export interface CompanyInfo {
   notes?: string; // For document footer
   internalNotes?: string; // For internal use
   communicationDoc?: string;
-  smtpConfig?: SmtpConfig;
-  ftpConfig?: FtpConfig;
-  twilioConfig?: TwilioConfig;
 }
 
 export interface User {

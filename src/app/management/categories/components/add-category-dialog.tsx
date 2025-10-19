@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import type { Category } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddCategoryDialogProps {
   isOpen: boolean;
@@ -27,10 +28,18 @@ interface AddCategoryDialogProps {
 
 export function AddCategoryDialog({ isOpen, onClose, onCategoryAdded }: AddCategoryDialogProps) {
   const { toast } = useToast();
-  const { addCategory } = usePos();
+  const { addCategory, categories } = usePos();
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [color, setColor] = useState('#e2e8f0');
   const [isRestaurantOnly, setIsRestaurantOnly] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const randomCode = `CAT-${uuidv4().substring(0, 4).toUpperCase()}`;
+      setCode(randomCode);
+    }
+  }, [isOpen]);
 
   const handleAddCategory = async () => {
     if (!name) {
@@ -41,8 +50,18 @@ export function AddCategoryDialog({ isOpen, onClose, onCategoryAdded }: AddCateg
         });
         return;
     }
+     if (!code || categories.some(c => c.code === code)) {
+      toast({
+        variant: 'destructive',
+        title: 'Code invalide',
+        description: 'Le code de la catégorie est obligatoire et doit être unique.',
+      });
+      return;
+    }
+
     const newCategory = await addCategory({
         name,
+        code,
         image: `https://picsum.photos/seed/${new Date().getTime()}/100/100`,
         color: color,
         isRestaurantOnly,
@@ -57,6 +76,7 @@ export function AddCategoryDialog({ isOpen, onClose, onCategoryAdded }: AddCateg
             onCategoryAdded(newCategory);
         }
         setName('');
+        setCode('');
         setColor('#e2e8f0');
         setIsRestaurantOnly(false);
         onClose();
@@ -78,6 +98,12 @@ export function AddCategoryDialog({ isOpen, onClose, onCategoryAdded }: AddCateg
               Nom
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Boissons" className="col-span-3" onFocus={(e) => e.target.select()} />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="code" className="text-right">
+              Code
+            </Label>
+            <Input id="code" value={code} onChange={(e) => setCode(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="color" className="text-right">

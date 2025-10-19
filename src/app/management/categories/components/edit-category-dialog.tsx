@@ -32,10 +32,8 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
       } else if (date && typeof (date as Timestamp).toDate === 'function') {
         jsDate = (date as Timestamp).toDate();
       } else if (date && typeof (date as any).seconds === 'number') {
-        // Handle serialized Firestore Timestamp
         jsDate = new Date((date as any).seconds * 1000);
       } else {
-        // Fallback for string or number representations
         jsDate = new Date(date as any);
       }
       
@@ -112,6 +110,12 @@ export function EditCategoryDialog({ category, isOpen, onClose }: EditCategoryDi
             </div>
         )}
         <div className="grid gap-4 py-4">
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="code" className="text-right">
+              Code
+            </Label>
+            <Input id="code" value={category?.code || ''} readOnly disabled className="col-span-3" />
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Nom
