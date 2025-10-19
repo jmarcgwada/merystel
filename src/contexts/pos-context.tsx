@@ -1417,9 +1417,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         case 'clients':
             const existingCustomerIds = new Set(customers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id || !data.name) {
+                if (!data.id) {
+                    continue; // Silently ignore if no ID
+                }
+                if (!data.name) {
                     errorCount++;
-                    errors.push(`Ligne ignorée : L'ID et le nom du client sont requis. Ligne : ${JSON.stringify(data)}`);
+                    errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`);
                     continue;
                 }
                 if (existingCustomerIds.has(data.id)) {
@@ -1434,9 +1437,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         case 'articles':
             const existingBarcodes = new Set(items.map(i => i.barcode));
             for (const data of jsonData) {
-                 if (!data.barcode || !data.name || !data.price || !data.vatId) {
+                 if (!data.barcode) {
+                     continue; // Silently ignore if no barcode
+                 }
+                 if (!data.name || !data.price || !data.vatId) {
                     errorCount++;
-                    errors.push(`Ligne ignorée : Code-barres, Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`);
+                    errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`);
                     continue;
                 }
                 if (existingBarcodes.has(data.barcode)) {
@@ -1451,9 +1457,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
          case 'fournisseurs':
             const existingSupplierIds = new Set(suppliers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id || !data.name) {
+                if (!data.id) {
+                    continue; // Silently ignore if no ID
+                }
+                if (!data.name) {
                     errorCount++;
-                    errors.push(`Ligne ignorée : L'ID et le nom du fournisseur sont requis. Ligne : ${JSON.stringify(data)}`);
+                    errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`);
                     continue;
                 }
                 if (existingSupplierIds.has(data.id)) {
