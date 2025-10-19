@@ -126,7 +126,7 @@ export default function PosPage() {
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
   
   const handleScroll = (direction: 'up' | 'down') => {
-    const scrollArea = itemListRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    const scrollArea = itemListRef.current;
     if (scrollArea) {
       const scrollAmount = scrollArea.clientHeight * 0.8;
       scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
@@ -144,7 +144,7 @@ export default function PosPage() {
   };
 
   useEffect(() => {
-    const scrollArea = itemListRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    const scrollArea = itemListRef.current;
     if (!scrollArea) return;
 
     const checkScrollability = () => {
@@ -260,8 +260,8 @@ export default function PosPage() {
                 </div>
               </div>
           </div>
-          <div className="relative flex-1" ref={itemListRef}>
-            <ScrollArea className="absolute inset-0">
+          <div className="relative flex-1">
+            <ScrollArea className="absolute inset-0" viewportRef={itemListRef}>
                 <div className="p-4">
                   {isClient ? (
                       <ItemList
