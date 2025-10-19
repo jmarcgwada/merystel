@@ -52,7 +52,9 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 
 function CustomersPageContent() {
   const { customers, deleteCustomer, setDefaultCustomer, isLoading, itemsPerPage, setItemsPerPage } = usePos();
+  const router = useRouter();
   const searchParams = useSearchParams();
+
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
 
@@ -61,31 +63,43 @@ function CustomersPageContent() {
   const [isClient, setIsClient] = useState(false);
   
   const [filter, setFilter] = useState(searchParams.get('filter') || '');
-  const [filterPostalCode, setFilterPostalCode] = useState('');
-  const [filterPhone, setFilterPhone] = useState('');
-  const [filterAddress, setFilterAddress] = useState('');
-  const [filterEmail, setFilterEmail] = useState('');
-  const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>('no');
+  const [filterPostalCode, setFilterPostalCode] = useState(searchParams.get('postalCode') || '');
+  const [filterPhone, setFilterPhone] = useState(searchParams.get('phone') || '');
+  const [filterAddress, setFilterAddress] = useState(searchParams.get('address') || '');
+  const [filterEmail, setFilterEmail] = useState(searchParams.get('email') || '');
+  const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>(searchParams.get('isDisabled') as any || 'no');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
-
-  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
     const filterParam = searchParams.get('filter');
     if (filterParam) {
-      setFilter(filterParam);
       // Automatically open the detail view for the filtered customer
       setTimeout(() => {
         setOpenCollapsibles({ [filterParam]: true });
       }, 100);
     }
-  }, [searchParams]);
+  }, []); // Run only once on mount
+  
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter) params.set('filter', filter);
+    if (filterPostalCode) params.set('postalCode', filterPostalCode);
+    if (filterPhone) params.set('phone', filterPhone);
+    if (filterAddress) params.set('address', filterAddress);
+    if (filterEmail) params.set('email', filterEmail);
+    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled);
+    if (currentPage > 1) params.set('page', String(currentPage));
+
+    router.replace(`/management/customers?${params.toString()}`);
+  }, [filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled, currentPage, router]);
+
 
   useEffect(() => {
     setItemsPerPageState(itemsPerPage);
@@ -158,18 +172,10 @@ function CustomersPageContent() {
   };
   
   const bulkEditLink = useMemo(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
     params.set('ids', selectedCustomerIds.join(','));
-    // Preserve existing filters in the URL
-    if (filter) params.set('filter', filter);
-    if (filterPostalCode) params.set('postalCode', filterPostalCode);
-    if (filterPhone) params.set('phone', filterPhone);
-    if (filterAddress) params.set('address', filterAddress);
-    if (filterEmail) params.set('email', filterEmail);
-    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled);
-
     return `/management/customers/bulk-edit?${params.toString()}`;
-  }, [selectedCustomerIds, filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled]);
+  }, [selectedCustomerIds, searchParams]);
 
 
   return (
@@ -266,7 +272,7 @@ function CustomersPageContent() {
                                             onValueChange={(value) => setItemsPerPageState(value[0])}
                                             onValueCommit={(value) => setItemsPerPage(value[0])}
                                             min={5}
-                                            max={Math.max(5, filteredCustomers.length)}
+                                            max={Math.max(50, filteredCustomers.length)}
                                             step={5}
                                         />
                                     </div>

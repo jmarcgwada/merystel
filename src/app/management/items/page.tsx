@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -23,7 +24,7 @@ import {
 import type { Item, Category, VatRate } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
@@ -39,30 +40,44 @@ import { Slider } from '@/components/ui/slider';
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
-export default function ItemsPage() {
+function ItemsPageContent() {
   const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
+
+  const [filterName, setFilterName] = useState(searchParams.get('name') || '');
+  const [filterCategoryName, setFilterCategoryName] = useState(searchParams.get('categoryName') || '');
+  const [filterVatId, setFilterVatId] = useState(searchParams.get('vatId') || 'all');
+  const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState(searchParams.get('requiresSerialNumber') || 'all');
+  const [filterHasVariants, setFilterHasVariants] = useState(searchParams.get('hasVariants') || 'all');
+  const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>(searchParams.get('isDisabled') as any || 'no');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const [filterName, setFilterName] = useState('');
-  const [filterCategoryName, setFilterCategoryName] = useState('');
-  const [filterVatId, setFilterVatId] = useState('all');
-  const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState('all');
-  const [filterHasVariants, setFilterHasVariants] = useState('all');
-  const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>('no');
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-
-  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
-  const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filterName) params.set('name', filterName);
+    if (filterCategoryName) params.set('categoryName', filterCategoryName);
+    if (filterVatId !== 'all') params.set('vatId', filterVatId);
+    if (filterRequiresSerialNumber !== 'all') params.set('requiresSerialNumber', filterRequiresSerialNumber);
+    if (filterHasVariants !== 'all') params.set('hasVariants', filterHasVariants);
+    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    
+    router.replace(`/management/items?${params.toString()}`);
+  }, [filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, currentPage, router]);
 
   useEffect(() => {
     setItemsPerPageState(itemsPerPage);
@@ -104,11 +119,6 @@ export default function ItemsPage() {
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
-  }
-
-  const getVatRate = (vatId: string) => {
-    const rate = vatRates?.find(v => v.id === vatId)?.rate;
-    return rate !== undefined ? rate.toFixed(2) : 'N/A';
   }
 
   const sortedAndFilteredItems = useMemo(() => {
@@ -234,10 +244,6 @@ export default function ItemsPage() {
     );
   };
   
-  const toggleItemDisabled = (item: Item) => {
-    updateItem({ ...item, isDisabled: !item.isDisabled });
-  };
-
   const resetFilters = () => {
     setFilterName('');
     setFilterCategoryName('');
@@ -272,7 +278,7 @@ export default function ItemsPage() {
                     <LayoutDashboard />
                 </Link>
             </Button>
-            <Button onClick={() => router.push('/management/items/form')}>
+            <Button onClick={() => router.push(`/management/items/form?${searchParams.toString()}`)}>
               <Plus className="mr-2 h-4 w-4" />
               Ajouter un article
             </Button>
@@ -357,7 +363,7 @@ export default function ItemsPage() {
                                                 onValueChange={(value) => setItemsPerPageState(value[0])}
                                                 onValueCommit={(value) => setItemsPerPage(value[0])}
                                                 min={5}
-                                                max={sortedAndFilteredItems.length}
+                                                max={Math.max(50, sortedAndFilteredItems.length)}
                                                 step={5}
                                             />
                                         </div>
@@ -471,7 +477,7 @@ export default function ItemsPage() {
                   {(isLoading || !isClient) && Array.from({length: 10}).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-4 w-4"/></TableCell>
-                      {Object.values(visibleColumns).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
+                      {Object.values(visibleColumns).filter(v => v).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
@@ -507,7 +513,7 @@ export default function ItemsPage() {
                         <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                             <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}`)} >
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
                             <Edit className="h-4 w-4"/>
                         </Button>
                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
@@ -540,4 +546,10 @@ export default function ItemsPage() {
   );
 }
 
-    
+export default function ItemsPage() {
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+            <ItemsPageContent />
+        </Suspense>
+    )
+}
