@@ -52,7 +52,6 @@ export default function FirestoreDataPage() {
       smtpConfig,
       requirePinForAdmin,
       setRequirePinForAdmin,
-      removeDuplicateItems,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -297,22 +296,6 @@ export default function FirestoreDataPage() {
 
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Gestion des Données</h2>
-                     <Card className="mt-4">
-                        <CardHeader>
-                            <CardTitle>Nettoyage des données</CardTitle>
-                             <CardDescription>
-                                Outils pour maintenir la propreté et la cohérence de votre base de données.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           <AlertDialogTrigger asChild>
-                                <Button variant="outline" onClick={() => removeDuplicateItems()}>
-                                  <Eraser className="mr-2 h-4 w-4" />
-                                  Supprimer les articles en double
-                                </Button>
-                           </AlertDialogTrigger>
-                        </CardContent>
-                    </Card>
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Exportation des données</CardTitle>

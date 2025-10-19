@@ -108,7 +108,6 @@ export interface PosContextType {
   loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => Promise<boolean>;
   loadSaleForConversion: (saleId: string) => void;
   convertToInvoice: (saleId: string) => void;
-  removeDuplicateItems: () => void;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string) => Promise<void>;
@@ -185,7 +184,7 @@ export interface PosContextType {
   closeNavConfirm: () => void;
   confirmNavigation: () => void;
   seedInitialData: () => void;
-  selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
+  resetAllData: () => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
   importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number, errorCount: number, errors: string[] }>;
@@ -1513,7 +1512,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
