@@ -116,6 +116,7 @@
         "price": { "type": "number" },
         "purchasePrice": { "type": "number", "description": "The cost of acquiring the item." },
         "categoryId": { "type": "string" },
+        "supplierId": { "type": "string", "description": "The ID of the item's supplier." },
         "vatId": { "type": "string" },
         "image": { "type": "string" },
         "isFavorite": { "type": "boolean" },

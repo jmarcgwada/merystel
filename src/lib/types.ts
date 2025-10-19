@@ -41,6 +41,7 @@ export interface Item {
   price: number;
   purchasePrice?: number;
   categoryId?: string;
+  supplierId?: string;
   vatId: string;
   image?: string;
   isFavorite?: boolean;

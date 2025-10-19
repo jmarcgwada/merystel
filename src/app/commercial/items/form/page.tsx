@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -18,7 +19,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock, Truck } from 'lucide-react';
 import type { Item, Category, Timestamp } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
@@ -50,6 +51,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
   purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
   categoryId: z.string().optional(),
+  supplierId: z.string().optional(),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
   description2: z.string().optional(),
@@ -79,7 +81,7 @@ function ItemForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { items, categories, vatRates, addItem, updateItem, isLoading } = usePos();
+  const { items, categories, suppliers, vatRates, addItem, updateItem, isLoading } = usePos();
   const { user } = useUser();
   const isCashier = user?.role === 'cashier';
   const [isGenerating, setIsGenerating] = useState(false);
@@ -102,6 +104,7 @@ function ItemForm() {
       price: 0,
       purchasePrice: 0,
       categoryId: '',
+      supplierId: '',
       vatId: '',
       description: '',
       description2: '',
@@ -200,6 +203,7 @@ function ItemForm() {
         price: itemToEdit.price,
         purchasePrice: itemToEdit.purchasePrice || 0,
         categoryId: itemToEdit.categoryId,
+        supplierId: itemToEdit.supplierId,
         vatId: itemToEdit.vatId,
         description: itemToEdit.description || '',
         description2: itemToEdit.description2 || '',
@@ -226,6 +230,7 @@ function ItemForm() {
           price: 0,
           purchasePrice: 0,
           categoryId: '',
+          supplierId: '',
           vatId: '',
           description: '',
           description2: '',
@@ -395,6 +400,7 @@ function ItemForm() {
                         <CardContent className="space-y-6">
                             <p><span className="font-semibold">Nom:</span> {itemToEdit?.name}</p>
                             <p><span className="font-semibold">Catégorie:</span> {categories?.find(c => c.id === itemToEdit?.categoryId)?.name}</p>
+                            <p><span className="font-semibold">Fournisseur:</span> {suppliers?.find(s => s.id === itemToEdit?.supplierId)?.name || 'N/A'}</p>
                             <p><span className="font-semibold">Description 1:</span> {itemToEdit?.description || 'N/A'}</p>
                             <p><span className="font-semibold">Description 2:</span> {itemToEdit?.description2 || 'N/A'}</p>
                         </CardContent>
@@ -572,6 +578,29 @@ function ItemForm() {
                                             <Plus className="h-4 w-4" />
                                         </Button>
                                     </div>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="supplierId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Fournisseur</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionnez un fournisseur" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="">Aucun</SelectItem>
+                                                {suppliers && suppliers.map((sup) => (
+                                                    <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     <FormMessage />
                                     </FormItem>
                                 )}

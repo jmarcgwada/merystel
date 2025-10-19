@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -37,6 +38,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
   purchasePrice: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }).optional(),
   categoryId: z.string().min(1, { message: 'Veuillez sélectionner une catégorie.' }),
+  supplierId: z.string().optional(),
   vatId: z.string().min(1, { message: 'Veuillez sélectionner un taux de TVA.' }),
   description: z.string().optional(),
   description2: z.string().optional(),
@@ -59,7 +61,7 @@ interface EditItemDialogProps {
 
 export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditItemDialogProps) {
   const { toast } = useToast();
-  const { categories, vatRates, updateItem } = usePos();
+  const { categories, vatRates, suppliers, updateItem } = usePos();
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
 
   const form = useForm<ItemFormValues>({
@@ -117,6 +119,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
         price: item.price,
         purchasePrice: item.purchasePrice || 0,
         categoryId: item.categoryId,
+        supplierId: item.supplierId,
         vatId: item.vatId,
         description: item.description || '',
         description2: item.description2 || '',
@@ -174,6 +177,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
                         <FormField control={control} name="description2" render={({ field }) => <FormItem><FormLabel>Description 2</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>} />
                       </div>
                       <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Catégorie</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+                      <FormField control={control} name="supplierId" render={({ field }) => <FormItem><FormLabel>Fournisseur</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger></FormControl><SelectContent>{suppliers?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
                     </CardContent>
                   </Card>
                 </TabsContent>

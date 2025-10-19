@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
@@ -21,6 +22,7 @@ const fieldOptions: { value: keyof Item; label: string; type: 'text' | 'number' 
   { value: 'price', label: 'Prix de vente TTC', type: 'number' },
   { value: 'purchasePrice', label: "Prix d'achat HT", type: 'number' },
   { value: 'categoryId', label: 'Catégorie', type: 'select', options: [] },
+  { value: 'supplierId', label: 'Fournisseur', type: 'select', options: [] },
   { value: 'vatId', label: 'TVA', type: 'select', options: [] },
   { value: 'marginPercentage', label: 'Marge (%)', type: 'number' },
   { value: 'stock', label: 'Stock', type: 'number' },
@@ -32,7 +34,7 @@ const fieldOptions: { value: keyof Item; label: string; type: 'text' | 'number' 
 function BulkEditPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { items, categories, vatRates, updateItem } = usePos();
+  const { items, categories, suppliers, vatRates, updateItem } = usePos();
   const { toast } = useToast();
 
   const [selectedItems, setSelectedItems] = useState<Item[]>([]);
@@ -52,11 +54,14 @@ function BulkEditPageContent() {
     if (field?.value === 'categoryId') {
         field.options = categories.map(c => ({ value: c.id, label: c.name }));
     }
+     if (field?.value === 'supplierId') {
+        field.options = suppliers.map(s => ({ value: s.id, label: s.name }));
+    }
     if (field?.value === 'vatId') {
         field.options = vatRates.map(v => ({ value: v.id, label: v.name }));
     }
     return field;
-  }, [fieldToEdit, categories, vatRates]);
+  }, [fieldToEdit, categories, suppliers, vatRates]);
   
   const backLink = useMemo(() => {
     const params = new URLSearchParams(searchParams.toString());
