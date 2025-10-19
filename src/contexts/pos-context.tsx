@@ -324,7 +324,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -332,7 +331,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
                 const storedValue = localStorage.getItem(key);
                 return storedValue ? JSON.parse(storedValue) : defaultValue;
             } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
+                console.error(`Error reading localStorage key "${key}":`, error);
                 return defaultValue;
             }
         }
@@ -344,7 +343,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key “${key}”:`, error);
+                console.error(`Error setting localStorage key "${key}":`, error);
             }
         }
     }, [key, state]);
@@ -840,7 +839,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: itemToUpdate, quantity });
+          setSerialNumberItem({ item: originalItem, quantity });
         }
         return;
       }
@@ -1180,7 +1179,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id || 'unknown',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'Utilisateur Inconnu',
+                userName: user ? user.firstName + ' ' + user.lastName : 'Utilisateur Inconnu',
                 ...docData,
             };
             addAuditLog({ action: 'create', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Création de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System' });
@@ -1194,7 +1193,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
-    const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>): Promise<User | null> => {
+    const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         const newUser: User = {
             id: uuidv4(),
             companyId: SHARED_COMPANY_ID,
@@ -1226,7 +1225,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [users]);
     
     const handleSignOut = useCallback(async () => {
-        // No actual sign out, just redirect
         router.push('/login');
     }, [router]);
 
@@ -1241,125 +1239,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [toast, handleSignOut]);
 
     const forceSignOutUser = useCallback(async (userId: string) => {
-        // In local mode, we can't truly sign out another user.
-        // We just show a notification.
         toast({ title: 'Utilisateur déconnecté (simulation)', description: `La session de l'utilisateur a été terminée.` });
     }, [toast]);
 
-  const popularItems = useMemo(() => {
-    if (!sales || !items) return [];
-    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
-    sales.forEach((sale) => {
-      sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.itemId]) {
-          itemCounts[orderItem.itemId].count += orderItem.quantity;
-        } else {
-          const itemDetails = items.find((i) => i.id === orderItem.itemId);
-          if (itemDetails) {
-            itemCounts[orderItem.itemId] = {
-              item: itemDetails,
-              count: orderItem.quantity,
-            };
-          }
-        }
-      });
-    });
-    return Object.values(itemCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, popularItemsCount)
-      .map((i) => i.item);
-  }, [sales, items, popularItemsCount]);
-  
-  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
-    if (!sales || sales.length === 0) {
-        return { lastDirectSale: null, lastRestaurantSale: null };
-    }
-    const sortedSales = [...sales].sort((a, b) => {
-        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date);
-        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
-    });
-
-    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
-    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
-
-    return { lastDirectSale, lastRestaurantSale };
-  }, [sales]);
-
-  const loadTicketForViewing = useCallback((ticket: Sale) => {
-    setReadOnlyOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
-    setCurrentSaleId(ticket.id);
-    setCurrentSaleContext({
-      ticketNumber: ticket.ticketNumber,
-      date: ticket.date,
-      userName: ticket.userName,
-      isTableSale: !!ticket.tableId,
-      tableName: ticket.tableName,
-      tableId: ticket.tableId,
-      isReadOnly: true,
-    });
-  }, []);
-  
-  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note'): Promise<boolean> => {
-      const saleToEdit = sales.find(s => s.id === saleId);
-      if (saleToEdit) {
-        const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
-        
-        const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
-
-        setOrder(saleToEdit.items);
-        setCurrentSaleId(saleId);
-        setCurrentSaleContext({
-          ...saleToEdit,
-          documentType: type,
-          isReadOnly: isReadOnly,
-          originalTotal: saleToEdit.total,
-          originalPayments: saleToEdit.payments,
-          acompte: totalPaid,
-          change: saleToEdit.change,
-        });
-        return true;
-      } else {
-        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
-        return false;
-      }
-    }, [sales, toast]);
-
-    const loadSaleForConversion = useCallback((saleId: string) => {
-      const saleToConvert = sales.find(s => s.id === saleId);
-      if (!saleToConvert) {
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
-          return;
-      }
-  
-      setOrder(saleToConvert.items);
-      setCurrentSaleId(null); 
-      
-      const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
-
-      setCurrentSaleContext({
-        ...restOfSale,
-        documentType: 'invoice',
-        status: 'pending',
-        date: new Date(),
-        payments: [],            
-        originalTotal: undefined,
-        originalPayments: undefined,
-        change: undefined,
-        modifiedAt: undefined,
-        originalSaleId: saleToConvert.id,
-      });
-  }, [sales, toast]);
-
-    const convertToInvoice = useCallback((saleId: string) => {
-      router.push(`/commercial/invoices?fromConversion=${saleId}`);
-  }, [router]);
-  
-  const addCategory = useCallback(async (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const addCategory = useCallback(async (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
       const newCategory = { ...category, id: uuidv4(), code: category.code || `${category.name.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, createdAt: new Date() };
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
-  }, [setCategories]);
+    }, [setCategories]);
 
   const updateCategory = useCallback((category: Category) => {
       const updatedCategory = { ...category, updatedAt: new Date() };
@@ -1679,10 +1566,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     toast({ title: `Génération de ${count} pièces en cours...` });
 
-    // This is the user that will be used to generate the sales.
     let demoUser = users.find(u => u.email === 'email@example.com');
 
-    // If the user doesn't exist, create it.
     if (!demoUser) {
         const newDemoUser = await addUser({
             firstName: 'Utilisateur',
@@ -1698,12 +1583,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     
     const newSales: Sale[] = [];
-    const existingSalesCount = sales.length;
     
     for (let i = 0; i < count; i++) {
+        const isInvoice = Math.random() < 0.3; // 30% chance to be an invoice
+        const docType = isInvoice ? 'invoice' : 'ticket';
         const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
-        const dayMonth = format(saleDate, 'ddMM');
-        const ticketNumber = `Tick-${dayMonth}-${(existingSalesCount + i + 1).toString().padStart(4, '0')}`;
+        
+        let ticketNumber: string;
+        if (isInvoice) {
+            const invoiceCount = sales.filter(s => s.documentType === 'invoice').length + newSales.filter(s => s.documentType === 'invoice').length;
+            ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+        } else {
+            const dayMonth = format(saleDate, 'ddMM');
+            const todaysSalesCount = sales.filter(s => isSameDay(new Date(s.date as Date), saleDate) && s.documentType === 'ticket').length + newSales.filter(s => isSameDay(new Date(s.date as Date), saleDate) && s.documentType === 'ticket').length;
+            ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+        }
+
 
         const customer = customers[Math.floor(Math.random() * customers.length)];
         const itemCount = Math.floor(Math.random() * 5) + 1;
@@ -1781,7 +1676,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             customerId: customer.id,
             userId: demoUser.id,
             userName: `${demoUser.firstName} ${demoUser.lastName}`,
-            documentType: 'ticket',
+            documentType: docType,
         };
         
         newSales.push(newSale);
@@ -1795,45 +1690,189 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
-  
 
-  const value: PosContextType = {
-      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
-      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
-      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
-      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-      isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-      updateItemPrice,
-      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
-      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
-      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
-      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-      lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
-      mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
-  };
+  const popularItems = useMemo(() => {
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
+  
+  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    if (!sales || sales.length === 0) {
+        return { lastDirectSale: null, lastRestaurantSale: null };
+    }
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date as any);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date as any);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
+    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
+
+    return { lastDirectSale, lastRestaurantSale };
+  }, [sales]);
+
+  const loadTicketForViewing = useCallback((ticket: Sale) => {
+    setReadOnlyOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
+    setCurrentSaleId(ticket.id);
+    setCurrentSaleContext({
+      ticketNumber: ticket.ticketNumber,
+      date: ticket.date,
+      userName: ticket.userName,
+      isTableSale: !!ticket.tableId,
+      tableName: ticket.tableName,
+      tableId: ticket.tableId,
+      isReadOnly: true,
+    });
+  }, []);
+  
+  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note'): Promise<boolean> => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
+        
+        const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
+
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+          isReadOnly: isReadOnly,
+          originalTotal: saleToEdit.total,
+          originalPayments: saleToEdit.payments,
+          acompte: totalPaid,
+          change: saleToEdit.change,
+        });
+        return true;
+      } else {
+        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
+        return false;
+      }
+    }, [sales, toast]);
+
+    const loadSaleForConversion = useCallback((saleId: string) => {
+      const saleToConvert = sales.find(s => s.id === saleId);
+      if (!saleToConvert) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+          return;
+      }
+  
+      setOrder(saleToConvert.items);
+      setCurrentSaleId(null); 
+      
+      const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
+
+      setCurrentSaleContext({
+        ...restOfSale,
+        documentType: 'invoice',
+        status: 'pending',
+        date: new Date(),
+        payments: [],            
+        originalTotal: undefined,
+        originalPayments: undefined,
+        change: undefined,
+        modifiedAt: undefined,
+        originalSaleId: saleToConvert.id,
+      });
+  }, [sales, toast]);
+
+    const convertToInvoice = useCallback((saleId: string) => {
+      router.push(`/commercial/invoices?fromConversion=${saleId}`);
+  }, [router]);
+  
+  const value: PosContextType = useMemo(() => ({
+    order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+    addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+    variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
+    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+    seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+    isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+    updateItemPrice,
+    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+    commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
+    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+    lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
+    mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
+  }), [
+    order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+    addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+    variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
+    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+    seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+    isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+    updateItemPrice,
+    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+    commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
+    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+    lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
+    mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
+  ]);
 
   return (
     <PosContext.Provider value={value}>
