@@ -1410,7 +1410,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
-    const salesMap = new Map<string, Sale>();
+    const salesMap = new Map<string, { sale: Sale; processedPayments: Set<string> }>();
+    let lastProcessedTicketNumber: string | null = null;
     
     const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
     const tempNewItems = new Map<string, Item>();
@@ -1446,8 +1447,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             break;
         case 'ventes_completes':
             for (const [index, row] of limitedJsonData.entries()) {
-                 if (!row.itemBarcode) {
-                    if (lastProcessedItem) {
+                const currentTicketNumber = row.ticketNumber;
+
+                if (!row.itemBarcode) {
+                    if (lastProcessedItem && currentTicketNumber && currentTicketNumber === lastProcessedTicketNumber) {
                         lastProcessedItem.note = (lastProcessedItem.note ? lastProcessedItem.note + '\n' : '') + (row.itemName || '');
                     }
                     continue;
@@ -1492,8 +1495,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                      continue;
                 }
         
-                let sale = salesMap.get(row.ticketNumber);
-                if (!sale) {
+                let saleEntry = salesMap.get(row.ticketNumber);
+                if (!saleEntry) {
                     const seller = users.find(u => `${u.firstName} ${u.lastName}` === row.sellerName);
                     const documentType = row.pieceName?.toLowerCase().includes('facture') ? 'invoice'
                                    : row.pieceName?.toLowerCase().includes('devis') ? 'quote'
@@ -1505,11 +1508,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const finalTicketNumber = row.ticketNumber.startsWith(prefix) ? row.ticketNumber : `${prefix}${row.ticketNumber}`;
 
 
-                    sale = {
-                        id: uuidv4(), ticketNumber: finalTicketNumber, date: new Date(row.date || Date.now()),
-                        items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
-                        customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
-                        documentType: documentType,
+                    saleEntry = {
+                        sale: {
+                            id: uuidv4(), ticketNumber: finalTicketNumber, date: new Date(row.date || Date.now()),
+                            items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
+                            customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
+                            documentType: documentType,
+                        },
+                        processedPayments: new Set<string>(),
                     };
                 }
         
@@ -1517,114 +1523,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     id: uuidv4(), itemId: item.id, name: item.name, price: row.unitPriceHT * (1 + (vatRates.find(v => v.id === item!.vatId)?.rate || 0)/100),
                     quantity: row.quantity, total: row.quantity * (row.unitPriceHT * (1 + (vatRates.find(v => v.id === item!.vatId)?.rate || 0)/100)), vatId: item.vatId, barcode: item.barcode || '', discount: 0
                 };
-                sale.items.push(orderItem);
+                saleEntry.sale.items.push(orderItem);
                 
                 ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
-                    if (row[pmtKey] > 0) {
+                    const paymentValue = parseFloat(row[pmtKey]);
+                    if (paymentValue > 0) {
                         const methodName = pmtKey.replace('payment','');
                         const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
-                        if (method) {
-                            sale!.payments.push({ method, amount: row[pmtKey], date: sale!.date });
+                        if (method && !saleEntry!.processedPayments.has(method.name)) {
+                            saleEntry!.sale.payments.push({ method, amount: paymentValue, date: saleEntry!.sale.date });
+                            saleEntry!.processedPayments.add(method.name);
                         }
                     }
                 });
 
-                salesMap.set(row.ticketNumber, sale);
+                salesMap.set(row.ticketNumber, saleEntry);
+                lastProcessedTicketNumber = row.ticketNumber;
                 lastProcessedItem = orderItem;
             }
 
-            for (const sale of salesMap.values()) {
-                const total = sale.items.reduce((acc, item) => acc + item.total, 0);
-                let totalTax = 0;
-                let totalSub = 0;
-
-                sale.items.forEach(item => {
-                    const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
-                    const sub = item.total / (1 + vatRateValue / 100);
-                    totalSub += sub;
-                    totalTax += item.total - sub;
-                });
-
-                sale.total = total;
-                sale.tax = totalTax;
-                sale.subtotal = totalSub;
-
-                setSales(prev => [sale, ...prev]);
-                successCount++;
-            }
-            break;
-        case 'ventes':
-            let lastTicketNumber: string | null = null;
-            for (const [index, row] of limitedJsonData.entries()) {
-                const currentTicketNumber = row.ticketNumber;
-
-                if (!currentTicketNumber && lastTicketNumber) {
-                    let saleToUpdate = salesMap.get(lastTicketNumber);
-                    if (saleToUpdate) {
-                         let lastItem = saleToUpdate.items[saleToUpdate.items.length - 1];
-                         if (lastItem) {
-                            lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
-                         }
-                    }
-                    continue;
-                }
-
-                if (!currentTicketNumber || existingSaleNumbers.has(currentTicketNumber)) {
-                    if(currentTicketNumber) errors.push(`Ligne ${index + 1}: La pièce N°${currentTicketNumber} existe déjà.`);
-                    errorCount++;
-                    continue;
-                }
-                
-                const item = items.find(i => i.barcode === row.itemBarcode);
-                if (!item) {
-                     errorCount++;
-                     errors.push(`Ligne ${index + 1} (Pièce ${currentTicketNumber}): Article avec code-barres ${row.itemBarcode} introuvable.`);
-                     continue;
-                }
-
-                let sale = salesMap.get(currentTicketNumber);
-                if (!sale) {
-                    const customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
-                    const seller = users.find(u => u.firstName + ' ' + u.lastName === row.sellerName);
-                    const docType = row.pieceName === 'Facture' ? 'invoice' : 'ticket';
-                    sale = {
-                        id: uuidv4(),
-                        ticketNumber: currentTicketNumber,
-                        date: row.date ? new Date(row.date) : new Date(),
-                        items: [],
-                        subtotal: 0,
-                        tax: 0,
-                        total: 0,
-                        payments: [],
-                        status: 'paid',
-                        customerId: customer?.id,
-                        userId: seller?.id,
-                        userName: row.sellerName,
-                        documentType: docType,
-                    };
-                }
-
-                const unitPriceTTC = row.totalTTC / row.quantity;
-
-                const orderItem: OrderItem = {
-                    id: uuidv4(),
-                    itemId: item.id,
-                    name: item.name,
-                    price: unitPriceTTC || 0,
-                    quantity: row.quantity,
-                    total: row.totalTTC || 0,
-                    vatId: item.vatId,
-                    barcode: item.barcode || '',
-                    discount: (row.unitPriceHT * row.quantity) * (row.discountPercentage / 100) || row.discountAmount || 0,
-                    discountPercent: row.discountPercentage
-                };
-                sale.items.push(orderItem);
-                salesMap.set(currentTicketNumber, sale);
-                lastTicketNumber = currentTicketNumber;
-                lastProcessedItem = orderItem;
-            }
-            
-            for (const sale of salesMap.values()) {
+            for (const { sale } of salesMap.values()) {
                 const total = sale.items.reduce((acc, item) => acc + item.total, 0);
                 let totalTax = 0;
                 let totalSub = 0;
