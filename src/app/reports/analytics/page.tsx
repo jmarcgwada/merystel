@@ -73,6 +73,7 @@ export default function AnalyticsPage() {
     const [generalFilter, setGeneralFilter] = useState('');
     const [topArticles, setTopArticles] = useState(10);
     const [topClients, setTopClients] = useState(10);
+    const [topCategoriesCount, setTopCategoriesCount] = useState(10);
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterCustomer, setFilterCustomer] = useState('');
     const [filterItem, setFilterItem] = useState('');
@@ -336,8 +337,8 @@ export default function AnalyticsPage() {
             if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
             if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
             return 0;
-        });
-    }, [topCategories, topCategoriesSortConfig]);
+        }).slice(0, topCategoriesCount);
+    }, [topCategories, topCategoriesCount, topCategoriesSortConfig]);
     
     const requestSort = (key: SalesLinesSortKey | TopItemsSortKey | TopCustomersSortKey | TopCategoriesSortKey, table: 'salesLines' | 'topItems' | 'topCustomers' | 'topCategories') => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -554,6 +555,20 @@ export default function AnalyticsPage() {
                         step={1} 
                     />
                 </div>
+                 <div className="grid gap-2 w-48">
+                     <div className="flex justify-between items-center">
+                        <Label htmlFor="top-n-categories-slider">Top Catégories</Label>
+                        <span className="text-sm font-bold text-primary">{topCategoriesCount}</span>
+                    </div>
+                     <Slider 
+                        id="top-n-categories-slider" 
+                        value={[topCategoriesCount]} 
+                        onValueChange={(value) => setTopCategoriesCount(value[0])}
+                        min={1} 
+                        max={100} 
+                        step={1} 
+                    />
+                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>
@@ -629,7 +644,7 @@ export default function AnalyticsPage() {
              <Card className="lg:col-span-1">
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                         <CardTitle>Chiffre d'affaires par Catégorie</CardTitle>
+                         <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
                           {selectedTopCategories.length > 0 && (
                             <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
                                 <X className="mr-2 h-4 w-4" /> Effacer la sélection
@@ -757,4 +772,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
