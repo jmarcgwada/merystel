@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
@@ -55,6 +56,7 @@ export default function ItemsPage() {
 
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
 
@@ -150,6 +152,22 @@ export default function ItemsPage() {
     return sortedAndFilteredItems.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedAndFilteredItems, currentPage, itemsPerPage]);
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItemIds(paginatedItems.map(item => item.id));
+    } else {
+      setSelectedItemIds([]);
+    }
+  };
+
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItemIds(prev => [...prev, itemId]);
+    } else {
+      setSelectedItemIds(prev => prev.filter(id => id !== itemId));
+    }
+  };
+
 
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -230,6 +248,14 @@ export default function ItemsPage() {
         subtitle={isClient && items ? `Page ${currentPage} sur ${totalPages} (${sortedAndFilteredItems.length} articles sur ${items.length} au total)` : "Ajoutez, modifiez ou supprimez des produits."}
       >
         <div className="flex items-center gap-2">
+            {selectedItemIds.length > 0 && (
+                <Button asChild>
+                    <Link href={`/management/items/bulk-edit?ids=${selectedItemIds.join(',')}`}>
+                        <FilePen className="mr-2 h-4 w-4" />
+                        Modifier la sélection ({selectedItemIds.length})
+                    </Link>
+                </Button>
+            )}
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -372,6 +398,12 @@ export default function ItemsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedItemIds.length === paginatedItems.length && paginatedItems.length > 0}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                      />
+                    </TableHead>
                     {visibleColumns.image && <TableHead className="w-[80px]">Image</TableHead>}
                     {visibleColumns.name && <TableHead>
                       <Button variant="ghost" onClick={() => requestSort('name')}>
@@ -409,12 +441,19 @@ export default function ItemsPage() {
                 <TableBody>
                   {(isLoading || !isClient) && Array.from({length: 10}).map((_, i) => (
                     <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-4"/></TableCell>
                       {Object.values(visibleColumns).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
                   {isClient && !isLoading && paginatedItems && paginatedItems.map(item => (
-                    <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground")}>
+                    <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground", selectedItemIds.includes(item.id) && "bg-blue-50 dark:bg-blue-900/30")}>
+                       <TableCell>
+                        <Checkbox
+                          checked={selectedItemIds.includes(item.id)}
+                          onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                        />
+                      </TableCell>
                       {visibleColumns.image && <TableCell>
                         <Image 
                           src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
