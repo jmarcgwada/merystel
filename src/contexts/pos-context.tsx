@@ -484,7 +484,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-  
+
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -533,8 +533,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     },
     [updateQuantity]
   );
-  
-  // ... (the rest of the provider)
 
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
@@ -610,7 +608,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         newCategories.push({
             id: catId,
             name: categoryData.name,
-            image: \`https://picsum.photos/seed/\${catId}/200/150\`,
+            image: `https://picsum.photos/seed/${catId}/200/150`,
             color: '#e2e8f0',
             createdAt: new Date(),
         });
@@ -626,24 +624,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 description: itemData.description,
                 categoryId: catId,
                 vatId: defaultVatId,
-                image: \`https://picsum.photos/seed/\${itemId}/200/150\`,
-                barcode: \`DEMO\${Math.floor(100000 + Math.random() * 900000)}\`,
+                image: `https://picsum.photos/seed/${itemId}/200/150`,
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`,
                 createdAt: new Date(),
             });
         });
     });
     
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: \`C\${uuidv4().substring(0,6)}\`,
-        name: \`Client Démo \${i + 1}\`,
-        email: \`client\${i+1}@demo.com\`,
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`,
         createdAt: new Date(),
     }));
     
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: \`S-\${uuidv4().substring(0,6)}\`,
-        name: \`Fournisseur Démo \${i + 1}\`,
-        email: \`fournisseur\${i+1}@demo.com\`,
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`,
         createdAt: new Date(),
     }));
 
@@ -656,9 +654,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: \`C\${uuidv4().substring(0,6)}\`,
-        name: \`Client Démo \${i + 1}\`,
-        email: \`client\${i+1}@demo.com\`,
+        id: `C${uuidv4().substring(0,6)}`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`,
         createdAt: new Date(),
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
@@ -667,9 +665,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
-        id: \`S-\${uuidv4().substring(0,6)}\`,
-        name: \`Fournisseur Démo \${i + 1}\`,
-        email: \`fournisseur\${i+1}@demo.com\`,
+        id: `S-${uuidv4().substring(0,6)}`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`,
         createdAt: new Date(),
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
@@ -791,9 +789,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: \`\${item.name} ajouté/mis à jour dans la commande\` });
+    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
-  
+
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
       if (!items) return;
@@ -804,7 +802,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: 'Rupture de stock',
-            description: \`L'article "\${itemToAdd.name}" n'est plus en stock.\`,
+            description: `L'article "${itemToAdd.name}" n'est plus en stock.`,
         });
         return;
       }
@@ -815,7 +813,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: "Prix d'achat manquant ou nul",
-            description: \`L'article "\${itemToAdd.name}" n'a pas de prix d'achat valide.\`,
+            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.`,
         });
         return;
     }
@@ -869,7 +867,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: \`\${itemToAdd.name} ajouté à la commande\` });
+    toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
@@ -1104,7 +1102,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...saleData,
                 date: today,
                 userId: user?.id || 'unknown',
-                userName: user ? \`\${user.firstName} \${user.lastName}\` : 'Utilisateur Inconnu',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'Utilisateur Inconnu',
             };
         }
         
@@ -1123,9 +1121,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             documentId: finalSale.id,
             documentNumber: finalSale.ticketNumber,
             documentType: finalSale.documentType || 'unknown',
-            details: \`Transformé depuis \${currentSaleContext.documentType} #\${currentSaleContext.ticketNumber}\`,
+            details: `Transformé depuis ${currentSaleContext.documentType} #${currentSaleContext.ticketNumber}`,
             userId: user?.id || 'system',
-            userName: user ? \`\${user.firstName} \${user.lastName}\` : 'System',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
           });
           setSales(currentSales =>
             currentSales.map(s =>
@@ -1139,11 +1137,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
            setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
            if (!isEqual(sales.find(s=>s.id === saleIdToUpdate)?.items, finalSale.items)) {
-             addAuditLog({ action: 'update', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Mise à jour de la pièce', userId: user?.id || 'system', userName: user ? \`\${user.firstName} \${user.lastName}\` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
+             addAuditLog({ action: 'update', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Mise à jour de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
            }
         } else {
            setSales(prev => [finalSale, ...prev]);
-           addAuditLog({ action: 'create', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Création de la pièce', userId: user?.id || 'system', userName: user ? \`\${user.firstName} \${user.lastName}\` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
+           addAuditLog({ action: 'create', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Création de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
         }
 
         if(sendEmailOnSale && smtpConfig?.senderEmail) {
@@ -1156,9 +1154,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     senderEmail: smtpConfig.senderEmail!,
                 },
                 to: smtpConfig.senderEmail,
-                subject: \`Nouvelle vente: \${finalSale.ticketNumber}\`,
-                text: \`Une nouvelle vente de \${finalSale.total.toFixed(2)}€ a été enregistrée.\`,
-                html: \`<p>Une nouvelle vente de <strong>\${finalSale.total.toFixed(2)}€</strong> a été enregistrée.</p><p>Numéro: \${finalSale.ticketNumber}</p>\`
+                subject: `Nouvelle vente: ${finalSale.ticketNumber}`,
+                text: `Une nouvelle vente de ${finalSale.total.toFixed(2)}€ a été enregistrée.`,
+                html: `<p>Une nouvelle vente de <strong>${finalSale.total.toFixed(2)}€</strong> a été enregistrée.</p><p>Numéro: ${finalSale.ticketNumber}</p>`
             })
         }
     
@@ -1180,7 +1178,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...docData,
                 modifiedAt: today,
             };
-            addAuditLog({ action: 'update', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: \`Mise à jour de la pièce \${finalDoc.ticketNumber}\`, userId: user?.id || 'system', userName: user ? \`\${user.firstName} \${user.lastName}\` : 'System', richDetails: { items: finalDoc.items } });
+            addAuditLog({ action: 'update', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Mise à jour de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalDoc.items } });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
              const count = sales.filter(s => s.documentType === type).length;
@@ -1191,27 +1189,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id || 'unknown',
-                userName: user ? \`\${user.firstName} \${user.lastName}\` : 'Utilisateur Inconnu',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'Utilisateur Inconnu',
                 ...docData,
             };
-            addAuditLog({ action: 'create', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: \`Création de la pièce \${finalDoc.ticketNumber}\`, userId: user?.id || 'system', userName: user ? \`\${user.firstName} \${user.lastName}\` : 'System' });
+            addAuditLog({ action: 'create', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Création de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System' });
             setSales(prev => [finalDoc, ...prev]);
         }
         
-        toast({ title: \`\${prefix} \${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}\` });
+        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
         clearOrder();
 
-        const reportPath = \`/reports?docType=\${type}\`;
+        const reportPath = `/reports?docType=${type}`;
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
-
-  const value: PosContextType = {
-      //...
-  };
-  
-  const cycleCommercialViewLevel = useCallback(() => {
-    setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
 
   const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
   const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
@@ -1223,8 +1213,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
   const popularItems = useMemo(() => {
-    return items.slice(0, popularItemsCount);
-  }, [items, popularItemsCount]);
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
   
   const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
     if (!sales || sales.length === 0) {
@@ -1308,12 +1318,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [sales, toast]);
 
     const convertToInvoice = useCallback((saleId: string) => {
-      router.push(\`/commercial/invoices?fromConversion=\${saleId}\`);
+      router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
   
-  // ... rest of the PosProvider
   const addCategory = useCallback(async (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const newCategory = { ...category, id: uuidv4(), code: category.code || \`\${category.name.substring(0, 3).toUpperCase()}-\${Math.floor(100 + Math.random() * 900)}\`, createdAt: new Date() };
+      const newCategory = { ...category, id: uuidv4(), code: category.code || `${category.name.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, createdAt: new Date() };
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
   }, [setCategories]);
@@ -1367,7 +1376,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (customer.id && customers.some(c => c.id === customer.id)) {
         throw new Error('Un client avec ce code existe déjà.');
     }
-    const newCustomer = { ...customer, id: customer.id || \`C\${uuidv4().substring(0, 6)}\`, isDefault: customers.length === 0, createdAt: new Date() };
+    const newCustomer = { ...customer, id: customer.id || `C${uuidv4().substring(0, 6)}`, isDefault: customers.length === 0, createdAt: new Date() };
     setCustomers(prev => [...prev, newCustomer]);
     return newCustomer;
   }, [customers, setCustomers]);
@@ -1386,7 +1395,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [setCustomers]);
 
   const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>) => {
-    const newSupplier = { ...supplier, id: \`S-\${uuidv4().substring(0, 6)}\`, createdAt: new Date() };
+    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
     setSuppliers(prev => [...prev, newSupplier]);
     return newSupplier;
 }, [setSuppliers]);
@@ -1609,17 +1618,60 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     toast({
         title: "Rapport d'importation",
-        description: \`\${successCount} lignes importées, \${errorCount} erreurs.\`,
+        description: `${successCount} lignes importées, ${errorCount} erreurs.`,
     });
     
     return { successCount, errorCount, errors };
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast]);
   
-  const fullValue = {
-      //... all props
-  }
+  const cycleCommercialViewLevel = useCallback(() => {
+    setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
+  
 
-  // Final return statement of the provider
+  const value: PosContextType = {
+    order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+    addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+    variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
+    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+    seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+    isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      updateItemPrice,
+    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+    commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
+    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+    lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
+    mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
+  };
+
+  return (
+    <PosContext.Provider value={value}>
+      {children}
+    </PosContext.Provider>
+  );
 }
 
 export function usePos() {
