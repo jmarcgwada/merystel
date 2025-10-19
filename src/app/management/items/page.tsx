@@ -67,14 +67,14 @@ function ItemsPageContent() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (filterName) params.set('name', filterName);
-    if (filterCategoryName) params.set('categoryName', filterCategoryName);
-    if (filterVatId !== 'all') params.set('vatId', filterVatId);
-    if (filterRequiresSerialNumber !== 'all') params.set('requiresSerialNumber', filterRequiresSerialNumber);
-    if (filterHasVariants !== 'all') params.set('hasVariants', filterHasVariants);
-    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled);
-    if (currentPage > 1) params.set('page', String(currentPage));
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    if (filterName) params.set('name', filterName); else params.delete('name');
+    if (filterCategoryName) params.set('categoryName', filterCategoryName); else params.delete('categoryName');
+    if (filterVatId !== 'all') params.set('vatId', filterVatId); else params.delete('vatId');
+    if (filterRequiresSerialNumber !== 'all') params.set('requiresSerialNumber', filterRequiresSerialNumber); else params.delete('requiresSerialNumber');
+    if (filterHasVariants !== 'all') params.set('hasVariants', filterHasVariants); else params.delete('hasVariants');
+    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled); else params.delete('isDisabled');
+    if (currentPage > 1) params.set('page', String(currentPage)); else params.delete('page');
     
     router.replace(`/management/items?${params.toString()}`);
   }, [filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, currentPage, router]);
@@ -363,7 +363,7 @@ function ItemsPageContent() {
                                                 onValueChange={(value) => setItemsPerPageState(value[0])}
                                                 onValueCommit={(value) => setItemsPerPage(value[0])}
                                                 min={5}
-                                                max={Math.max(50, sortedAndFilteredItems.length)}
+                                                max={Math.max(100, sortedAndFilteredItems.length)}
                                                 step={5}
                                             />
                                         </div>

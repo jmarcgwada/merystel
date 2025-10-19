@@ -77,11 +77,10 @@ function CustomersPageContent() {
 
   useEffect(() => {
     setIsClient(true);
-    const filterParam = searchParams.get('filter');
-    if (filterParam) {
-      // Automatically open the detail view for the filtered customer
+    const customerIdFromParams = searchParams.get('filter');
+    if (customerIdFromParams) {
       setTimeout(() => {
-        setOpenCollapsibles({ [filterParam]: true });
+        setOpenCollapsibles({ [customerIdFromParams]: true });
       }, 100);
     }
   }, []); // Run only once on mount
@@ -272,7 +271,7 @@ function CustomersPageContent() {
                                             onValueChange={(value) => setItemsPerPageState(value[0])}
                                             onValueCommit={(value) => setItemsPerPage(value[0])}
                                             min={5}
-                                            max={Math.max(50, filteredCustomers.length)}
+                                            max={Math.max(100, filteredCustomers.length)}
                                             step={5}
                                         />
                                     </div>

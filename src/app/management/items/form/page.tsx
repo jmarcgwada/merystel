@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -108,6 +109,16 @@ function ItemForm() {
   const redirectUrlParam = searchParams.get('redirectUrl');
   const isEditMode = Boolean(itemId);
   const itemToEdit = isEditMode && items ? items.find(i => i.id === itemId) : null;
+
+  const backLink = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('id');
+    params.delete('redirectUrl');
+    params.delete('barcode');
+    const queryString = params.toString();
+    const basePath = redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items";
+    return queryString ? `${basePath}?${queryString}` : basePath;
+  }, [searchParams, redirectUrlParam]);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -308,7 +319,7 @@ function ItemForm() {
         const separator = redirectURL.includes('?') ? '&' : '?';
         router.push(`${redirectURL}${separator}updatedItemId=${itemId}`);
       } else {
-        router.push('/management/items');
+        router.push(backLink);
       }
 
     } else {
@@ -320,7 +331,7 @@ function ItemForm() {
           const separator = redirectURL.includes('?') ? '&' : '?';
           router.push(`${redirectURL}${separator}newItemId=${newItem.id}`);
       } else {
-        router.push('/management/items');
+        router.push(backLink);
       }
     }
   }
@@ -471,7 +482,7 @@ function ItemForm() {
         subtitle={isEditMode ? "Mise à jour de l'article" : "Remplissez le formulaire pour créer un produit."}
       >
         <Button asChild className="btn-back">
-          <Link href={redirectUrlParam ? decodeURIComponent(redirectUrlParam) : "/management/items"}>
+          <Link href={backLink}>
             <ArrowLeft />
             Retour
           </Link>
