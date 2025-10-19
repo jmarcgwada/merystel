@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -317,6 +318,8 @@ export interface PosContextType {
   mappingTemplates: MappingTemplate[];
   addMappingTemplate: (template: MappingTemplate) => void;
   deleteMappingTemplate: (templateName: string) => void;
+  removeDuplicateItems: () => void;
+  selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -1563,3 +1566,4 @@ export function usePos() {
   }
   return context;
 }
+

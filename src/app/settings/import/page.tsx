@@ -6,7 +6,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogClose } from '@/components/ui/dialog';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -98,6 +99,64 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
   }
 
+function ImportReportDialog({ report, isOpen, onClose }: { report: { successCount: number; errorCount: number; errors: string[] } | null; isOpen: boolean; onClose: () => void; }) {
+  if (!report) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Rapport d'Importation</DialogTitle>
+          <DialogDescription>
+            Résumé de l'opération d'importation des données.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Succès</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{report.successCount}</div>
+                <p className="text-xs text-muted-foreground">lignes importées</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Échecs</CardTitle>
+                <XCircle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{report.errorCount}</div>
+                 <p className="text-xs text-muted-foreground">lignes ignorées</p>
+              </CardContent>
+            </Card>
+          </div>
+          {report.errorCount > 0 && (
+            <div>
+              <Label>Détails des erreurs :</Label>
+              <ScrollArea className="h-40 mt-2 rounded-md border p-2 bg-muted/50">
+                <div className="text-sm space-y-1">
+                  {report.errors.map((error, index) => (
+                    <p key={index} className="text-destructive font-mono text-xs">{index + 1}: {error}</p>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button>Fermer</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function ImportDataPage() {
   const { toast } = useToast();
@@ -119,7 +178,9 @@ export default function ImportDataPage() {
   const [isImporting, setIsImporting] = useState(false);
   
   const [templateName, setTemplateName] = useState('');
-  const [isTemplatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+  
+  const [importReport, setImportReport] = useState<{ successCount: number; errorCount: number; errors: string[] } | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -234,23 +295,11 @@ export default function ImportDataPage() {
     setIsImporting(true);
     toast({ title: 'Importation en cours...', description: 'Veuillez patienter.' });
 
-    const { successCount, errorCount, errors } = await importDataFromJson(dataType, jsonData);
+    const report = await importDataFromJson(dataType, jsonData);
 
     setIsImporting(false);
-
-    if (errorCount > 0) {
-        toast({
-            variant: 'destructive',
-            title: `Importation terminée avec ${errorCount} erreur(s)`,
-            description: `Détails : ${errors.slice(0, 5).join(', ')}...`,
-            duration: 10000,
-        });
-    } else {
-        toast({
-            title: 'Importation réussie !',
-            description: `${successCount} élément(s) ont été importés avec succès.`,
-        });
-    }
+    setImportReport(report);
+    setIsReportOpen(true);
   }
 
   const mappedColumnIndices = useMemo(() => new Set(Object.values(mappings)), [mappings]);
@@ -279,7 +328,6 @@ export default function ImportDataPage() {
       };
       addMappingTemplate(newTemplate);
       setTemplateName('');
-      setTemplatePopoverOpen(false);
   };
 
   const applyTemplate = (template: MappingTemplate) => {
@@ -561,6 +609,13 @@ export default function ImportDataPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                     <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Vérification des doublons</AlertTitle>
+                        <p>
+                            Le système vérifiera les doublons pour les champs obligatoires (Code Client, Code Fournisseur, Code-barres article). Les lignes avec des identifiants déjà existants seront ignorées.
+                        </p>
+                    </Alert>
                     <div className="mb-4 space-y-2">
                         <Label htmlFor="import-limit">Nombre de lignes à importer</Label>
                         <Input 
@@ -600,7 +655,7 @@ export default function ImportDataPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Attention</AlertTitle>
               <p>
-                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur, Code-barres Article) n'existent pas déjà.
+                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur, Code-barres article) n'existent pas déjà.
                   Les doublons provoqueront des erreurs.
               </p>
             </Alert>
@@ -613,6 +668,12 @@ export default function ImportDataPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ImportReportDialog 
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        report={importReport}
+      />
     </>
   );
 }
+
