@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
@@ -65,6 +66,7 @@ function CustomersPageContent() {
 
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
 
   const router = useRouter();
 
@@ -129,6 +131,22 @@ function CustomersPageContent() {
     setFilterIsDisabled('no');
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedCustomerIds(paginatedCustomers.map(customer => customer.id));
+    } else {
+      setSelectedCustomerIds([]);
+    }
+  };
+
+  const handleSelectItem = (customerId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCustomerIds(prev => [...prev, customerId]);
+    } else {
+      setSelectedCustomerIds(prev => prev.filter(id => id !== customerId));
+    }
+  };
+
   return (
     <>
       <PageHeader 
@@ -136,6 +154,14 @@ function CustomersPageContent() {
         subtitle={isClient && customers ? `Page ${currentPage} sur ${totalPages} (${filteredCustomers.length} clients sur ${customers.length} au total)` : "Affichez et gérez votre liste de clients."}
       >
         <div className="flex items-center gap-2">
+            {selectedCustomerIds.length > 0 && (
+                <Button asChild>
+                    <Link href={`/management/customers/bulk-edit?ids=${selectedCustomerIds.join(',')}`}>
+                        <FilePen className="mr-2 h-4 w-4" />
+                        Modifier la sélection ({selectedCustomerIds.length})
+                    </Link>
+                </Button>
+            )}
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -222,6 +248,12 @@ function CustomersPageContent() {
               <Table>
                   <TableHeader>
                       <TableRow>
+                          <TableHead className="w-12">
+                              <Checkbox
+                                checked={selectedCustomerIds.length === paginatedCustomers.length && paginatedCustomers.length > 0}
+                                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                              />
+                          </TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                           <TableHead>Nom</TableHead>
                           <TableHead>Email</TableHead>
@@ -234,16 +266,22 @@ function CustomersPageContent() {
                         <>
                           {Array.from({ length: 5 }).map((_, i) => (
                               <TableRow key={i}>
-                                  <TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell>
+                                  <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
                               </TableRow>
                           ))}
                         </>
                       ) : paginatedCustomers.length > 0 ? (
                         paginatedCustomers.map(customer => (
                           <React.Fragment key={customer.id}>
-                              <TableRow className={cn("hover:bg-muted/50 cursor-pointer", customer.isDisabled && "bg-muted/50 text-muted-foreground")} onClick={() => toggleCollapsible(customer.id)}>
+                              <TableRow className={cn("hover:bg-muted/50", customer.isDisabled && "bg-muted/50 text-muted-foreground", selectedCustomerIds.includes(customer.id) && "bg-blue-50 dark:bg-blue-900/30")}>
+                                  <TableCell>
+                                      <Checkbox
+                                        checked={selectedCustomerIds.includes(customer.id)}
+                                        onCheckedChange={(checked) => handleSelectItem(customer.id, checked as boolean)}
+                                      />
+                                  </TableCell>
                                   <TableCell className="w-[50px]">
-                                      <Button variant="ghost" size="icon">
+                                      <Button variant="ghost" size="icon" onClick={() => toggleCollapsible(customer.id)}>
                                           {openCollapsibles[customer.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                       </Button>
                                   </TableCell>
@@ -264,7 +302,7 @@ function CustomersPageContent() {
                               </TableRow>
                               {openCollapsibles[customer.id] && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="p-0">
+                                    <TableCell colSpan={6} className="p-0">
                                       <div className="bg-secondary/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                          <div className="space-y-4">
                                             <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
@@ -293,7 +331,7 @@ function CustomersPageContent() {
                         ))
                       ) : (
                          <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24">Aucun client trouvé pour ces filtres.</TableCell>
+                            <TableCell colSpan={6} className="text-center h-24">Aucun client trouvé pour ces filtres.</TableCell>
                         </TableRow>
                       )}
                   </TableBody>
