@@ -53,6 +53,10 @@ export default function FirestoreDataPage() {
       requirePinForAdmin,
       setRequirePinForAdmin,
       generateRandomSales,
+      customers,
+      items,
+      users,
+      paymentMethods
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -64,6 +68,22 @@ export default function FirestoreDataPage() {
   const [pin, setPin] = useState('');
   const { toast } = useToast();
   const router = useRouter();
+
+  const canGenerateSales = useMemo(() => {
+    return (customers?.length || 0) > 0 && 
+           (items?.length || 0) > 0 && 
+           (users?.length || 0) > 0 && 
+           (paymentMethods?.length || 0) > 0;
+  }, [customers, items, users, paymentMethods]);
+
+  const missingDataForGeneration = useMemo(() => {
+    const missing = [];
+    if (!customers?.length) missing.push('clients');
+    if (!items?.length) missing.push('articles');
+    if (!users?.length) missing.push('utilisateurs');
+    if (!paymentMethods?.length) missing.push('moyens de paiement');
+    return missing.join(', ');
+  }, [customers, items, users, paymentMethods]);
 
 
   useEffect(() => {
@@ -164,7 +184,6 @@ export default function FirestoreDataPage() {
       if (ftpResult.success) {
         toast({ title: 'Exportation FTP réussie', description: 'Le fichier de configuration a été envoyé.' });
 
-        // Send email notification only if SMTP is fully configured
         const isSmtpConfigured = smtpConfig?.host && smtpConfig?.port && smtpConfig?.user && smtpConfig?.password && smtpConfig?.senderEmail;
 
         if (isSmtpConfigured) {
@@ -340,7 +359,7 @@ export default function FirestoreDataPage() {
                           </Button>
                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="bg-destructive/80 hover:bg-destructive">
+                                    <Button variant="destructive" className="bg-destructive/80 hover:bg-destructive" disabled={!canGenerateSales}>
                                         <TestTube2 className="mr-2 h-4 w-4" />
                                         Générer 100 pièces aléatoires
                                     </Button>
@@ -360,6 +379,11 @@ export default function FirestoreDataPage() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
+                             {!canGenerateSales && (
+                                <p className="text-sm text-muted-foreground">
+                                    (Données manquantes pour la génération : {missingDataForGeneration})
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
