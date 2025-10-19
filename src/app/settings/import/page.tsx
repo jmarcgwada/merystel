@@ -450,9 +450,9 @@ export default function ImportDataPage() {
                         </CardHeader>
                         <CardContent>
                           <ScrollArea className="h-[400px] border rounded-md">
-                            <Table>
+                            <Table className="relative">
                                 {headerRow.length > 0 && (
-                                  <TableHeader className="sticky top-0 bg-background">
+                                  <TableHeader className="sticky top-0 bg-background z-10">
                                     <TableRow>
                                       {headerRow.map((header, index) => (
                                         <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
