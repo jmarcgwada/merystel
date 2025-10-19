@@ -251,6 +251,8 @@ export interface User {
   sessionToken?: string;
   isDisabled?: boolean;
   sessionDuration?: number; // in minutes, 0 for unlimited
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }
 
 export interface AuditLog {

@@ -37,6 +37,8 @@ import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader a
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
 const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
+const saleFields: string[] = ['ignore', 'ticketNumber', 'date', 'customerCode', 'itemBarcode', 'quantity', 'unitPrice'];
+
 
 const fieldLabels: Record<string, string> = {
   ignore: 'Ignorer cette colonne',
@@ -66,12 +68,19 @@ const fieldLabels: Record<string, string> = {
   siret: 'SIRET',
   website: 'Site Web',
   bic: 'BIC / SWIFT',
+  ticketNumber: 'Numéro de pièce *',
+  date: 'Date (YYYY-MM-DD HH:mm)',
+  customerCode: 'Code Client',
+  itemBarcode: "Code-barres de l'article *",
+  quantity: 'Quantité *',
+  unitPrice: 'Prix de vente unitaire TTC *',
 };
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
+    ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPrice'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -222,6 +231,7 @@ export default function ImportDataPage() {
         case 'clients': return customerFields;
         case 'articles': return itemFields;
         case 'fournisseurs': return supplierFields;
+        case 'ventes': return saleFields;
         default: return [];
     }
   };
@@ -253,22 +263,22 @@ export default function ImportDataPage() {
         availableFields.forEach(fieldName => {
           if(fieldName === 'ignore') return;
 
-          const mode = mappingModes[fieldName] || 'column';
+          const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
-              let value = fixedValues[fieldName] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
+              let value = fixedValues[fieldName as string] || '';
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
-              } else if (['isDisabled'].includes(fieldName)) {
+              } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
               }
               obj[fieldName] = value;
           } else {
-              const columnIndex = mappings[fieldName];
+              const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold'].includes(fieldName)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
-                  } else if (['isDisabled'].includes(fieldName)) {
+                  } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
                   }
                   obj[fieldName] = value;
@@ -383,6 +393,7 @@ export default function ImportDataPage() {
                             <SelectItem value="clients">Clients</SelectItem>
                             <SelectItem value="articles">Articles</SelectItem>
                             <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
+                            <SelectItem value="ventes">Pièces de Vente</SelectItem>
                         </SelectContent>
                         </Select>
                     </div>
@@ -557,7 +568,7 @@ export default function ImportDataPage() {
                                     value={String(mappings[field as string] ?? 'ignore')}
                                     onValueChange={(value) => setMappings(prev => ({
                                       ...prev, 
-                                      [field]: value === 'ignore' ? null : Number(value)
+                                      [field as string]: value === 'ignore' ? null : Number(value)
                                     }))}
                                   >
                                       <SelectTrigger>
@@ -613,7 +624,7 @@ export default function ImportDataPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Vérification des doublons</AlertTitle>
                         <p>
-                            Le système vérifiera les doublons pour les champs obligatoires (Code Client, Code Fournisseur, Code-barres article). Les lignes avec des identifiants déjà existants seront ignorées.
+                            Le système vérifiera les doublons pour les champs obligatoires (Code Client, Code Fournisseur, Code-barres article, Numéro de pièce). Les lignes avec des identifiants déjà existants seront ignorées.
                         </p>
                     </Alert>
                     <div className="mb-4 space-y-2">
@@ -655,7 +666,7 @@ export default function ImportDataPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Attention</AlertTitle>
               <p>
-                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur, Code-barres article) n'existent pas déjà.
+                  Veuillez vous assurer que les identifiants (Code Client, Code Fournisseur, Code-barres article, Numéro de pièce) n'existent pas déjà.
                   Les doublons provoqueront des erreurs.
               </p>
             </Alert>
