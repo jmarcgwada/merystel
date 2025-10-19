@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useEffect }from 'react';
+import { useState, useEffect, useCallback }from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -146,7 +147,7 @@ export default function LoginPage() {
     */
   };
   
-  const generateDynamicPin = () => {
+  const generateDynamicPin = useCallback(() => {
     const now = new Date();
     const month = (now.getMonth() + 1);
     const day = now.getDate();
@@ -156,9 +157,9 @@ export default function LoginPage() {
     const difference = Math.abs(day - month).toString();
 
     return `${monthStr}${dayStr}${difference}`;
-  };
+  }, []);
 
-  const handlePinSubmit = async (e?: React.FormEvent) => {
+  const handlePinSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (pin === generateDynamicPin()) {
         setShowPinDialog(false);
@@ -172,9 +173,15 @@ export default function LoginPage() {
             variant: 'destructive',
             title: 'Code PIN incorrect',
         });
+        setPin('');
     }
-    setPin('');
-  }
+  }, [pin, generateDynamicPin, loginCredentials, toast]);
+
+    useEffect(() => {
+        if (pin.length === 6) {
+            handlePinSubmit();
+        }
+    }, [pin, handlePinSubmit]);
 
   const handlePinKeyPress = (key: string) => {
     if (pin.length < 6) {
@@ -366,7 +373,7 @@ export default function LoginPage() {
                 <div className="py-4 space-y-4">
                     <div className="flex justify-center items-center h-12 bg-muted rounded-md border">
                         <p className="text-3xl font-mono tracking-[0.5em]">
-                        {pin.split('').map(() => '•').join('')}
+                        {pin.padEnd(6, '•').substring(0, 6)}
                         </p>
                     </div>
                     <div className="grid grid-cols-3 gap-2">

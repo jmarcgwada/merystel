@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -122,6 +123,12 @@ export default function FirestoreDataPage() {
     }
   }, [pin, generateDynamicPin, router, toast]);
 
+    useEffect(() => {
+        if (pin.length === 6) {
+            handlePinSubmit();
+        }
+    }, [pin, handlePinSubmit]);
+
   const handleCancelPin = () => {
       setPinDialogOpen(false);
       router.push('/settings');
@@ -241,7 +248,7 @@ export default function FirestoreDataPage() {
                     <div className="py-4 space-y-4">
                        <div className="flex justify-center items-center h-12 bg-muted rounded-md border">
                           <p className="text-3xl font-mono tracking-[0.5em]">
-                            {pin.split('').map(() => '•').join('')}
+                            {pin.padEnd(6, '•').substring(0, 6)}
                           </p>
                        </div>
                        <div className="grid grid-cols-3 gap-2">
