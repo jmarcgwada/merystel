@@ -35,7 +35,7 @@ import { AddSupplierDialog } from '@/app/management/suppliers/components/add-sup
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined | string; formatString: string }) => {
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
     if (date) {
@@ -291,6 +291,7 @@ function ItemForm() {
 
     const submissionData: Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
         ...data,
+        supplierId: data.supplierId === 'none' ? undefined : data.supplierId,
         variantOptions: data.variantOptions?.map(opt => ({
             name: opt.name,
             values: opt.values.map(val => val.value)
@@ -602,14 +603,14 @@ function ItemForm() {
                                         <FormItem>
                                         <FormLabel>Fournisseur</FormLabel>
                                         <div className="flex items-center gap-2">
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || 'none'}>
                                                 <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Sélectionnez un fournisseur" />
                                                 </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">Aucun</SelectItem>
+                                                    <SelectItem value="none">Aucun</SelectItem>
                                                     {suppliers && suppliers.map((sup) => (
                                                         <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
                                                     ))}
