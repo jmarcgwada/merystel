@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, Suspense } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -38,10 +38,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 
 
-type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
+type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId';
 
 function ItemsPageContent() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
+  const { items, categories, suppliers, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
@@ -93,6 +93,7 @@ function ItemsPageContent() {
                 name: true,
                 barcode: true,
                 category: true,
+                supplier: true,
                 stock: true,
                 purchasePrice: false,
                 price: true,
@@ -111,6 +112,7 @@ function ItemsPageContent() {
         { id: 'name', label: 'Nom' },
         { id: 'barcode', label: 'Référence' },
         { id: 'category', label: 'Catégorie' },
+        { id: 'supplier', label: 'Fournisseur' },
         { id: 'stock', label: 'Stock' },
         { id: 'purchasePrice', label: 'Prix Achat' },
         { id: 'price', label: 'Prix Vente' },
@@ -119,6 +121,11 @@ function ItemsPageContent() {
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
+  }
+
+  const getSupplierName = (supplierId?: string) => {
+    if(!supplierId) return 'N/A';
+    return suppliers?.find(s => s.id === supplierId)?.name || 'N/A';
   }
 
   const sortedAndFilteredItems = useMemo(() => {
@@ -142,7 +149,11 @@ function ItemsPageContent() {
             if(sortConfig.key === 'categoryId') {
                 aValue = getCategoryName(a.categoryId);
                 bValue = getCategoryName(b.categoryId);
-            } else {
+            } else if (sortConfig.key === 'supplierId') {
+                aValue = getSupplierName(a.supplierId);
+                bValue = getSupplierName(b.supplierId);
+            }
+            else {
                 aValue = a[sortConfig.key as keyof Item] ?? 0;
                 bValue = b[sortConfig.key as keyof Item] ?? 0;
             }
@@ -161,7 +172,7 @@ function ItemsPageContent() {
     }
 
     return filtered;
-  }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, sortConfig, categories]);
+  }, [items, filterName, filterCategoryName, filterVatId, filterRequiresSerialNumber, filterHasVariants, filterIsDisabled, sortConfig, categories, suppliers]);
 
   const totalPages = Math.ceil(sortedAndFilteredItems.length / itemsPerPage);
 
@@ -461,6 +472,11 @@ function ItemsPageContent() {
                           Catégorie {getSortIcon('categoryId')}
                       </Button>
                     </TableHead>}
+                    {visibleColumns.supplier && <TableHead>
+                      <Button variant="ghost" onClick={() => requestSort('supplierId')}>
+                          Fournisseur {getSortIcon('supplierId')}
+                      </Button>
+                    </TableHead>}
                      {visibleColumns.stock && <TableHead className="text-center">
                         <Button variant="ghost" onClick={() => requestSort('stock')}>
                             Stock {getSortIcon('stock')}
@@ -509,6 +525,9 @@ function ItemsPageContent() {
                       {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                       {visibleColumns.category && <TableCell>
                           <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
+                      </TableCell>}
+                       {visibleColumns.supplier && <TableCell>
+                          <Badge variant="outline" className="flex items-center gap-1.5"><Truck className="h-3 w-3"/>{getSupplierName(item.supplierId)}</Badge>
                       </TableCell>}
                       {visibleColumns.stock && <TableCell className="text-center">
                           <StockBadge item={item} />
@@ -559,3 +578,4 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
+
