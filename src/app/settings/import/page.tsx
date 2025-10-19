@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -453,7 +452,7 @@ export default function ImportDataPage() {
                           <ScrollArea className="h-[400px] border rounded-md">
                             <Table>
                                 {headerRow.length > 0 && (
-                                  <TableHeader>
+                                  <TableHeader className="sticky top-0 bg-background">
                                     <TableRow>
                                       {headerRow.map((header, index) => (
                                         <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
@@ -677,4 +676,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-
