@@ -573,107 +573,115 @@ export default function AnalyticsPage() {
             </CollapsibleContent>
           </Card>
         </Collapsible>
-
-        <div className="grid lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-1">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <CardTitle>Top {topArticles} Articles</CardTitle>
-                        {selectedTopItems.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
-                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                            </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-10"></TableHead>
-                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}>
-                                <TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell>
-                                <TableCell>{i.name}</TableCell>
-                                <TableCell className="text-right">{i.quantity}</TableCell>
-                                <TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell>
-                            </TableRow>)}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-            <Card className="lg:col-span-1">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                         <CardTitle>Top {topClients} Clients</CardTitle>
-                          {selectedTopCustomers.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
-                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                            </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-10"></TableHead>
-                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}>
-                                <TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)} /></TableCell>
-                                <TableCell>{c.name}</TableCell>
-                                <TableCell className="text-right">{c.visits}</TableCell>
-                                <TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell>
-                                <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
-                            </TableRow>)}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-             <Card className="lg:col-span-1">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                         <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
-                          {selectedTopCategories.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
-                                <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                            </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-10"></TableHead>
-                                <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCategories')}>Catégorie {getSortIcon('name', 'topCategories')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topCategories')}>Quantité {getSortIcon('quantity', 'topCategories')}</Button></TableHead>
-                                <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCategories')}>Revenu {getSortIcon('revenue', 'topCategories')}</Button></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedTopCategories.map((c, index) => <TableRow key={`${c.name}-${index}`}>
-                                <TableCell><Checkbox checked={selectedTopCategories.includes(c.name)} onCheckedChange={(checked) => handleTopCategorySelect(c.name, !!checked)}/></TableCell>
-                                <TableCell>{c.name}</TableCell>
-                                <TableCell className="text-right">{c.quantity}</TableCell>
-                                <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
-                            </TableRow>)}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+        
+        <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen}>
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
+                    Sections "Top"
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="grid lg:grid-cols-3 gap-4 pt-2">
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Top {topArticles} Articles</CardTitle>
+                            {selectedTopItems.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
+                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-10"></TableHead>
+                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}>
+                                    <TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell>
+                                    <TableCell>{i.name}</TableCell>
+                                    <TableCell className="text-right">{i.quantity}</TableCell>
+                                    <TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell>
+                                </TableRow>)}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Top {topClients} Clients</CardTitle>
+                            {selectedTopCustomers.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
+                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-10"></TableHead>
+                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                    <TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)} /></TableCell>
+                                    <TableCell>{c.name}</TableCell>
+                                    <TableCell className="text-right">{c.visits}</TableCell>
+                                    <TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell>
+                                    <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                                </TableRow>)}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
+                            {selectedTopCategories.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
+                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-10"></TableHead>
+                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCategories')}>Catégorie {getSortIcon('name', 'topCategories')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topCategories')}>Quantité {getSortIcon('quantity', 'topCategories')}</Button></TableHead>
+                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCategories')}>Revenu {getSortIcon('revenue', 'topCategories')}</Button></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedTopCategories.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                    <TableCell><Checkbox checked={selectedTopCategories.includes(c.name)} onCheckedChange={(checked) => handleTopCategorySelect(c.name, !!checked)}/></TableCell>
+                                    <TableCell>{c.name}</TableCell>
+                                    <TableCell className="text-right">{c.quantity}</TableCell>
+                                    <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                                </TableRow>)}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </CollapsibleContent>
+        </Collapsible>
         
         <Card>
             <CardHeader>
