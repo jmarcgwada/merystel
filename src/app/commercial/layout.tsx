@@ -48,7 +48,7 @@ export default function CommercialLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { order, showNavConfirm, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity, commercialViewLevel, cycleCommercialViewLevel } = usePos();
+  const { order, showNavConfirm, currentSaleContext, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity, commercialViewLevel, cycleCommercialViewLevel } = usePos();
   const [isClient, setIsClient] = useState(false);
   const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
 
@@ -58,6 +58,7 @@ export default function CommercialLayout({
   
   const activeTab = navLinks.find(link => pathname.startsWith(link.href))?.value || 'invoices';
   const activeReportInfo = navLinks.find(link => link.value === activeTab);
+  const isReadOnly = currentSaleContext?.isReadOnly ?? false;
   const isCreditNotePage = activeTab === 'credit-notes';
   
   const backgroundColor = useMemo(() => {
@@ -81,7 +82,7 @@ export default function CommercialLayout({
 
 
   const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (order.length > 0 && !pathname.startsWith(href)) {
+    if (order.length > 0 && !isReadOnly && !pathname.startsWith(href)) {
       e.preventDefault();
       showNavConfirm(href);
       return;
@@ -95,7 +96,7 @@ export default function CommercialLayout({
 
   const handleBackToDashboard = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (order.length > 0) {
+    if (order.length > 0 && !isReadOnly) {
       showNavConfirm('/dashboard');
     } else {
       router.push('/dashboard');
@@ -103,7 +104,7 @@ export default function CommercialLayout({
   };
 
   const handleListClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (order.length > 0 && activeReportInfo) {
+    if (order.length > 0 && activeReportInfo && !isReadOnly) {
       e.preventDefault();
       showNavConfirm(`/reports?docType=${activeReportInfo.reportFilter}`);
     }
