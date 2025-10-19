@@ -201,6 +201,7 @@ export default function CategoriesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Article</TableHead>
+                  <TableHead>Catégorie</TableHead>
                   <TableHead className="text-right">Prix</TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,12 +210,15 @@ export default function CategoriesPage() {
                   selectedCategoryItems.map(item => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{selectedCategoryName}</Badge>
+                      </TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       Aucun article dans cette catégorie.
                     </TableCell>
                   </TableRow>
