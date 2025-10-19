@@ -139,7 +139,7 @@ export interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id: string}) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id?: string}) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -296,7 +296,7 @@ export interface PosContextType {
   creditNoteBgColor: string;
   setCreditNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
   creditNoteBgOpacity: number;
-  setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<string>>;
   commercialViewLevel: number;
   cycleCommercialViewLevel: () => void;
   companyInfo: CompanyInfo | null;
@@ -1315,8 +1315,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
   }, [setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id: string}) => {
-    if (suppliers.some(s => s.id === supplier.id)) {
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id?: string}) => {
+    if (supplier.id && suppliers.some(s => s.id === supplier.id)) {
         throw new Error('Un fournisseur avec ce code existe déjà.');
     }
     const newSupplier = { ...supplier, id: supplier.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
@@ -1417,67 +1417,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     switch (dataType) {
         case 'clients':
-            const existingCustomerIds = new Set(customers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : ID Client manquant. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
-                if (!data.name) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
-                if (existingCustomerIds.has(data.id)) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : Le client avec l'ID ${data.id} existe déjà. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
+                if (!data.id) { continue; }
+                if (!data.name) { errorCount++; errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`); continue; }
+                if (customers.some(c => c.id === data.id)) { errorCount++; errors.push(`Ligne ignorée : Le client avec l'ID ${data.id} existe déjà.`); continue; }
                 await addCustomer(data);
                 successCount++;
             }
             break;
         case 'articles':
-            const existingBarcodes = new Set(items.map(i => i.barcode));
             for (const data of jsonData) {
-                 if (!data.barcode) {
-                     errorCount++;
-                     errors.push(`Ligne ignorée : Le code-barres est requis. Ligne : ${JSON.stringify(data)}`);
-                     continue;
-                 }
-                 if (!data.name || !data.price || !data.vatId) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
-                if (existingBarcodes.has(data.barcode)) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : L'article avec le code-barres ${data.barcode} existe déjà. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
+                 if (!data.barcode) { continue; }
+                 if (!data.name || !data.price || !data.vatId) { errorCount++; errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`); continue; }
+                if (items.some(i => i.barcode === data.barcode)) { errorCount++; errors.push(`Ligne ignorée : L'article avec le code-barres ${data.barcode} existe déjà.`); continue; }
                 await addItem(data);
                 successCount++;
             }
             break;
          case 'fournisseurs':
-            const existingSupplierIds = new Set(suppliers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : ID Fournisseur manquant. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
-                if (!data.name) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
-                if (existingSupplierIds.has(data.id)) {
-                    errorCount++;
-                    errors.push(`Ligne ignorée : Le fournisseur avec l'ID ${data.id} existe déjà. Ligne : ${JSON.stringify(data)}`);
-                    continue;
-                }
+                if (!data.id) { continue; }
+                if (!data.name) { errorCount++; errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`); continue; }
+                if (suppliers.some(s => s.id === data.id)) { errorCount++; errors.push(`Ligne ignorée : Le fournisseur avec l'ID ${data.id} existe déjà.`); continue; }
                 await addSupplier(data);
                 successCount++;
             }
@@ -1514,7 +1475,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 // Item handling
                 let item = items.find(i => i.barcode === row.itemBarcode) || newItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
-                    const vatRate = vatRates.find(v => v.rate === parseFloat(row.vatRate));
+                    const vatValue = parseFloat(row.vatRate);
+                    const vatRate = vatRates.find(v => v.rate === vatValue || v.code === vatValue);
                     const category = categories.find(c => c.name === row.itemCategory);
                     
                     if (vatRate) {
@@ -1531,7 +1493,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
         
                 if (!item) {
-                     errors.push(`Ligne ${index + 1} (Pièce ${row.ticketNumber}): Article ${row.itemBarcode} introuvable et non créé.`);
+                     errors.push(`Ligne ${index + 1} (Pièce ${row.ticketNumber}): Article introuvable et non créé.`);
                      errorCount++;
                      continue;
                 }
@@ -1593,8 +1555,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
             for (const [index, row] of jsonData.entries()) {
                 if (!row.ticketNumber) {
-                    if (lastSale && row.itemName) {
-                        lastSale.notes = (lastSale.notes ? lastSale.notes + '\n' : '') + row.itemName;
+                    if (lastSale) {
+                        lastSale.notes = (lastSale.notes ? lastSale.notes + '\n' : '') + (row.itemName || '');
                     }
                     continue;
                 }
@@ -1676,7 +1638,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     toast({
         title: "Rapport d'importation",
-        description: `${successCount} ${dataType} importés, ${errorCount} erreurs.`,
+        description: `${successCount} lignes importées, ${errorCount} erreurs.`,
     });
     
     return { successCount, errorCount, errors };
@@ -2012,3 +1974,4 @@ export function usePos() {
   }
   return context;
 }
+
