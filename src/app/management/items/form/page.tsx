@@ -35,12 +35,22 @@ import { AddSupplierDialog } from '@/app/management/suppliers/components/add-sup
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined; formatString: string }) => {
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined | string; formatString: string }) => {
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
     if (date) {
-      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
-      setFormatted(format(jsDate, formatString, { locale: fr }));
+      let jsDate: Date;
+      if (date instanceof Date) {
+        jsDate = date;
+      } else if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') {
+        jsDate = (date as Timestamp).toDate();
+      } else {
+        jsDate = new Date(date as any);
+      }
+      
+      if (!isNaN(jsDate.getTime())) {
+        setFormatted(format(jsDate, formatString, { locale: fr }));
+      }
     }
   }, [date, formatString]);
   return <>{formatted}</>;
@@ -305,7 +315,7 @@ function ItemForm() {
       }
 
     } else {
-      const newItem = await addItem({ ...submissionData, createdAt: new Date() });
+      const newItem = await addItem({ ...submissionData, createdAt: new Date() } as Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & {barcode: string});
       toast({ title: 'Article créé', description: `L'article "${data.name}" a été ajouté.` });
 
       if (redirectUrlParam && newItem?.id) {
