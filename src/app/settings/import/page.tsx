@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader as ReportDialogHeader, DialogTitle as ReportDialogTitle, DialogDescription as ReportDialogDescription, DialogContent as ReportDialogContent } from '@/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -583,6 +584,29 @@ export default function ImportDataPage() {
                             </Popover>
                         )}
                     </div>
+
+                    {dataType === 'ventes' && (
+                        <Accordion type="single" collapsible className="mb-6">
+                            <AccordionItem value="help">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2 text-sm text-primary">
+                                <HelpCircle className="h-4 w-4" />
+                                Aide pour l'importation des ventes
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="prose prose-sm max-w-none text-muted-foreground p-4 bg-muted/50 rounded-md">
+                                <p>L'importation des ventes se fait ligne par ligne, où chaque ligne de votre fichier CSV représente une ligne d'article dans une pièce (facture, ticket...).</p>
+                                <ul>
+                                    <li>Utilisez le champ <strong>Numéro de pièce</strong> pour regrouper les lignes d'articles appartenant à la même transaction.</li>
+                                    <li>Les champs obligatoires sont marqués d'un astérisque (*). Assurez-vous qu'ils sont bien mappés.</li>
+                                    <li>Pour les paiements, vous pouvez utiliser une ou plusieurs colonnes (ex: `paymentCash`, `paymentCard`). Le système additionnera les montants pour obtenir le paiement total.</li>
+                                </ul>
+                                </div>
+                            </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    )}
 
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
                     <div className="space-y-4 pr-6">
