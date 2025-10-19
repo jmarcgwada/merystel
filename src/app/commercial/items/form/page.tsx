@@ -20,7 +20,7 @@ import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
 import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock, Truck } from 'lucide-react';
-import type { Item, Category, Timestamp } from '@/lib/types';
+import type { Item, Category, Timestamp, Supplier } from '@/lib/types';
 import Link from 'next/link';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { AddCategoryDialog } from '@/app/management/categories/components/add-category-dialog';
+import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -89,6 +90,7 @@ function ItemForm() {
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
 
 
   const itemId = searchParams.get('id');
@@ -555,56 +557,63 @@ function ItemForm() {
                                 />
                             </div>
                            
-                             <FormField
-                                control={form.control}
-                                name="categoryId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Catégorie</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez une catégorie" />
-                                            </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                            {categories && categories.map((cat) => (
-                                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                            ))}
-                                            </SelectContent>
-                                        </Select>
-                                         <Button variant="outline" size="icon" type="button" onClick={() => setAddCategoryOpen(true)}>
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                            <FormField
-                                control={form.control}
-                                name="supplierId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Fournisseur</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Sélectionnez un fournisseur" />
-                                            </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="">Aucun</SelectItem>
-                                                {suppliers && suppliers.map((sup) => (
-                                                    <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="categoryId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Catégorie</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sélectionnez une catégorie" />
+                                                </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                {categories && categories.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                                 ))}
-                                            </SelectContent>
-                                        </Select>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button variant="outline" size="icon" type="button" onClick={() => setAddCategoryOpen(true)}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="supplierId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Fournisseur</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sélectionnez un fournisseur" />
+                                                </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="">Aucun</SelectItem>
+                                                    {suppliers && suppliers.map((sup) => (
+                                                        <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button variant="outline" size="icon" type="button" onClick={() => setAddSupplierOpen(true)}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -994,6 +1003,15 @@ function ItemForm() {
         onCategoryAdded={(newCategory) => {
             if(newCategory?.id) {
                 setValue('categoryId', newCategory.id);
+            }
+        }}
+    />
+     <AddSupplierDialog 
+        isOpen={isAddSupplierOpen} 
+        onClose={() => setAddSupplierOpen(false)} 
+        onSupplierAdded={(newSupplier) => {
+            if(newSupplier?.id) {
+                setValue('supplierId', newSupplier.id);
             }
         }}
     />
