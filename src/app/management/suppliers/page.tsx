@@ -27,9 +27,6 @@ import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from './components/add-supplier-dialog';
 import { EditSupplierDialog } from './components/edit-supplier-dialog';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 import Link from 'next/link';
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
@@ -47,15 +44,10 @@ const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: st
 }
 
 export default function SuppliersPage() {
-  const firestore = useFirestore();
   const { user } = useUser();
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
   const [isEditSupplierOpen, setEditSupplierOpen] = useState(false);
-  const { deleteSupplier, isLoading: isPosLoading, itemsPerPage } = usePos();
-
-  const suppliersCollectionRef = useMemoFirebase(() => user ? collection(firestore, 'companies', 'main', 'suppliers') : null, [firestore, user]);
-  const { data: suppliers, isLoading: isSuppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
-  const isLoading = isPosLoading || isSuppliersLoading;
+  const { suppliers, deleteSupplier, isLoading, itemsPerPage } = usePos();
   
   const isCashier = user?.role === 'cashier';
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
