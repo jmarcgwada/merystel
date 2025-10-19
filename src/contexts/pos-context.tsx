@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -1119,11 +1120,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
            setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
            if (!isEqual(sales.find(s=>s.id === saleIdToUpdate)?.items, finalSale.items)) {
-             addAuditLog({ action: 'update', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Mise à jour de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
+             addAuditLog({ action: 'update', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Mise à jour de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalSale.items } });
            }
         } else {
            setSales(prev => [finalSale, ...prev]);
-           addAuditLog({ action: 'create', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Création de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalSale.items, payments: finalSale.payments } });
+           addAuditLog({ action: 'create', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: 'Création de la pièce', userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System' });
         }
 
         if(sendEmailOnSale && smtpConfig?.senderEmail) {
@@ -1160,7 +1161,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...docData,
                 modifiedAt: today,
             };
-            addAuditLog({ action: 'update', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Mise à jour de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', richDetails: { items: finalDoc.items } });
+            addAuditLog({ action: 'update', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Mise à jour de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System' });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
              const count = sales.filter(s => s.documentType === type).length;
@@ -1186,6 +1187,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
+        if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+            toast({ variant: 'destructive', title: 'Email déjà utilisé', description: "Cette adresse e-mail est déjà associée à un compte." });
+            throw new Error("Email in use");
+        }
         const newUser: User = {
             id: uuidv4(),
             companyId: SHARED_COMPANY_ID,
@@ -1195,7 +1200,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setUsers(prev => [...prev, newUser]);
         toast({ title: 'Utilisateur créé avec succès' });
         return newUser;
-    }, [setUsers, toast]);
+    }, [setUsers, toast, users]);
 
     const updateUser = useCallback((userData: User) => {
         const updatedUser = { ...userData, updatedAt: new Date() };
@@ -1405,7 +1410,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
-    let lastProcessedTicketNumber: string | null = null;
     const salesMap = new Map<string, Sale>();
     
     const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
@@ -1517,7 +1521,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 
                 ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
                     if (row[pmtKey] > 0) {
-                        const method = paymentMethods.find(m => m.name.toLowerCase().includes(pmtKey.replace('payment','').toLowerCase()));
+                        const methodName = pmtKey.replace('payment','');
+                        const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
                         if (method) {
                             sale!.payments.push({ method, amount: row[pmtKey], date: sale!.date });
                         }
@@ -1549,11 +1554,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
         case 'ventes':
+            let lastTicketNumber: string | null = null;
             for (const [index, row] of limitedJsonData.entries()) {
                 const currentTicketNumber = row.ticketNumber;
 
-                if (!currentTicketNumber && lastProcessedTicketNumber) {
-                    let saleToUpdate = salesMap.get(lastProcessedTicketNumber);
+                if (!currentTicketNumber && lastTicketNumber) {
+                    let saleToUpdate = salesMap.get(lastTicketNumber);
                     if (saleToUpdate) {
                          let lastItem = saleToUpdate.items[saleToUpdate.items.length - 1];
                          if (lastItem) {
@@ -1614,7 +1620,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 };
                 sale.items.push(orderItem);
                 salesMap.set(currentTicketNumber, sale);
-                lastProcessedTicketNumber = currentTicketNumber;
+                lastTicketNumber = currentTicketNumber;
                 lastProcessedItem = orderItem;
             }
             
