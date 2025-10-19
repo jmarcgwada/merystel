@@ -32,12 +32,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock';
 
 export default function ItemsPage() {
-  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage } = usePos();
+  const { items, categories, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
   const router = useRouter();
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -59,6 +62,11 @@ export default function ItemsPage() {
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
+
+  useEffect(() => {
+    setItemsPerPageState(itemsPerPage);
+  }, [itemsPerPage]);
 
    useEffect(() => {
         const storedColumns = localStorage.getItem('itemsVisibleColumns');
@@ -288,7 +296,7 @@ export default function ItemsPage() {
                                 <TooltipTrigger asChild>
                                   <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                          <Button variant="outline" size="icon">
+                                          <Button variant="outline" size="icon" className="h-9 w-9">
                                               <Columns className="h-4 w-4" />
                                           </Button>
                                       </DropdownMenuTrigger>
@@ -323,7 +331,7 @@ export default function ItemsPage() {
                             </Select>
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={resetFilters}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters}><X className="h-4 w-4" /></Button></TooltipTrigger>
                                 <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -331,9 +339,30 @@ export default function ItemsPage() {
                                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <div className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[70px] text-center px-1">
-                                    Page {currentPage} / {totalPages || 1}
-                                </div>
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                            Page {currentPage} / {totalPages || 1}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-48 p-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                            <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                <span>{itemsPerPageState}</span>
+                                            </div>
+                                            <Slider
+                                                id="items-per-page-slider"
+                                                value={[itemsPerPageState]}
+                                                onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                min={5}
+                                                max={sortedAndFilteredItems.length}
+                                                step={5}
+                                            />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
@@ -511,3 +540,4 @@ export default function ItemsPage() {
   );
 }
 
+    
