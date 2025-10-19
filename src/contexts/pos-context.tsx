@@ -593,7 +593,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
   }, [setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'> & {id?: string}) => {
     if (supplier.id && suppliers.some(s => s.id === supplier.id)) {
         throw new Error('Un fournisseur avec ce code existe déjà.');
     }
@@ -645,33 +645,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     let currentItems = [...items];
     let currentCategories = [...categories];
+    let currentCustomers = [...customers];
+    let currentSuppliers = [...suppliers];
 
     const operations: { [key: string]: (data: any) => Promise<any> } = {
-        clients: addCustomer,
+        clients: async (data: any) => {
+            if (data.id && currentCustomers.some(c => c.id === data.id)) {
+              throw new Error(`Le client avec le code "${data.id}" existe déjà.`);
+            }
+            const newCustomer = { ...data, id: data.id || `C${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+            currentCustomers.push(newCustomer);
+            return newCustomer;
+        },
         articles: async (data: any) => {
             if (!data.barcode) {
-              throw new Error('Code-barres manquant pour l\'article ' + data.name);
+              throw new Error(`Code-barres manquant pour l'article "${data.name}"`);
             }
             if (currentItems.some(i => i.barcode === data.barcode)) {
                 throw new Error(`Le code-barres "${data.barcode}" pour l'article "${data.name}" existe déjà.`);
             }
             
-            // Handle category
-            if (data.categoryId) { // categoryId from mapping is a category NAME
+            if (data.categoryId) {
                 let category = currentCategories.find(c => c.name.toLowerCase() === data.categoryId.toLowerCase());
                 if (!category) {
-                    // Create category if it doesn't exist
-                    const newCategory = await addCategory({
-                        name: data.categoryId,
-                        color: '#e2e8f0', // default color
-                        image: `https://picsum.photos/seed/${data.categoryId}/200/150`,
-                    });
-                    if (newCategory) {
-                        currentCategories.push(newCategory);
-                        category = newCategory;
-                    } else {
-                        throw new Error(`Impossible de créer la catégorie "${data.categoryId}"`);
-                    }
+                    const newCategoryData = { name: data.categoryId, code: `${data.categoryId.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`, color: '#e2e8f0', image: `https://picsum.photos/seed/${data.categoryId}/200/150`, createdAt: new Date() };
+                    const newCategory = { ...newCategoryData, id: uuidv4() };
+                    currentCategories.push(newCategory);
+                    category = newCategory;
                 }
                 data.categoryId = category.id;
             }
@@ -698,14 +698,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    // Update main states after the loop
     if (dataType === 'articles') {
         setItems(currentItems);
         setCategories(currentCategories);
     }
+    if (dataType === 'clients') {
+      setCustomers(currentCustomers);
+    }
 
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, items, categories, addCategory, setItems, setCategories]);
+  }, [addCustomer, addSupplier, items, categories, customers, suppliers, addCategory, setItems, setCategories, setCustomers]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     const dataSetters: Record<DeletableDataKeys, Function> = {
