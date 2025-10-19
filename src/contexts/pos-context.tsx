@@ -1106,15 +1106,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         // Handle invoice conversion: update original doc status
         if (currentSaleContext?.originalSaleId) {
-          addAuditLog({
-            action: 'transform',
-            documentId: finalSale.id,
-            documentNumber: finalSale.ticketNumber,
-            documentType: finalSale.documentType || 'unknown',
-            details: `Transformé depuis ${currentSaleContext.documentType} #${currentSaleContext.ticketNumber}`,
-            userId: user?.id || 'system',
-            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-          });
+          addAuditLog({ action: 'transform', documentId: finalSale.id, documentNumber: finalSale.ticketNumber, documentType: finalSale.documentType || 'unknown', details: `Transformé depuis ${currentSaleContext.documentType} #${currentSaleContext.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System', });
           setSales(currentSales =>
             currentSales.map(s =>
               s.id === currentSaleContext.originalSaleId
@@ -1413,10 +1405,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
-    let lastProcessedSale: Sale | null = null;
-
+    let lastProcessedTicketNumber: string | null = null;
+    const salesMap = new Map<string, Sale>();
+    
     const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
     const tempNewItems = new Map<string, Item>();
+    const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
 
     switch (dataType) {
         case 'clients':
@@ -1447,12 +1441,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
         case 'ventes_completes':
-            const salesMap = new Map<string, Sale>();
-            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-            const newCustomers = new Map<string, Customer>();
-        
             for (const [index, row] of limitedJsonData.entries()) {
-                 if (!row.ticketNumber && !row.itemBarcode) {
+                 if (!row.itemBarcode) {
                     if (lastProcessedItem) {
                         lastProcessedItem.note = (lastProcessedItem.note ? lastProcessedItem.note + '\n' : '') + (row.itemName || '');
                     }
@@ -1461,13 +1451,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
                 if (existingSaleNumbers.has(row.ticketNumber)) continue;
         
-                let customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName) || newCustomers.get(row.customerCode || row.customerName);
+                let customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
                 if (!customer && row.customerCode && row.customerName) {
-                    customer = await addCustomer({ 
+                    const newCustomer = await addCustomer({ 
                         id: row.customerCode, name: row.customerName, email: row.customerEmail, phone: row.customerPhone,
                         address: row.customerAddress, postalCode: row.customerPostalCode, city: row.customerCity
                     });
-                    if (customer) newCustomers.set(customer.id, customer);
+                    if (newCustomer) customer = newCustomer;
                 }
                 
                 let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
@@ -1477,12 +1467,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const category = categories.find(c => c.name === row.itemCategory);
                     
                     if (vatRate) {
-                        const newItem = await addItem({ 
+                        const newItemData = await addItem({ 
                             barcode: row.itemBarcode, name: row.itemName, price: row.unitPriceHT * (1 + vatRate.rate / 100), 
                             vatId: vatRate.id, categoryId: category?.id, purchasePrice: row.itemPurchasePrice
                         });
-                        if (newItem) {
-                            item = newItem;
+                        if (newItemData) {
+                            item = newItemData;
                             tempNewItems.set(item.barcode, item);
                         }
                     } else {
@@ -1559,38 +1549,41 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
         case 'ventes':
-            const salesToImport = new Map<string, Sale>();
-            const existingNumbers = new Set(sales.map(s => s.ticketNumber));
-            let lastSale: Sale | null = null;
-        
             for (const [index, row] of limitedJsonData.entries()) {
-                if (!row.ticketNumber) {
-                    if (lastSale) {
-                        lastSale.notes = (lastSale.notes ? lastSale.notes + '\n' : '') + (row.itemName || '');
+                const currentTicketNumber = row.ticketNumber;
+
+                if (!currentTicketNumber && lastProcessedTicketNumber) {
+                    let saleToUpdate = salesMap.get(lastProcessedTicketNumber);
+                    if (saleToUpdate) {
+                         let lastItem = saleToUpdate.items[saleToUpdate.items.length - 1];
+                         if (lastItem) {
+                            lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
+                         }
                     }
                     continue;
                 }
 
-                if (existingNumbers.has(row.ticketNumber)) {
+                if (!currentTicketNumber || existingSaleNumbers.has(currentTicketNumber)) {
+                    if(currentTicketNumber) errors.push(`Ligne ${index + 1}: La pièce N°${currentTicketNumber} existe déjà.`);
                     errorCount++;
-                    errors.push(`Ligne ${index + 1}: La pièce N°${row.ticketNumber} existe déjà.`);
                     continue;
                 }
                 
                 const item = items.find(i => i.barcode === row.itemBarcode);
                 if (!item) {
                      errorCount++;
-                     errors.push(`Ligne ${index + 1} (Pièce ${row.ticketNumber}): Article avec code-barres ${row.itemBarcode} introuvable.`);
+                     errors.push(`Ligne ${index + 1} (Pièce ${currentTicketNumber}): Article avec code-barres ${row.itemBarcode} introuvable.`);
                      continue;
                 }
 
-                let sale = salesToImport.get(row.ticketNumber);
+                let sale = salesMap.get(currentTicketNumber);
                 if (!sale) {
                     const customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
                     const seller = users.find(u => u.firstName + ' ' + u.lastName === row.sellerName);
+                    const docType = row.pieceName === 'Facture' ? 'invoice' : 'ticket';
                     sale = {
                         id: uuidv4(),
-                        ticketNumber: row.ticketNumber,
+                        ticketNumber: currentTicketNumber,
                         date: row.date ? new Date(row.date) : new Date(),
                         items: [],
                         subtotal: 0,
@@ -1601,7 +1594,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         customerId: customer?.id,
                         userId: seller?.id,
                         userName: row.sellerName,
-                        documentType: row.pieceName === 'Facture' ? 'invoice' : 'ticket',
+                        documentType: docType,
                     };
                 }
 
@@ -1620,11 +1613,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     discountPercent: row.discountPercentage
                 };
                 sale.items.push(orderItem);
-                salesToImport.set(row.ticketNumber, sale);
-                lastSale = sale;
+                salesMap.set(currentTicketNumber, sale);
+                lastProcessedTicketNumber = currentTicketNumber;
+                lastProcessedItem = orderItem;
             }
             
-            for (const sale of salesToImport.values()) {
+            for (const sale of salesMap.values()) {
                 const total = sale.items.reduce((acc, item) => acc + item.total, 0);
                 let totalTax = 0;
                 let totalSub = 0;
@@ -1652,7 +1646,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
     
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit]);
+  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     if (!customers?.length || !items?.length || !paymentMethods?.length) {
