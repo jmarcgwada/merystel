@@ -105,7 +105,7 @@ export default function ItemsPage() {
     if (!items || !categories) return [];
 
     let filtered = items.filter(item => {
-      const nameMatch = item.name.toLowerCase().includes(filterName.toLowerCase());
+      const nameOrBarcodeMatch = item.name.toLowerCase().includes(filterName.toLowerCase()) || (item.barcode && item.barcode.toLowerCase().includes(filterName.toLowerCase()));
       const categoryName = getCategoryName(item.categoryId).toLowerCase();
       const categoryMatch = categoryName.includes(filterCategoryName.toLowerCase());
       const vatMatch = filterVatId === 'all' || item.vatId === filterVatId;
@@ -113,7 +113,7 @@ export default function ItemsPage() {
       const variantsMatch = filterHasVariants === 'all' || (item.hasVariants ? 'yes' : 'no') === filterHasVariants;
       const disabledMatch = filterIsDisabled === 'all' || (item.isDisabled ? 'yes' : 'no') === filterIsDisabled;
       
-      return nameMatch && categoryMatch && vatMatch && serialMatch && variantsMatch && disabledMatch;
+      return nameOrBarcodeMatch && categoryMatch && vatMatch && serialMatch && variantsMatch && disabledMatch;
     });
 
     if (sortConfig !== null) {
@@ -297,9 +297,7 @@ export default function ItemsPage() {
                             </Select>
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={resetFilters}><X className="h-4 w-4" /></Button>
-                                </TooltipTrigger>
+                                <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={resetFilters}><X className="h-4 w-4" /></Button></TooltipTrigger>
                                 <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -320,7 +318,7 @@ export default function ItemsPage() {
                  <CollapsibleContent>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 pt-0">
                         <Input
-                            placeholder="Filtrer par nom..."
+                            placeholder="Filtrer par nom ou référence..."
                             value={filterName}
                             onChange={(e) => { setFilterName(e.target.value); setCurrentPage(1); }}
                             className="h-9"
@@ -473,3 +471,4 @@ export default function ItemsPage() {
     </>
   );
 }
+
