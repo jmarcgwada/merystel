@@ -139,7 +139,7 @@ export interface PosContextType {
   deleteCustomer: (customerId: string) => void;
   setDefaultCustomer: (customerId: string) => void;
   suppliers: Supplier[];
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'>) => Promise<Supplier | null>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id: string}) => Promise<Supplier | null>;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
@@ -491,50 +491,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       currentOrder.filter((item) => item.id !== itemId)
     );
   }, []);
-
-  const updateQuantity = useCallback(
-    (itemId: string, quantity: number) => {
-      const itemToUpdate = order.find((item) => item.id === itemId);
-      if (!itemToUpdate) return;
-      
-      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
-      if(!originalItem) return;
-
-      if (originalItem.requiresSerialNumber && enableSerialNumber) {
-        if (quantity <= 0) {
-          removeFromOrder(itemId);
-        } else {
-          setSerialNumberItem({ item: originalItem, quantity });
-        }
-        return;
-      }
-      
-      if (quantity <= 0) {
-        removeFromOrder(itemId);
-        return;
-      }
-      setOrder((currentOrder) =>
-        currentOrder.map((item) =>
-          item.id === itemId
-            ? {
-                ...item,
-                quantity,
-                total: item.price * quantity - (item.discount || 0),
-              }
-            : item
-        )
-      );
-    },
-    [order, removeFromOrder, enableSerialNumber, items]
-  );
   
-  const updateQuantityFromKeypad = useCallback(
-    (itemId: OrderItem['id'], quantity: number) => {
-      updateQuantity(itemId, quantity);
-    },
-    [updateQuantity]
-  );
-
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
     setNavConfirmOpen(true);
@@ -881,6 +838,49 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               : item
       ));
   }, []);
+
+  const updateQuantity = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      const itemToUpdate = order.find((item) => item.id === itemId);
+      if (!itemToUpdate) return;
+      
+      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
+      if(!originalItem) return;
+
+      if (originalItem.requiresSerialNumber && enableSerialNumber) {
+        if (quantity <= 0) {
+          removeFromOrder(itemId);
+        } else {
+          setSerialNumberItem({ item: itemToUpdate, quantity });
+        }
+        return;
+      }
+      
+      if (quantity <= 0) {
+        removeFromOrder(itemId);
+        return;
+      }
+      setOrder((currentOrder) =>
+        currentOrder.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                quantity,
+                total: item.price * quantity - (item.discount || 0),
+              }
+            : item
+        )
+      );
+    },
+    [order, removeFromOrder, enableSerialNumber, items]
+  );
+  
+  const updateQuantityFromKeypad = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      updateQuantity(itemId, quantity);
+    },
+    [updateQuantity]
+  );
 
    const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
     setOrder(currentOrder =>
@@ -1396,12 +1396,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
   }, [setCustomers]);
 
-  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'>) => {
-    const newSupplier = { ...supplier, id: `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'createdAt'> & {id: string}) => {
+    if (suppliers.some(s => s.id === supplier.id)) {
+        throw new Error('Un fournisseur avec ce code existe déjà.');
+    }
+    const newSupplier = { ...supplier, id: supplier.id || `S-${uuidv4().substring(0, 6)}`, createdAt: new Date() };
     setSuppliers(prev => [...prev, newSupplier]);
     return newSupplier;
-}, [setSuppliers]);
-
+  }, [suppliers, setSuppliers]);
   const updateSupplier = useCallback((supplier: Supplier) => {
       const updatedSupplier = { ...supplier, updatedAt: new Date() };
       setSuppliers(prev => prev.map(s => s.id === supplier.id ? updatedSupplier : s));
@@ -1638,21 +1640,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users]);
 
   const generateRandomSales = useCallback(async (count: number) => {
-    if (!customers?.length || !items?.length || !users?.length || !paymentMethods?.length) {
-        toast({ variant: 'destructive', title: 'Données insuffisantes', description: 'Assurez-vous d\'avoir des clients, articles, utilisateurs et moyens de paiement.' });
+    if (!customers?.length || !items?.length || !paymentMethods?.length) {
+        toast({ variant: 'destructive', title: 'Données insuffisantes', description: 'Assurez-vous d\'avoir des clients, articles et moyens de paiement.' });
         return;
     }
     
     toast({ title: `Génération de ${count} pièces en cours...` });
 
-    const newSales: Sale[] = [];
-    const existingSalesCount = sales.length;
+    // Use the specific user 'email@example.com'
     const demoUser = users.find(u => u.email === 'email@example.com');
     if (!demoUser) {
-        toast({ variant: 'destructive', title: 'Utilisateur de démo introuvable', description: 'Impossible de trouver l\'utilisateur de démo pour générer les ventes.' });
+        toast({ variant: 'destructive', title: 'Utilisateur de démo introuvable', description: 'Impossible de trouver l\'utilisateur email@example.com pour générer les ventes.' });
         return;
     }
 
+    const newSales: Sale[] = [];
+    const existingSalesCount = sales.length;
+    
     for (let i = 0; i < count; i++) {
         const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
         const dayMonth = format(saleDate, 'ddMM');
