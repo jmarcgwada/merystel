@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, Send, Server, Lock } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, Send, Server, Lock, Eraser } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -52,6 +52,7 @@ export default function FirestoreDataPage() {
       smtpConfig,
       requirePinForAdmin,
       setRequirePinForAdmin,
+      removeDuplicateItems,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -295,10 +296,26 @@ export default function FirestoreDataPage() {
                 </Card>
 
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Exportation des données</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Gestion des Données</h2>
+                     <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Nettoyage des données</CardTitle>
+                             <CardDescription>
+                                Outils pour maintenir la propreté et la cohérence de votre base de données.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <AlertDialogTrigger asChild>
+                                <Button variant="outline" onClick={() => removeDuplicateItems()}>
+                                  <Eraser className="mr-2 h-4 w-4" />
+                                  Supprimer les articles en double
+                                </Button>
+                           </AlertDialogTrigger>
+                        </CardContent>
+                    </Card>
                     <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Gestion de la configuration</CardTitle>
+                            <CardTitle>Exportation des données</CardTitle>
                             <CardDescription>
                                 Sauvegardez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
                             </CardDescription>
