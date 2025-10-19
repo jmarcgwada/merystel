@@ -462,7 +462,7 @@ export default function ImportDataPage() {
                                   </TableHeader>
                                 )}
                                 <TableBody>
-                                  {dataRows.slice(0, 10).map((row, rowIndex) => (
+                                  {dataRows.slice(0, importLimit).map((row, rowIndex) => (
                                     <TableRow key={rowIndex}>
                                       {row.map((cell, cellIndex) => (
                                         <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
