@@ -110,7 +110,7 @@ export interface PosContextType {
   convertToInvoice: (saleId: string) => void;
 
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string) => Promise<void>;
+  addUser: (user: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string) => Promise<User | null>;
   updateUser: (user: User) => void;
   deleteUser: (userId: string) => void;
   sendPasswordResetEmailForUser: (email: string) => void;
@@ -324,45 +324,34 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
-    const [state, setState] = useState(defaultValue);
-    const [isHydrated, setIsHydrated] = useState(false);
-
-    useEffect(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
+// Helper hook for persisting state to localStorage
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
             }
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
         }
-        setIsHydrated(true);
-    }, [key]);
+        return defaultValue;
+    });
 
     useEffect(() => {
-        if (isHydrated) {
+        if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error("Error setting localStorage key " + key + ":", error);
+                console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state, isHydrated]);
+    }, [key, state]);
 
-    const rehydrate = useCallback(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
-            }
-        } catch (error) {
-            console.error("Error re-reading localStorage key " + key + ":", error);
-        }
-    }, [key]);
-
-    return [state, setState, rehydrate];
+    return [state, setState];
 }
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -453,18 +442,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
-  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -485,7 +474,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-
+  
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -748,7 +737,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
+    toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
 
   const addToOrder = useCallback(
@@ -761,7 +750,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: 'Rupture de stock',
-            description: `L'article "${itemToAdd.name}" n'est plus en stock.`,
+            description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock.",
         });
         return;
       }
@@ -772,7 +761,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({
             variant: 'destructive',
             title: "Prix d'achat manquant ou nul",
-            description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.`,
+            description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide.",
         });
         return;
     }
@@ -826,7 +815,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: `${itemToAdd.name} ajouté à la commande` });
+    toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
@@ -840,7 +829,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateQuantity = useCallback(
-    (itemId: OrderItem['id'], quantity: number) => {
+    (itemId: string, quantity: number) => {
       const itemToUpdate = order.find((item) => item.id === itemId);
       if (!itemToUpdate) return;
       
@@ -1205,16 +1194,59 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
-    const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const findUserByEmail = useCallback(() => undefined, []);
-    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
-    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
-    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>): Promise<User | null> => {
+        const newUser: User = {
+            id: uuidv4(),
+            companyId: SHARED_COMPANY_ID,
+            createdAt: new Date(),
+            ...userData,
+        };
+        setUsers(prev => [...prev, newUser]);
+        toast({ title: 'Utilisateur créé avec succès' });
+        return newUser;
+    }, [setUsers, toast]);
 
-    const popularItems = useMemo(() => {
+    const updateUser = useCallback((userData: User) => {
+        const updatedUser = { ...userData, updatedAt: new Date() };
+        setUsers(prev => prev.map(u => (u.id === userData.id ? updatedUser : u)));
+        toast({ title: 'Utilisateur mis à jour' });
+    }, [setUsers, toast]);
+
+    const deleteUser = useCallback((userId: string) => {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        toast({ title: 'Utilisateur supprimé' });
+    }, [setUsers, toast]);
+    
+    const sendPasswordResetEmailForUser = useCallback(async (email: string) => {
+        toast({ title: 'Email de réinitialisation envoyé (simulation)' });
+    }, [toast]);
+
+    const findUserByEmail = useCallback((email: string) => {
+        return users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    }, [users]);
+    
+    const handleSignOut = useCallback(async () => {
+        // No actual sign out, just redirect
+        router.push('/login');
+    }, [router]);
+
+
+    const forceSignOut = useCallback(async (message: string) => {
+        await handleSignOut();
+        toast({
+            variant: 'destructive',
+            title: "Session expirée",
+            description: message,
+        });
+    }, [toast, handleSignOut]);
+
+    const forceSignOutUser = useCallback(async (userId: string) => {
+        // In local mode, we can't truly sign out another user.
+        // We just show a notification.
+        toast({ title: 'Utilisateur déconnecté (simulation)', description: `La session de l'utilisateur a été terminée.` });
+    }, [toast]);
+
+  const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
     sales.forEach((sale) => {
@@ -1647,13 +1679,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     toast({ title: `Génération de ${count} pièces en cours...` });
 
-    // Use the specific user 'email@example.com'
-    const demoUser = users.find(u => u.email === 'email@example.com');
-    if (!demoUser) {
-        toast({ variant: 'destructive', title: 'Utilisateur de démo introuvable', description: 'Impossible de trouver l\'utilisateur email@example.com pour générer les ventes.' });
-        return;
-    }
+    // This is the user that will be used to generate the sales.
+    let demoUser = users.find(u => u.email === 'email@example.com');
 
+    // If the user doesn't exist, create it.
+    if (!demoUser) {
+        const newDemoUser = await addUser({
+            firstName: 'Utilisateur',
+            lastName: 'de démo',
+            email: 'email@example.com',
+            role: 'admin',
+        }, 'password');
+        if (!newDemoUser) {
+            toast({ variant: 'destructive', title: 'Erreur Critique', description: 'Impossible de créer l\'utilisateur de démo pour la génération.' });
+            return;
+        }
+        demoUser = newDemoUser;
+    }
+    
     const newSales: Sale[] = [];
     const existingSalesCount = sales.length;
     
@@ -1747,7 +1790,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSales(prev => [...prev, ...newSales]);
     toast({ title: 'Génération terminée !', description: `${count} nouvelles pièces ont été créées.` });
 
-  }, [customers, items, users, paymentMethods, sales, vatRates, setSales, toast]);
+  }, [customers, items, users, paymentMethods, sales, vatRates, setSales, toast, addUser]);
   
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
