@@ -156,6 +156,21 @@ function CustomersPageContent() {
       setSelectedCustomerIds(prev => prev.filter(id => id !== customerId));
     }
   };
+  
+  const bulkEditLink = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set('ids', selectedCustomerIds.join(','));
+    // Preserve existing filters in the URL
+    if (filter) params.set('filter', filter);
+    if (filterPostalCode) params.set('postalCode', filterPostalCode);
+    if (filterPhone) params.set('phone', filterPhone);
+    if (filterAddress) params.set('address', filterAddress);
+    if (filterEmail) params.set('email', filterEmail);
+    if (filterIsDisabled !== 'no') params.set('isDisabled', filterIsDisabled);
+
+    return `/management/customers/bulk-edit?${params.toString()}`;
+  }, [selectedCustomerIds, filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled]);
+
 
   return (
     <>
@@ -166,7 +181,7 @@ function CustomersPageContent() {
         <div className="flex items-center gap-2">
             {selectedCustomerIds.length > 0 && (
                 <Button asChild>
-                    <Link href={`/management/customers/bulk-edit?ids=${selectedCustomerIds.join(',')}`}>
+                    <Link href={bulkEditLink}>
                         <FilePen className="mr-2 h-4 w-4" />
                         Modifier la sélection ({selectedCustomerIds.length})
                     </Link>

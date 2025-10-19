@@ -45,6 +45,12 @@ function BulkEditPageContent() {
     return fieldOptions.find(f => f.value === fieldToEdit);
   }, [fieldToEdit]);
 
+  const backLink = useMemo(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('ids');
+      return `/management/customers?${params.toString()}`;
+  }, [searchParams]);
+
   const handleApplyChanges = async () => {
     if (!currentField || newValue === '') {
       toast({ variant: 'destructive', title: 'Action invalide', description: 'Veuillez sélectionner un champ et une nouvelle valeur.' });
@@ -64,7 +70,7 @@ function BulkEditPageContent() {
     await Promise.all(promises);
 
     toast({ title: 'Mise à jour réussie', description: `${selectedCustomers.length} client(s) ont été mis à jour.` });
-    router.push('/management/customers');
+    router.push(backLink);
   };
 
   return (
@@ -74,7 +80,7 @@ function BulkEditPageContent() {
         subtitle={`Vous modifiez ${selectedCustomers.length} client(s).`}
       >
         <Button asChild variant="outline" className="btn-back">
-          <Link href="/management/customers">
+          <Link href={backLink}>
             <ArrowLeft />
             Annuler
           </Link>
