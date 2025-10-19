@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -29,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 
-type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total';
+type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total' | 'categoryName';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
 type TopCustomersSortKey = 'name' | 'visits' | 'basketTotal' | 'revenue';
 
@@ -118,6 +119,7 @@ export default function AnalyticsPage() {
                 ticketNumber: true,
                 name: true,
                 details: true,
+                categoryName: true,
                 barcode: false,
                 customerName: false,
                 userName: true,
@@ -138,6 +140,7 @@ export default function AnalyticsPage() {
         { id: 'ticketNumber', label: 'Pièce' },
         { id: 'name', label: 'Désignation' },
         { id: 'details', label: 'Détails' },
+        { id: 'categoryName', label: 'Catégorie' },
         { id: 'barcode', label: 'Référence' },
         { id: 'customerName', label: 'Client' },
         { id: 'userName', label: 'Vendeur' },
@@ -176,23 +179,27 @@ export default function AnalyticsPage() {
     };
 
     const flattenedItems = useMemo(() => {
-        if (!allSales || !items) return [];
+        if (!allSales || !items || !categories) return [];
         return allSales
             .flatMap(sale => 
-                sale.items.map(item => ({
-                    ...item,
-                    saleId: sale.id,
-                    saleDate: getDateFromSale(sale),
-                    ticketNumber: sale.ticketNumber,
-                    documentType: sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice'),
-                    customerId: sale.customerId,
-                    customerName: getCustomerName(sale.customerId),
-                    userId: sale.userId,
-                    userName: getUserName(sale.userId, sale.userName),
-                    categoryId: items.find(i => i.id === item.itemId)?.categoryId,
-                }))
+                sale.items.map(item => {
+                    const fullItem = items.find(i => i.id === item.itemId);
+                    return {
+                        ...item,
+                        saleId: sale.id,
+                        saleDate: getDateFromSale(sale),
+                        ticketNumber: sale.ticketNumber,
+                        documentType: sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice'),
+                        customerId: sale.customerId,
+                        customerName: getCustomerName(sale.customerId),
+                        userId: sale.userId,
+                        userName: getUserName(sale.userId, sale.userName),
+                        categoryId: fullItem?.categoryId,
+                        categoryName: categories.find(c => c.id === fullItem?.categoryId)?.name || 'N/A',
+                    }
+                })
             );
-    }, [allSales, getCustomerName, getUserName, items]);
+    }, [allSales, getCustomerName, getUserName, items, categories]);
 
 
     const filteredItems = useMemo(() => {
@@ -218,6 +225,7 @@ export default function AnalyticsPage() {
                 (item.barcode && item.barcode.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 item.customerName.toLowerCase().includes(generalFilter.toLowerCase()) ||
                 item.userName.toLowerCase().includes(generalFilter.toLowerCase()) ||
+                item.categoryName.toLowerCase().includes(generalFilter.toLowerCase()) ||
                 (item.note && item.note.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 (item.serialNumbers && item.serialNumbers.some(sn => sn.toLowerCase().includes(generalFilter.toLowerCase()))) ||
                 (item.selectedVariants && item.selectedVariants.some(v => `${v.name}: ${v.value}`.toLowerCase().includes(generalFilter.toLowerCase())))
@@ -607,6 +615,7 @@ export default function AnalyticsPage() {
                             {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.details && <TableHead>Détails</TableHead>}
+                            {visibleColumns.categoryName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('categoryName', 'salesLines')}>Catégorie {getSortIcon('categoryName', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.barcode && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('barcode', 'salesLines')}>Référence {getSortIcon('barcode', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
                             {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
@@ -645,6 +654,7 @@ export default function AnalyticsPage() {
                                             )}
                                         </TableCell>
                                     )}
+                                    {visibleColumns.categoryName && <TableCell><Badge variant="outline">{item.categoryName}</Badge></TableCell>}
                                     {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                                     {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
                                     {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
@@ -661,3 +671,5 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+    
