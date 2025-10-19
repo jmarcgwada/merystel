@@ -56,7 +56,6 @@ export default function FirestoreDataPage() {
       generateRandomSales,
       customers,
       items,
-      users,
       paymentMethods
   } = usePos();
   
@@ -73,18 +72,16 @@ export default function FirestoreDataPage() {
   const canGenerateSales = useMemo(() => {
     return (customers?.length || 0) > 0 && 
            (items?.length || 0) > 0 && 
-           (users?.length || 0) > 0 && 
            (paymentMethods?.length || 0) > 0;
-  }, [customers, items, users, paymentMethods]);
+  }, [customers, items, paymentMethods]);
 
   const missingDataForGeneration = useMemo(() => {
     const missing = [];
     if (!customers?.length) missing.push('clients');
     if (!items?.length) missing.push('articles');
-    if (!users?.length) missing.push('utilisateurs');
     if (!paymentMethods?.length) missing.push('moyens de paiement');
     return missing.join(', ');
-  }, [customers, items, users, paymentMethods]);
+  }, [customers, items, paymentMethods]);
 
 
   useEffect(() => {
