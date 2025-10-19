@@ -326,16 +326,16 @@ const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key "${key}":`, error);
-                return defaultValue;
-            }
+        if (typeof window === 'undefined') {
+            return defaultValue;
         }
-        return defaultValue;
+        try {
+            const storedValue = localStorage.getItem(key);
+            return storedValue ? JSON.parse(storedValue) : defaultValue;
+        } catch (error) {
+            console.error('Error reading localStorage key “' + key + '”: ', error);
+            return defaultValue;
+        }
     });
 
     useEffect(() => {
@@ -343,7 +343,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key "${key}":`, error);
+                console.error('Error setting localStorage key “' + key + '”: ', error);
             }
         }
     }, [key, state]);
@@ -473,13 +473,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-  
-  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    setOrder((currentOrder) =>
-      currentOrder.filter((item) => item.id !== itemId)
-    );
-  }, []);
-  
+
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
     setNavConfirmOpen(true);
@@ -701,6 +695,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, toast]);
+  
+  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    setOrder((currentOrder) =>
+      currentOrder.filter((item) => item.id !== itemId)
+    );
+  }, []);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1186,7 +1186,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setSales(prev => [finalDoc, ...prev]);
         }
         
-        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+        toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'facturé' : 'enregistré') });
         clearOrder();
 
         const reportPath = `/reports?docType=${type}`;
@@ -1412,14 +1412,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
+    let lastSuccessfullyImportedSale: Sale | null = null;
 
     switch (dataType) {
         case 'clients':
             const existingCustomerIds = new Set(customers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) {
-                    continue; // Silently ignore if no ID
-                }
+                if (!data.id) continue;
                 if (!data.name) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`);
@@ -1437,9 +1436,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         case 'articles':
             const existingBarcodes = new Set(items.map(i => i.barcode));
             for (const data of jsonData) {
-                 if (!data.barcode) {
-                     continue; // Silently ignore if no barcode
-                 }
+                 if (!data.barcode) continue;
                  if (!data.name || !data.price || !data.vatId) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`);
@@ -1457,9 +1454,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
          case 'fournisseurs':
             const existingSupplierIds = new Set(suppliers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) {
-                    continue; // Silently ignore if no ID
-                }
+                if (!data.id) continue;
                 if (!data.name) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`);
@@ -1480,8 +1475,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
             for (const [index, row] of jsonData.entries()) {
                 if (!row.ticketNumber) {
-                    errorCount++;
-                    errors.push(`Ligne ${index + 1}: Numéro de pièce manquant.`);
+                    if (lastSuccessfullyImportedSale && row.itemName) {
+                        lastSuccessfullyImportedSale.notes = (lastSuccessfullyImportedSale.notes ? lastSuccessfullyImportedSale.notes + '\n' : '') + row.itemName;
+                    }
                     continue;
                 }
 
@@ -1535,6 +1531,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 };
                 sale.items.push(orderItem);
                 salesMap.set(row.ticketNumber, sale);
+                lastSuccessfullyImportedSale = sale; // Set this as the last successful sale
             }
             
             for (const sale of salesMap.values()) {
