@@ -1546,29 +1546,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const salesMap = new Map<string, Sale>();
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
 
-            for (const row of jsonData) {
+            for (const [index, row] of jsonData.entries()) {
                 if (!row.ticketNumber) {
                     errorCount++;
-                    errors.push(`Ligne ignorée : Numéro de pièce manquant. Ligne : ${JSON.stringify(row)}`);
+                    errors.push(`Ligne ${index + 1}: Numéro de pièce manquant.`);
                     continue;
                 }
 
                 if (existingSaleNumbers.has(row.ticketNumber)) {
                     errorCount++;
-                    errors.push(`Ligne ignorée : La pièce N°${row.ticketNumber} existe déjà.`);
+                    errors.push(`Ligne ${index + 1}: La pièce N°${row.ticketNumber} existe déjà.`);
                     continue;
                 }
                 
                 const item = items.find(i => i.barcode === row.itemBarcode);
                 if (!item) {
                      errorCount++;
-                     errors.push(`Ligne ignorée (Pièce N°${row.ticketNumber}): Article avec code-barres ${row.itemBarcode} introuvable.`);
+                     errors.push(`Ligne ${index + 1} (Pièce ${row.ticketNumber}): Article avec code-barres ${row.itemBarcode} introuvable.`);
                      continue;
                 }
 
                 let sale = salesMap.get(row.ticketNumber);
                 if (!sale) {
                     const customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
+                    const seller = users.find(u => u.firstName + ' ' + u.lastName === row.sellerName);
                     sale = {
                         id: uuidv4(),
                         ticketNumber: row.ticketNumber,
@@ -1580,20 +1581,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         payments: [],
                         status: 'paid',
                         customerId: customer?.id,
+                        userId: seller?.id,
+                        userName: row.sellerName,
                         documentType: row.pieceName === 'Facture' ? 'invoice' : 'ticket',
                     };
                 }
+
+                const unitPriceTTC = row.totalTTC / row.quantity;
 
                 const orderItem: OrderItem = {
                     id: uuidv4(),
                     itemId: item.id,
                     name: item.name,
-                    price: row.unitPrice || item.price,
+                    price: unitPriceTTC || 0,
                     quantity: row.quantity,
-                    total: row.totalPrice || (row.unitPrice || item.price) * row.quantity,
+                    total: row.totalTTC || 0,
                     vatId: item.vatId,
                     barcode: item.barcode,
-                    discount: 0,
+                    discount: (row.unitPriceHT * row.quantity) * (row.discountPercentage / 100) || row.discountAmount || 0,
+                    discountPercent: row.discountPercentage
                 };
                 sale.items.push(orderItem);
                 salesMap.set(row.ticketNumber, sale);
@@ -1601,14 +1607,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             for (const sale of salesMap.values()) {
                 const total = sale.items.reduce((acc, item) => acc + item.total, 0);
-                const vatRateValue = vatRates.find(v => v.id === sale.items[0]?.vatId)?.rate || 0;
-                const tax = total / (1 + vatRateValue/100) * (vatRateValue/100);
+                let totalTax = 0;
+                let totalSub = 0;
+
+                sale.items.forEach(item => {
+                    const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+                    const sub = item.total / (1 + vatRateValue / 100);
+                    totalSub += sub;
+                    totalTax += item.total - sub;
+                });
+
                 sale.total = total;
-                sale.tax = tax;
-                sale.subtotal = total - tax;
-                
-                // You may need to add mock payment data here if required
-                // sale.payments = [{...}]
+                sale.tax = totalTax;
+                sale.subtotal = totalSub;
 
                 setSales(prev => [sale, ...prev]);
                 successCount++;
@@ -1618,11 +1629,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     toast({
         title: "Rapport d'importation",
-        description: `${successCount} lignes importées, ${errorCount} erreurs.`,
+        description: `${successCount} ${dataType} importés, ${errorCount} erreurs.`,
     });
     
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast]);
+  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users]);
   
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);

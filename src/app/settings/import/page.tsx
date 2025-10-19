@@ -37,7 +37,29 @@ import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader a
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
 const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
-const saleFields: string[] = ['ignore', 'ticketNumber', 'date', 'customerCode', 'customerName', 'itemBarcode', 'itemName', 'quantity', 'unitPrice', 'totalPrice'];
+const saleFields: string[] = [
+    'ignore', 
+    'pieceName',
+    'ticketNumber', 
+    'date', 
+    'customerCode', 
+    'customerName', 
+    'itemBarcode', 
+    'itemName', 
+    'quantity', 
+    'unitPriceHT',
+    'totalLineHT',
+    'vatRate',
+    'vatAmount',
+    'discountPercentage',
+    'discountAmount',
+    'totalTTC',
+    'paymentCash',
+    'paymentCard',
+    'paymentCheck',
+    'paymentOther',
+    'sellerName',
+];
 
 
 const fieldLabels: Record<string, string> = {
@@ -68,22 +90,33 @@ const fieldLabels: Record<string, string> = {
   siret: 'SIRET',
   website: 'Site Web',
   bic: 'BIC / SWIFT',
+  pieceName: 'Nom de la pièce (Facture, Ticket...)',
   ticketNumber: 'Numéro de pièce *',
-  date: 'Date (YYYY-MM-DD HH:mm)',
+  date: 'Date (JJ/MM/AA HH:mm)',
   customerCode: 'Code Client',
   customerName: 'Nom du Client',
   itemBarcode: "Code-barres de l'article *",
   itemName: "Désignation de l'article",
   quantity: 'Quantité *',
-  unitPrice: 'Prix de vente unitaire TTC *',
-  totalPrice: 'Prix total de la ligne TTC',
+  unitPriceHT: "Prix Unitaire HT *",
+  totalLineHT: 'Prix Total Ligne HT',
+  vatRate: 'Taux de TVA appliqué (%)',
+  vatAmount: 'Montant TVA de la ligne',
+  discountPercentage: 'Remise en %',
+  discountAmount: 'Remise en montant',
+  totalTTC: 'Total TTC de la ligne',
+  paymentCash: 'Paiement en espèces',
+  paymentCard: 'Paiement par carte',
+  paymentCheck: 'Paiement par chèque',
+  paymentOther: 'Autre paiement',
+  sellerName: 'Nom du vendeur',
 };
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
-    ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPrice'],
+    ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -131,7 +164,7 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{report.successCount}</div>
-                <p className="text-xs text-muted-foreground">lignes importées</p>
+                <p className="text-xs text-muted-foreground">{report.successCount > 1 ? 'pièces importées' : 'pièce importée'}</p>
               </CardContent>
             </Card>
             <Card>
@@ -141,7 +174,7 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{report.errorCount}</div>
-                 <p className="text-xs text-muted-foreground">lignes ignorées</p>
+                 <p className="text-xs text-muted-foreground">{report.errorCount > 1 ? 'lignes ignorées' : 'ligne ignorée'}</p>
               </CardContent>
             </Card>
           </div>
@@ -269,7 +302,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity', 'totalPrice'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -279,7 +312,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPrice', 'quantity', 'totalPrice'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
@@ -690,4 +723,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-
