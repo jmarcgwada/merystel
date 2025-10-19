@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, Send, Server, Lock, Eraser } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Trash2, Database, FileCode, Upload, Download, FileJson, Users, History, Delete, Truck, Send, Server, Lock, Eraser, TestTube2 } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -52,6 +52,7 @@ export default function FirestoreDataPage() {
       smtpConfig,
       requirePinForAdmin,
       setRequirePinForAdmin,
+      generateRandomSales,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -329,14 +330,36 @@ export default function FirestoreDataPage() {
                         <CardHeader>
                             <CardTitle>Opérations Irréversibles</CardTitle>
                             <CardDescription>
-                                Ces actions suppriment définitivement des données. Soyez certain avant de continuer.
+                                Ces actions suppriment ou ajoutent massivement des données. Soyez certain avant de continuer.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex flex-wrap gap-4">
                           <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Réinitialisation sélective
                           </Button>
+                           <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" outline>
+                                        <TestTube2 className="mr-2 h-4 w-4" />
+                                        Générer 100 pièces aléatoires
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action va créer 100 nouvelles pièces de vente avec des données aléatoires. Voulez-vous continuer ?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => generateRandomSales(100)}>
+                                            Confirmer
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </CardContent>
                     </Card>
                 </div>

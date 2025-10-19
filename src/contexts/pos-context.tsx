@@ -30,7 +30,7 @@ import type {
   MappingTemplate,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, subDays } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
@@ -166,6 +166,7 @@ export interface PosContextType {
     docIdToUpdate?: string,
   ) => void,
   deleteAllSales: () => Promise<void>;
+  generateRandomSales: (count: number) => Promise<void>;
   paymentMethods: PaymentMethod[];
   addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updatePaymentMethod: (method: PaymentMethod) => void;
@@ -711,12 +712,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, []);
 
-  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => a.number - b.number)], [tablesData]);
+  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => (a.number || 0) - (b.number || 0))], [tablesData]);
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
-    toast({ title: 'Ventes supprimées' });
-  }, [setSales, toast]);
+    setAuditLogs([]);
+    toast({ title: 'Ventes et logs supprimés' });
+  }, [setSales, setAuditLogs, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -1203,16 +1205,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         router.push(reportPath);
     }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
-  const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-  const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-  const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-  const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-  const findUserByEmail = useCallback(() => undefined, []);
-  const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
-  const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
-  const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const addUser = useCallback(async () => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const updateUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const deleteUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const findUserByEmail = useCallback(() => undefined, []);
+    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
+    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
+    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
-  const popularItems = useMemo(() => {
+    const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
     sales.forEach((sale) => {
@@ -1634,6 +1636,110 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     return { successCount, errorCount, errors };
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users]);
+
+  const generateRandomSales = useCallback(async (count: number) => {
+    if (!customers?.length || !items?.length || !users?.length || !paymentMethods?.length) {
+        toast({ variant: 'destructive', title: 'Données insuffisantes', description: 'Assurez-vous d\'avoir des clients, articles, utilisateurs et méthodes de paiement.' });
+        return;
+    }
+    
+    toast({ title: `Génération de ${count} pièces en cours...` });
+
+    const newSales: Sale[] = [];
+    const existingSalesCount = sales.length;
+
+    for (let i = 0; i < count; i++) {
+        const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
+        const dayMonth = format(saleDate, 'ddMM');
+        const ticketNumber = `Tick-${dayMonth}-${(existingSalesCount + i + 1).toString().padStart(4, '0')}`;
+
+        const customer = customers[Math.floor(Math.random() * customers.length)];
+        const seller = users[Math.floor(Math.random() * users.length)];
+        const itemCount = Math.floor(Math.random() * 5) + 1;
+        
+        const orderItems: OrderItem[] = [];
+        const usedItemIds = new Set<string>();
+
+        for (let j = 0; j < itemCount; j++) {
+            let item: Item | undefined;
+            do {
+                item = items[Math.floor(Math.random() * items.length)];
+            } while (usedItemIds.has(item.id));
+            
+            usedItemIds.add(item.id);
+            const quantity = Math.floor(Math.random() * 3) + 1;
+
+            orderItems.push({
+                id: uuidv4(),
+                itemId: item.id,
+                name: item.name,
+                price: item.price,
+                quantity,
+                total: item.price * quantity,
+                vatId: item.vatId,
+                barcode: item.barcode || '',
+                discount: 0,
+            });
+        }
+
+        const total = orderItems.reduce((acc, item) => acc + item.total, 0);
+        let subtotal = 0;
+        let tax = 0;
+        
+        orderItems.forEach(item => {
+            const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+            const itemSubtotal = item.total / (1 + vatRateValue / 100);
+            subtotal += itemSubtotal;
+            tax += item.total - itemSubtotal;
+        });
+
+        const payments: Payment[] = [];
+        const paymentMethodCount = Math.random() > 0.7 ? 2 : 1;
+        let remainingAmount = total;
+
+        for (let k = 0; k < paymentMethodCount; k++) {
+            const availableMethods = paymentMethods.filter(pm => pm.isActive);
+            const method = availableMethods[Math.floor(Math.random() * availableMethods.length)];
+            let amount: number;
+
+            if (k === paymentMethodCount - 1) {
+                amount = remainingAmount;
+            } else {
+                amount = Math.random() * remainingAmount;
+            }
+
+            payments.push({
+                method,
+                amount,
+                date: saleDate,
+            });
+
+            remainingAmount -= amount;
+        }
+
+        const newSale: Sale = {
+            id: uuidv4(),
+            ticketNumber,
+            date: saleDate,
+            items: orderItems,
+            subtotal,
+            tax,
+            total,
+            payments,
+            status: 'paid',
+            customerId: customer.id,
+            userId: seller.id,
+            userName: `${seller.firstName} ${seller.lastName}`,
+            documentType: 'ticket',
+        };
+        
+        newSales.push(newSale);
+    }
+    
+    setSales(prev => [...prev, ...newSales]);
+    toast({ title: 'Génération terminée !', description: `${count} nouvelles pièces ont été créées.` });
+
+  }, [customers, items, users, paymentMethods, sales, vatRates, setSales, toast]);
   
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
@@ -1649,7 +1755,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
     getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
     tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
     vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
     isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
     seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
