@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -29,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 
@@ -449,28 +450,22 @@ export default function ImportDataPage() {
                 <CardContent>
                     <div className="flex items-center gap-4 mb-6 p-4 border rounded-lg">
                         <Label>Modèles</Label>
-                        <Popover open={isTemplatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
-                            <PopoverTrigger asChild>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="w-[200px] justify-between">
                                 Appliquer un modèle
                                 <ChevronDown className="ml-2 h-4 w-4" />
                                 </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0" align="start">
-                                <Command>
-                                <CommandList>
-                                    <CommandEmpty>Aucun modèle.</CommandEmpty>
-                                    <CommandGroup>
-                                    {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
-                                        <CommandItem key={template.name} onSelect={() => { applyTemplate(template); setTemplatePopoverOpen(false); }}>
-                                            {template.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                {mappingTemplates.filter(t => t.dataType === dataType).length === 0 && <DropdownMenuItem disabled>Aucun modèle</DropdownMenuItem>}
+                                {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                    <DropdownMenuItem key={template.name} onSelect={() => applyTemplate(template)}>
+                                        {template.name}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <div className="flex items-center gap-2">
                             <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} />
                             <Button onClick={handleSaveTemplate}><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
@@ -481,18 +476,14 @@ export default function ImportDataPage() {
                                     <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[200px] p-0" align="start">
-                                <Command>
-                                <CommandList>
-                                    <CommandEmpty>Aucun modèle.</CommandEmpty>
-                                    <CommandGroup>
-                                    {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
-                                        <CommandItem key={template.name} onSelect={() => deleteMappingTemplate(template.name)}>
-                                            Supprimer: {template.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
+                                    <div className="flex flex-col text-sm">
+                                        <div className="p-2 font-semibold border-b">Supprimer un modèle</div>
+                                        {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                            <Button key={template.name} variant="ghost" className="justify-start p-2" onClick={() => deleteMappingTemplate(template.name)}>
+                                                {template.name}
+                                            </Button>
+                                        ))}
+                                    </div>
                             </PopoverContent>
                             </Popover>
                         )}
