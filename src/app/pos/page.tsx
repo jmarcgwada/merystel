@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CategoryList } from './components/category-list';
 import { ItemList } from './components/item-list';
 import { OrderSummary } from './components/order-summary';
@@ -10,7 +10,7 @@ import type { Category, SpecialCategory, Item } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import { HeldOrdersDrawer } from './components/held-orders-drawer';
 import { Button } from '@/components/ui/button';
-import { Hand, Search, Star, Trophy, LayoutGrid, List } from 'lucide-react';
+import { Hand, Search, Star, Trophy, LayoutGrid, List, ArrowUp, ArrowDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -65,6 +65,11 @@ export default function PosPage() {
   const { setTargetInput } = useKeyboard();
   const searchInputRef = useRef<HTMLInputElement>(null);
   
+  const itemListRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -119,6 +124,44 @@ export default function PosPage() {
   };
   
   const backgroundColor = isClient ? hexToRgba(directSaleBackgroundColor, directSaleBgOpacity) : 'transparent';
+  
+  const handleScroll = (direction: 'up' | 'down') => {
+    const scrollArea = itemListRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollArea) {
+      const scrollAmount = scrollArea.clientHeight * 0.8;
+      scrollArea.scrollBy({ top: direction === 'up' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const startScrolling = (direction: 'up' | 'down') => {
+    stopScrolling();
+    handleScroll(direction);
+    scrollIntervalRef.current = setInterval(() => handleScroll(direction), 300);
+  };
+
+  const stopScrolling = () => {
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+  };
+
+  useEffect(() => {
+    const scrollArea = itemListRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollArea) return;
+
+    const checkScrollability = () => {
+      setCanScrollUp(scrollArea.scrollTop > 0);
+      setCanScrollDown(scrollArea.scrollHeight > scrollArea.clientHeight + scrollArea.scrollTop);
+    };
+
+    checkScrollability();
+    const observer = new MutationObserver(checkScrollability);
+    scrollArea.addEventListener('scroll', checkScrollability);
+    observer.observe(scrollArea, { childList: true, subtree: true });
+
+    return () => {
+      scrollArea.removeEventListener('scroll', checkScrollability);
+      observer.disconnect();
+    };
+  }, [selectedCategory, itemSearchTerm, showFavoritesOnly]);
 
   return (
     <>
@@ -177,6 +220,30 @@ export default function PosPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
+                    <Button 
+                        variant="outline" 
+                        size="icon"
+                        onMouseDown={() => startScrolling('up')} 
+                        onMouseUp={stopScrolling} 
+                        onMouseLeave={stopScrolling}
+                        onTouchStart={() => startScrolling('up')}
+                        onTouchEnd={stopScrolling}
+                        disabled={!canScrollUp}
+                    >
+                        <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="icon"
+                        onMouseDown={() => startScrolling('down')} 
+                        onMouseUp={stopScrolling} 
+                        onMouseLeave={stopScrolling}
+                        onTouchStart={() => startScrolling('down')}
+                        onTouchEnd={stopScrolling}
+                        disabled={!canScrollDown}
+                    >
+                        <ArrowDown className="h-4 w-4" />
+                    </Button>
                   <Button 
                       variant="outline" 
                       onClick={() => setHeldOpen(true)}
@@ -193,7 +260,7 @@ export default function PosPage() {
                 </div>
               </div>
           </div>
-          <div className="relative flex-1">
+          <div className="relative flex-1" ref={itemListRef}>
             <ScrollArea className="absolute inset-0">
                 <div className="p-4">
                   {isClient ? (
