@@ -449,8 +449,8 @@ export default function ImportDataPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <ScrollArea className="h-[400px] border rounded-md">
-                            <Table className="relative">
+                            <ScrollArea className="h-[400px] border rounded-md">
+                              <Table>
                                 {headerRow.length > 0 && (
                                   <TableHeader className="sticky top-0 bg-background z-10">
                                     <TableRow>
@@ -470,13 +470,13 @@ export default function ImportDataPage() {
                                   ))}
                                 </TableBody>
                               </Table>
-                             {parsedData.length === 0 && (
-                              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                                <p>Aucun fichier sélectionné ou fichier vide.</p>
-                              </div>
-                            )}
-                            <ScrollBar orientation="horizontal" />
-                          </ScrollArea>
+                              {parsedData.length === 0 && (
+                                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                                  <p>Aucun fichier sélectionné ou fichier vide.</p>
+                                </div>
+                              )}
+                              <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
                            <div className="mt-4 flex justify-end">
                                 <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
                                     Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
