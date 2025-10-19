@@ -419,7 +419,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
   const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
+  const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 0);
   const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
@@ -1412,7 +1412,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
-    let lastProcessedTicketNumber: string | null = null;
+    let lastProcessedItem: OrderItem | null = null;
     let lastProcessedSale: Sale | null = null;
 
     const limitedJsonData = (importLimit && importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
@@ -1452,9 +1452,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const newCustomers = new Map<string, Customer>();
         
             for (const [index, row] of limitedJsonData.entries()) {
-                 if (!row.ticketNumber) {
-                    if (lastProcessedSale) {
-                        lastProcessedSale.notes = (lastProcessedSale.notes ? lastProcessedSale.notes + '\n' : '') + (row.itemName || '');
+                 if (!row.ticketNumber && !row.itemBarcode) {
+                    if (lastProcessedItem) {
+                        lastProcessedItem.note = (lastProcessedItem.note ? lastProcessedItem.note + '\n' : '') + (row.itemName || '');
                     }
                     continue;
                 }
@@ -1535,8 +1535,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 });
 
                 salesMap.set(row.ticketNumber, sale);
-                lastProcessedTicketNumber = row.ticketNumber;
-                lastProcessedSale = sale;
+                lastProcessedItem = orderItem;
             }
 
             for (const sale of salesMap.values()) {
