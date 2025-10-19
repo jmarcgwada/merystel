@@ -70,7 +70,7 @@ body {
     @apply bg-background text-foreground;
   }
   .btn-back {
-    @apply bg-accent/10 border-accent/20 hover:bg-accent/20 hover:border-accent/40;
+    @apply bg-accent text-accent-foreground hover:bg-accent/90;
   }
 }
 
