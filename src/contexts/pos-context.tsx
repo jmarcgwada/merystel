@@ -144,7 +144,7 @@ export interface PosContextType {
   deleteSupplier: (supplierId: string) => void;
   tables: Table[];
   addTable: (
-    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>
+    tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt' | 'updatedAt'>
   ) => void;
   updateTable: (table: Table) => void;
   deleteTable: (tableId: string) => void;
@@ -296,7 +296,7 @@ export interface PosContextType {
   creditNoteBgColor: string;
   setCreditNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
   creditNoteBgOpacity: number;
-  setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   commercialViewLevel: number;
   cycleCommercialViewLevel: () => void;
   companyInfo: CompanyInfo | null;
@@ -1035,7 +1035,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       toast({ title: 'Table libérée' });
     }, [setTablesData, toast]);
 
-    const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number'>) => {
+    const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt' | 'updatedAt'>) => {
       const newTable: Table = {
         ...tableData,
         id: uuidv4(),
@@ -1415,9 +1415,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let lastSuccessfullyImportedSale: Sale | null = null;
     let lastProcessedTicketNumber: string | null = null;
 
+    const limitedJsonData = jsonData.slice(0, importLimit || jsonData.length);
+
     switch (dataType) {
         case 'clients':
-            for (const data of jsonData) {
+            for (const data of limitedJsonData) {
                 if (!data.id) { continue; }
                 if (!data.name) { errorCount++; errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`); continue; }
                 if (customers.some(c => c.id === data.id)) { errorCount++; errors.push(`Ligne ignorée : Le client avec l'ID ${data.id} existe déjà.`); continue; }
@@ -1426,7 +1428,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
         case 'articles':
-            for (const data of jsonData) {
+            for (const data of limitedJsonData) {
                  if (!data.barcode) { continue; }
                  if (!data.name || !data.price || !data.vatId) { errorCount++; errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`); continue; }
                 if (items.some(i => i.barcode === data.barcode)) { errorCount++; errors.push(`Ligne ignorée : L'article avec le code-barres ${data.barcode} existe déjà.`); continue; }
@@ -1435,7 +1437,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
          case 'fournisseurs':
-            for (const data of jsonData) {
+            for (const data of limitedJsonData) {
                 if (!data.id) { continue; }
                 if (!data.name) { errorCount++; errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`); continue; }
                 if (suppliers.some(s => s.id === data.id)) { errorCount++; errors.push(`Ligne ignorée : Le fournisseur avec l'ID ${data.id} existe déjà.`); continue; }
@@ -1449,7 +1451,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const newCustomers = new Map<string, Customer>();
             const newItems = new Map<string, Item>();
         
-            for (const [index, row] of jsonData.entries()) {
+            for (const [index, row] of limitedJsonData.entries()) {
                 if (!row.ticketNumber) {
                     if (lastProcessedTicketNumber) {
                         const saleToUpdate = salesMap.get(lastProcessedTicketNumber);
@@ -1480,11 +1482,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const category = categories.find(c => c.name === row.itemCategory);
                     
                     if (vatRate) {
-                        item = await addItem({ 
+                        const newItem = await addItem({ 
                             barcode: row.itemBarcode, name: row.itemName, price: row.unitPriceHT * (1 + vatRate.rate / 100), 
                             vatId: vatRate.id, categoryId: category?.id, purchasePrice: row.itemPurchasePrice
                         });
-                        if (item) newItems.set(item.barcode, item);
+                        if (newItem) {
+                            item = newItem;
+                            newItems.set(item.barcode, item);
+                        }
                     } else {
                         errors.push(`Ligne ${index + 1}: Taux de TVA "${row.vatRate}" introuvable pour l'article ${row.itemName}.`);
                         errorCount++;
@@ -1553,7 +1558,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const existingNumbers = new Set(sales.map(s => s.ticketNumber));
             let lastSale: Sale | null = null;
         
-            for (const [index, row] of jsonData.entries()) {
+            for (const [index, row] of limitedJsonData.entries()) {
                 if (!row.ticketNumber) {
                     if (lastSale) {
                         lastSale.notes = (lastSale.notes ? lastSale.notes + '\n' : '') + (row.itemName || '');
@@ -1642,7 +1647,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
     
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users]);
+  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     if (!customers?.length || !items?.length || !paymentMethods?.length) {
@@ -1974,4 +1979,3 @@ export function usePos() {
   }
   return context;
 }
-
