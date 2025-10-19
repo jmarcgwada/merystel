@@ -62,6 +62,31 @@ const saleFields: string[] = [
     'sellerName',
 ];
 
+const completeSaleFields: string[] = [
+    'ignore', 
+    'ticketNumber', 
+    'date', 
+    'customerCode', 
+    'customerName', 
+    'customerEmail',
+    'customerPhone',
+    'customerAddress',
+    'customerPostalCode',
+    'customerCity',
+    'itemBarcode', 
+    'itemName', 
+    'itemCategory',
+    'quantity', 
+    'unitPriceHT',
+    'itemPurchasePrice',
+    'vatRate',
+    'paymentCash',
+    'paymentCard',
+    'paymentCheck',
+    'paymentOther',
+    'sellerName',
+];
+
 
 const fieldLabels: Record<string, string> = {
   ignore: 'Ignorer cette colonne',
@@ -112,6 +137,13 @@ const fieldLabels: Record<string, string> = {
   paymentCheck: 'Paiement par chèque',
   paymentOther: 'Autre paiement',
   sellerName: 'Nom du vendeur',
+  customerEmail: 'Email Client',
+  customerPhone: 'Tél. Client',
+  customerAddress: 'Adresse Client',
+  customerPostalCode: 'CP Client',
+  customerCity: 'Ville Client',
+  itemCategory: 'Catégorie Article',
+  itemPurchasePrice: "Prix d'achat Article",
 };
 
 const requiredFieldsMap: Record<string, string[]> = {
@@ -119,6 +151,7 @@ const requiredFieldsMap: Record<string, string[]> = {
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
+    ventes_completes: ['ticketNumber', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatRate', 'customerName', 'customerCode'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -257,9 +290,7 @@ export default function ImportDataPage() {
 
   const parsedData = useMemo(() => {
     if (!fileContent) return [];
-    // Handles both \n (Unix/Mac) and \r\n (Windows) line endings
-    const lines = fileContent.trim().split(/\r?\n/);
-    return lines.map(line => line.split(separator));
+    return fileContent.trim().split(/\r?\n/).map(line => line.split(separator));
   }, [fileContent, separator]);
 
   const headerRow = useMemo(() => (hasHeader && parsedData.length > 0) ? parsedData[0] : (parsedData.length > 0 ? parsedData[0].map((_, i) => `Colonne ${i + 1}`) : []), [parsedData, hasHeader]);
@@ -271,6 +302,7 @@ export default function ImportDataPage() {
         case 'articles': return itemFields;
         case 'fournisseurs': return supplierFields;
         case 'ventes': return saleFields;
+        case 'ventes_completes': return completeSaleFields;
         default: return [];
     }
   };
@@ -305,7 +337,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -315,7 +347,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
@@ -429,10 +461,11 @@ export default function ImportDataPage() {
                             <SelectValue placeholder="Sélectionner..." />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="ventes_completes">Ventes complètes (création auto)</SelectItem>
                             <SelectItem value="clients">Clients</SelectItem>
                             <SelectItem value="articles">Articles</SelectItem>
                             <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
-                            <SelectItem value="ventes">Pièces de Vente</SelectItem>
+                            <SelectItem value="ventes">Pièces de Vente (standard)</SelectItem>
                         </SelectContent>
                         </Select>
                     </div>
@@ -587,7 +620,7 @@ export default function ImportDataPage() {
                         )}
                     </div>
 
-                    {dataType === 'ventes' && (
+                    {(dataType === 'ventes' || dataType === 'ventes_completes') && (
                         <Accordion type="single" collapsible className="mb-6">
                             <AccordionItem value="help">
                             <AccordionTrigger>
@@ -750,3 +783,4 @@ export default function ImportDataPage() {
     </>
   );
 }
+

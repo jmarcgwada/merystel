@@ -1408,17 +1408,22 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Doublons supprimés', description: `${items.length - uniqueItems.length} articles en double ont été supprimés.` });
   }, [items, setItems, toast]);
 
-  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<{ successCount: number, errorCount: number, errors: string[] }> => {
+  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<{ successCount: number; errorCount: number; errors: string[] }> => {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
     let lastSuccessfullyImportedSale: Sale | null = null;
+    let lastProcessedTicketNumber: string | null = null;
 
     switch (dataType) {
         case 'clients':
             const existingCustomerIds = new Set(customers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) continue;
+                if (!data.id) {
+                    errorCount++;
+                    errors.push(`Ligne ignorée : ID Client manquant. Ligne : ${JSON.stringify(data)}`);
+                    continue;
+                }
                 if (!data.name) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Le nom du client est requis. Ligne : ${JSON.stringify(data)}`);
@@ -1436,7 +1441,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         case 'articles':
             const existingBarcodes = new Set(items.map(i => i.barcode));
             for (const data of jsonData) {
-                 if (!data.barcode) continue;
+                 if (!data.barcode) {
+                     errorCount++;
+                     errors.push(`Ligne ignorée : Le code-barres est requis. Ligne : ${JSON.stringify(data)}`);
+                     continue;
+                 }
                  if (!data.name || !data.price || !data.vatId) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Nom, Prix et TVA sont requis. Ligne : ${JSON.stringify(data)}`);
@@ -1454,7 +1463,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
          case 'fournisseurs':
             const existingSupplierIds = new Set(suppliers.map(c => c.id));
             for (const data of jsonData) {
-                if (!data.id) continue;
+                if (!data.id) {
+                    errorCount++;
+                    errors.push(`Ligne ignorée : ID Fournisseur manquant. Ligne : ${JSON.stringify(data)}`);
+                    continue;
+                }
                 if (!data.name) {
                     errorCount++;
                     errors.push(`Ligne ignorée : Le nom du fournisseur est requis. Ligne : ${JSON.stringify(data)}`);
@@ -1469,19 +1482,124 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 successCount++;
             }
             break;
-        case 'ventes':
+        case 'ventes_completes':
             const salesMap = new Map<string, Sale>();
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-
+            const newCustomers = new Map<string, Customer>();
+            const newItems = new Map<string, Item>();
+        
             for (const [index, row] of jsonData.entries()) {
                 if (!row.ticketNumber) {
-                    if (lastSuccessfullyImportedSale && row.itemName) {
-                        lastSuccessfullyImportedSale.notes = (lastSuccessfullyImportedSale.notes ? lastSuccessfullyImportedSale.notes + '\n' : '') + row.itemName;
+                    if (lastProcessedTicketNumber) {
+                        const saleToUpdate = salesMap.get(lastProcessedTicketNumber);
+                        if (saleToUpdate) {
+                            saleToUpdate.notes = (saleToUpdate.notes ? saleToUpdate.notes + '\n' : '') + (row.itemName || '');
+                        }
+                    }
+                    continue;
+                }
+        
+                if (existingSaleNumbers.has(row.ticketNumber)) continue;
+        
+                // Customer handling
+                let customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName) || newCustomers.get(row.customerCode || row.customerName);
+                if (!customer && row.customerCode && row.customerName) {
+                    customer = await addCustomer({ 
+                        id: row.customerCode, name: row.customerName, email: row.customerEmail, phone: row.customerPhone,
+                        address: row.customerAddress, postalCode: row.customerPostalCode, city: row.customerCity
+                    });
+                    if (customer) newCustomers.set(customer.id, customer);
+                }
+                
+                // Item handling
+                let item = items.find(i => i.barcode === row.itemBarcode) || newItems.get(row.itemBarcode);
+                if (!item && row.itemBarcode && row.itemName) {
+                    const vatRate = vatRates.find(v => v.rate === parseFloat(row.vatRate));
+                    const category = categories.find(c => c.name === row.itemCategory);
+                    
+                    if (vatRate) {
+                        item = await addItem({ 
+                            barcode: row.itemBarcode, name: row.itemName, price: row.unitPriceHT * (1 + vatRate.rate / 100), 
+                            vatId: vatRate.id, categoryId: category?.id, purchasePrice: row.itemPurchasePrice
+                        });
+                        if (item) newItems.set(item.barcode, item);
+                    } else {
+                        errors.push(`Ligne ${index + 1}: Taux de TVA "${row.vatRate}" introuvable pour l'article ${row.itemName}.`);
+                        errorCount++;
+                        continue;
+                    }
+                }
+        
+                if (!item) {
+                     errors.push(`Ligne ${index + 1} (Pièce ${row.ticketNumber}): Article ${row.itemBarcode} introuvable et non créé.`);
+                     errorCount++;
+                     continue;
+                }
+        
+                let sale = salesMap.get(row.ticketNumber);
+                if (!sale) {
+                    const seller = users.find(u => `${u.firstName} ${u.lastName}` === row.sellerName);
+                    sale = {
+                        id: uuidv4(), ticketNumber: row.ticketNumber, date: new Date(row.date || Date.now()),
+                        items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
+                        customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
+                        documentType: row.pieceName?.toLowerCase() === 'facture' ? 'invoice' : 'ticket',
+                    };
+                }
+        
+                const orderItem: OrderItem = {
+                    id: uuidv4(), itemId: item.id, name: item.name, price: row.unitPriceHT * (1 + (vatRates.find(v => v.id === item!.vatId)?.rate || 0)/100),
+                    quantity: row.quantity, total: row.quantity * (row.unitPriceHT * (1 + (vatRates.find(v => v.id === item!.vatId)?.rate || 0)/100)), vatId: item.vatId, barcode: item.barcode || '', discount: 0
+                };
+                sale.items.push(orderItem);
+                
+                ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
+                    if (row[pmtKey] > 0) {
+                        const method = paymentMethods.find(m => m.name.toLowerCase().includes(pmtKey.replace('payment','').toLowerCase()));
+                        if (method) {
+                            sale!.payments.push({ method, amount: row[pmtKey], date: sale!.date });
+                        }
+                    }
+                });
+
+                salesMap.set(row.ticketNumber, sale);
+                lastProcessedTicketNumber = row.ticketNumber;
+            }
+
+            for (const sale of salesMap.values()) {
+                const total = sale.items.reduce((acc, item) => acc + item.total, 0);
+                let totalTax = 0;
+                let totalSub = 0;
+
+                sale.items.forEach(item => {
+                    const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+                    const sub = item.total / (1 + vatRateValue / 100);
+                    totalSub += sub;
+                    totalTax += item.total - sub;
+                });
+
+                sale.total = total;
+                sale.tax = totalTax;
+                sale.subtotal = totalSub;
+
+                setSales(prev => [sale, ...prev]);
+                successCount++;
+            }
+            break;
+        case 'ventes':
+            const salesToImport = new Map<string, Sale>();
+            const existingNumbers = new Set(sales.map(s => s.ticketNumber));
+            let lastSale: Sale | null = null;
+        
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.ticketNumber) {
+                    if (lastSale && row.itemName) {
+                        lastSale.notes = (lastSale.notes ? lastSale.notes + '\n' : '') + row.itemName;
                     }
                     continue;
                 }
 
-                if (existingSaleNumbers.has(row.ticketNumber)) {
+                if (existingNumbers.has(row.ticketNumber)) {
                     errorCount++;
                     errors.push(`Ligne ${index + 1}: La pièce N°${row.ticketNumber} existe déjà.`);
                     continue;
@@ -1494,7 +1612,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                      continue;
                 }
 
-                let sale = salesMap.get(row.ticketNumber);
+                let sale = salesToImport.get(row.ticketNumber);
                 if (!sale) {
                     const customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
                     const seller = users.find(u => u.firstName + ' ' + u.lastName === row.sellerName);
@@ -1525,16 +1643,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     quantity: row.quantity,
                     total: row.totalTTC || 0,
                     vatId: item.vatId,
-                    barcode: item.barcode,
+                    barcode: item.barcode || '',
                     discount: (row.unitPriceHT * row.quantity) * (row.discountPercentage / 100) || row.discountAmount || 0,
                     discountPercent: row.discountPercentage
                 };
                 sale.items.push(orderItem);
-                salesMap.set(row.ticketNumber, sale);
-                lastSuccessfullyImportedSale = sale; // Set this as the last successful sale
+                salesToImport.set(row.ticketNumber, sale);
+                lastSale = sale;
             }
             
-            for (const sale of salesMap.values()) {
+            for (const sale of salesToImport.values()) {
                 const total = sale.items.reduce((acc, item) => acc + item.total, 0);
                 let totalTax = 0;
                 let totalSub = 0;
