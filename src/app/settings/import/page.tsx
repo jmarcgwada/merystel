@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -64,6 +63,7 @@ const saleFields: string[] = [
 
 const completeSaleFields: string[] = [
     'ignore', 
+    'pieceName',
     'ticketNumber', 
     'date', 
     'customerCode', 
@@ -127,7 +127,7 @@ const fieldLabels: Record<string, string> = {
   quantity: 'Quantité *',
   unitPriceHT: "Prix Unitaire HT *",
   totalLineHT: 'Prix Total Ligne HT',
-  vatRate: 'Taux de TVA appliqué (%)',
+  vatRate: 'Code ou Taux de TVA appliqué',
   vatAmount: 'Montant TVA de la ligne',
   discountPercentage: 'Remise en %',
   discountAmount: 'Remise en montant',
@@ -312,7 +312,7 @@ export default function ImportDataPage() {
   const handleGenerateJson = () => {
     const requiredForType = requiredFieldsMap[dataType] || [];
     
-    const mappedFields = Object.keys(mappings).filter(key => mappings[key] !== null)
+    const mappedFields = Object.keys(mappings).filter(key => mappings[key] !== null && mappings[key] !== undefined)
                            .concat(Object.keys(fixedValues).filter(key => fixedValues[key] !== ''));
 
     const missingFields = requiredForType.filter(field => !mappedFields.includes(field));
@@ -783,4 +783,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-

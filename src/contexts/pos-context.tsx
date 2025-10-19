@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -324,6 +323,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
         if (typeof window === 'undefined') {
@@ -1412,10 +1412,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
-    let lastSuccessfullyImportedSale: Sale | null = null;
     let lastProcessedTicketNumber: string | null = null;
 
     const limitedJsonData = jsonData.slice(0, importLimit || jsonData.length);
+    const tempNewItems = new Map<string, Item>();
 
     switch (dataType) {
         case 'clients':
@@ -1449,7 +1449,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             const salesMap = new Map<string, Sale>();
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
             const newCustomers = new Map<string, Customer>();
-            const newItems = new Map<string, Item>();
         
             for (const [index, row] of limitedJsonData.entries()) {
                 if (!row.ticketNumber) {
@@ -1464,7 +1463,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
                 if (existingSaleNumbers.has(row.ticketNumber)) continue;
         
-                // Customer handling
                 let customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName) || newCustomers.get(row.customerCode || row.customerName);
                 if (!customer && row.customerCode && row.customerName) {
                     customer = await addCustomer({ 
@@ -1474,11 +1472,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     if (customer) newCustomers.set(customer.id, customer);
                 }
                 
-                // Item handling
-                let item = items.find(i => i.barcode === row.itemBarcode) || newItems.get(row.itemBarcode);
+                let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
                     const vatValue = parseFloat(row.vatRate);
-                    const vatRate = vatRates.find(v => v.rate === vatValue || v.code === vatValue);
+                    const vatRate = vatRates.find(v => v.code === vatValue || v.rate === vatValue);
                     const category = categories.find(c => c.name === row.itemCategory);
                     
                     if (vatRate) {
@@ -1488,7 +1485,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         });
                         if (newItem) {
                             item = newItem;
-                            newItems.set(item.barcode, item);
+                            tempNewItems.set(item.barcode, item);
                         }
                     } else {
                         errors.push(`Ligne ${index + 1}: Taux de TVA "${row.vatRate}" introuvable pour l'article ${row.itemName}.`);
@@ -1506,11 +1503,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 let sale = salesMap.get(row.ticketNumber);
                 if (!sale) {
                     const seller = users.find(u => `${u.firstName} ${u.lastName}` === row.sellerName);
+                    const documentType = row.pieceName?.toLowerCase().includes('facture') ? 'invoice'
+                                   : row.pieceName?.toLowerCase().includes('devis') ? 'quote'
+                                   : row.pieceName?.toLowerCase().includes('livraison') ? 'delivery_note'
+                                   : row.pieceName?.toLowerCase().includes('avoir') ? 'credit_note'
+                                   : 'ticket';
+                    
+                    const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
+                    const finalTicketNumber = row.ticketNumber.startsWith(prefix) ? row.ticketNumber : `${prefix}${row.ticketNumber}`;
+
+
                     sale = {
-                        id: uuidv4(), ticketNumber: row.ticketNumber, date: new Date(row.date || Date.now()),
+                        id: uuidv4(), ticketNumber: finalTicketNumber, date: new Date(row.date || Date.now()),
                         items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
                         customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
-                        documentType: row.pieceName?.toLowerCase() === 'facture' ? 'invoice' : 'ticket',
+                        documentType: documentType,
                     };
                 }
         
