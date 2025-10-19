@@ -188,7 +188,7 @@ export interface PosContextType {
   resetAllData: () => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
-  importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number, errorCount: number, errors: string[] }>;
+  importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number; errorCount: number; errors: string[] }>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
   importDemoSuppliers: () => Promise<void>;
@@ -525,7 +525,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         )
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
+    [order, removeFromOrder, enableSerialNumber, items]
   );
   
   const updateQuantityFromKeypad = useCallback(
