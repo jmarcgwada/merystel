@@ -251,7 +251,7 @@ function CustomersPageContent() {
                                             onValueChange={(value) => setItemsPerPageState(value[0])}
                                             onValueCommit={(value) => setItemsPerPage(value[0])}
                                             min={5}
-                                            max={Math.min(100, Math.max(5, filteredCustomers.length))}
+                                            max={Math.max(5, filteredCustomers.length)}
                                             step={5}
                                         />
                                     </div>
