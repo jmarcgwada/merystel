@@ -295,7 +295,8 @@ export default function ImportDataPage() {
     setIsImporting(true);
     toast({ title: 'Importation en cours...', description: 'Veuillez patienter.' });
 
-    const report = await importDataFromJson(dataType, jsonData);
+    const dataToImport = jsonData.slice(0, importLimit);
+    const report = await importDataFromJson(dataType, dataToImport);
 
     setIsImporting(false);
     setImportReport(report);
