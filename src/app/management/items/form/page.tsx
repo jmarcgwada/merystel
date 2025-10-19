@@ -37,8 +37,22 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
     if (date) {
-      const jsDate = date instanceof Date ? date : (date as Timestamp).toDate();
-      setFormatted(format(jsDate, formatString, { locale: fr }));
+      let jsDate: Date;
+      if (date instanceof Date) {
+        jsDate = date;
+      } else if (date && typeof (date as Timestamp).toDate === 'function') {
+        jsDate = (date as Timestamp).toDate();
+      } else if (date && typeof (date as any).seconds === 'number') {
+        // Handle serialized Firestore Timestamp
+        jsDate = new Date((date as any).seconds * 1000);
+      } else {
+        // Fallback for string or number representations
+        jsDate = new Date(date as any);
+      }
+      
+      if (!isNaN(jsDate.getTime())) {
+        setFormatted(format(jsDate, formatString, { locale: fr }));
+      }
     }
   }, [date, formatString]);
   return <>{formatted}</>;
@@ -1021,4 +1035,3 @@ export default function ItemFormPage() {
         </Suspense>
     )
 }
-

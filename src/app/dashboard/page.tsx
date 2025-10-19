@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -96,10 +97,17 @@ export default function DashboardPage() {
         if (!relevantSales || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
         const today = new Date();
         const salesOfToday = relevantSales
-            .map(sale => ({
-                ...sale,
-                date: (sale.date as unknown as Timestamp)?.toDate ? (sale.date as unknown as Timestamp).toDate() : new Date(sale.date)
-            }))
+            .map(sale => {
+              let saleDate;
+              if (sale.date instanceof Date) {
+                  saleDate = sale.date;
+              } else if (sale.date && typeof (sale.date as Timestamp).toDate === 'function') {
+                  saleDate = (sale.date as Timestamp).toDate();
+              } else {
+                  saleDate = new Date(sale.date as any);
+              }
+              return { ...sale, date: saleDate };
+            })
             .filter(sale => {
                 if (isNaN(sale.date.getTime())) return false; // Invalid date
                 return format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -44,20 +45,23 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
-        if (!date) {
-            setFormattedDate('Date non disponible');
-            return;
-        }
-        
-        let jsDate: Date;
-        if (date instanceof Date) jsDate = date;
-        else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
-        else jsDate = new Date(date as any);
-
-        if (!isNaN(jsDate.getTime())) {
-            setFormattedDate(format(jsDate, formatString, { locale: fr }));
-        } else {
-            setFormattedDate('Date invalide');
+        if (date) {
+            let jsDate: Date;
+            if (date instanceof Date) {
+                jsDate = date;
+            } else if (date && typeof (date as Timestamp).toDate === 'function') {
+                jsDate = (date as Timestamp).toDate();
+            } else if (date && typeof (date as any).seconds === 'number') {
+                // Handle serialized Firestore Timestamp
+                jsDate = new Date((date as any).seconds * 1000);
+            } else {
+                // Fallback for string or number representations
+                jsDate = new Date(date as any);
+            }
+            
+            if (!isNaN(jsDate.getTime())) {
+                setFormattedDate(format(jsDate, formatString, { locale: fr }));
+            }
         }
     }, [date, formatString]);
 
@@ -656,5 +660,3 @@ export default function SaleDetailPage() {
     </Suspense>
   )
 }
-
-    
