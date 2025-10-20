@@ -272,7 +272,7 @@ export interface PosContextType {
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -324,34 +324,45 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window === 'undefined') {
-            return defaultValue;
-        }
-        try {
-            const storedValue = localStorage.getItem(key);
-            return storedValue ? JSON.parse(storedValue) : defaultValue;
-        } catch (error) {
-            console.error('Error reading localStorage key “' + key + '”: ', error);
-            return defaultValue;
-        }
-    });
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error('Error setting localStorage key “' + key + '”: ', error);
+                console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
-    return [state, setState];
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
 }
-
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -680,16 +691,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     reader.onload = (event) => {
         try {
             const config = JSON.parse(event.target?.result as string);
-            if (config.items) setItems(config.items);
-            if (config.categories) setCategories(config.categories);
-            if (config.customers) setCustomers(config.customers);
-            if (config.suppliers) setSuppliers(config.suppliers);
-            if (config.tables) setTablesData(config.tables);
-            if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
-            if (config.vatRates) setVatRates(config.vatRates);
+            if (config.items) setItems(prev => [...prev, ...config.items.filter((i: Item) => !prev.some(pi => pi.id === i.id))]);
+            if (config.categories) setCategories(prev => [...prev, ...config.categories.filter((c: Category) => !prev.some(pc => pc.id === c.id))]);
+            if (config.customers) setCustomers(prev => [...prev, ...config.customers.filter((c: Customer) => !prev.some(pc => pc.id === c.id))]);
+            if (config.suppliers) setSuppliers(prev => [...prev, ...config.suppliers.filter((s: Supplier) => !prev.some(ps => ps.id === s.id))]);
+            if (config.tables) setTablesData(prev => [...prev, ...config.tables.filter((t: Table) => !prev.some(pt => pt.id === t.id))]);
+            if (config.paymentMethods) setPaymentMethods(prev => [...prev, ...config.paymentMethods.filter((p: PaymentMethod) => !prev.some(pp => pp.id === p.id))]);
+            if (config.vatRates) setVatRates(prev => [...prev, ...config.vatRates.filter((v: VatRate) => !prev.some(pv => pv.id === v.id))]);
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
-            if (config.users) setUsers(config.users);
-            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+            if (config.users) setUsers(prev => [...prev, ...config.users.filter((u: User) => !prev.some(pu => pu.id === u.id))]);
+            
+            toast({ title: 'Importation terminée!', description: 'Les données ont été fusionnées. Les doublons ont été ignorés.' });
+             setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
@@ -1061,6 +1074,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const today = new Date();
         let finalSale: Sale;
     
+        const getNextCounter = (counterType: keyof CompanyInfo): number => {
+            return (companyInfo?.[counterType] as number | undefined) || 0;
+        };
+
+        const incrementCounter = (counterType: keyof CompanyInfo): void => {
+            setCompanyInfo({
+                ...companyInfo!,
+                [counterType]: ((companyInfo?.[counterType] as number | undefined) || 0) + 1
+            });
+        };
+    
         if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
             const existingSale = sales.find(s => s.id === saleIdToUpdate);
             if (!existingSale) return null;
@@ -1072,19 +1096,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 modifiedAt: today, 
             };
         } else {
-            const dayMonth = format(today, 'ddMM');
             let ticketNumber: string;
             let newId = uuidv4();
     
             if (saleData.documentType === 'invoice') {
-                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
+                const invoiceCount = getNextCounter('invoiceCounter');
                 ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+                incrementCounter('invoiceCounter');
             } else {
-                const todaysSalesCount = sales.filter(s => {
-                    const saleDate = new Date(s.date as Date);
-                    return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
-                }).length;
-                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+                const ticketCount = getNextCounter('ticketCounter');
+                const dayMonth = format(today, 'ddMM');
+                ticketNumber = 'Tick-' + dayMonth + '-' + (ticketCount + 1).toString().padStart(4, '0');
+                incrementCounter('ticketCounter');
             }
             
             finalSale = {
@@ -1144,12 +1167,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     
         return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, sendEmailOnSale, smtpConfig]);
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog, sendEmailOnSale, smtpConfig, companyInfo, setCompanyInfo]);
     
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
         const today = new Date();
         const prefixes = { 'quote': 'Devis', 'delivery_note': 'BL', 'supplier_order': 'CF', 'credit_note': 'Avoir' };
         const prefix = prefixes[type];
+
+        const getNextCounter = (counterType: keyof CompanyInfo): number => {
+            return (companyInfo?.[counterType] as number | undefined) || 0;
+        };
+
+        const incrementCounter = (counterType: keyof CompanyInfo): void => {
+            setCompanyInfo({
+                ...companyInfo!,
+                [counterType]: ((companyInfo?.[counterType] as number | undefined) || 0) + 1
+            });
+        };
         
         let finalDoc: Sale;
 
@@ -1164,8 +1198,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             addAuditLog({ action: 'update', documentId: finalDoc.id, documentNumber: finalDoc.ticketNumber, documentType: type, details: `Mise à jour de la pièce ${finalDoc.ticketNumber}`, userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System' });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
-             const count = sales.filter(s => s.documentType === type).length;
+             let counterKey: keyof CompanyInfo;
+             switch(type) {
+                case 'quote': counterKey = 'quoteCounter'; break;
+                case 'delivery_note': counterKey = 'deliveryNoteCounter'; break;
+                case 'supplier_order': counterKey = 'supplierOrderCounter'; break;
+                case 'credit_note': counterKey = 'creditNoteCounter'; break;
+             }
+             const count = getNextCounter(counterKey);
              const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
+             incrementCounter(counterKey);
+
              finalDoc = {
                 id: uuidv4(),
                 date: today,
@@ -1184,7 +1227,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const reportPath = `/reports?docType=${type}`;
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, companyInfo, setCompanyInfo]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
@@ -1258,7 +1301,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const toggleCategoryFavorite = useCallback((id: string) => {
       setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite, updatedAt: new Date() } : c));
   }, [setCategories]);
-
+  
   const getCategoryColor = useCallback((categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.color;
   }, [categories]);
@@ -1480,9 +1523,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
                     const vatRateInput = String(row.vatRate);
-                    const vatValue = parseFloat(vatRateInput);
-                    const vatRate = vatRates.find(v => String(v.code) === vatRateInput || v.rate === vatValue);
-                    const category = categories.find(c => c.name === row.itemCategory);
+                    let vatRate = vatRates.find(v => String(v.code) === vatRateInput || v.rate === parseFloat(vatRateInput));
+                    
+                    if(!vatRate && /^\d+(\.\d+)?$/.test(vatRateInput)) {
+                      const newVatRate = await addVatRate({ name: `TVA ${parseFloat(vatRateInput).toFixed(2)}%`, rate: parseFloat(vatRateInput) });
+                      if(newVatRate) vatRate = newVatRate;
+                    }
+                    
+                    let category = categories.find(c => c.name === row.itemCategory);
+                    if (!category && row.itemCategory) {
+                        const newCategory = await addCategory({ name: row.itemCategory });
+                        if(newCategory) category = newCategory;
+                    }
                     
                     if (vatRate) {
                         const newItemData = await addItem({ 
@@ -1579,136 +1631,58 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
     
     return { successCount, errorCount, errors };
-  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods]);
+  }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods, addVatRate, addCategory, categories]);
 
   const generateRandomSales = useCallback(async (count: number) => {
-    if (!customers?.length || !items?.length || !paymentMethods?.length) {
-        toast({ variant: 'destructive', title: 'Données insuffisantes', description: 'Assurez-vous d\'avoir des clients, articles et moyens de paiement.' });
-        return;
-    }
-    
-    toast({ title: `Génération de ${count} pièces en cours...` });
-
-    let demoUser = users.find(u => u.email === 'email@example.com');
-
-    if (!demoUser) {
-        const newDemoUser = await addUser({
-            firstName: 'Utilisateur',
-            lastName: 'de démo',
-            email: 'email@example.com',
-            role: 'admin',
-        }, 'password');
-        if (!newDemoUser) {
-            toast({ variant: 'destructive', title: 'Erreur Critique', description: 'Impossible de créer l\'utilisateur de démo pour la génération.' });
-            return;
-        }
-        demoUser = newDemoUser;
-    }
-    
-    const newSales: Sale[] = [];
-    
-    for (let i = 0; i < count; i++) {
-        const isInvoice = Math.random() < 0.3; // 30% chance to be an invoice
-        const docType = isInvoice ? 'invoice' : 'ticket';
-        const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
-        
-        let ticketNumber: string;
-        if (isInvoice) {
-            const invoiceCount = sales.filter(s => s.documentType === 'invoice').length + newSales.filter(s => s.documentType === 'invoice').length;
-            ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
-        } else {
-            const dayMonth = format(saleDate, 'ddMM');
-            const todaysSalesCount = sales.filter(s => isSameDay(new Date(s.date as Date), saleDate) && s.documentType === 'ticket').length + newSales.filter(s => isSameDay(new Date(s.date as Date), saleDate) && s.documentType === 'ticket').length;
-            ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
-        }
-
-
+      const newSales: Sale[] = [];
+      const today = new Date();
+      for (let i = 0; i < count; i++) {
+        const saleDate = subDays(today, Math.floor(Math.random() * 30));
         const customer = customers[Math.floor(Math.random() * customers.length)];
-        const itemCount = Math.floor(Math.random() * 5) + 1;
-        
-        const orderItems: OrderItem[] = [];
-        const usedItemIds = new Set<string>();
+        const seller = users[Math.floor(Math.random() * users.length)];
+        const numItems = Math.floor(Math.random() * 5) + 1;
+        const saleItems: OrderItem[] = [];
+        let total = 0;
 
-        for (let j = 0; j < itemCount; j++) {
-            let item: Item | undefined;
-            do {
-                item = items[Math.floor(Math.random() * items.length)];
-            } while (usedItemIds.has(item.id));
-            
-            usedItemIds.add(item.id);
+        for (let j = 0; j < numItems; j++) {
+            const item = items[Math.floor(Math.random() * items.length)];
             const quantity = Math.floor(Math.random() * 3) + 1;
-
-            orderItems.push({
+            const itemTotal = item.price * quantity;
+            saleItems.push({
                 id: uuidv4(),
                 itemId: item.id,
                 name: item.name,
                 price: item.price,
-                quantity,
-                total: item.price * quantity,
+                quantity: quantity,
+                total: itemTotal,
                 vatId: item.vatId,
                 barcode: item.barcode || '',
                 discount: 0,
             });
+            total += itemTotal;
         }
 
-        const total = orderItems.reduce((acc, item) => acc + item.total, 0);
-        let subtotal = 0;
-        let tax = 0;
-        
-        orderItems.forEach(item => {
-            const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
-            const itemSubtotal = item.total / (1 + vatRateValue / 100);
-            subtotal += itemSubtotal;
-            tax += item.total - itemSubtotal;
-        });
-
-        const payments: Payment[] = [];
-        const paymentMethodCount = Math.random() > 0.7 ? 2 : 1;
-        let remainingAmount = total;
-
-        for (let k = 0; k < paymentMethodCount; k++) {
-            const availableMethods = paymentMethods.filter(pm => pm.isActive);
-            const method = availableMethods[Math.floor(Math.random() * availableMethods.length)];
-            let amount: number;
-
-            if (k === paymentMethodCount - 1) {
-                amount = remainingAmount;
-            } else {
-                amount = Math.random() * remainingAmount;
-            }
-
-            payments.push({
-                method,
-                amount,
-                date: saleDate,
-            });
-
-            remainingAmount -= amount;
-        }
+        const paymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
 
         const newSale: Sale = {
             id: uuidv4(),
-            ticketNumber,
+            ticketNumber: `RND-${uuidv4().substring(0, 8)}`,
             date: saleDate,
-            items: orderItems,
-            subtotal,
-            tax,
+            items: saleItems,
+            subtotal: total / 1.1,
+            tax: total * 0.1 / 1.1,
             total,
-            payments,
+            payments: [{ method: paymentMethod, amount: total, date: saleDate }],
             status: 'paid',
             customerId: customer.id,
-            userId: demoUser.id,
-            userName: `${demoUser.firstName} ${demoUser.lastName}`,
-            documentType: docType,
+            userId: seller.id,
+            userName: `${seller.firstName} ${seller.lastName}`,
         };
-        
         newSales.push(newSale);
-    }
-    
-    setSales(prev => [...prev, ...newSales]);
-    toast({ title: 'Génération terminée !', description: `${count} nouvelles pièces ont été créées.` });
-
-  }, [customers, items, users, paymentMethods, sales, vatRates, setSales, toast, addUser]);
+      }
+      setSales(prev => [...prev, ...newSales]);
+      toast({ title: `${count} ventes aléatoires générées` });
+  }, [customers, items, paymentMethods, users, setSales, toast]);
   
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
@@ -1835,7 +1809,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen, enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
@@ -1858,7 +1832,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       commercialViewLevel, cycleCommercialViewLevel, companyInfo, setCompanyInfo,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit,
-      mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems,
+      mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, removeDuplicateItems, importDataFromJson,
   };
 
   return (
@@ -1875,3 +1849,4 @@ export function usePos() {
   }
   return context;
 }
+

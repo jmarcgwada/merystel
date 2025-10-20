@@ -42,7 +42,9 @@
         "ticketCounter": { "type": "number", "description": "Counter for ticket numbers." },
         "invoiceCounter": { "type": "number", "description": "Counter for invoice numbers." },
         "quoteCounter": { "type": "number", "description": "Counter for quote numbers." },
-        "deliveryNoteCounter": { "type": "number", "description": "Counter for delivery note numbers." }
+        "deliveryNoteCounter": { "type": "number", "description": "Counter for delivery note numbers." },
+        "creditNoteCounter": { "type": "number", "description": "Counter for credit note numbers." },
+        "supplierOrderCounter": { "type": "number", "description": "Counter for supplier order numbers." }
       },
       "required": ["name", "address", "postalCode", "city", "country", "email"]
     },
