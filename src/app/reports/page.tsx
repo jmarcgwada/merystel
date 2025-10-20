@@ -44,6 +44,7 @@ import { InvoicePrintTemplate } from './components/invoice-print-template';
 import jsPDF from 'jspdf';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 
@@ -173,6 +174,7 @@ export default function ReportsPage() {
         lastSelectedSaleId,
         setLastSelectedSaleId,
         itemsPerPage,
+        setItemsPerPage,
     } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
@@ -196,6 +198,7 @@ export default function ReportsPage() {
     const [filterDocTypes, setFilterDocTypes] = usePersistentDocTypeFilter('reports.filterDocTypes', {
         ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
     });
+    const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
 
     useEffect(() => {
@@ -792,7 +795,30 @@ export default function ReportsPage() {
                                     </TooltipProvider>
                                     <div className="flex items-center gap-1">
                                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                        <div className="text-xs font-medium text-muted-foreground min-w-[70px] text-center px-1">Page {currentPage} / {totalPages || 1}</div>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                                    Page {currentPage} / {totalPages || 1}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-48 p-2">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                        <span>{itemsPerPageState}</span>
+                                                    </div>
+                                                    <Slider
+                                                        id="items-per-page-slider"
+                                                        value={[itemsPerPageState]}
+                                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                        min={5}
+                                                        max={100}
+                                                        step={5}
+                                                    />
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                                     </div>
                                 </div>
@@ -944,3 +970,8 @@ export default function ReportsPage() {
     </>
   );
 }
+
+```
+- `src/lib/types.ts` is not a relevant file.
+- `src/components/ui/input.tsx` is not a relevant file.
+- `src/components/ui/card.tsx` is not a relevant file.
