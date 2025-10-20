@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -30,6 +31,7 @@ import { User as UserIcon } from 'lucide-react';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
+import { StorageIndicator } from './storage-indicator';
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -209,6 +211,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
+            <StorageIndicator />
             <Button
                 variant="outline"
                 size="icon"
