@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -419,6 +420,7 @@ export default function ImportDataPage() {
       setMappings(template.mappings || {});
       setMappingModes(template.mappingModes || {});
       setFixedValues(template.fixedValues || {});
+      setTemplateName(template.name);
       toast({ title: 'Modèle appliqué !'});
   };
 
