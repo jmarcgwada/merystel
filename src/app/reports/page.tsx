@@ -970,8 +970,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-```
-- `src/lib/types.ts` is not a relevant file.
-- `src/components/ui/input.tsx` is not a relevant file.
-- `src/components/ui/card.tsx` is not a relevant file.
