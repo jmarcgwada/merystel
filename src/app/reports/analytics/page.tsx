@@ -35,7 +35,6 @@ type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
 type TopCustomersSortKey = 'name' | 'visits' | 'basketTotal' | 'revenue';
 type TopCategoriesSortKey = 'name' | 'quantity' | 'revenue';
 
-const ITEMS_PER_PAGE = 20;
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -71,8 +70,10 @@ const getDateFromSale = (sale: Sale): Date => {
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in' },
     invoice: { label: 'Facture', type: 'in' },
-    credit_note: { label: 'Avoir', type: 'out' },
+    quote: { label: 'Devis', type: 'neutral' },
+    delivery_note: { label: 'Bon de Livraison', type: 'neutral' },
     supplier_order: { label: 'Cde Fournisseur', type: 'out' },
+    credit_note: { label: 'Avoir', type: 'out' },
 };
 
 
@@ -84,6 +85,8 @@ export default function AnalyticsPage() {
         items,
         categories,
         isLoading, 
+        itemsPerPage,
+        setItemsPerPage,
     } = usePos();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -125,11 +128,16 @@ export default function AnalyticsPage() {
     const [selectedTopItems, setSelectedTopItems] = useState<string[]>([]);
     const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
     const [selectedTopCategories, setSelectedTopCategories] = useState<string[]>([]);
+    const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
     
     useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    useEffect(() => {
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
 
      useEffect(() => {
         if (targetInput?.name === 'analytics-general-filter') setGeneralFilter(inputValue);
@@ -330,9 +338,9 @@ export default function AnalyticsPage() {
             if (aValue > bValue) return direction === 'asc' ? 1 : -1;
             return 0;
         });
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sorted.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredItems, currentPage, salesLinesSortConfig]);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return sorted.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredItems, currentPage, salesLinesSortConfig, itemsPerPage]);
 
     const sortedTopItems = useMemo(() => {
         return [...topItems].sort((a, b) => {
@@ -387,7 +395,7 @@ export default function AnalyticsPage() {
     }
 
 
-    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
     const resetFilters = () => {
         setFilterCategory('all');
@@ -731,9 +739,32 @@ export default function AnalyticsPage() {
                         </DropdownMenu>
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                        <span className="text-sm font-medium">Page {currentPage} / {totalPages || 1}</span>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                    Page {currentPage} / {totalPages || 1}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                        <span>{itemsPerPageState}</span>
+                                    </div>
+                                    <Slider
+                                        id="items-per-page-slider"
+                                        value={[itemsPerPageState]}
+                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                        min={10}
+                                        max={Math.max(100, filteredItems.length)}
+                                        step={10}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                 </div>
             </CardHeader>
