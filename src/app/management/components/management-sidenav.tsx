@@ -9,24 +9,35 @@ import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChar
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePos } from '@/contexts/pos-context';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function ManagementSideNav() {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
+  const { 
+      items, 
+      categories, 
+      tables, 
+      customers, 
+      suppliers, 
+      paymentMethods, 
+      vatRates 
+  } = usePos();
   
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const navLinks = [
-    { href: '/management/items', label: 'Articles', icon: Box },
-    { href: '/management/categories', label: 'Catégories', icon: LayoutGrid },
-    { href: '/management/tables', label: 'Tables', icon: Utensils },
-    { href: '/management/customers', label: 'Clients', icon: Users },
-    { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck },
-    { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard },
-    { href: '/management/vat', label: 'TVA', icon: Percent },
+    { href: '/management/items', label: 'Articles', icon: Box, count: items?.length || 0 },
+    { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, count: categories?.length || 0 },
+    { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
+    { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
+    { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
+    { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, count: paymentMethods?.length || 0 },
+    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
   ];
   
   const reportLinks = [
@@ -57,7 +68,8 @@ export default function ManagementSideNav() {
           )}
           >
           <link.icon className="h-4 w-4" />
-          {link.label}
+          <span className="flex-1">{link.label}</span>
+          <Badge variant="secondary">{link.count}</Badge>
         </Link>
       ))}
       <div className="my-2 border-t -mx-4"></div>
