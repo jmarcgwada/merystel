@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock, Upload } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock, Upload, HardDrive } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
@@ -39,6 +39,12 @@ export default function SettingsPage() {
         title: 'Connectivité',
         description: 'Configurez les serveurs SMTP, FTP et les services de messagerie.',
         icon: Server,
+    },
+    {
+        href: '/settings/storage',
+        title: 'Gestion du stockage',
+        description: 'Visualisez et gérez l\'espace de stockage local utilisé par l\'application.',
+        icon: HardDrive,
     },
     {
         href: '/settings/company',
