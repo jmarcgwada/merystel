@@ -24,6 +24,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+
 
 type SortKey = 'date' | 'userName' | 'action' | 'documentType' | 'documentNumber';
 
@@ -57,7 +60,7 @@ const ClientFormattedDate = ({ date }: { date: Date | Timestamp | string | undef
 
 export default function AuditLogPage() {
     const router = useRouter();
-    const { auditLogs, isLoading, itemsPerPage } = usePos();
+    const { auditLogs, isLoading, itemsPerPage, setItemsPerPage } = usePos();
     
     const [filterUser, setFilterUser] = useState('');
     const [filterAction, setFilterAction] = useState('all');
@@ -69,6 +72,12 @@ export default function AuditLogPage() {
     
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+    const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
+
+    useEffect(() => {
+      setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
+
 
     const sortedLogs = useMemo(() => {
         if (!auditLogs || !Array.isArray(auditLogs)) {
@@ -187,7 +196,30 @@ export default function AuditLogPage() {
                                     </Button>
                                     <div className="flex items-center gap-1">
                                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                        <div className="text-xs font-medium text-muted-foreground min-w-[70px] text-center px-1">Page {currentPage} / {totalPages || 1}</div>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                                    Page {currentPage} / {totalPages || 1}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-48 p-2">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                        <span>{itemsPerPageState}</span>
+                                                    </div>
+                                                    <Slider
+                                                        id="items-per-page-slider"
+                                                        value={[itemsPerPageState]}
+                                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                        min={10}
+                                                        max={100}
+                                                        step={10}
+                                                    />
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                                     </div>
                                 </div>

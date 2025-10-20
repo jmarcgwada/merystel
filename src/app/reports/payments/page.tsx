@@ -26,9 +26,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useKeyboard } from '@/contexts/keyboard-context';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+
 
 type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName' | 'userName';
-const ITEMS_PER_PAGE = 20;
 
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in' },
@@ -102,6 +104,8 @@ export default function PaymentsReportPage() {
         creditNoteBgOpacity,
         supplierOrderBgColor,
         supplierOrderBgOpacity,
+        itemsPerPage,
+        setItemsPerPage,
     } = usePos();
     const { user } = useUser();
     const router = useRouter();
@@ -136,6 +140,7 @@ export default function PaymentsReportPage() {
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -144,7 +149,8 @@ export default function PaymentsReportPage() {
     
     useEffect(() => {
         setIsClient(true);
-    }, []);
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
     
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
@@ -280,12 +286,12 @@ export default function PaymentsReportPage() {
         return filtered;
     }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
 
-    const totalPages = Math.ceil(filteredAndSortedPayments.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredAndSortedPayments.length / itemsPerPage);
 
     const paginatedPayments = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredAndSortedPayments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [filteredAndSortedPayments, currentPage]);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedPayments.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedPayments, currentPage, itemsPerPage]);
 
      const { summaryTitle, totalRevenue, totalPayments, averagePayment } = useMemo(() => {
         const totalRev = filteredAndSortedPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -459,7 +465,34 @@ export default function PaymentsReportPage() {
         </Collapsible>
         
         <Card>
-            <CardHeader><div className="flex items-center justify-end"><div className="flex items-center gap-2"><Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button><span className="text-sm font-medium">Page {currentPage} / {totalPages || 1}</span><Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button></div></div></CardHeader>
+            <CardHeader><div className="flex items-center justify-end"><div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                            Page {currentPage} / {totalPages || 1}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                            <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                <span>{itemsPerPageState}</span>
+                            </div>
+                            <Slider
+                                id="items-per-page-slider"
+                                value={[itemsPerPageState]}
+                                onValueChange={(value) => setItemsPerPageState(value[0])}
+                                onValueCommit={(value) => setItemsPerPage(value[0])}
+                                min={10}
+                                max={100}
+                                step={10}
+                            />
+                        </div>
+                    </PopoverContent>
+                </Popover>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+            </div></div></CardHeader>
             <CardContent className="pt-0">
                 <Table>
                     <TableHeader><TableRow><TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead><TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead><TableHead className="w-[80px] text-right">Actions</TableHead></TableRow></TableHeader>
