@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -689,7 +690,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             
             toast({ title: 'Importation terminée!', description: 'Les données ont été fusionnées. Les doublons ont été ignorés.' });
             
-            // Re-hydrate all states from local storage to ensure UI updates
             rehydrateAll();
 
         } catch (error) {
@@ -1487,6 +1487,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<{ successCount: number; errorCount: number; errors: string[] }> => {
     let successCount = 0;
     let errorCount = 0;
+    let newCustomersCount = 0;
+    let newItemsCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
     let lastProcessedTicketNumber: string | null = null;
@@ -1558,6 +1560,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     if (newCustomer) {
                         customer = newCustomer;
                         tempNewCustomers.set(newCustomer.id, newCustomer);
+                        newCustomersCount++;
                     }
                 }
                 
@@ -1585,6 +1588,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         if (newItemData) {
                             item = newItemData;
                             tempNewItems.set(item.barcode, item);
+                            newItemsCount++;
                         }
                     } else {
                         errors.push(`Ligne ${index + 1}: Taux de TVA ${row.vatRate} non trouvé pour l'article ${row.itemName}.`);
@@ -1665,10 +1669,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             break;
     }
+    
+    let description = `${successCount} lignes importées, ${errorCount} erreurs.`;
+    if (dataType === 'ventes_completes') {
+        description += ` ${newCustomersCount} nouveaux clients et ${newItemsCount} nouveaux articles créés.`;
+    }
 
     toast({
         title: "Rapport d'importation",
-        description: `${successCount} lignes importées, ${errorCount} erreurs.`,
+        description,
     });
     
     return { successCount, errorCount, errors };
@@ -1742,7 +1751,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
     const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
 
-    return { lastDirectSale, lastRestaurantSale };
+    return { lastDirectSale: null, lastRestaurantSale: null };
   }, [sales]);
 
   const loadTicketForViewing = useCallback((ticket: Sale) => {
@@ -1840,7 +1849,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
@@ -1856,7 +1865,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-      updateItemPrice,
       setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
       externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
@@ -1890,3 +1898,4 @@ export function usePos() {
   }
   return context;
 }
+
