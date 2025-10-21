@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -172,7 +171,7 @@ export interface PosContextType {
   updatePaymentMethod: (method: PaymentMethod) => void;
   deletePaymentMethod: (methodId: string) => void;
   vatRates: VatRate[];
-  addVatRate: (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => void;
+  addVatRate: (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => Promise<VatRate | null>;
   updateVatRate: (vatRate: VatRate) => void;
   deleteVatRate: (vatRateId: string) => void;
   heldOrders: HeldOrder[] | null;
@@ -272,7 +271,7 @@ export interface PosContextType {
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -424,9 +423,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#fee2e2');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
   const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
-  const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
-  const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
-  const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
+  const [smtpConfig, setSmtpConfig, rehydrateSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
+  const [ftpConfig, setFtpConfig, rehydrateFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
+  const [twilioConfig, setTwilioConfig, rehydrateTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
   const [sendEmailOnSale, setSendEmailOnSale] = usePersistentState('settings.sendEmailOnSale', false);
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 20);
   const [lastSelectedSaleId, setLastSelectedSaleId] = usePersistentState<string | null>('state.lastSelectedSaleId', null);
@@ -453,18 +452,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -646,6 +645,62 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, 100);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, toast, seedInitialData, importDemoData]);
   
+  const rehydrateAll = useCallback(() => {
+    rehydrateItems();
+    rehydrateCategories();
+    rehydrateCustomers();
+    rehydrateSuppliers();
+    rehydrateTables();
+    rehydrateSales();
+    rehydratePaymentMethods();
+    rehydrateVatRates();
+    rehydrateHeldOrders();
+    rehydrateAuditLogs();
+    rehydrateCompanyInfo();
+    rehydrateUsers();
+    rehydrateSmtpConfig();
+    rehydrateFtpConfig();
+    rehydrateTwilioConfig();
+  }, [
+    rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, 
+    rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates, 
+    rehydrateHeldOrders, rehydrateAuditLogs, rehydrateCompanyInfo, rehydrateUsers,
+    rehydrateSmtpConfig, rehydrateFtpConfig, rehydrateTwilioConfig
+  ]);
+  
+  const importConfiguration = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const config = JSON.parse(event.target?.result as string);
+            
+            if (config.items) setItems(prev => [...prev, ...config.items.filter((i: Item) => !prev.some(pi => pi.id === i.id))]);
+            if (config.categories) setCategories(prev => [...prev, ...config.categories.filter((c: Category) => !prev.some(pc => pc.id === c.id))]);
+            if (config.customers) setCustomers(prev => [...prev, ...config.customers.filter((c: Customer) => !prev.some(pc => pc.id === c.id))]);
+            if (config.suppliers) setSuppliers(prev => [...prev, ...config.suppliers.filter((s: Supplier) => !prev.some(ps => ps.id === s.id))]);
+            if (config.tables) setTablesData(prev => [...prev, ...config.tables.filter((t: Table) => !prev.some(pt => pt.id === t.id))]);
+            if (config.paymentMethods) setPaymentMethods(prev => [...prev, ...config.paymentMethods.filter((p: PaymentMethod) => !prev.some(pp => pp.id === p.id))]);
+            if (config.vatRates) setVatRates(prev => [...prev, ...config.vatRates.filter((v: VatRate) => !prev.some(pv => pv.id === v.id))]);
+            if (config.users) setUsers(prev => [...prev, ...config.users.filter((u: User) => !prev.some(pu => pu.id === u.id))]);
+            if (config.smtpConfig) setSmtpConfig(config.smtpConfig);
+            if (config.ftpConfig) setFtpConfig(config.ftpConfig);
+            if (config.twilioConfig) setTwilioConfig(config.twilioConfig);
+            if (config.companyInfo) setCompanyInfo(config.companyInfo);
+            
+            toast({ title: 'Importation terminée!', description: 'Les données ont été fusionnées. Les doublons ont été ignorés.' });
+            
+            // Re-hydrate all states from local storage to ensure UI updates
+            rehydrateAll();
+
+        } catch (error) {
+            console.error("Import error:", error);
+            toast({ variant: 'destructive', title: 'Erreur d\'importation', description: "Le fichier semble invalide." });
+        }
+    };
+    reader.readAsText(file);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setUsers, setCompanyInfo, setSmtpConfig, setFtpConfig, setTwilioConfig, toast, rehydrateAll]);
+
+
   useEffect(() => {
     if(isHydrated) {
         const isSeeded = localStorage.getItem('data.seeded');
@@ -682,33 +737,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         vatRates,
         companyInfo,
         users,
+        smtpConfig,
+        ftpConfig,
+        twilioConfig,
     };
     return JSON.stringify(config, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users]);
-
-  const importConfiguration = useCallback(async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const config = JSON.parse(event.target?.result as string);
-            if (config.items) setItems(prev => [...prev, ...config.items.filter((i: Item) => !prev.some(pi => pi.id === i.id))]);
-            if (config.categories) setCategories(prev => [...prev, ...config.categories.filter((c: Category) => !prev.some(pc => pc.id === c.id))]);
-            if (config.customers) setCustomers(prev => [...prev, ...config.customers.filter((c: Customer) => !prev.some(pc => pc.id === c.id))]);
-            if (config.suppliers) setSuppliers(prev => [...prev, ...config.suppliers.filter((s: Supplier) => !prev.some(ps => ps.id === s.id))]);
-            if (config.tables) setTablesData(prev => [...prev, ...config.tables.filter((t: Table) => !prev.some(pt => pt.id === t.id))]);
-            if (config.paymentMethods) setPaymentMethods(prev => [...prev, ...config.paymentMethods.filter((p: PaymentMethod) => !prev.some(pp => pp.id === p.id))]);
-            if (config.vatRates) setVatRates(prev => [...prev, ...config.vatRates.filter((v: VatRate) => !prev.some(pv => pv.id === v.id))]);
-            if (config.companyInfo) setCompanyInfo(config.companyInfo);
-            if (config.users) setUsers(prev => [...prev, ...config.users.filter((u: User) => !prev.some(pu => pu.id === u.id))]);
-            
-            toast({ title: 'Importation terminée!', description: 'Les données ont été fusionnées. Les doublons ont été ignorés.' });
-             setTimeout(() => window.location.reload(), 1500);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
-        }
-    };
-    reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, toast]);
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, smtpConfig, ftpConfig, twilioConfig]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
@@ -1385,9 +1419,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
   }, [setPaymentMethods]);
 
-  const addVatRate = useCallback((vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => {
+  const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt' | 'updatedAt'>) => {
       const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
-      setVatRates(prev => [...prev, { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() }]);
+      const newVat = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
+      setVatRates(prev => [...prev, newVat]);
+      return newVat;
   }, [vatRates, setVatRates]);
 
   const updateVatRate = useCallback((vatRate: VatRate) => {
@@ -1459,6 +1495,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
     const limitedJsonData = (importLimit > 0) ? jsonData.slice(0, importLimit) : jsonData;
     const tempNewItems = new Map<string, Item>();
+    const tempNewCustomers = new Map<string, Customer>();
 
     const processPayment = (saleEntry: { sale: Sale; paymentTotals: Record<string, number> }, row: any) => {
         ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pmtKey => {
@@ -1511,19 +1548,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
                 if (existingSaleNumbers.has(row.ticketNumber)) continue;
         
-                let customer = customers.find(c => c.id === row.customerCode || c.name === row.customerName);
+                let customer = customers.find(c => c.id === row.customerCode) || tempNewCustomers.get(row.customerCode);
                 if (!customer && row.customerCode && row.customerName) {
-                    const newCustomer = await addCustomer({ 
+                    const newCustomerData: Omit<Customer, 'isDefault' | 'createdAt'> & {id?: string} = {
                         id: row.customerCode, name: row.customerName, email: row.customerEmail, phone: row.customerPhone,
                         address: row.customerAddress, postalCode: row.customerPostalCode, city: row.customerCity
-                    });
-                    if (newCustomer) customer = newCustomer;
+                    };
+                    const newCustomer = await addCustomer(newCustomerData);
+                    if (newCustomer) {
+                        customer = newCustomer;
+                        tempNewCustomers.set(newCustomer.id, newCustomer);
+                    }
                 }
                 
                 let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
-                    const vatRateInput = String(row.vatRate);
-                    let vatRate = vatRates.find(v => String(v.code) === vatRateInput || v.rate === parseFloat(vatRateInput));
+                    const vatRateInput = String(row.vatRate).replace('%','').trim();
+                    let vatRate = vatRates.find(v => Math.abs(v.rate - parseFloat(vatRateInput)) < 0.01);
                     
                     if(!vatRate && /^\d+(\.\d+)?$/.test(vatRateInput)) {
                       const newVatRate = await addVatRate({ name: `TVA ${parseFloat(vatRateInput).toFixed(2)}%`, rate: parseFloat(vatRateInput) });
@@ -1546,7 +1587,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                             tempNewItems.set(item.barcode, item);
                         }
                     } else {
-                        errors.push(`Ligne ${index + 1}: Taux de TVA "${row.vatRate}" introuvable pour l'article ${row.itemName}.`);
+                        errors.push(`Ligne ${index + 1}: Taux de TVA ${row.vatRate} non trouvé pour l'article ${row.itemName}.`);
                         errorCount++;
                         continue;
                     }
@@ -1687,30 +1728,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const cycleCommercialViewLevel = useCallback(() => {
     setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
-
-  const popularItems = useMemo(() => {
-    if (!sales || !items) return [];
-    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
-    sales.forEach((sale) => {
-      sale.items.forEach((orderItem) => {
-        if (itemCounts[orderItem.itemId]) {
-          itemCounts[orderItem.itemId].count += orderItem.quantity;
-        } else {
-          const itemDetails = items.find((i) => i.id === orderItem.itemId);
-          if (itemDetails) {
-            itemCounts[orderItem.itemId] = {
-              item: itemDetails,
-              count: orderItem.quantity,
-            };
-          }
-        }
-      });
-    });
-    return Object.values(itemCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, popularItemsCount)
-      .map((i) => i.item);
-  }, [sales, items, popularItemsCount]);
   
   const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
     if (!sales || sales.length === 0) {
@@ -1797,6 +1814,30 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
   
+  const popularItems = useMemo(() => {
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
+
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
@@ -1849,4 +1890,3 @@ export function usePos() {
   }
   return context;
 }
-
