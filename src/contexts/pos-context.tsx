@@ -67,6 +67,15 @@ export type DeletableDataKeys =
   | 'heldOrders' 
   | 'auditLogs';
 
+export interface ImportReport {
+  successCount: number;
+  errorCount: number;
+  errors: string[];
+  newCustomersCount?: number;
+  newItemsCount?: number;
+}
+
+
 export interface PosContextType {
   order: OrderItem[];
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
@@ -188,7 +197,7 @@ export interface PosContextType {
   resetAllData: () => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
-  importDataFromJson: (dataType: string, jsonData: any[]) => Promise<{ successCount: number; errorCount: number; errors: string[] }>;
+  importDataFromJson: (dataType: string, jsonData: any[]) => Promise<ImportReport>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
   importDemoSuppliers: () => Promise<void>;
@@ -1482,7 +1491,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Doublons supprimés', description: `${items.length - uniqueItems.length} articles en double ont été supprimés.` });
   }, [items, setItems, toast]);
 
-  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<{ successCount: number; errorCount: number; errors: string[] }> => {
+  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
     let successCount = 0;
     let errorCount = 0;
     let newCustomersCount = 0;
@@ -1568,8 +1577,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     let vatRate = vatRates.find(v => v.code === vatCodeInput);
 
                     if (!vatRate && !isNaN(vatCodeInput)) {
-                        const newVatRate = await addVatRate({ name: `TVA Importée ${vatCodeInput}`, rate: 0 }); // Rate 0 is a placeholder, user should edit it
-                        if(newVatRate) vatRate = newVatRate;
+                       errors.push(`Ligne ${index + 1}: Code TVA '${row.vatRate}' non trouvé, création ignorée.`);
                     }
                     
                     let category = categories.find(c => c.name === row.itemCategory);
@@ -1585,7 +1593,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         });
                         if (newItemData) {
                             item = newItemData;
-                            tempNewItems.set(item.barcode, item);
+                            tempNewItems.set(item.barcode!, item);
                             newItemsCount++;
                         }
                     } else {
@@ -1668,17 +1676,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             break;
     }
     
-    let description = `${successCount} lignes importées, ${errorCount} erreurs.`;
-    if (dataType === 'ventes_completes') {
-        description += ` ${newCustomersCount} nouveaux clients et ${newItemsCount} nouveaux articles créés.`;
-    }
-
-    toast({
-        title: "Rapport d'importation",
-        description,
-    });
-    
-    return { successCount, errorCount, errors };
+    return { successCount, errorCount, errors, newCustomersCount, newItemsCount };
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods, addVatRate, addCategory, categories]);
 
   const generateRandomSales = useCallback(async (count: number) => {
@@ -1897,3 +1895,4 @@ export function usePos() {
   return context;
 }
 
+    

@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Item, Customer, Supplier, MappingTemplate } from '@/lib/types';
-import { usePos } from '@/contexts/pos-context';
+import { usePos, type ImportReport } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
@@ -107,7 +107,7 @@ const fieldLabels: Record<string, string> = {
   purchasePrice: "Prix d'achat",
   categoryId: 'Nom de la Catégorie',
   supplierId: 'ID Fournisseur',
-  vatId: 'Nom ou Taux de TVA *',
+  vatId: 'Code de TVA *',
   description: 'Description',
   description2: 'Description 2',
   barcode: 'Code-barres *',
@@ -128,7 +128,7 @@ const fieldLabels: Record<string, string> = {
   quantity: 'Quantité *',
   unitPriceHT: "Prix Unitaire HT *",
   totalLineHT: 'Prix Total Ligne HT',
-  vatRate: 'Code ou Taux de TVA appliqué',
+  vatRate: 'Code de TVA appliqué',
   vatAmount: 'Montant TVA de la ligne',
   discountPercentage: 'Remise en %',
   discountAmount: 'Remise en montant',
@@ -179,7 +179,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
   }
 
-function ImportReportDialog({ report, isOpen, onClose }: { report: { successCount: number; errorCount: number; errors: string[] } | null; isOpen: boolean; onClose: () => void; }) {
+function ImportReportDialog({ report, isOpen, onClose }: { report: ImportReport | null; isOpen: boolean; onClose: () => void; }) {
   if (!report) return null;
 
   return (
@@ -214,6 +214,27 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: { successCoun
               </CardContent>
             </Card>
           </div>
+          {(report.newCustomersCount !== undefined || report.newItemsCount !== undefined) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Créations automatiques</CardTitle>
+              </CardHeader>
+              <CardContent className="flex gap-8">
+                {report.newCustomersCount !== undefined && (
+                  <div>
+                    <div className="text-2xl font-bold">{report.newCustomersCount}</div>
+                    <p className="text-xs text-muted-foreground">Nouveaux clients</p>
+                  </div>
+                )}
+                {report.newItemsCount !== undefined && (
+                  <div>
+                    <div className="text-2xl font-bold">{report.newItemsCount}</div>
+                    <p className="text-xs text-muted-foreground">Nouveaux articles</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {report.errorCount > 0 && (
             <div>
               <Label>Détails des erreurs :</Label>
@@ -259,7 +280,7 @@ export default function ImportDataPage() {
   
   const [templateName, setTemplateName] = useState('');
   
-  const [importReport, setImportReport] = useState<{ successCount: number; errorCount: number; errors: string[] } | null>(null);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -785,3 +806,5 @@ export default function ImportDataPage() {
     </>
   );
 }
+
+    
