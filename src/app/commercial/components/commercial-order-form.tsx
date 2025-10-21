@@ -522,7 +522,14 @@ export const CommercialOrderForm = forwardRef<
             </Card>
         </div>
         <div className="flex items-center gap-2 self-end">
-            
+             {currentSaleId && currentSaleContext?.date && (
+                <div className="text-right">
+                    <div className="text-base text-foreground font-semibold flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></div>
+                    {currentSaleContext.modifiedAt && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1"><Clock className="h-3 w-3" /> Modifié le: <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM, HH:mm" /></div>
+                    )}
+                </div>
+            )}
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
@@ -567,17 +574,6 @@ export const CommercialOrderForm = forwardRef<
         </div>
       </div>
       
-       {currentSaleId && currentSaleContext?.date && (
-            <div className="my-2 text-xs text-muted-foreground">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></span>
-                    {currentSaleContext.modifiedAt && (
-                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM yyyy, HH:mm" /></span>
-                    )}
-                </div>
-            </div>
-        )}
-
       <Card className="flex-1 flex flex-col mt-2">
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
           <Form {...form}>
