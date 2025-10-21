@@ -1089,7 +1089,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tables, setTablesData]);
     
     const forceFreeTable = useCallback((tableId: string) => {
-      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], lockedBy: null, verrou: false, occupiedAt: undefined, occupiedByUserId: undefined, updatedAt: new Date() } : t));
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], lockedBy: undefined, verrou: false, occupiedAt: undefined, occupiedByUserId: undefined, updatedAt: new Date() } : t));
       toast({ title: 'Table libérée' });
     }, [setTablesData, toast]);
 
@@ -1497,9 +1497,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     let errorCount = 0;
     let newCustomersCount = 0;
     let newItemsCount = 0;
+    let newSalesCount = 0;
     const errors: string[] = [];
     let lastProcessedItem: OrderItem | null = null;
-    let lastProcessedTicketNumber: string | null = null;
+    
     const salesMap = new Map<string, { sale: Sale; paymentTotals: Record<string, number> }>();
     const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
 
@@ -1550,13 +1551,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const currentTicketNumber = row.ticketNumber;
 
                 if (!row.itemBarcode) {
-                    if (lastProcessedItem && currentTicketNumber && currentTicketNumber === lastProcessedTicketNumber) {
-                        lastProcessedItem.note = (lastProcessedItem.note ? lastProcessedItem.note + '\n' : '') + (row.itemName || '');
+                    const saleEntry = salesMap.get(currentTicketNumber);
+                    if (saleEntry && saleEntry.sale.items.length > 0) {
+                        const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
+                        lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
                     }
                     continue;
                 }
-        
-                if (existingSaleNumbers.has(row.ticketNumber)) continue;
+
+                const docName = row.pieceName?.toLowerCase() || '';
+                const documentType = docName.includes('facture') ? 'invoice'
+                                : docName.includes('devis') ? 'quote'
+                                : docName.includes('livraison') ? 'delivery_note'
+                                : docName.includes('avoir') ? 'credit_note'
+                                : 'ticket';
+                const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
+                const finalTicketNumber = row.ticketNumber.startsWith(prefix) ? row.ticketNumber : `${prefix}${row.ticketNumber}`;
+
+                if (existingSaleNumbers.has(finalTicketNumber)) continue;
         
                 let customer = customers.find(c => c.id === row.customerCode) || tempNewCustomers.get(row.customerCode);
                 if (!customer && row.customerCode && row.customerName) {
@@ -1579,8 +1591,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const vatCodeInput = parseInt(String(row.vatRate).trim(), 10);
                     let vatRate = vatRates.find(v => v.code === vatCodeInput);
 
-                    if (!vatRate && !isNaN(vatCodeInput)) {
-                       errors.push(`Ligne ${index + 1}: Code TVA '${row.vatRate}' non trouvé, création ignorée.`);
+                    if (!vatRate) {
+                       errors.push(`Ligne ${index + 1}: Code TVA '${row.vatRate}' non trouvé, création de la TVA ignorée.`);
                     }
                     
                     let category = categories.find(c => c.name === row.itemCategory);
@@ -1612,23 +1624,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                      continue;
                 }
         
-                let saleEntry = salesMap.get(row.ticketNumber);
+                let saleEntry = salesMap.get(finalTicketNumber);
                 if (!saleEntry) {
+                    newSalesCount++;
                     const seller = users.find(u => `${u.firstName} ${u.lastName}` === row.sellerName);
-                    const docName = row.pieceName?.toLowerCase() || '';
-                    const documentType = docName.includes('facture') ? 'invoice'
-                                   : docName.includes('devis') ? 'quote'
-                                   : docName.includes('livraison') ? 'delivery_note'
-                                   : docName.includes('avoir') ? 'credit_note'
-                                   : 'ticket';
                     
-                    const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
-                    const finalTicketNumber = row.ticketNumber.startsWith(prefix) ? row.ticketNumber : `${prefix}${row.ticketNumber}`;
-
+                    const dateString = row.date || '';
+                    let saleDate = new Date();
+                    const dateParts = dateString.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
+                    if (dateParts) {
+                        const day = parseInt(dateParts[1], 10);
+                        const month = parseInt(dateParts[2], 10) - 1;
+                        const year = parseInt(dateParts[3], 10) + (dateParts[3].length === 2 ? 2000 : 0);
+                        saleDate = new Date(year, month, day);
+                    } else if (dateString) {
+                        const parsed = new Date(dateString);
+                        if (!isNaN(parsed.getTime())) {
+                            saleDate = parsed;
+                        }
+                    }
 
                     saleEntry = {
                         sale: {
-                            id: uuidv4(), ticketNumber: finalTicketNumber, date: new Date(row.date || Date.now()),
+                            id: uuidv4(), ticketNumber: finalTicketNumber, date: saleDate,
                             items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
                             customerId: customer?.id, userId: seller?.id, userName: row.sellerName,
                             documentType: documentType,
@@ -1645,8 +1663,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 
                 processPayment(saleEntry, row);
 
-                salesMap.set(row.ticketNumber, saleEntry);
-                lastProcessedTicketNumber = row.ticketNumber;
+                salesMap.set(finalTicketNumber, saleEntry);
                 lastProcessedItem = orderItem;
             }
 
@@ -1679,7 +1696,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             break;
     }
     
-    return { successCount, errorCount, errors, newCustomersCount, newItemsCount, newSalesCount: salesMap.size };
+    return { successCount, errorCount, errors, newCustomersCount, newItemsCount, newSalesCount };
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods, addVatRate, addCategory, categories]);
 
   const generateRandomSales = useCallback(async (count: number) => {
