@@ -174,11 +174,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     <div className="flex items-center gap-4">
       <span>{isEditing ? config.editTitle : config.title}</span>
       {isEditing && currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+      {isReadOnly && <Badge variant="destructive" className="text-base font-semibold"><Lock className="mr-2 h-3 w-3" />Lecture Seule</Badge>}
     </div>
   );
 
   const pageSubtitle = isEditing
-    ? `Mise à jour du document.`
+    ? (isReadOnly ? "Cette pièce est finalisée et ne peut plus être modifiée." : "Mise à jour du document.")
     : config.subtitle;
 
   return (
@@ -228,18 +229,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             )}
           </div>
         </PageHeader>
-
-        {isReadOnly && (
-            <Alert variant="destructive" className="mt-4">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Mode Lecture Seule</AlertTitle>
-                <AlertDescription>
-                    Cette pièce a été entièrement payée et ne peut plus être modifiée.
-                </AlertDescription>
-            </Alert>
-        )}
         
-        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group mt-4">
             <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
                 <CommercialOrderForm
                     ref={formRef}
@@ -291,5 +282,3 @@ export default function CommercialPageLayout({ documentType }: CommercialPageLay
         </Suspense>
     )
 }
-
-    
