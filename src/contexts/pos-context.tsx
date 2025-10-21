@@ -73,6 +73,7 @@ export interface ImportReport {
   errors: string[];
   newCustomersCount?: number;
   newItemsCount?: number;
+  newSalesCount?: number;
 }
 
 
@@ -1563,11 +1564,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         id: row.customerCode, name: row.customerName, email: row.customerEmail, phone: row.customerPhone,
                         address: row.customerAddress, postalCode: row.customerPostalCode, city: row.customerCity
                     };
-                    const newCustomer = await addCustomer(newCustomerData);
-                    if (newCustomer) {
-                        customer = newCustomer;
-                        tempNewCustomers.set(newCustomer.id, newCustomer);
-                        newCustomersCount++;
+                    if (!customers.some(c => c.id === newCustomerData.id) && !tempNewCustomers.has(newCustomerData.id!)) {
+                        const newCustomer = await addCustomer(newCustomerData);
+                        if (newCustomer) {
+                            customer = newCustomer;
+                            tempNewCustomers.set(newCustomer.id, newCustomer);
+                            newCustomersCount++;
+                        }
                     }
                 }
                 
@@ -1676,7 +1679,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             break;
     }
     
-    return { successCount, errorCount, errors, newCustomersCount, newItemsCount };
+    return { successCount, errorCount, errors, newCustomersCount, newItemsCount, newSalesCount: salesMap.size };
   }, [addCustomer, addItem, addSupplier, customers, items, suppliers, sales, setSales, vatRates, toast, users, importLimit, paymentMethods, addVatRate, addCategory, categories]);
 
   const generateRandomSales = useCallback(async (count: number) => {
@@ -1894,5 +1897,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

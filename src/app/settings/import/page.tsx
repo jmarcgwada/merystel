@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -214,12 +214,18 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: ImportReport 
               </CardContent>
             </Card>
           </div>
-          {(report.newCustomersCount !== undefined || report.newItemsCount !== undefined) && (
+          {(report.newSalesCount !== undefined || report.newCustomersCount !== undefined || report.newItemsCount !== undefined) && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Créations automatiques</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-8">
+                 {report.newSalesCount !== undefined && (
+                  <div>
+                    <div className="text-2xl font-bold">{report.newSalesCount}</div>
+                    <p className="text-xs text-muted-foreground">Pièces de vente</p>
+                  </div>
+                )}
                 {report.newCustomersCount !== undefined && (
                   <div>
                     <div className="text-2xl font-bold">{report.newCustomersCount}</div>
