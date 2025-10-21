@@ -10,9 +10,9 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Customer, Item, OrderItem, Sale } from '@/lib/types';
+import type { Customer, Item, OrderItem, Sale, Timestamp } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -29,7 +29,29 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
+const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
+  const [formatted, setFormatted] = useState('');
+  useEffect(() => {
+    if (date) {
+      let jsDate: Date;
+      if (date instanceof Date) {
+        jsDate = date;
+      } else if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') {
+        jsDate = (date as Timestamp).toDate();
+      } else {
+        jsDate = new Date(date as any);
+      }
+      
+      if (!isNaN(jsDate.getTime())) {
+        setFormatted(format(jsDate, formatString, { locale: fr }));
+      }
+    }
+  }, [date, formatString]);
+  return <>{formatted}</>;
+};
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -544,6 +566,17 @@ export const CommercialOrderForm = forwardRef<
             </TooltipProvider>
         </div>
       </div>
+      
+       {currentSaleId && currentSaleContext?.date && (
+            <div className="my-2 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Créé le: <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></span>
+                    {currentSaleContext.modifiedAt && (
+                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />Modifié le: <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM yyyy, HH:mm" /></span>
+                    )}
+                </div>
+            </div>
+        )}
 
       <Card className="flex-1 flex flex-col mt-2">
         <CardContent className="p-0 sm:p-6 flex-1 flex flex-col">
