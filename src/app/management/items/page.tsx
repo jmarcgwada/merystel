@@ -37,7 +37,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 
 
-type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId';
+type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId' | 'vatId';
 
 function ItemsPageContent() {
   const { items, categories, suppliers, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
@@ -94,6 +94,7 @@ function ItemsPageContent() {
                 category: true,
                 supplier: true,
                 stock: true,
+                vat: true,
                 purchasePrice: false,
                 price: true,
             });
@@ -113,12 +114,14 @@ function ItemsPageContent() {
         { id: 'category', label: 'Catégorie' },
         { id: 'supplier', label: 'Fournisseur' },
         { id: 'stock', label: 'Stock' },
+        { id: 'vat', label: 'Code TVA' },
         { id: 'purchasePrice', label: 'Prix Achat' },
         { id: 'price', label: 'Prix Vente' },
     ];
 
 
-  const getCategoryName = (categoryId: string) => {
+  const getCategoryName = (categoryId?: string) => {
+    if(!categoryId) return 'N/A';
     return categories?.find(c => c.id === categoryId)?.name || 'N/A';
   }
 
@@ -481,6 +484,11 @@ function ItemsPageContent() {
                             Stock {getSortIcon('stock')}
                         </Button>
                     </TableHead>}
+                     {visibleColumns.vat && <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('vatId')}>
+                            TVA {getSortIcon('vatId')}
+                        </Button>
+                    </TableHead>}
                     {visibleColumns.purchasePrice && <TableHead className="text-right">
                         <Button variant="ghost" onClick={() => requestSort('purchasePrice')} className="justify-end w-full">
                             Prix Achat {getSortIcon('purchasePrice')}
@@ -502,50 +510,67 @@ function ItemsPageContent() {
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
-                  {isClient && !isLoading && paginatedItems && paginatedItems.map(item => (
-                    <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground", selectedItemIds.includes(item.id) && "bg-blue-50 dark:bg-blue-900/30")}>
-                       <TableCell>
-                        <Checkbox
-                          checked={selectedItemIds.includes(item.id)}
-                          onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
-                        />
-                      </TableCell>
-                      {visibleColumns.image && <TableCell>
-                        <Image 
-                          src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
-                          alt={item.name}
-                          width={40}
-                          height={40}
-                          className="rounded-md object-cover"
-                          data-ai-hint="product image"
-                        />
-                      </TableCell>}
-                      {visibleColumns.name && <TableCell className="font-medium">{item.name}</TableCell>}
-                      {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
-                      {visibleColumns.category && <TableCell>
-                          <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
-                      </TableCell>}
-                       {visibleColumns.supplier && <TableCell>
-                          <Badge variant="outline" className="flex items-center gap-1.5"><Truck className="h-3 w-3"/>{getSupplierName(item.supplierId)}</Badge>
-                      </TableCell>}
-                      {visibleColumns.stock && <TableCell className="text-center">
-                          <StockBadge item={item} />
-                      </TableCell>}
-                      {visibleColumns.purchasePrice && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
-                      {visibleColumns.price && <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>}
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
-                            <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
-                            <Edit className="h-4 w-4"/>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
-                            <Trash2 className="h-4 w-4"/>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {isClient && !isLoading && paginatedItems && paginatedItems.map(item => {
+                    const vatInfo = vatRates.find(v => v.id === item.vatId);
+                    return (
+                        <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground", selectedItemIds.includes(item.id) && "bg-blue-50 dark:bg-blue-900/30")}>
+                        <TableCell>
+                            <Checkbox
+                            checked={selectedItemIds.includes(item.id)}
+                            onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                            />
+                        </TableCell>
+                        {visibleColumns.image && <TableCell>
+                            <Image 
+                            src={item.image || 'https://picsum.photos/seed/placeholder/100/100'} 
+                            alt={item.name}
+                            width={40}
+                            height={40}
+                            className="rounded-md object-cover"
+                            data-ai-hint="product image"
+                            />
+                        </TableCell>}
+                        {visibleColumns.name && <TableCell className="font-medium">{item.name}</TableCell>}
+                        {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
+                        {visibleColumns.category && <TableCell>
+                            <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
+                        </TableCell>}
+                        {visibleColumns.supplier && <TableCell>
+                            <Badge variant="outline" className="flex items-center gap-1.5"><Truck className="h-3 w-3"/>{getSupplierName(item.supplierId)}</Badge>
+                        </TableCell>}
+                        {visibleColumns.stock && <TableCell className="text-center">
+                            <StockBadge item={item} />
+                        </TableCell>}
+                         {visibleColumns.vat && (
+                            <TableCell>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Badge variant="outline">{vatInfo?.code || '-'}</Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Taux: {vatInfo?.rate.toFixed(2)}%</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </TableCell>
+                         )}
+                        {visibleColumns.purchasePrice && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
+                        {visibleColumns.price && <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>}
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
+                                <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
+                                <Edit className="h-4 w-4"/>
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
+                                <Trash2 className="h-4 w-4"/>
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
           </CardContent>
@@ -577,3 +602,5 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
+
+    
