@@ -14,6 +14,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 interface StorageInfo {
   key: string;
   size: number; // in bytes
+  itemCount?: number;
 }
 
 const LOCAL_STORAGE_QUOTA = 5 * 1024 * 1024; // 5 MB in bytes
@@ -67,6 +68,34 @@ const keyToFrench: { [key: string]: string } = {
     'settings.directSaleBgOpacity': 'Paramètre : Opacité fond vente directe',
     'settings.restaurantModeBgOpacity': 'Paramètre : Opacité fond mode restaurant',
     'data.seeded': 'Indicateur : Données initiales créées',
+    'settings.dashboardBgType': 'Paramètre : Type de fond du tableau de bord',
+    'settings.dashboardBackgroundColor': 'Paramètre : Couleur de fond du tableau de bord',
+    'settings.dashboardBackgroundImage': 'Paramètre : Image de fond du tableau de bord',
+    'settings.dashboardBgOpacity': 'Paramètre : Opacité du fond du tableau de bord',
+    'settings.dashboardButtonBackgroundColor': 'Paramètre : Couleur de fond des boutons',
+    'settings.dashboardButtonOpacity': 'Paramètre : Opacité du fond des boutons',
+    'settings.dashboardButtonShowBorder': 'Paramètre : Afficher la bordure des boutons',
+    'settings.dashboardButtonBorderColor': 'Paramètre : Couleur de la bordure des boutons',
+    'settings.invoiceBgColor': 'Paramètre : Couleur fond factures',
+    'settings.invoiceBgOpacity': 'Paramètre : Opacité fond factures',
+    'settings.quoteBgColor': 'Paramètre : Couleur fond devis',
+    'settings.quoteBgOpacity': 'Paramètre : Opacité fond devis',
+    'settings.deliveryNoteBgColor': 'Paramètre : Couleur fond BL',
+    'settings.deliveryNoteBgOpacity': 'Paramètre : Opacité fond BL',
+    'settings.supplierOrderBgColor': 'Paramètre : Couleur fond Cdes Fourn.',
+    'settings.supplierOrderBgOpacity': 'Paramètre : Opacité fond Cdes Fourn.',
+    'settings.creditNoteBgColor': 'Paramètre : Couleur fond Avoirs',
+    'settings.creditNoteBgOpacity': 'Paramètre : Opacité fond Avoirs',
+    'settings.commercialViewLevel': 'Paramètre : Niveau de vue commercial',
+    'settings.requirePinForAdmin': 'Paramètre : Exiger PIN admin',
+    'settings.smtpConfig': 'Paramètre : Configuration SMTP',
+    'settings.ftpConfig': 'Paramètre : Configuration FTP',
+    'settings.twilioConfig': 'Paramètre : Configuration Twilio',
+    'settings.sendEmailOnSale': 'Paramètre : Email après vente',
+    'settings.itemsPerPage': 'Paramètre : Éléments par page',
+    'state.lastSelectedSaleId': 'État : Dernière vente sélectionnée',
+    'settings.importLimit': 'Paramètre : Limite d\'importation',
+    'settings.mappingTemplates': 'Paramètre : Modèles de mappage',
 };
 
 
@@ -75,6 +104,8 @@ export default function StoragePage() {
   const [totalSize, setTotalSize] = useState(0);
 
   const calculateStorage = () => {
+    if (typeof window === 'undefined') return;
+
     let total = 0;
     const data: StorageInfo[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -83,8 +114,17 @@ export default function StoragePage() {
         const value = localStorage.getItem(key);
         if (value) {
           const size = new Blob([value]).size;
+          let itemCount: number | undefined = undefined;
+          try {
+            const parsedValue = JSON.parse(value);
+            if (Array.isArray(parsedValue)) {
+              itemCount = parsedValue.length;
+            }
+          } catch (e) {
+            // Not a JSON array, so no item count
+          }
           total += size;
-          data.push({ key, size });
+          data.push({ key, size, itemCount });
         }
       }
     }
@@ -156,13 +196,15 @@ export default function StoragePage() {
                 <TableRow>
                   <TableHead>Nom du fichier de données</TableHead>
                   <TableHead className="text-right">Taille</TableHead>
+                  <TableHead className="text-right">Éléments</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {storageData.map(({ key, size }) => (
+                {storageData.map(({ key, size, itemCount }) => (
                   <TableRow key={key}>
                     <TableCell className="font-medium">{keyToFrench[key] || key}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatBytes(size)}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{itemCount ?? '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

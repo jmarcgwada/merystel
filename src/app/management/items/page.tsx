@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
@@ -386,7 +385,7 @@ function ItemsPageContent() {
                                         </div>
                                     </PopoverContent>
                                 </Popover>
-                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}>
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -578,4 +577,3 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
-

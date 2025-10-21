@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'reac
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen, ArrowUpDown } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -34,6 +34,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+
+type SortKey = 'name' | 'email' | 'phone';
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
@@ -68,6 +70,8 @@ function CustomersPageContent() {
   const [filterEmail, setFilterEmail] = useState(searchParams.get('email') || '');
   const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>(searchParams.get('isDisabled') as any || 'no');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
@@ -116,8 +120,10 @@ function CustomersPageContent() {
     setEditCustomerOpen(true);
   }
 
-  const filteredCustomers = useMemo(() => 
-    customers?.filter(c => {
+  const filteredCustomers = useMemo(() => {
+    if (!customers) return [];
+    
+    let filtered = customers.filter(c => {
         if (!c) return false;
         const lowerFilter = filter.toLowerCase();
 
@@ -130,8 +136,25 @@ function CustomersPageContent() {
         const disabledMatch = filterIsDisabled === 'all' || (c.isDisabled ? 'yes' : 'no') === filterIsDisabled;
         
         return (nameMatch || idMatch) && postalCodeMatch && phoneMatch && addressMatch && emailMatch && disabledMatch;
-    }) || [],
-  [customers, filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled]);
+    });
+
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key] || '';
+        let bValue = b[sortConfig.key] || '';
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [customers, filter, filterPostalCode, filterPhone, filterAddress, filterEmail, filterIsDisabled, sortConfig]);
 
   const paginatedCustomers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -174,6 +197,21 @@ function CustomersPageContent() {
     params.set('ids', selectedCustomerIds.join(','));
     return `/management/customers/bulk-edit?${params.toString()}`;
   }, [selectedCustomerIds, searchParams]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (key: SortKey) => {
+    if (!sortConfig || sortConfig.key !== key) {
+        return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  }
 
 
   return (
@@ -305,9 +343,9 @@ function CustomersPageContent() {
                               />
                           </TableHead>
                           <TableHead className="w-[50px]"></TableHead>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Téléphone</TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('name')}>Nom {getSortIcon('name')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('email')}>Email {getSortIcon('email')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('phone')}>Téléphone {getSortIcon('phone')}</Button></TableHead>
                           <TableHead className="w-[200px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
