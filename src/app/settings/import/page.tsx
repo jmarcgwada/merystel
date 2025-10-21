@@ -596,10 +596,20 @@ export default function ImportDataPage() {
         <TabsContent value="mapping">
             <Card className="mt-4">
                 <CardHeader>
-                    <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
-                    <CardDescription>
-                        Faites correspondre chaque champ de l'application à une colonne de votre fichier. Les champs avec * sont obligatoires.
-                    </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
+                      <CardDescription>
+                          Faites correspondre chaque champ de l'application à une colonne de votre fichier. Les champs avec * sont obligatoires.
+                      </CardDescription>
+                    </div>
+                     {fileName && (
+                        <div className="text-sm text-muted-foreground text-right flex-shrink-0 ml-4">
+                            <p className="font-semibold">{fileName}</p>
+                            <p>{parsedData.length} lignes détectées</p>
+                        </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-4 mb-6 p-4 border rounded-lg">
@@ -806,5 +816,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-
-    
