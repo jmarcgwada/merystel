@@ -675,26 +675,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         try {
             const config = JSON.parse(event.target?.result as string);
             
-            if (config.items) setItems(prev => [...prev, ...config.items.filter((i: Item) => !prev.some(pi => pi.id === i.id))]);
-            if (config.categories) setCategories(prev => [...prev, ...config.categories.filter((c: Category) => !prev.some(pc => pc.id === c.id))]);
-            if (config.customers) setCustomers(prev => [...prev, ...config.customers.filter((c: Customer) => !prev.some(pc => pc.id === c.id))]);
-            if (config.suppliers) setSuppliers(prev => [...prev, ...config.suppliers.filter((s: Supplier) => !prev.some(ps => ps.id === s.id))]);
-            if (config.tables) setTablesData(prev => [...prev, ...config.tables.filter((t: Table) => !prev.some(pt => pt.id === t.id))]);
-            if (config.paymentMethods) setPaymentMethods(prev => [...prev, ...config.paymentMethods.filter((p: PaymentMethod) => !prev.some(pp => pp.id === p.id))]);
-            if (config.vatRates) setVatRates(prev => [...prev, ...config.vatRates.filter((v: VatRate) => !prev.some(pv => pv.id === v.id))]);
-            if (config.users) setUsers(prev => [...prev, ...config.users.filter((u: User) => !prev.some(pu => pu.id === u.id))]);
+            if (config.items) setItems(config.items);
+            if (config.categories) setCategories(config.categories);
+            if (config.customers) setCustomers(config.customers);
+            if (config.suppliers) setSuppliers(config.suppliers);
+            if (config.tables) setTablesData(config.tables);
+            if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
+            if (config.vatRates) setVatRates(config.vatRates);
+            if (config.users) setUsers(config.users);
+            if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.smtpConfig) setSmtpConfig(config.smtpConfig);
             if (config.ftpConfig) setFtpConfig(config.ftpConfig);
             if (config.twilioConfig) setTwilioConfig(config.twilioConfig);
-            if (config.companyInfo) setCompanyInfo(config.companyInfo);
             
-            toast({ title: 'Importation terminée!', description: 'Les données ont été fusionnées. Les doublons ont été ignorés.' });
+            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
             
             rehydrateAll();
 
         } catch (error) {
             console.error("Import error:", error);
-            toast({ variant: 'destructive', title: 'Erreur d\'importation', description: "Le fichier semble invalide." });
+            toast({ variant: 'destructive', title: 'Erreur d\'importation', description: "Le fichier semble invalide ou corrompu." });
         }
     };
     reader.readAsText(file);
@@ -1298,9 +1298,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return users.find(u => u.email.toLowerCase() === email.toLowerCase());
     }, [users]);
     
-    const handleSignOut = useCallback(async () => {
-        router.push('/login');
-    }, [router]);
+    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
 
 
     const forceSignOut = useCallback(async (message: string) => {
@@ -1566,12 +1564,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 
                 let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
                 if (!item && row.itemBarcode && row.itemName) {
-                    const vatRateInput = String(row.vatRate).replace('%','').trim();
-                    let vatRate = vatRates.find(v => Math.abs(v.rate - parseFloat(vatRateInput)) < 0.01);
-                    
-                    if(!vatRate && /^\d+(\.\d+)?$/.test(vatRateInput)) {
-                      const newVatRate = await addVatRate({ name: `TVA ${parseFloat(vatRateInput).toFixed(2)}%`, rate: parseFloat(vatRateInput) });
-                      if(newVatRate) vatRate = newVatRate;
+                    const vatCodeInput = parseInt(String(row.vatRate).trim(), 10);
+                    let vatRate = vatRates.find(v => v.code === vatCodeInput);
+
+                    if (!vatRate && !isNaN(vatCodeInput)) {
+                        const newVatRate = await addVatRate({ name: `TVA Importée ${vatCodeInput}`, rate: 0 }); // Rate 0 is a placeholder, user should edit it
+                        if(newVatRate) vatRate = newVatRate;
                     }
                     
                     let category = categories.find(c => c.name === row.itemCategory);
@@ -1591,7 +1589,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                             newItemsCount++;
                         }
                     } else {
-                        errors.push(`Ligne ${index + 1}: Taux de TVA ${row.vatRate} non trouvé pour l'article ${row.itemName}.`);
+                        errors.push(`Ligne ${index + 1}: Code TVA '${row.vatRate}' non trouvé pour l'article ${row.itemName}.`);
                         errorCount++;
                         continue;
                     }
@@ -1751,7 +1749,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
     const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
 
-    return { lastDirectSale: null, lastRestaurantSale: null };
+    return { lastDirectSale, lastRestaurantSale };
   }, [sales]);
 
   const loadTicketForViewing = useCallback((ticket: Sale) => {
