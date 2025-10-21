@@ -42,14 +42,14 @@ export function StorageIndicator() {
       });
     };
 
-    calculateStorage();
+    calculateStorage(); // Initial calculation
     const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []); // Empty dependency array ensures this effect runs only once
 
   // Calculate color based on usage percentage
-  // Green (hsl(142, 71%, 45%)) to Yellow (hsl(48, 96%, 57%)) to Red (hsl(0, 84%, 60%))
+  // Green (hsl(120, 70%, 50%)) to Yellow (hsl(48, 96%, 57%)) to Red (hsl(0, 84%, 60%))
   const hue = 120 - (usage.percentage * 1.2); // 120 (green) -> 0 (red)
 
   return (
