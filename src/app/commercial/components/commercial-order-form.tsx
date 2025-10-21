@@ -432,6 +432,14 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
+        {currentSaleId && currentSaleContext?.date && (
+            <div className="lg:self-end">
+                <div className="text-base text-foreground font-semibold flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></div>
+                {currentSaleContext.modifiedAt && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1"><Clock className="h-3 w-3" /> Modifié le: <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM, HH:mm" /></div>
+                )}
+            </div>
+        )}
         <div className="w-full lg:flex-1 space-y-2">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -522,14 +530,6 @@ export const CommercialOrderForm = forwardRef<
             </Card>
         </div>
         <div className="flex items-center gap-2 self-end">
-             {currentSaleId && currentSaleContext?.date && (
-                <div className="text-right">
-                    <div className="text-base text-foreground font-semibold flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></div>
-                    {currentSaleContext.modifiedAt && (
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1"><Clock className="h-3 w-3" /> Modifié le: <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM, HH:mm" /></div>
-                    )}
-                </div>
-            )}
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
