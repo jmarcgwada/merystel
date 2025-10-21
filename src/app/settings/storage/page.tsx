@@ -27,6 +27,49 @@ function formatBytes(bytes: number, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+const keyToFrench: { [key: string]: string } = {
+    'data.items': 'Données : Articles',
+    'data.categories': 'Données : Catégories',
+    'data.customers': 'Données : Clients',
+    'data.suppliers': 'Données : Fournisseurs',
+    'data.tables': 'Données : Tables',
+    'data.sales': 'Données : Ventes',
+    'data.paymentMethods': 'Données : Moyens de paiement',
+    'data.vatRates': 'Données : TVA',
+    'data.heldOrders': 'Données : Tickets en attente',
+    'data.auditLogs': "Données : Logs d'audit",
+    'data.companyInfo': "Données : Infos entreprise",
+    'data.users': 'Données : Utilisateurs',
+    'settings.showTicketImages': 'Paramètre : Afficher images ticket',
+    'settings.descriptionDisplay': 'Paramètre : Affichage description',
+    'settings.popularItemsCount': 'Paramètre : Nombre d\'articles populaires',
+    'settings.itemCardOpacity': 'Paramètre : Opacité carte article',
+    'settings.paymentMethodImageOpacity': 'Paramètre : Opacité image paiement',
+    'settings.itemDisplayMode': 'Paramètre : Mode d\'affichage des articles',
+    'settings.itemCardShowImageAsBackground': 'Paramètre : Image en fond de carte',
+    'settings.itemCardImageOverlayOpacity': 'Paramètre : Opacité superposition image',
+    'settings.itemCardTextColor': 'Paramètre : Couleur texte sur image',
+    'settings.itemCardShowPrice': 'Paramètre : Afficher prix sur carte',
+    'settings.externalLinkModalEnabled': 'Paramètre : Activer modale externe',
+    'settings.externalLinkUrl': 'Paramètre : URL modale externe',
+    'settings.externalLinkTitle': 'Paramètre : Titre modale externe',
+    'settings.externalLinkModalWidth': 'Paramètre : Largeur modale externe',
+    'settings.externalLinkModalHeight': 'Paramètre : Hauteur modale externe',
+    'settings.showDashboardStats': 'Paramètre : Afficher stats tableau de bord',
+    'settings.enableRestaurantCategoryFilter': 'Paramètre : Filtre restaurant',
+    'settings.showNotifications': 'Paramètre : Afficher notifications',
+    'settings.notificationDuration': 'Paramètre : Durée notifications',
+    'settings.enableSerialNumber': 'Paramètre : Activer numéros de série',
+    'settings.defaultSalesMode': 'Paramètre : Mode de vente par défaut',
+    'settings.isForcedMode': 'Paramètre : Activer mode forcé',
+    'settings.directSaleBgColor': 'Paramètre : Couleur fond vente directe',
+    'settings.restaurantModeBgColor': 'Paramètre : Couleur fond mode restaurant',
+    'settings.directSaleBgOpacity': 'Paramètre : Opacité fond vente directe',
+    'settings.restaurantModeBgOpacity': 'Paramètre : Opacité fond mode restaurant',
+    'data.seeded': 'Indicateur : Données initiales créées',
+};
+
+
 export default function StoragePage() {
   const [storageData, setStorageData] = useState<StorageInfo[]>([]);
   const [totalSize, setTotalSize] = useState(0);
@@ -118,7 +161,7 @@ export default function StoragePage() {
               <TableBody>
                 {storageData.map(({ key, size }) => (
                   <TableRow key={key}>
-                    <TableCell className="font-medium">{key}</TableCell>
+                    <TableCell className="font-medium">{keyToFrench[key] || key}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatBytes(size)}</TableCell>
                   </TableRow>
                 ))}
