@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -432,7 +431,7 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
-        {currentSaleId && currentSaleContext?.date && (
+        {currentSaleContext?.date && (
             <div className="lg:self-end">
                 <div className="text-base text-foreground font-semibold flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></div>
                 {currentSaleContext.modifiedAt && (
@@ -808,7 +807,3 @@ export const CommercialOrderForm = forwardRef<
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
-
-    
-
-    

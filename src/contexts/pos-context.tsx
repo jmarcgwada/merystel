@@ -334,6 +334,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -517,8 +518,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
     clearOrder();
     setCurrentSaleId(null);
-    setCurrentSaleContext({ documentType: pageType });
-  }, [clearOrder]);
+    setCurrentSaleContext({ documentType: pageType, date: new Date() });
+}, [clearOrder]);
 
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
@@ -1548,17 +1549,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             break;
         case 'ventes_completes':
             for (const [index, row] of limitedJsonData.entries()) {
-                const currentTicketNumber = row.ticketNumber;
-
-                if (!row.itemBarcode) {
-                    const saleEntry = salesMap.get(currentTicketNumber);
-                    if (saleEntry && saleEntry.sale.items.length > 0) {
-                        const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
-                        lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
-                    }
-                    continue;
-                }
-
                 const docName = row.pieceName?.toLowerCase() || '';
                 const documentType = docName.includes('facture') ? 'invoice'
                                 : docName.includes('devis') ? 'quote'
@@ -1567,8 +1557,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                                 : 'ticket';
                 const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
                 const finalTicketNumber = row.ticketNumber.startsWith(prefix) ? row.ticketNumber : `${prefix}${row.ticketNumber}`;
-
+                
                 if (existingSaleNumbers.has(finalTicketNumber)) continue;
+
+                if (!row.itemBarcode) {
+                    const saleEntry = salesMap.get(finalTicketNumber);
+                    if (saleEntry && saleEntry.sale.items.length > 0) {
+                        const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
+                        lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
+                    }
+                    continue;
+                }
         
                 let customer = customers.find(c => c.id === row.customerCode) || tempNewCustomers.get(row.customerCode);
                 if (!customer && row.customerCode && row.customerName) {
