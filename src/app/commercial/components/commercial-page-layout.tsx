@@ -36,8 +36,7 @@ interface CommercialPageLayoutProps {
 
 const docTypeConfig = {
   invoice: {
-    title: 'Gestion des Factures',
-    subtitle: 'Créez une nouvelle facture ou éditez une facture existante.',
+    title: 'Nouvelle Facture',
     editTitle: 'Modifier la facture',
     saveButton: 'Encaisser la facture',
     updateButton: 'Encaisser la facture',
@@ -45,8 +44,7 @@ const docTypeConfig = {
     showAcompte: true,
   },
   quote: {
-    title: 'Gestion des Devis',
-    subtitle: "Créez un nouveau devis.",
+    title: 'Nouveau Devis',
     editTitle: 'Modifier le devis',
     saveButton: 'Sauvegarder le devis',
     updateButton: 'Mettre à jour le devis',
@@ -54,8 +52,7 @@ const docTypeConfig = {
     showAcompte: false,
   },
   delivery_note: {
-    title: 'Gestion des BL',
-    subtitle: 'Créez un nouveau bon de livraison.',
+    title: 'Nouveau Bon de Livraison',
     editTitle: 'Modifier le BL',
     saveButton: 'Sauvegarder le bon',
     updateButton: 'Mettre à jour le bon',
@@ -63,8 +60,7 @@ const docTypeConfig = {
     showAcompte: false,
   },
   credit_note: {
-    title: 'Gestion des Avoirs',
-    subtitle: 'Créez un nouvel avoir.',
+    title: 'Nouvel Avoir',
     editTitle: "Modifier l'avoir",
     saveButton: "Générer l'avoir",
     updateButton: "Mettre à jour l'avoir",
@@ -173,14 +169,14 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const pageTitle = (
     <div className="flex items-center gap-4">
       <span>{isEditing ? config.editTitle : config.title}</span>
-      {isEditing && currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg">#{currentSaleContext.ticketNumber}</Badge>}
+      {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg font-mono">#{currentSaleContext.ticketNumber}</Badge>}
       {isReadOnly && <Badge variant="destructive" className="text-base font-semibold"><Lock className="mr-2 h-3 w-3" />Lecture Seule</Badge>}
     </div>
   );
 
   const pageSubtitle = isEditing
     ? (isReadOnly ? "Cette pièce est finalisée et ne peut plus être modifiée." : "Mise à jour du document.")
-    : config.subtitle;
+    : `Création d'une nouvelle pièce.`;
 
   return (
     <>

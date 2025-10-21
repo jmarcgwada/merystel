@@ -515,11 +515,26 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
 
+  const getNextCounter = useCallback((counterType: keyof CompanyInfo): number => {
+    return (companyInfo?.[counterType] as number | undefined) || 0;
+  }, [companyInfo]);
+
   const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
-    clearOrder();
-    setCurrentSaleId(null);
-    setCurrentSaleContext({ documentType: pageType, date: new Date() });
-}, [clearOrder]);
+      clearOrder();
+      setCurrentSaleId(null);
+
+      const prefixes = { 'invoice': 'Fact', 'quote': 'Devis', 'delivery_note': 'BL', 'supplier_order': 'CF', 'credit_note': 'Avoir' };
+      const counterKeys: Record<string, keyof CompanyInfo> = {
+          'invoice': 'invoiceCounter', 'quote': 'quoteCounter', 'delivery_note': 'deliveryNoteCounter',
+          'supplier_order': 'supplierOrderCounter', 'credit_note': 'creditNoteCounter',
+      };
+      
+      const counterKey = counterKeys[pageType];
+      const count = getNextCounter(counterKey);
+      const provisionalNumber = `${prefixes[pageType]}-${(count + 1).toString().padStart(4, '0')} (provisoire)`;
+      
+      setCurrentSaleContext({ documentType: pageType, date: new Date(), ticketNumber: provisionalNumber });
+  }, [clearOrder, getNextCounter]);
 
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     if (!user) return;
