@@ -511,29 +511,26 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
-    const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-
-    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
-
     const paginatedSales = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
+    const prevPage = useRef(currentPage);
     useEffect(() => {
-        if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
-            const index = filteredAndSortedSales.findIndex(s => s.id === lastSelectedSaleId);
-            if(index !== -1) {
-                const newPage = Math.floor(index / itemsPerPage) + 1;
-                if (newPage !== currentPage) {
-                    setCurrentPage(newPage);
-                }
-            }
+      if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
+        const index = filteredAndSortedSales.findIndex(s => s.id === lastSelectedSaleId);
+        if (index !== -1) {
+          const newPage = Math.floor(index / itemsPerPage) + 1;
+          if (newPage !== currentPage) {
+            setCurrentPage(newPage);
+          }
         }
-    }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
-
+      }
+    }, [lastSelectedSaleId, filteredAndSortedSales, itemsPerPage, currentPage]);
+    
     useEffect(() => {
-        if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+        if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId] && currentPage === prevPage.current) {
             setTimeout(() => {
                 rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
                     behavior: 'smooth',
@@ -541,7 +538,8 @@ export default function ReportsPage() {
                 });
             }, 100);
         }
-    }, [paginatedSales, lastSelectedSaleId]);
+        prevPage.current = currentPage;
+    }, [paginatedSales, lastSelectedSaleId, currentPage]);
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
