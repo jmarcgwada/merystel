@@ -26,7 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useKeyboard } from '@/hooks/use-keyboard';
+import { useKeyboard } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,7 +229,7 @@ function ReportsPageContent() {
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
 
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
+  const { setTargetInput, inputValue } = useKeyboard();
   const generalFilterRef = useRef<HTMLInputElement>(null);
   const customerNameFilterRef = useRef<HTMLInputElement>(null);
   const sellerNameFilterRef = useRef<HTMLInputElement>(null);
@@ -258,26 +258,29 @@ function ReportsPageContent() {
       const fullUrl = `${pathname}?${searchParams.toString()}`;
       setLastReportsUrl(fullUrl);
     }, [pathname, searchParams, setLastReportsUrl]);
-
+    
     useEffect(() => {
-        const params = new URLSearchParams();
-        if (generalFilter) params.set('q', generalFilter);
-        if (filterCustomerName) params.set('customerName', filterCustomerName);
-        if (filterSellerName) params.set('seller', filterSellerName);
-        if (filterOrigin) params.set('origin', filterOrigin);
-        if (filterStatus !== 'all') params.set('status', filterStatus);
-        if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod);
-        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
-        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
+        const params = new URLSearchParams(Array.from(searchParams.entries()));
+        if (generalFilter) params.set('q', generalFilter); else params.delete('q');
+        if (filterCustomerName) params.set('customerName', filterCustomerName); else params.delete('customerName');
+        if (filterSellerName) params.set('seller', filterSellerName); else params.delete('seller');
+        if (filterOrigin) params.set('origin', filterOrigin); else params.delete('origin');
+        if (filterStatus !== 'all') params.set('status', filterStatus); else params.delete('status');
+        if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod); else params.delete('paymentMethod');
+        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd')); else params.delete('dateFrom');
+        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd')); else params.delete('dateTo');
         if (sortConfig) {
           params.set('sortKey', sortConfig.key);
           params.set('sortDirection', sortConfig.direction);
+        } else {
+            params.delete('sortKey');
+            params.delete('sortDirection');
         }
-        if (currentPage > 1) params.set('page', String(currentPage));
+        if (currentPage > 1) params.set('page', String(currentPage)); else params.delete('page');
         
         router.replace(`${pathname}?${params.toString()}`);
     }, [generalFilter, filterCustomerName, filterSellerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, currentPage, sortConfig, router, pathname]);
-
+    
     useEffect(() => {
         if (isCashier) {
             router.push('/dashboard');
@@ -347,10 +350,12 @@ function ReportsPageContent() {
     };
 
     useEffect(() => {
-        if (targetInput?.name === 'reports-general-filter') setGeneralFilter(inputValue);
-        if (targetInput?.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
-        if (targetInput?.name === 'reports-seller-filter') setFilterSellerName(inputValue);
-        if (targetInput?.name === 'reports-origin-filter') setFilterOrigin(inputValue);
+        if (inputValue && targetInput) {
+            if (targetInput.name === 'reports-general-filter') setGeneralFilter(inputValue);
+            if (targetInput.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
+            if (targetInput.name === 'reports-seller-filter') setFilterSellerName(inputValue);
+            if (targetInput.name === 'reports-origin-filter') setFilterOrigin(inputValue);
+        }
     }, [inputValue, targetInput]);
 
     const getCustomerName = useCallback((customerId?: string) => {
@@ -452,17 +457,6 @@ function ReportsPageContent() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
-
-    useEffect(() => {
-        if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId] && currentPage === parseInt(searchParams.get('page') || '1', 10)) {
-            setTimeout(() => {
-                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
-            }, 100);
-        }
-    }, [lastSelectedSaleId, paginatedSales, currentPage, searchParams]);
     
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -601,317 +595,320 @@ function ReportsPageContent() {
         );
     }
   
-  return (
-    <>
-      <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={() => {
-                    if (saleToConvert) {
-                        convertToInvoice(saleToConvert.id);
-                    }
-                    setConfirmOpen(false);
-                }}>
-                    Confirmer
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-    <div className="absolute -left-[9999px] -top-[9999px]">
-            {saleToPrint && vatRates && companyInfo && (
-                <InvoicePrintTemplate 
-                    ref={printRef} 
-                    sale={saleToPrint} 
-                    customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
-                    companyInfo={companyInfo} 
-                    vatRates={vatRates} 
-                />
-            )}
-    </div>
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <PageHeader
-            title="Rapports des pièces"
-            subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
-        >
-            <div className="flex items-center gap-2">
-                <Button onClick={handleNewDocumentClick}>
-                    <FilePlus className="mr-2 h-4 w-4" />
-                    Nouvelle Pièce
-                </Button>
-                <Button asChild variant="secondary">
-                    <Link href="/reports/analytics">
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Reporting Avancé
-                    </Link>
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-                    <RefreshCw className="h-4 w-4" />
-                </Button>
-                <Button asChild size="icon" className="btn-back">
-                    <Link href="/dashboard">
-                        <LayoutDashboard />
-                    </Link>
-                </Button>
-            </div>
-        </PageHeader>
-        <div className="mt-8 space-y-4">
-            <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
-                <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                        <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
-                        Résumé de la sélection
+    return (
+      <>
+        <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => {
+                        if (saleToConvert) {
+                            convertToInvoice(saleToConvert.id);
+                        }
+                        setConfirmOpen(false);
+                    }}>
+                        Confirmer
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        <div className="absolute -left-[9999px] -top-[9999px]">
+                {saleToPrint && vatRates && companyInfo && (
+                    <InvoicePrintTemplate 
+                        ref={printRef} 
+                        sale={saleToPrint} 
+                        customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
+                        companyInfo={companyInfo} 
+                        vatRates={vatRates} 
+                    />
+                )}
+        </div>
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <PageHeader
+                title="Rapports des pièces"
+                subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
+            >
+                <div className="flex items-center gap-2">
+                    <Button onClick={handleNewDocumentClick}>
+                        <FilePlus className="mr-2 h-4 w-4" />
+                        Nouvelle Pièce
                     </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
-                        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires (Encaissements)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
-                        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
-                        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
+                    <Button asChild variant="secondary">
+                        <Link href="/reports/analytics">
+                            <TrendingUp className="mr-2 h-4 w-4" />
+                            Reporting Avancé
+                        </Link>
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button asChild size="icon" className="btn-back">
+                        <Link href="/dashboard">
+                            <LayoutDashboard />
+                        </Link>
+                    </Button>
+                </div>
+            </PageHeader>
+            <div className="mt-8 space-y-4">
+                <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                            <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                            Résumé de la sélection
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires (Encaissements)</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Balance Nette</CardTitle>
+                                    <Scale className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent>
+                            </Card>
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
+                
+                <div className="flex flex-col gap-4">
+                    <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Balance Nette</CardTitle>
-                                <Scale className="h-4 w-4 text-muted-foreground" />
+                            <CardHeader className="p-2">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <div className="flex items-center gap-4">
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" className="justify-start px-2 text-lg font-semibold -ml-2">
+                                                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                                Filtres
+                                                <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
+                                                    {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
+                                                    <span>Types de pièce</span>
+                                                    <ChevronDown className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
+                                                    Tout désélectionner
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                {Object.entries(documentTypes).map(([type, { label }]) => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={type}
+                                                        checked={filterDocTypes[type]}
+                                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                                    >
+                                                        {label}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                </div>
                             </CardHeader>
-                            <CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent>
+                            <CollapsibleContent>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-0">
+                                    <Popover>
+                                        <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                            <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                                {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                                    </Popover>
+                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
+                                </CardContent>
+                            </CollapsibleContent>
                         </Card>
-                    </div>
-                </CollapsibleContent>
-            </Collapsible>
-            
-            <div className="flex flex-col gap-4">
-                <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+                    </Collapsible>
                     <Card>
-                         <CardHeader className="p-2">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" className="justify-start px-2 text-lg font-semibold -ml-2">
-                                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                        Filtres
-                                        <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                 <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
-                                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>Détail des pièces</CardTitle>
+                                <div className="flex items-center gap-2">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
-                                                {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
-                                                <span>Types de pièce</span>
-                                                <ChevronDown className="h-4 w-4" />
+                                            <Button variant="outline" size="icon" className="h-9 w-9">
+                                                <Columns className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
-                                                Tout désélectionner
-                                            </DropdownMenuItem>
+                                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            {Object.entries(documentTypes).map(([type, { label }]) => (
+                                            {columnsConfig.map(column => (
                                                 <DropdownMenuCheckboxItem
-                                                    key={type}
-                                                    checked={filterDocTypes[type]}
-                                                    onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                                    key={column.id}
+                                                    checked={visibleColumns[column.id] ?? false}
+                                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
                                                 >
-                                                    {label}
+                                                    {column.label}
                                                 </DropdownMenuCheckboxItem>
                                             ))}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
-                                            <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                            </div>
-                         </CardHeader>
-                          <CollapsibleContent>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-0">
-                                <Popover>
-                                    <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                        <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                            {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                                </Popover>
-                                <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                                <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                                <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
-                                <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
-                                <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
-                             </CardContent>
-                         </CollapsibleContent>
-                    </Card>
-                </Collapsible>
-                <Card>
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle>Détail des pièces</CardTitle>
-                            <div className="flex items-center gap-2">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="icon" className="h-9 w-9">
-                                            <Columns className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {columnsConfig.map(column => (
-                                            <DropdownMenuCheckboxItem
-                                                key={column.id}
-                                                checked={visibleColumns[column.id] ?? false}
-                                                onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                            >
-                                                {column.label}
-                                            </DropdownMenuCheckboxItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                                Page {currentPage} / {totalPages || 1}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-48 p-2">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                                <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                                    <span>{itemsPerPageState}</span>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                                    Page {currentPage} / {totalPages || 1}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-48 p-2">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                        <span>{itemsPerPageState}</span>
+                                                    </div>
+                                                    <Slider
+                                                        id="items-per-page-slider"
+                                                        value={[itemsPerPageState]}
+                                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                        min={5}
+                                                        max={100}
+                                                        step={5}
+                                                    />
                                                 </div>
-                                                <Slider
-                                                    id="items-per-page-slider"
-                                                    value={[itemsPerPageState]}
-                                                    onValueChange={(value) => setItemsPerPageState(value[0])}
-                                                    onValueCommit={(value) => setItemsPerPage(value[0])}
-                                                    min={5}
-                                                    max={100}
-                                                    step={5}
-                                                />
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
-                                    {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
-                                    {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
-                                    {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
-                                    {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
-                                    {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
-                                    {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
-                                    {visibleColumns.details && <TableHead>Détails</TableHead>}
-                                    {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
-                                    {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
-                                    {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
-                                    {visibleColumns.payment && <TableHead>Paiement</TableHead>}
-                                    <TableHead className="w-[150px] text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? Array.from({length: 10}).map((_, i) => (
-                                    <TableRow key={i}>
-                                        {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
+                                        {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
+                                        {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
+                                        {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
+                                        {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
+                                        {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
+                                        {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
+                                        {visibleColumns.details && <TableHead>Détails</TableHead>}
+                                        {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
+                                        {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
+                                        {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
+                                        {visibleColumns.payment && <TableHead>Paiement</TableHead>}
+                                        <TableHead className="w-[150px] text-right">Actions</TableHead>
                                     </TableRow>
-                                )) : null}
-                                {!isLoading && paginatedSales && paginatedSales.map(sale => {
-                                    const sellerName = getUserName(sale.userId, sale.userName);
-                                    const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-                                    const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
-                                    const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
-                                    
-                                    const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
-                                    const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
-
-                                    return (
-                                        <TableRow 
-                                        key={sale.id}
-                                        ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
-                                        onClick={() => setLastSelectedSaleId(sale.id)}
-                                        className={cn(
-                                            'cursor-pointer',
-                                            sale.id === lastSelectedSaleId
-                                            ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
-                                            : 'hover:bg-muted/50'
-                                        )}
-                                        style={getRowStyle(sale)}
-                                        >
-                                            {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
-                                            {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
-                                            {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
-                                            {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
-                                            {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
-                                            {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
-                                            {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
-                                            {visibleColumns.details && (
-                                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                                                    {sale.items.map(item => {
-                                                        const details = [];
-                                                        if(item.selectedVariants && item.selectedVariants.length > 0) {
-                                                            details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
-                                                        }
-                                                        if(item.note) details.push(`Note: ${item.note}`);
-                                                        if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
-                                                        return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
-                                                    }).join(' | ')}
-                                                </TableCell>
-                                            )}
-                                            {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end">
-                                                    <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
-                                                        <Printer className="h-4 w-4" />
-                                                    </Button>
-                                                    {canBeConverted && (
-                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
-                                                            <FileCog className="h-4 w-4 text-blue-600" />
-                                                        </Button>
-                                                    )}
-                                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                        <Link href={getDetailLink(sale.id)}>
-                                                            <Eye className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? Array.from({length: 10}).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                         </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                    )) : null}
+                                    {!isLoading && paginatedSales && paginatedSales.map(sale => {
+                                        const sellerName = getUserName(sale.userId, sale.userName);
+                                        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                                        const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
+                                        const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
+                                        
+                                        const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
+                                        const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
+
+                                        return (
+                                            <TableRow 
+                                            key={sale.id}
+                                            ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
+                                            onClick={() => setLastSelectedSaleId(sale.id)}
+                                            className={cn(
+                                                'cursor-pointer',
+                                                sale.id === lastSelectedSaleId
+                                                ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
+                                                : 'hover:bg-muted/50'
+                                            )}
+                                            style={getRowStyle(sale)}
+                                            >
+                                                {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
+                                                {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
+                                                {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
+                                                {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
+                                                {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
+                                                {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
+                                                {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
+                                                {visibleColumns.details && (
+                                                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                                        {sale.items.map(item => {
+                                                            const details = [];
+                                                            if(item.selectedVariants && item.selectedVariants.length > 0) {
+                                                                details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
+                                                            }
+                                                            if(item.note) details.push(`Note: ${item.note}`);
+                                                            if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
+                                                            return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
+                                                        }).join(' | ')}
+                                                    </TableCell>
+                                                )}
+                                                {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end">
+                                                        <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                        {canBeConverted && (
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
+                                                                <FileCog className="h-4 w-4 text-blue-600" />
+                                                            </Button>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                                            <Link href={getDetailLink(sale.id)}>
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
-    </>
-  );
+      </>
+    );
 }
 
 export default function ReportsPage() {
@@ -921,5 +918,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
