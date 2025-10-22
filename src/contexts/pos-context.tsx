@@ -334,7 +334,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -1719,7 +1718,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       for (let i = 0; i < count; i++) {
         const saleDate = subDays(today, Math.floor(Math.random() * 30));
         const customer = customers[Math.floor(Math.random() * customers.length)];
-        const seller = users[Math.floor(Math.random() * users.length)];
+        const seller = users.length > 0 ? users[Math.floor(Math.random() * users.length)] : null;
         const numItems = Math.floor(Math.random() * 5) + 1;
         const saleItems: OrderItem[] = [];
         let total = 0;
@@ -1755,8 +1754,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             payments: [{ method: paymentMethod, amount: total, date: saleDate }],
             status: 'paid',
             customerId: customer.id,
-            userId: seller.id,
-            userName: `${seller.firstName} ${seller.lastName}`,
+            userId: seller ? seller.id : 'unknown',
+            userName: seller ? `${seller.firstName} ${seller.lastName}`: 'Utilisateur Inconnu',
         };
         newSales.push(newSale);
       }
