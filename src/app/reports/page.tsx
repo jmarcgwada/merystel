@@ -26,7 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useKeyboard } from '@/hooks/use-toast';
+import { useKeyboard } from '@/contexts/keyboard-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -596,39 +596,39 @@ function ReportsPageContent() {
     }
   
     return (
-      <>
-        <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => {
-                        if (saleToConvert) {
-                            convertToInvoice(saleToConvert.id);
-                        }
-                        setConfirmOpen(false);
-                    }}>
-                        Confirmer
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-        <div className="absolute -left-[9999px] -top-[9999px]">
-                {saleToPrint && vatRates && companyInfo && (
-                    <InvoicePrintTemplate 
-                        ref={printRef} 
-                        sale={saleToPrint} 
-                        customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
-                        companyInfo={companyInfo} 
-                        vatRates={vatRates} 
-                    />
-                )}
-        </div>
+    <>
+      <div className="absolute -left-[9999px] -top-[9999px]">
+        {saleToPrint && vatRates && companyInfo && (
+          <InvoicePrintTemplate 
+              ref={printRef} 
+              sale={saleToPrint} 
+              customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
+              companyInfo={companyInfo} 
+              vatRates={vatRates} 
+          />
+        )}
+      </div>
+      <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+                if (saleToConvert) {
+                    convertToInvoice(saleToConvert.id);
+                }
+                setConfirmOpen(false);
+            }}>
+                Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
                 title="Rapports des pièces"
@@ -648,7 +648,7 @@ function ReportsPageContent() {
                     <Button variant="outline" size="icon" onClick={() => router.refresh()}>
                         <RefreshCw className="h-4 w-4" />
                     </Button>
-                    <Button asChild size="icon" className="btn-back">
+                    <Button asChild variant="outline" size="icon" className="btn-back">
                         <Link href="/dashboard">
                             <LayoutDashboard />
                         </Link>
@@ -682,7 +682,7 @@ function ReportsPageContent() {
                 <div className="flex flex-col gap-4">
                     <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card>
-                            <CardHeader className="p-2">
+                            <CardHeader className="p-4">
                                 <div className="flex items-center justify-between flex-wrap gap-2">
                                     <div className="flex items-center gap-4">
                                         <CollapsibleTrigger asChild>
@@ -907,7 +907,7 @@ function ReportsPageContent() {
                 </div>
             </div>
         </div>
-      </>
+    </>
     );
 }
 
