@@ -163,7 +163,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
     toast({
       title: 'Document Aléatoire Généré',
-      description: `Préparation du document pour ${'randomCustomer.name'}.`,
+      description: `Préparation du document pour ${randomCustomer.name}.`,
     });
   };
 
