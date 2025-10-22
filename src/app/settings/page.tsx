@@ -86,15 +86,12 @@ export default function SettingsPage() {
             title="Paramètres"
             subtitle="Configurez et personnalisez l'application selon vos besoins."
         >
-            <div className="flex items-center gap-2">
-                 <Button asChild variant="outline" className="btn-back">
-                    <Link href="/dashboard">
-                        <ArrowLeft />
-                        Retour au tableau de bord
-                    </Link>
-                </Button>
-            </div>
         </PageHeader>
+        <Button asChild variant="outline" className="btn-back fixed top-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg p-0">
+            <Link href="/dashboard">
+                <LayoutDashboard className="h-6 w-6" />
+            </Link>
+        </Button>
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
