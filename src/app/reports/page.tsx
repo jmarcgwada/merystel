@@ -517,20 +517,8 @@ function ReportsPageContent() {
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
-    const prevPage = useRef(currentPage);
     useEffect(() => {
-      if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
-        const index = filteredAndSortedSales.findIndex(s => s.id === lastSelectedSaleId);
-        if (index !== -1) {
-          const newPage = Math.floor(index / itemsPerPage) + 1;
-          if (newPage !== prevPage.current) {
-            setCurrentPage(newPage);
-            prevPage.current = newPage;
-            return;
-          }
-        }
-      }
-      if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId] && currentPage === prevPage.current) {
+      if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
         setTimeout(() => {
             rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
                 behavior: 'smooth',
@@ -538,8 +526,7 @@ function ReportsPageContent() {
             });
         }, 100);
       }
-      prevPage.current = currentPage;
-    }, [paginatedSales, lastSelectedSaleId, currentPage, filteredAndSortedSales, itemsPerPage]);
+    }, [paginatedSales, lastSelectedSaleId]);
     
 
      const summaryStats = useMemo(() => {
@@ -767,7 +754,7 @@ function ReportsPageContent() {
             </Collapsible>
             
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                     <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card className="flex-1">
                             <CardHeader className="p-2">
