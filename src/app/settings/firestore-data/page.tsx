@@ -51,6 +51,7 @@ export default function FirestoreDataPage() {
   const { user, loading: userLoading } = useUser();
   const { 
       exportConfiguration, 
+      importConfiguration,
       ftpConfig,
       smtpConfig,
       requirePinForAdmin,
@@ -63,6 +64,7 @@ export default function FirestoreDataPage() {
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
@@ -253,6 +255,13 @@ export default function FirestoreDataPage() {
       setIsExportingToFtp(false);
     }
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importConfiguration(file);
+    }
+  };
   
   if (userLoading || user?.role !== 'admin') {
       return (
@@ -353,9 +362,9 @@ export default function FirestoreDataPage() {
                     <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Gestion des Données</h2>
                     <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Exportation des données</CardTitle>
+                            <CardTitle>Importation / Exportation</CardTitle>
                             <CardDescription>
-                                Sauvegardez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
+                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row gap-4">
@@ -363,6 +372,17 @@ export default function FirestoreDataPage() {
                                 <Download className="mr-2" />
                                 Exporter la configuration
                             </Button>
+                            <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                                <Upload className="mr-2" />
+                                Importer depuis un fichier
+                            </Button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".json"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
                              <Button onClick={handleExportToFtp} variant="secondary" disabled={isExportingToFtp}>
                                 <Server className="mr-2 h-4 w-4"/>
                                 {isExportingToFtp ? 'Export en cours...' : 'Exporter vers FTP'}
@@ -428,3 +448,4 @@ export default function FirestoreDataPage() {
     </>
   );
 }
+
