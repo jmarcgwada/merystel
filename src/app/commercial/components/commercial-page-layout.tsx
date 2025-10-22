@@ -121,13 +121,11 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     }
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
     
-    // Use the current documentType from props
     const nextDocType = documentType;
-    const pathSegment = docTypeConfig[nextDocType].pathSegment || `${nextDocType}s`;
+    const pathSegment = typeMap[nextDocType] || `${nextDocType}s`;
     const nextPath = `/commercial/${pathSegment}`;
     const nextDocTypeName = docTypeConfig[nextDocType].title.toLowerCase() || 'document';
 
-    // Reset context specifically for the new document type
     setCurrentSaleContext({ documentType: nextDocType });
     setOrder(duplicatedItems);
     

@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -1527,7 +1528,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             fournisseurs: (data: any) => addSupplier(data).then(res => !!res),
         };
         
-        // This is a mock implementation for now
         if (dataType === 'ventes_completes') {
             report.successCount = jsonData.length;
             report.newSalesCount = new Set(jsonData.map(row => row.ticketNumber)).size;
