@@ -746,7 +746,35 @@ export default function ReportsPage() {
                     </CollapsibleContent>
                 </Collapsible>
                 
-                 <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-end gap-1">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                    Page {currentPage} / {totalPages || 1}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                        <span>{itemsPerPageState}</span>
+                                    </div>
+                                    <Slider
+                                        id="items-per-page-slider"
+                                        value={[itemsPerPageState]}
+                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                        min={5}
+                                        max={100}
+                                        step={5}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                    </div>
                     <Card>
                         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <div>
@@ -836,135 +864,107 @@ export default function ReportsPage() {
                         </div>
                         </Collapsible>
                     </Card>
-                    <div className="flex items-center justify-end gap-1">
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                    Page {currentPage} / {totalPages || 1}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                        <span>{itemsPerPageState}</span>
-                                    </div>
-                                    <Slider
-                                        id="items-per-page-slider"
-                                        value={[itemsPerPageState]}
-                                        onValueChange={(value) => setItemsPerPageState(value[0])}
-                                        onValueCommit={(value) => setItemsPerPage(value[0])}
-                                        min={5}
-                                        max={100}
-                                        step={5}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                    </div>
-                </div>
-                <Card>
-                    <CardContent className="pt-6">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
-                                    {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
-                                    {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
-                                    {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
-                                    {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
-                                    {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
-                                    {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
-                                    {visibleColumns.details && <TableHead>Détails</TableHead>}
-                                    {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
-                                    {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
-                                    {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
-                                    {visibleColumns.payment && <TableHead>Paiement</TableHead>}
-                                    <TableHead className="w-[150px] text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
-                                    <TableRow key={i}>
-                                        {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                    <Card>
+                        <CardContent className="pt-6">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
+                                        {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
+                                        {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
+                                        {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
+                                        {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
+                                        {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
+                                        {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
+                                        {visibleColumns.details && <TableHead>Détails</TableHead>}
+                                        {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
+                                        {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
+                                        {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
+                                        {visibleColumns.payment && <TableHead>Paiement</TableHead>}
+                                        <TableHead className="w-[150px] text-right">Actions</TableHead>
                                     </TableRow>
-                                )) : null}
-                                {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
-                                    const sellerName = getUserName(sale.userId, sale.userName);
-                                    const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-                                    const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
-                                    const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
-                                    
-                                    const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
-                                    const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
-
-                                    return (
-                                        <TableRow 
-                                        key={sale.id}
-                                        ref={(el) => (rowRefs.current[sale.id] = el)}
-                                        onClick={() => setSelectedRowId(sale.id)}
-                                        className={cn(
-                                            'cursor-pointer',
-                                            sale.id === selectedRowId
-                                            ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
-                                            : 'hover:bg-muted/50'
-                                        )}
-                                        style={getRowStyle(sale)}
-                                        >
-                                            {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
-                                            {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
-                                            {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
-                                            {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
-                                            {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
-                                            {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
-                                            {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
-                                            {visibleColumns.details && (
-                                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                                                    {sale.items.map(item => {
-                                                        const details = [];
-                                                        if(item.selectedVariants && item.selectedVariants.length > 0) {
-                                                            details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
-                                                        }
-                                                        if(item.note) details.push(`Note: ${item.note}`);
-                                                        if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
-                                                        return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
-                                                    }).join(' | ')}
-                                                </TableCell>
-                                            )}
-                                            {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
-                                            {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end">
-                                                    <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
-                                                        <Printer className="h-4 w-4" />
-                                                    </Button>
-                                                    {canBeConverted && (
-                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
-                                                            <FileCog className="h-4 w-4 text-blue-600" />
-                                                        </Button>
-                                                    )}
-                                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                        <Link href={getDetailLink(sale.id)}>
-                                                            <Eye className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                    {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                         </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                    )) : null}
+                                    {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
+                                        const sellerName = getUserName(sale.userId, sale.userName);
+                                        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                                        const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
+                                        const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
+                                        
+                                        const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
+                                        const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
+
+                                        return (
+                                            <TableRow 
+                                            key={sale.id}
+                                            ref={(el) => (rowRefs.current[sale.id] = el)}
+                                            onClick={() => setSelectedRowId(sale.id)}
+                                            className={cn(
+                                                'cursor-pointer',
+                                                sale.id === selectedRowId
+                                                ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
+                                                : 'hover:bg-muted/50'
+                                            )}
+                                            style={getRowStyle(sale)}
+                                            >
+                                                {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
+                                                {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
+                                                {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
+                                                {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
+                                                {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
+                                                {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
+                                                {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
+                                                {visibleColumns.details && (
+                                                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                                        {sale.items.map(item => {
+                                                            const details = [];
+                                                            if(item.selectedVariants && item.selectedVariants.length > 0) {
+                                                                details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
+                                                            }
+                                                            if(item.note) details.push(`Note: ${item.note}`);
+                                                            if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
+                                                            return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
+                                                        }).join(' | ')}
+                                                    </TableCell>
+                                                )}
+                                                {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end">
+                                                        <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                        {canBeConverted && (
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
+                                                                <FileCog className="h-4 w-4 text-blue-600" />
+                                                            </Button>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                                            <Link href={getDetailLink(sale.id)}>
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
           </div>
           <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogContent>
