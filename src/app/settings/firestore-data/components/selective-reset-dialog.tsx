@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -44,12 +45,36 @@ const DATA_TYPES: { key: DeletableDataKeys; label: string }[] = [
   { key: 'auditLogs', label: 'Logs d\'audit' },
 ];
 
+const initialSelections = DATA_TYPES.reduce((acc, { key }) => ({ ...acc, [key]: false }), {} as Record<DeletableDataKeys, boolean>);
+
 export function SelectiveResetDialog({ isOpen, onClose }: SelectiveResetDialogProps) {
   const { selectivelyResetData } = usePos();
-  const [selections, setSelections] = useState<Record<DeletableDataKeys, boolean>>(
-    DATA_TYPES.reduce((acc, { key }) => ({ ...acc, [key]: false }), {} as Record<DeletableDataKeys, boolean>)
-  );
+  const [selections, setSelections] = useState<Record<DeletableDataKeys, boolean>>(initialSelections);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+    try {
+        const storedValue = localStorage.getItem('selectiveResetSelections');
+        if (storedValue) {
+            setSelections(JSON.parse(storedValue));
+        }
+    } catch (error) {
+        console.error("Error reading selections from localStorage:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
+        try {
+            localStorage.setItem('selectiveResetSelections', JSON.stringify(selections));
+        } catch (error) {
+            console.error("Error saving selections to localStorage:", error);
+        }
+    }
+  }, [selections, isHydrated]);
+
 
   const handleToggleAll = (checked: boolean) => {
     const newSelections: Record<DeletableDataKeys, boolean> = { ...selections };
@@ -75,7 +100,7 @@ export function SelectiveResetDialog({ isOpen, onClose }: SelectiveResetDialogPr
           <DialogHeader>
             <DialogTitle>Réinitialisation sélective</DialogTitle>
             <DialogDescription>
-              Cochez les catégories de données que vous souhaitez supprimer définitivement.
+              Cochez les catégories de données que vous souhaitez supprimer définitivement. Vos choix sont mémorisés.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -83,7 +108,7 @@ export function SelectiveResetDialog({ isOpen, onClose }: SelectiveResetDialogPr
               <Checkbox
                 id="select-all"
                 checked={isAllSelected}
-                onCheckedChange={handleToggleAll}
+                onCheckedChange={(checked) => handleToggleAll(checked as boolean)}
               />
               <Label htmlFor="select-all" className="font-bold">
                 Tout sélectionner / Tout désélectionner
