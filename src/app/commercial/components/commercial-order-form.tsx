@@ -431,6 +431,9 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
+        <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
+            <BarChart3 className="h-6 w-6" />
+        </Button>
         {currentSaleContext?.date && (
             <div className="lg:self-end">
                 <div className="text-base text-foreground font-semibold flex items-center gap-1.5"><Calendar className="h-4 w-4 text-muted-foreground" /> <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" /></div>
