@@ -811,34 +811,6 @@ export default function ReportsPage() {
                                             <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                                    Page {currentPage} / {totalPages || 1}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-48 p-2">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                                        <span>{itemsPerPageState}</span>
-                                                    </div>
-                                                    <Slider
-                                                        id="items-per-page-slider"
-                                                        value={[itemsPerPageState]}
-                                                        onValueChange={(value) => setItemsPerPageState(value[0])}
-                                                        onValueCommit={(value) => setItemsPerPage(value[0])}
-                                                        min={5}
-                                                        max={100}
-                                                        step={5}
-                                                    />
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                                    </div>
                                 </div>
                             </div>
                         </CardHeader>
@@ -863,6 +835,38 @@ export default function ReportsPage() {
                         </CollapsibleContent>
                       </div>
                     </Collapsible>
+                    <CardHeader className="p-2 pt-0">
+                       <div className="flex items-center justify-end">
+                            <div className="flex items-center gap-1">
+                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                            Page {currentPage} / {totalPages || 1}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-48 p-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                            <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                <span>{itemsPerPageState}</span>
+                                            </div>
+                                            <Slider
+                                                id="items-per-page-slider"
+                                                value={[itemsPerPageState]}
+                                                onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                min={5}
+                                                max={100}
+                                                step={5}
+                                            />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    </CardHeader>
                     <CardContent className="pt-6">
                         <Table>
                             <TableHeader>
