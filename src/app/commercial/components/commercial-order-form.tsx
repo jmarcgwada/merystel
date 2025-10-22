@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -121,7 +122,7 @@ export const CommercialOrderForm = forwardRef<
   { submit: () => void },
   CommercialOrderFormProps
 >(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -439,7 +440,7 @@ export const CommercialOrderForm = forwardRef<
             </div>
         )}
         <div className="w-full lg:flex-1 flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.back()}>
+            <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
                 <BarChart3 className="h-6 w-6" />
             </Button>
             <div className="relative flex-grow">
