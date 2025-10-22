@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -439,9 +440,6 @@ export const CommercialOrderForm = forwardRef<
             </div>
         )}
         <div className="w-full lg:flex-1 flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
-                <BarChart3 className="h-6 w-6" />
-            </Button>
             <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input

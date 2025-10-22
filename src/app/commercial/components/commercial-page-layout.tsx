@@ -226,26 +226,29 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             )}
           </div>
         </PageHeader>
-
+        
         <div className="flex items-center gap-2 mt-4">
-          <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
-              <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
-                  <CommercialOrderForm
-                      ref={formRef}
-                      order={order} 
-                      setOrder={setOrder}
-                      addToOrder={addToOrder}
-                      updateQuantity={updateQuantity}
-                      removeFromOrder={removeFromOrder}
-                      updateItemNote={updateItemNote}
-                      updateItemPrice={updateItemPrice}
-                      showAcompte={config.showAcompte}
-                      onTotalsChange={setTotals}
-                      updateItemQuantityInOrder={updateItemQuantityInOrder}
-                      documentType={documentType}
-                  />
-              </div>
-          </fieldset>
+            <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
+                <BarChart3 className="h-6 w-6" />
+            </Button>
+            <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
+                <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
+                    <CommercialOrderForm
+                        ref={formRef}
+                        order={order} 
+                        setOrder={setOrder}
+                        addToOrder={addToOrder}
+                        updateQuantity={updateQuantity}
+                        removeFromOrder={removeFromOrder}
+                        updateItemNote={updateItemNote}
+                        updateItemPrice={updateItemPrice}
+                        showAcompte={config.showAcompte}
+                        onTotalsChange={setTotals}
+                        updateItemQuantityInOrder={updateItemQuantityInOrder}
+                        documentType={documentType}
+                    />
+                </div>
+            </fieldset>
         </div>
       </div>
       <SerialNumberModal />
