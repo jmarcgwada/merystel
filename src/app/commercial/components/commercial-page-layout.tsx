@@ -120,9 +120,12 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
     clearOrder();
     setOrder(duplicatedItems);
-    setCurrentSaleContext({ documentType: 'invoice', status: 'pending' });
-    router.push('/commercial/invoices');
-    toast({ title: 'Pièce dupliquée', description: 'Une nouvelle facture a été créée avec les articles de la pièce précédente.' });
+    // Use the current documentType to decide where to go
+    const nextPath = docTypeConfig[documentType].path || '/commercial/invoices';
+    const nextDocType = docTypeConfig[documentType].title || 'facture';
+    setCurrentSaleContext({ documentType });
+    router.push(nextPath);
+    toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocType} a été créée.` });
   };
   
   const handleGenerateRandom = () => {
@@ -148,7 +151,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         if(!existingInNewOrder) {
             newOrder.push({
                 itemId: randomItem.id,
-                id: randomItem.id,
+                id: uuidv4(),
                 name: randomItem.name,
                 price: randomItem.price,
                 vatId: randomItem.vatId,
