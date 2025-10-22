@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 
 const adminSchema = z.object({
@@ -40,12 +41,13 @@ const adminSchema = z.object({
 
 type AdminFormValues = z.infer<typeof adminSchema>;
 
-const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
+const PinKey = ({ value, onClick, 'data-key': dataKey, className }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string }) => (
     <Button
         type="button"
         variant="outline"
-        className="h-14 w-14 text-2xl font-bold"
+        className={cn("h-14 w-14 text-2xl font-bold", className)}
         onClick={() => onClick(value)}
+        data-key={dataKey}
     >
         {value}
     </Button>
@@ -69,6 +71,7 @@ export default function LoginPage() {
 
   const [isForgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -178,10 +181,10 @@ export default function LoginPage() {
   }, [pin, generateDynamicPin, loginCredentials, toast]);
 
     useEffect(() => {
-        if (pin.length === 6) {
+        if (showPinDialog && pin.length === 6) {
             handlePinSubmit();
         }
-    }, [pin, handlePinSubmit]);
+    }, [pin, showPinDialog, handlePinSubmit]);
 
   const handlePinKeyPress = (key: string) => {
     if (pin.length < 6) {
@@ -192,6 +195,33 @@ export default function LoginPage() {
   const handlePinBackspace = () => {
     setPin(prev => prev.slice(0, -1));
   };
+  
+  const triggerVisualFeedback = useCallback((key: string) => {
+    setActiveKey(key);
+    setTimeout(() => setActiveKey(null), 150);
+  }, []);
+  
+  useEffect(() => {
+    if (!showPinDialog) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+        const { key } = event;
+        triggerVisualFeedback(key);
+
+        if (key >= '0' && key <= '9') {
+            handlePinKeyPress(key);
+        } else if (key === 'Backspace') {
+            handlePinBackspace();
+        } else if (key === 'Enter') {
+            handlePinSubmit();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showPinDialog, handlePinKeyPress, handlePinBackspace, handlePinSubmit, triggerVisualFeedback]);
 
 
   const handlePasswordReset = async () => {
@@ -376,20 +406,20 @@ export default function LoginPage() {
                         {pin.padEnd(6, '•').substring(0, 6)}
                         </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <PinKey value="1" onClick={handlePinKeyPress} />
-                        <PinKey value="2" onClick={handlePinKeyPress} />
-                        <PinKey value="3" onClick={handlePinKeyPress} />
-                        <PinKey value="4" onClick={handlePinKeyPress} />
-                        <PinKey value="5" onClick={handlePinKeyPress} />
-                        <PinKey value="6" onClick={handlePinKeyPress} />
-                        <PinKey value="7" onClick={handlePinKeyPress} />
-                        <PinKey value="8" onClick={handlePinKeyPress} />
-                        <PinKey value="9" onClick={handlePinKeyPress} />
-                        <Button type="button" variant="outline" className="h-14 w-14" onClick={handlePinBackspace}>
+                     <div className="grid grid-cols-3 gap-2">
+                        <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
+                        <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace">
                             <Delete className="h-6 w-6"/>
                         </Button>
-                        <PinKey value="0" onClick={handlePinKeyPress} />
+                        <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
                     </div>
                 </div>
                 <AlertDialogFooter>
