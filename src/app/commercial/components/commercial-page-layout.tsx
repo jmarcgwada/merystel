@@ -10,7 +10,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3 } from 'lucide-react';
+import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -193,17 +193,17 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         subtotal: subTotalHT,
         tax: totalTVA,
         total: totalTTC,
-        status: documentType, // Use the current page's document type
+        status: 'invoice',
         payments: [],
         customerId: randomCustomer.id,
-        documentType: documentType, // Explicitly set documentType on the sale object
+        documentType: 'invoice',
     };
     
-    recordCommercialDocument(doc, documentType);
+    recordCommercialDocument(doc, 'invoice');
 
     toast({
-      title: 'Document Aléatoire Généré',
-      description: `Un nouveau document a été créé pour ${randomCustomer.name}.`,
+      title: 'Facture Aléatoire Générée',
+      description: `Une nouvelle facture a été créée pour ${randomCustomer.name}.`,
     });
   };
 
@@ -227,48 +227,53 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
           title={pageTitle}
           subtitle={pageSubtitle}
         >
-          <div className="flex items-center gap-2">
-            {!isEditing && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleGenerateRandom}
-                title={`Générer ${documentType} aléatoire`}
-                disabled={order.length > 0}
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
-            )}
-
-            {canBeConverted && (
-                <Button variant="outline" onClick={() => setConfirmOpen(true)}>
-                    <FileCog className="mr-2 h-4 w-4"/>
-                    Transformer en Facture
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
+                    <ArrowLeft className="h-6 w-6" />
                 </Button>
-            )}
+                 <div className="flex items-center gap-2">
+                    {!isEditing && (
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleGenerateRandom}
+                        title={`Générer ${documentType} aléatoire`}
+                        disabled={order.length > 0}
+                    >
+                        <Sparkles className="h-4 w-4" />
+                    </Button>
+                    )}
 
-             {order.length > 0 && !isReadOnly && (
-              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Tout effacer
-              </Button>
-            )}
+                    {canBeConverted && (
+                        <Button variant="outline" onClick={() => setConfirmOpen(true)}>
+                            <FileCog className="mr-2 h-4 w-4"/>
+                            Transformer en Facture
+                        </Button>
+                    )}
 
-            {isReadOnly ? (
-                 <Button size="lg" onClick={handleDuplicate}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Dupliquer
-                </Button>
-            ) : (
-                <Button size="lg" onClick={handleSave}>
-                    {isEditing ? config.updateButton : config.saveButton}
-                </Button>
-            )}
-          </div>
+                    {order.length > 0 && !isReadOnly && (
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOrder([])}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Tout effacer
+                    </Button>
+                    )}
+
+                    {isReadOnly ? (
+                        <Button size="lg" onClick={handleDuplicate}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Dupliquer
+                        </Button>
+                    ) : (
+                        <Button size="lg" onClick={handleSave}>
+                            {isEditing ? config.updateButton : config.saveButton}
+                        </Button>
+                    )}
+                </div>
+            </div>
         </PageHeader>
         
-        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
-          <div className="flex-1 flex flex-col min-h-0 mt-4 group-disabled:opacity-70">
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 mt-4 group">
+          <div className="flex-1 flex flex-col min-h-0 group-disabled:opacity-70">
               <CommercialOrderForm
                   ref={formRef}
                   order={order} 
