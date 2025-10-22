@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -9,7 +8,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale, Timestamp } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -439,8 +438,11 @@ export const CommercialOrderForm = forwardRef<
                 )}
             </div>
         )}
-        <div className="w-full lg:flex-1 space-y-2">
-            <div className="relative">
+        <div className="w-full lg:flex-1 flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.back()}>
+                <BarChart3 className="h-6 w-6" />
+            </Button>
+            <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                     ref={searchInputRef}
@@ -477,7 +479,7 @@ export const CommercialOrderForm = forwardRef<
                 </div>
             </div>
             {listContent.length > 0 && (
-                <Card className="mt-2 absolute z-10 w-full max-w-2xl">
+                <Card className="mt-2 absolute z-10 w-full max-w-2xl top-full">
                     <ScrollArea className="h-full max-h-80">
                          <div className="space-y-px p-1">
                             {listContent.map((item, index) => (
