@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -49,12 +50,12 @@ import { Slider } from '@/components/ui/slider';
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 
 const documentTypes = {
-    ticket: { label: 'Ticket', type: 'in' },
-    invoice: { label: 'Facture', type: 'in' },
-    quote: { label: 'Devis', type: 'neutral' },
-    delivery_note: { label: 'Bon de Livraison', type: 'neutral' },
-    supplier_order: { label: 'Cde Fournisseur', type: 'out' },
-    credit_note: { label: 'Avoir', type: 'out' },
+    ticket: { label: 'Ticket', type: 'in', path: '/pos' },
+    invoice: { label: 'Facture', type: 'in', path: '/commercial/invoices' },
+    quote: { label: 'Devis', type: 'neutral', path: '/commercial/quotes' },
+    delivery_note: { label: 'Bon de Livraison', type: 'neutral', path: '/commercial/delivery-notes' },
+    supplier_order: { label: 'Cde Fournisseur', type: 'out', path: '/commercial/supplier-orders' },
+    credit_note: { label: 'Avoir', type: 'out', path: '/commercial/credit-notes' },
 };
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -343,7 +344,8 @@ export default function ReportsPage() {
 
      useEffect(() => {
         setIsClient(true);
-    }, []);
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
     
     useEffect(() => {
         if (targetInput?.name === 'reports-general-filter') setGeneralFilter(inputValue);
@@ -511,28 +513,30 @@ export default function ReportsPage() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
 
+    const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
     useEffect(() => {
-      if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
-        const index = filteredAndSortedSales.findIndex(
-          (s) => s.id === lastSelectedSaleId
-        );
-        if (index !== -1) {
-          const newPage = Math.floor(index / itemsPerPage) + 1;
-          if (newPage !== currentPage) {
-            setCurrentPage(newPage);
-          }
-          setTimeout(() => {
-            const rowElement = rowRefs.current[lastSelectedSaleId];
-            if (rowElement) {
-              rowElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-              });
+        if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
+            const index = filteredAndSortedSales.findIndex(s => s.id === lastSelectedSaleId);
+            if(index !== -1) {
+                const newPage = Math.floor(index / itemsPerPage) + 1;
+                if (newPage !== currentPage) {
+                    setCurrentPage(newPage);
+                }
             }
-          }, 100);
         }
-      }
     }, [lastSelectedSaleId, filteredAndSortedSales, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+        if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+            setTimeout(() => {
+                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }, 100);
+        }
+    }, [lastSelectedSaleId, paginatedSales]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -649,6 +653,18 @@ export default function ReportsPage() {
       autoPaging: 'text',
     });
   };
+
+    const handleNewDocumentClick = () => {
+        const docType = searchParams.get('docType');
+        let path = '/commercial/invoices'; // Default to invoice
+        if (docType) {
+            const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+            if (typeInfo && typeInfo.path) {
+                path = typeInfo.path;
+            }
+        }
+        router.push(path);
+    };
     
   const getDetailLink = (saleId: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -689,6 +705,10 @@ export default function ReportsPage() {
                 subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
             >
                 <div className="flex items-center gap-2">
+                    <Button onClick={handleNewDocumentClick}>
+                        <FilePlus className="mr-2 h-4 w-4" />
+                        Nouvelle Pièce
+                    </Button>
                     <Button asChild variant="secondary">
                         <Link href="/reports/analytics">
                             <TrendingUp className="mr-2 h-4 w-4" />
@@ -884,10 +904,10 @@ export default function ReportsPage() {
                                         <TableRow 
                                         key={sale.id}
                                         ref={(el) => (rowRefs.current[sale.id] = el)}
-                                        onClick={() => setLastSelectedSaleId(sale.id)}
+                                        onClick={() => setSelectedRowId(sale.id)}
                                         className={cn(
                                             'cursor-pointer',
-                                            sale.id === lastSelectedSaleId
+                                            sale.id === selectedRowId
                                             ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
                                             : 'hover:bg-muted/50'
                                         )}
@@ -970,3 +990,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
