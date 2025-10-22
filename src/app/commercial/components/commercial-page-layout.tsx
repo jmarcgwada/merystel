@@ -118,14 +118,19 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         return;
     }
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
-    clearOrder();
+    
+    // Use the current documentType from props
+    const nextDocType = documentType;
+    const pathSegment = docTypeConfig[nextDocType].pathSegment || `${nextDocType}s`;
+    const nextPath = `/commercial/${pathSegment}`;
+    const nextDocTypeName = docTypeConfig[nextDocType].title.toLowerCase() || 'document';
+
+    // Reset context specifically for the new document type
+    setCurrentSaleContext({ documentType: nextDocType });
     setOrder(duplicatedItems);
-    // Use the current documentType to decide where to go
-    const nextPath = docTypeConfig[documentType].path || '/commercial/invoices';
-    const nextDocType = docTypeConfig[documentType].title || 'facture';
-    setCurrentSaleContext({ documentType });
+    
     router.push(nextPath);
-    toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocType} a été créée.` });
+    toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocTypeName} a été créée.` });
   };
   
   const handleGenerateRandom = () => {
@@ -139,6 +144,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     }
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+    // Set the document type from the page props
     setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType });
 
     const numberOfItems = Math.floor(Math.random() * 4) + 2;
@@ -168,6 +174,11 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       title: 'Document Aléatoire Généré',
       description: `Préparation du document pour ${randomCustomer.name}.`,
     });
+
+    // Automatically trigger save after a short delay
+    setTimeout(() => {
+        handleSave();
+    }, 100);
   };
 
   const pageTitle = (
@@ -196,7 +207,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
                 variant="outline"
                 size="icon"
                 onClick={handleGenerateRandom}
-                title={`Générer ${'documentType'} aléatoire`}
+                title={`Générer ${documentType} aléatoire`}
                 disabled={order.length > 0}
               >
                 <Sparkles className="h-4 w-4" />
