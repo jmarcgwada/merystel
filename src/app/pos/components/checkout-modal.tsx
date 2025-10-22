@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -62,7 +61,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 )
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -161,11 +160,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
           } else if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
-              clearOrder();
-              router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
+              resetCommercialPage(currentSaleContext.documentType);
           } else if (currentSaleContext?.documentType === 'supplier_order') {
-              clearOrder();
-              router.push('/reports?filter=CF-');
+             resetCommercialPage('supplier_order');
           } else {
             clearOrder();
           }
@@ -183,7 +180,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage]);
 
 
   useEffect(() => {
