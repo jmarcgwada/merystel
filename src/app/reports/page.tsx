@@ -97,7 +97,7 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         
         let jsDate: Date;
         if (date instanceof Date) jsDate = date;
-        else if (date && typeof (date as Timestamp).toDate === 'function') jsDate = (date as Timestamp).toDate();
+        else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
         else jsDate = new Date(date as any);
 
         if (!isNaN(jsDate.getTime())) {
@@ -321,7 +321,6 @@ export default function ReportsPage() {
 
         setFilterDocTypes(prev => {
             const newState = { ...prev, [typeKey]: checked };
-
             if (checked && typeInfo.type !== 'neutral') {
                 for (const key in documentTypes) {
                     if (documentTypes[key as keyof typeof documentTypes].type !== 'neutral' && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
@@ -747,126 +746,126 @@ export default function ReportsPage() {
                     </CollapsibleContent>
                 </Collapsible>
                 
-                <Card>
-                    <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
-                      <div>
-                        <CardHeader className="p-2">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="justify-start px-2 text-lg font-semibold">
-                                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                        Filtres
-                                        <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <div className="flex items-center gap-2 flex-wrap justify-end">
-                                  <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
-                                                {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
-                                                <span>Types de pièce</span>
-                                                <ChevronDown className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
-                                                Tout désélectionner
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            {Object.entries(documentTypes).map(([type, { label }]) => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={type}
-                                                    checked={filterDocTypes[type]}
-                                                    onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                                >
-                                                    {label}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="icon" className="h-9 w-9">
-                                                <Columns className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {columnsConfig.map(column => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={column.id}
-                                                    checked={visibleColumns[column.id] ?? false}
-                                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                                >
-                                                    {column.label}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
-                                            <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                 <div className="flex justify-between items-center mb-4">
+                    <Card className="flex-1">
+                        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+                        <div>
+                            <CardHeader className="p-2">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="justify-start px-2 text-lg font-semibold">
+                                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                            Filtres
+                                            <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                                    <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
+                                                    {isDocTypeFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive"/>}
+                                                    <span>Types de pièce</span>
+                                                    <ChevronDown className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
+                                                    Tout désélectionner
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                {Object.entries(documentTypes).map(([type, { label }]) => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={type}
+                                                        checked={filterDocTypes[type]}
+                                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                                    >
+                                                        {label}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" size="icon" className="h-9 w-9">
+                                                    <Columns className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {columnsConfig.map(column => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={column.id}
+                                                        checked={visibleColumns[column.id] ?? false}
+                                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                                    >
+                                                        {column.label}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
+                                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardHeader>
-                        <CollapsibleContent>
-                            <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                                <Popover>
-                                    <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                        <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                            {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                                </Popover>
-                                <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                                <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                                <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
-                                <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
-                                <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
-                            </CardContent>
-                        </CollapsibleContent>
-                      </div>
-                    </Collapsible>
-                    <CardHeader className="p-2 pt-0">
-                       <div className="flex items-center justify-end">
-                            <div className="flex items-center gap-1">
-                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                            Page {currentPage} / {totalPages || 1}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-48 p-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                            <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                                <span>{itemsPerPageState}</span>
-                                            </div>
-                                            <Slider
-                                                id="items-per-page-slider"
-                                                value={[itemsPerPageState]}
-                                                onValueChange={(value) => setItemsPerPageState(value[0])}
-                                                onValueCommit={(value) => setItemsPerPage(value[0])}
-                                                min={5}
-                                                max={100}
-                                                step={5}
-                                            />
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                            </div>
+                            </CardHeader>
+                            <CollapsibleContent>
+                                <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                                    <Popover>
+                                        <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                            <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                                {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                                    </Popover>
+                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                                    <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
+                                </CardContent>
+                            </CollapsibleContent>
                         </div>
-                    </CardHeader>
+                        </Collapsible>
+                    </Card>
+                     <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                    Page {currentPage} / {totalPages || 1}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                        <span>{itemsPerPageState}</span>
+                                    </div>
+                                    <Slider
+                                        id="items-per-page-slider"
+                                        value={[itemsPerPageState]}
+                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                        min={5}
+                                        max={100}
+                                        step={5}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                    </div>
+                </div>
+                <Card>
                     <CardContent className="pt-6">
                         <Table>
                             <TableHeader>
