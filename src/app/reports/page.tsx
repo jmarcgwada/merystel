@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -515,6 +514,13 @@ export default function ReportsPage() {
 
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
+    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
+
     useEffect(() => {
         if (lastSelectedSaleId && filteredAndSortedSales.length > 0) {
             const index = filteredAndSortedSales.findIndex(s => s.id === lastSelectedSaleId);
@@ -536,15 +542,7 @@ export default function ReportsPage() {
                 });
             }, 100);
         }
-    }, [lastSelectedSaleId, paginatedSales]);
-
-    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
-
-    const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
-
+    }, [selectedRowId, paginatedSales, lastSelectedSaleId]);
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -845,7 +843,7 @@ export default function ReportsPage() {
                             </div>
                         </CardHeader>
                         <CollapsibleContent>
-                            <CardContent className="flex items-center gap-2 flex-wrap pt-4">
+                            <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                                 <Popover>
                                     <PopoverTrigger asChild disabled={isDateFilterLocked}>
                                         <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
@@ -990,4 +988,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
