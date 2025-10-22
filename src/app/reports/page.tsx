@@ -746,8 +746,8 @@ export default function ReportsPage() {
                     </CollapsibleContent>
                 </Collapsible>
                 
-                 <div className="flex justify-between items-center mb-4">
-                    <Card className="flex-1">
+                 <div className="flex flex-col gap-4">
+                    <Card>
                         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <div>
                             <CardHeader className="p-2">
@@ -836,7 +836,7 @@ export default function ReportsPage() {
                         </div>
                         </Collapsible>
                     </Card>
-                     <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-end gap-1">
                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                         <Popover>
                             <PopoverTrigger asChild>
