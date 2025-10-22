@@ -478,7 +478,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [showNotifications, notificationDuration, shadcnToast]);
-  
+
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     const newLog: AuditLog = {
       id: uuidv4(),
@@ -877,7 +877,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: itemToUpdate, quantity });
+          setSerialNumberItem({ item: originalItem, quantity });
         }
         return;
       }

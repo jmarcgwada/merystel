@@ -69,6 +69,14 @@ const docTypeConfig = {
   }
 };
 
+const typeMap: Record<DocumentType, string> = {
+  invoice: 'invoices',
+  quote: 'quotes',
+  delivery_note: 'delivery-notes',
+  credit_note: 'credit-notes',
+};
+
+
 function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const { 
       addToOrder, 
@@ -185,9 +193,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         subtotal: subTotalHT,
         tax: totalTVA,
         total: totalTTC,
-        status: documentType,
+        status: documentType, // Use the current page's document type
         payments: [],
         customerId: randomCustomer.id,
+        documentType: documentType, // Explicitly set documentType on the sale object
     };
     
     recordCommercialDocument(doc, documentType);
@@ -258,22 +267,24 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
           </div>
         </PageHeader>
         
-        <div className="flex-1 flex flex-col min-h-0 mt-4">
-            <CommercialOrderForm
-                ref={formRef}
-                order={order} 
-                setOrder={setOrder}
-                addToOrder={addToOrder}
-                updateQuantity={updateQuantity}
-                removeFromOrder={removeFromOrder}
-                updateItemNote={updateItemNote}
-                updateItemPrice={updateItemPrice}
-                showAcompte={config.showAcompte}
-                onTotalsChange={setTotals}
-                updateItemQuantityInOrder={updateItemQuantityInOrder}
-                documentType={documentType}
-            />
-        </div>
+        <fieldset disabled={isReadOnly} className="flex-1 flex flex-col min-h-0 group">
+          <div className="flex-1 flex flex-col min-h-0 mt-4 group-disabled:opacity-70">
+              <CommercialOrderForm
+                  ref={formRef}
+                  order={order} 
+                  setOrder={setOrder}
+                  addToOrder={addToOrder}
+                  updateQuantity={updateQuantity}
+                  removeFromOrder={removeFromOrder}
+                  updateItemNote={updateItemNote}
+                  updateItemPrice={updateItemPrice}
+                  showAcompte={config.showAcompte}
+                  onTotalsChange={setTotals}
+                  updateItemQuantityInOrder={updateItemQuantityInOrder}
+                  documentType={documentType}
+              />
+          </div>
+        </fieldset>
       </div>
       <SerialNumberModal />
       <VariantSelectionModal />
