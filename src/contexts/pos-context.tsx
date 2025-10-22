@@ -525,9 +525,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmNavigation = useCallback(async () => {
+    clearOrder();
     if (nextUrl) {
-      await clearOrder();
       router.push(nextUrl);
+    } else {
+      router.back();
     }
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
