@@ -17,7 +17,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'rea
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -178,6 +178,7 @@ function ReportsPageContent() {
   const isCashier = user?.role === 'cashier';
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { toast } = useToast();
   
   const docTypeFilterParam = searchParams.get('docType');
@@ -448,14 +449,14 @@ function ReportsPageContent() {
 
     useEffect(() => {
         if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
-            setTimeout(() => {
-                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
-            }, 100);
+            // setTimeout(() => {
+            //     rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
+            //         behavior: 'smooth',
+            //         block: 'center',
+            //     });
+            // }, 100);
         }
-    }, [paginatedSales, lastSelectedSaleId]);
+    }, [paginatedSales, lastSelectedSaleId, currentPage]); // Added currentPage
     
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -747,55 +748,55 @@ function ReportsPageContent() {
                             </CollapsibleContent>
                         </Card>
                     </Collapsible>
-                    <div className="flex items-center gap-2">
-                      <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="icon" className="h-9 w-9">
-                                  <Columns className="h-4 w-4" />
-                              </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                              <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {columnsConfig.map(column => (
-                                  <DropdownMenuCheckboxItem
-                                      key={column.id}
-                                      checked={visibleColumns[column.id] ?? false}
-                                      onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                  >
-                                      {column.label}
-                                  </DropdownMenuCheckboxItem>
-                              ))}
-                          </DropdownMenuContent>
-                      </DropdownMenu>
-                      <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                      Page {currentPage} / {totalPages || 1}
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48 p-2">
-                                  <div className="space-y-2">
-                                      <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                      <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                          <span>{itemsPerPageState}</span>
-                                      </div>
-                                      <Slider
-                                          id="items-per-page-slider"
-                                          value={[itemsPerPageState]}
-                                          onValueChange={(value) => setItemsPerPageState(value[0])}
-                                          onValueCommit={(value) => setItemsPerPage(value[0])}
-                                          min={5}
-                                          max={100}
-                                          step={5}
-                                      />
-                                  </div>
-                              </PopoverContent>
-                          </Popover>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                      </div>
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-9 w-9">
+                                <Columns className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columnsConfig.map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    checked={visibleColumns[column.id] ?? false}
+                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                >
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                    Page {currentPage} / {totalPages || 1}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                        <span>{itemsPerPageState}</span>
+                                    </div>
+                                    <Slider
+                                        id="items-per-page-slider"
+                                        value={[itemsPerPageState]}
+                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                        min={5}
+                                        max={100}
+                                        step={5}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                 </div>
                 <Card>
@@ -907,9 +908,8 @@ function ReportsPageContent() {
 
 export default function ReportsPage() {
     return (
-      <Suspense>
+      <Suspense fallback={<p>Chargement...</p>}>
         <ReportsPageContent />
       </Suspense>
     )
 }
-
