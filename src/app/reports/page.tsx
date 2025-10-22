@@ -229,7 +229,7 @@ function ReportsPageContent() {
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
 
-  const { setTargetInput, inputValue } = useKeyboard();
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const generalFilterRef = useRef<HTMLInputElement>(null);
   const customerNameFilterRef = useRef<HTMLInputElement>(null);
   const sellerNameFilterRef = useRef<HTMLInputElement>(null);
@@ -433,8 +433,8 @@ function ReportsPageContent() {
                     case 'itemCount': aValue = Array.isArray(a.items) ? a.items.reduce((acc, item) => acc + item.quantity, 0) : 0; bValue = Array.isArray(b.items) ? b.items.reduce((acc, item) => acc + item.quantity, 0) : 0; break;
                     case 'userName': aValue = getUserName(a.userId, a.userName); bValue = getUserName(b.userId, b.userName); break;
                     case 'ticketNumber': aValue = a.ticketNumber || ''; bValue = b.ticketNumber || ''; break;
-                    case 'subtotal': aValue = a.subtotal; bValue = b.subtotal; break;
-                    case 'tax': aValue = a.tax; bValue = b.tax; break;
+                    case 'subtotal': aValue = a.subtotal || 0; bValue = b.subtotal || 0; break;
+                    case 'tax': aValue = a.tax || 0; bValue = b.tax || 0; break;
                     default: aValue = a[sortConfig.key as keyof Sale] as number || 0; bValue = b[sortConfig.key as keyof Sale] as number || 0; break;
                 }
                 if (aValue instanceof Date && bValue instanceof Date) {
@@ -595,7 +595,7 @@ function ReportsPageContent() {
         );
     }
   
-    return (
+  return (
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
         {saleToPrint && vatRates && companyInfo && (
@@ -629,7 +629,7 @@ function ReportsPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
                 title="Rapports des pièces"
                 subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
