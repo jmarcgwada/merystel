@@ -147,7 +147,6 @@ function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, bo
     return [state, setState];
 }
 
-
 function ReportsPageContent() {
   const { 
       sales: allSales, 
@@ -182,11 +181,10 @@ function ReportsPageContent() {
   const { toast } = useToast();
   
   const docTypeFilterParam = searchParams.get('docType');
-  const initialStatusFilter = searchParams.get('filterStatus');
-  const dateFilterParam = searchParams.get('date');
-
   const [isDocTypeFilterLocked, setIsDocTypeFilterLocked] = useState(!!docTypeFilterParam);
+  const dateFilterParam = searchParams.get('date');
   const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
+
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -197,36 +195,81 @@ function ReportsPageContent() {
   const [filterDocTypes, setFilterDocTypes] = usePersistentDocTypeFilter('reports.filterDocTypes', {
       ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
   });
+  
+  const [isClient, setIsClient] = useState(false);
+  
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>(() => {
+    const key = searchParams.get('sortKey') as SortKey | null;
+    const direction = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
+    return key && direction ? { key, direction } : { key: 'date', direction: 'desc' };
+  });
+
+  const [filterCustomerName, setFilterCustomerName] = useState(() => searchParams.get('customerName') || '');
+  const [filterOrigin, setFilterOrigin] = useState(() => searchParams.get('origin') || '');
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || 'all');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState(() => searchParams.get('paymentMethod') || 'all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const from = searchParams.get('dateFrom');
+    const to = searchParams.get('dateTo');
+    if (from) return { from: parseISO(from), to: to ? parseISO(to) : undefined };
+    if (dateFilterParam) {
+        const date = parseISO(dateFilterParam);
+        return { from: date, to: date };
+    }
+    return undefined;
+  });
+  const [generalFilter, setGeneralFilter] = useState(() => searchParams.get('q') || '');
+  const [isSummaryOpen, setSummaryOpen] = useState(true);
+  const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!searchParams.get('status') || !!docTypeFilterParam);
+  const [filterSellerName, setFilterSellerName] = useState(() => searchParams.get('seller') || '');
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
+  
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
+
+  const { setTargetInput, inputValue, targetInput } = useKeyboard();
+  const generalFilterRef = useRef<HTMLInputElement>(null);
+  const customerNameFilterRef = useRef<HTMLInputElement>(null);
+  const sellerNameFilterRef = useRef<HTMLInputElement>(null);
+  const originFilterRef = useRef<HTMLInputElement>(null);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
-
-
+  
+    useEffect(() => {
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
+    
     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
         if (storedColumns) {
             setVisibleColumns(JSON.parse(storedColumns));
         } else {
              setVisibleColumns({
-                type: true,
-                ticketNumber: true,
-                date: true,
-                userName: true,
-                origin: false,
-                customerName: true,
-                itemCount: false,
-                details: false,
-                subtotal: false,
-                tax: false,
-                total: true,
-                payment: true,
+                type: true, ticketNumber: true, date: true, userName: true, origin: false,
+                customerName: true, itemCount: false, details: false, subtotal: false,
+                tax: false, total: true, payment: true,
             });
         }
+        setIsClient(true);
     }, []);
 
-    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
-        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
-        setVisibleColumns(newVisibility);
-        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
-    };
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (generalFilter) params.set('q', generalFilter);
+        if (filterCustomerName) params.set('customerName', filterCustomerName);
+        if (filterSellerName) params.set('seller', filterSellerName);
+        if (filterOrigin) params.set('origin', filterOrigin);
+        if (filterStatus !== 'all') params.set('status', filterStatus);
+        if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod);
+        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
+        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
+        if (sortConfig) {
+          params.set('sortKey', sortConfig.key);
+          params.set('sortDirection', sortConfig.direction);
+        }
+        if (currentPage > 1) params.set('page', String(currentPage));
+        
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [generalFilter, filterCustomerName, filterSellerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, currentPage, sortConfig, router, pathname]);
 
     useEffect(() => {
         if (isCashier) {
@@ -234,38 +277,14 @@ function ReportsPageContent() {
         }
     }, [isCashier, router]);
 
-    const isLoading = isPosLoading;
+    const isLoading = isPosLoading || !isClient;
 
-    const [isClient, setIsClient] = useState(false);
-    
-    const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
-    
-    const [filterCustomerName, setFilterCustomerName] = useState('');
-    const [filterOrigin, setFilterOrigin] = useState('');
-    const [filterStatus, setFilterStatus] = useState(initialStatusFilter || 'all');
-    const [filterPaymentMethod, setFilterPaymentMethod] = useState('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-        if (dateFilterParam) {
-            const date = parseISO(dateFilterParam);
-            return { from: date, to: date };
-        }
-        return undefined;
-    });
-    const [generalFilter, setGeneralFilter] = useState('');
-    const [isSummaryOpen, setSummaryOpen] = useState(true);
-    const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam || !!initialStatusFilter || !!docTypeFilterParam);
-    const [filterSellerName, setFilterSellerName] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    
-    const [isConfirmOpen, setConfirmOpen] = useState(false);
-    const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
+    };
 
-    const { setTargetInput, inputValue, targetInput } = useKeyboard();
-    const generalFilterRef = useRef<HTMLInputElement>(null);
-    const customerNameFilterRef = useRef<HTMLInputElement>(null);
-    const sellerNameFilterRef = useRef<HTMLInputElement>(null);
-    const originFilterRef = useRef<HTMLInputElement>(null);
-    
     useEffect(() => {
         if (docTypeFilterParam) {
             setIsDocTypeFilterLocked(true);
@@ -281,37 +300,18 @@ function ReportsPageContent() {
     
 
     const getRowStyle = (sale: Sale) => {
-        if (!isClient) return {};
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
         let color = 'transparent';
         let opacity = 100;
         
         switch (docType) {
-            case 'invoice':
-                color = invoiceBgColor;
-                opacity = invoiceBgOpacity;
-                break;
-            case 'quote':
-                color = quoteBgColor;
-                opacity = quoteBgOpacity;
-                break;
-            case 'delivery_note':
-                color = deliveryNoteBgColor;
-                opacity = deliveryNoteBgOpacity;
-                break;
-            case 'supplier_order':
-                color = supplierOrderBgColor;
-                opacity = supplierOrderBgOpacity;
-                break;
-            case 'credit_note':
-                color = creditNoteBgColor;
-                opacity = creditNoteBgOpacity;
-                break;
+            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
+            case 'quote': color = quoteBgColor; opacity = quoteBgOpacity; break;
+            case 'delivery_note': color = deliveryNoteBgColor; opacity = deliveryNoteBgOpacity; break;
+            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
+            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
         }
-
-        return {
-            backgroundColor: hexToRgba(color, opacity),
-        };
+        return { backgroundColor: hexToRgba(color, opacity) };
     };
 
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
@@ -339,11 +339,6 @@ function ReportsPageContent() {
         setFilterDocTypes(newFilterDocTypes);
     };
 
-     useEffect(() => {
-        setIsClient(true);
-        setItemsPerPageState(itemsPerPage);
-    }, [itemsPerPage]);
-    
     useEffect(() => {
         if (targetInput?.name === 'reports-general-filter') setGeneralFilter(inputValue);
         if (targetInput?.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
@@ -360,50 +355,39 @@ function ReportsPageContent() {
         if (!userId) return fallbackName || 'N/A';
         if (!users) return fallbackName || 'Chargement...';
         const saleUser = users.find(u => u.id === userId);
-        return saleUser ? `${user?.firstName} ${user?.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
-    }, [users, user]);
+        return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
+    }, [users]);
 
     const handleEdit = useCallback((sale: Sale) => {
       setLastSelectedSaleId(sale.id);
       const typeMap: Record<string, string> = {
-          'quote': 'quotes',
-          'delivery_note': 'delivery-notes',
-          'supplier_order': 'supplier-orders',
-          'invoice': 'invoices',
+          'quote': 'quotes', 'delivery_note': 'delivery-notes',
+          'supplier_order': 'supplier-orders', 'invoice': 'invoices',
           'credit_note': 'credit-notes',
       };
-      
       const docType = sale.documentType || (sale.ticketNumber?.startsWith('Fact-') ? 'invoice' : 'ticket');
-      
       if(docType === 'ticket') {
           toast({ variant: 'destructive', title: 'Action non autorisée', description: 'Les tickets ne peuvent pas être modifiés, seulement dupliqués ou visualisés.'});
           return;
       }
-
       const pathSegment = typeMap[docType];
       if (!pathSegment) {
           toast({ variant: 'destructive', title: 'Type de document inconnu', description: "Impossible d'ouvrir ce type de pièce pour modification."});
           return;
       }
-      
       router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
     }, [router, toast, setLastSelectedSaleId]);
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
-        const activeDocTypes = Object.entries(filterDocTypes)
-            .filter(([, isActive]) => isActive)
-            .map(([type]) => type);
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
 
-        // Apply filters
         let filteredSales = allSales.filter(sale => {
             const customerName = getCustomerName(sale.customerId);
             const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
             const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
-            
             const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
             const saleTotal = Math.abs(sale.total);
-            
             let statusMatch = true;
             if (filterStatus !== 'all') {
                 if (filterStatus === 'paid') statusMatch = sale.status === 'paid' || totalPaid >= saleTotal;
@@ -411,99 +395,44 @@ function ReportsPageContent() {
                 else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < saleTotal;
                 else statusMatch = sale.status === filterStatus;
             }
-            
             const saleSellerName = getUserName(sale.userId, sale.userName);
             const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
-            
             let dateMatch = true;
-            if (dateRange?.from) {
-                const saleDate = getDateFromSale(sale);
-                dateMatch = saleDate >= startOfDay(dateRange.from);
-            }
-            if (dateRange?.to) {
-                 const saleDate = getDateFromSale(sale);
-                dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
-            }
-
+            const saleDate = getDateFromSale(sale);
+            if (dateRange?.from) dateMatch = saleDate >= startOfDay(dateRange.from);
+            if (dateRange?.to) dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
             const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
             const docTypeMatch = activeDocTypes.includes(docType);
-
             const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
-
             const generalMatch = !generalFilter || (
                 (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (Array.isArray(sale.items) && sale.items.some(item => {
-                    const lowerGeneralFilter = generalFilter.toLowerCase();
-                    const nameMatch = item.name.toLowerCase().includes(lowerGeneralFilter);
-                    const noteMatch = item.note?.toLowerCase().includes(lowerGeneralFilter);
-                    const serialMatch = item.serialNumbers?.some(sn => sn.toLowerCase().includes(lowerGeneralFilter));
-                    const variantMatch = item.selectedVariants?.some(v => `${v.name.toLowerCase()}: ${v.value.toLowerCase()}`.includes(lowerGeneralFilter));
-                    return nameMatch || noteMatch || serialMatch || variantMatch || (item.barcode && item.barcode.toLowerCase().includes(lowerGeneralFilter));
-                }))
+                (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(generalFilter.toLowerCase()))))
             );
-            
-
             return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
         });
 
-        // Apply sorting
         if (sortConfig !== null) {
             filteredSales.sort((a, b) => {
                 let aValue: string | number | Date, bValue: string | number | Date;
-                
                 switch (sortConfig.key) {
-                    case 'date':
-                        aValue = getDateFromSale(a);
-                        bValue = getDateFromSale(b);
-                        break;
-                    case 'tableName':
-                        aValue = a.tableName || '';
-                        bValue = b.tableName || '';
-                        break;
-                    case 'customerName':
-                        aValue = getCustomerName(a.customerId);
-                        bValue = getCustomerName(b.customerId);
-                        break;
-                    case 'itemCount':
-                        aValue = Array.isArray(a.items) ? a.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
-                        bValue = Array.isArray(b.items) ? b.items.reduce((acc, item) => acc + item.quantity, 0) : 0;
-                        break;
-                    case 'userName':
-                        aValue = getUserName(a.userId, a.userName);
-                        bValue = getUserName(b.userId, b.userName);
-                        break;
-                    case 'ticketNumber':
-                        aValue = a.ticketNumber || '';
-                        bValue = b.ticketNumber || '';
-                        break;
-                    case 'subtotal':
-                         aValue = a.subtotal;
-                         bValue = b.subtotal;
-                         break;
-                    case 'tax':
-                        aValue = a.tax;
-                        bValue = b.tax;
-                        break;
-                    default:
-                        aValue = a[sortConfig.key as keyof Sale] as number || 0;
-                        bValue = b[sortConfig.key as keyof Sale] as number || 0;
-                        break;
+                    case 'date': aValue = getDateFromSale(a); bValue = getDateFromSale(b); break;
+                    case 'tableName': aValue = a.tableName || ''; bValue = b.tableName || ''; break;
+                    case 'customerName': aValue = getCustomerName(a.customerId); bValue = getCustomerName(b.customerId); break;
+                    case 'itemCount': aValue = Array.isArray(a.items) ? a.items.reduce((acc, item) => acc + item.quantity, 0) : 0; bValue = Array.isArray(b.items) ? b.items.reduce((acc, item) => acc + item.quantity, 0) : 0; break;
+                    case 'userName': aValue = getUserName(a.userId, a.userName); bValue = getUserName(b.userId, b.userName); break;
+                    case 'ticketNumber': aValue = a.ticketNumber || ''; bValue = b.ticketNumber || ''; break;
+                    case 'subtotal': aValue = a.subtotal; bValue = b.subtotal; break;
+                    case 'tax': aValue = a.tax; bValue = b.tax; break;
+                    default: aValue = a[sortConfig.key as keyof Sale] as number || 0; bValue = b[sortConfig.key as keyof Sale] as number || 0; break;
                 }
-                
                 if (aValue instanceof Date && bValue instanceof Date) {
                     return sortConfig.direction === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
                 }
-
                 if(typeof aValue === 'string' && typeof bValue === 'string') {
                     return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
                 }
-
-                if (aValue < bValue) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aValue > bValue) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
@@ -518,28 +447,24 @@ function ReportsPageContent() {
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
     useEffect(() => {
-      if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
-        setTimeout(() => {
-            rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }, 100);
-      }
+        if (lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+            setTimeout(() => {
+                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }, 100);
+        }
     }, [paginatedSales, lastSelectedSaleId]);
     
-
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
         const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
-
         const totalRevenue = revenueSales.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const totalPurchases = supplierOrders.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
-        
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
-
         return { totalRevenue, totalCreditNotes, totalPurchases, netBalance };
     }, [filteredAndSortedSales]);
 
@@ -625,7 +550,7 @@ function ReportsPageContent() {
     const pdf = new jsPDF('p', 'mm', 'a4');
     await pdf.html(printRef.current, {
       callback: function (pdf) {
-        pdf.save(`${sale.ticketNumber || 'document'}.pdf`);
+        pdf.save((sale.ticketNumber || 'document') + '.pdf');
         setIsPrinting(false);
         setSaleToPrint(null);
       },
@@ -754,7 +679,7 @@ function ReportsPageContent() {
             </Collapsible>
             
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-2">
+                 <div className="flex items-center justify-between gap-2">
                     <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card className="flex-1">
                             <CardHeader className="p-2">
@@ -894,13 +819,13 @@ function ReportsPageContent() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {isClient && isLoading ? Array.from({length: 10}).map((_, i) => (
+                                {isLoading ? Array.from({length: 10}).map((_, i) => (
                                     <TableRow key={i}>
                                         {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
                                         <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                     </TableRow>
                                 )) : null}
-                                {isClient && !isLoading && paginatedSales && paginatedSales.map(sale => {
+                                {!isLoading && paginatedSales && paginatedSales.map(sale => {
                                     const sellerName = getUserName(sale.userId, sale.userName);
                                     const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                                     const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
@@ -987,3 +912,4 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
