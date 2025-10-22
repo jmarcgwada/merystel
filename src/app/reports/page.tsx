@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -542,7 +541,7 @@ export default function ReportsPage() {
                 });
             }, 100);
         }
-    }, [selectedRowId, paginatedSales, lastSelectedSaleId]);
+    }, [paginatedSales, lastSelectedSaleId]);
 
      const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -748,8 +747,8 @@ export default function ReportsPage() {
                 </Collapsible>
                 
                 <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-end gap-2">
-                         <DropdownMenu>
+                     <div className="flex justify-end items-center gap-2">
+                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-9 w-9">
                                     <Columns className="h-4 w-4" />
@@ -846,10 +845,10 @@ export default function ReportsPage() {
                                 </div>
                             </CardHeader>
                             <CollapsibleContent>
-                                <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-0">
                                     <Popover>
                                         <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                            <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                            <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
@@ -857,11 +856,11 @@ export default function ReportsPage() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                                     </Popover>
-                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                                    <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
-                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
-                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
+                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
                                 </CardContent>
                             </CollapsibleContent>
                         </div>
@@ -906,11 +905,11 @@ export default function ReportsPage() {
                                         return (
                                             <TableRow 
                                             key={sale.id}
-                                            ref={(el) => (rowRefs.current[sale.id] = el)}
-                                            onClick={() => setSelectedRowId(sale.id)}
+                                            ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
+                                            onClick={() => setLastSelectedSaleId(sale.id)}
                                             className={cn(
                                                 'cursor-pointer',
-                                                sale.id === selectedRowId
+                                                sale.id === lastSelectedSaleId
                                                 ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
                                                 : 'hover:bg-muted/50'
                                             )}
@@ -994,4 +993,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
