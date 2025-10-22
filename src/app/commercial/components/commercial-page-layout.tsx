@@ -11,7 +11,7 @@ import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3 } from 'lucide-react';
-import type { OrderItem } from '@/lib/types';
+import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams } from 'next/navigation';
@@ -86,7 +86,9 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateItemPrice,
       convertToInvoice,
       clearOrder,
-      lastReportsUrl
+      lastReportsUrl,
+      recordCommercialDocument,
+      vatRates,
   } = usePos();
   
   const isEditing = !!currentSaleId;
@@ -134,21 +136,19 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   };
   
   const handleGenerateRandom = () => {
-    if (!items?.length || !customers?.length) {
+    if (!items?.length || !customers?.length || !vatRates) {
       toast({
         variant: 'destructive',
         title: 'Données insuffisantes',
-        description: 'Veuillez ajouter des articles et des clients pour générer un document.',
+        description: 'Veuillez ajouter des articles, des clients et des taux de TVA pour générer un document.',
       });
       return;
     }
 
     const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
-    // Set the document type from the page props
-    setCurrentSaleContext({ customerId: randomCustomer.id, documentType: documentType });
-
     const numberOfItems = Math.floor(Math.random() * 4) + 2;
     const newOrder: OrderItem[] = [];
+    
     for (let i = 0; i < numberOfItems; i++) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
         const quantity = Math.floor(Math.random() * 2) + 1;
@@ -168,17 +168,36 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
             });
         }
     }
-    setOrder(newOrder);
+    
+    let subTotalHT = 0;
+    let totalTVA = 0;
+    
+    newOrder.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        if (!vatInfo) return;
+        const itemTotalHT = item.total / (1 + vatInfo.rate / 100);
+        subTotalHT += itemTotalHT;
+        totalTVA += item.total - itemTotalHT;
+    });
+
+    const totalTTC = subTotalHT + totalTVA;
+
+    const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+        items: newOrder,
+        subtotal: subTotalHT,
+        tax: totalTVA,
+        total: totalTTC,
+        status: documentType,
+        payments: [],
+        customerId: randomCustomer.id,
+    };
+    
+    recordCommercialDocument(doc, documentType);
 
     toast({
       title: 'Document Aléatoire Généré',
-      description: `Préparation du document pour ${randomCustomer.name}.`,
+      description: `Un nouveau document a été créé pour ${randomCustomer.name}.`,
     });
-
-    // Automatically trigger save after a short delay
-    setTimeout(() => {
-        handleSave();
-    }, 100);
   };
 
   const pageTitle = (
