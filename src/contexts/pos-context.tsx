@@ -490,21 +490,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const prevPathnameRef = useRef(pathname);
 
-  useEffect(() => {
-    const prevPath = prevPathnameRef.current;
-    const salesModes = ['/pos', '/supermarket', '/restaurant'];
-    const commercialModes = ['/commercial'];
-
-    const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
-    const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
-
-    if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
-      clearOrder();
-    }
-
-    prevPathnameRef.current = pathname;
-  }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
-
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -513,6 +498,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
+
+    useEffect(() => {
+        const prevPath = prevPathnameRef.current;
+        const salesModes = ['/pos', '/supermarket', '/restaurant'];
+        const commercialModes = ['/commercial'];
+
+        const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
+        const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
+
+        if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
+            clearOrder();
+        }
+
+        prevPathnameRef.current = pathname;
+    }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
 
   const showNavConfirm = (url: string) => {
     setNextUrl(url);
@@ -1073,7 +1073,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tablesData, setTablesData]);
 
     const updateTable = useCallback((table: Table) => {
-      setTablesData(prev => prev.map(t => t.id === table.id ? {...table, updatedAt: new Date() } : t));
+      setTablesData(prev => prev.map(t => t.id === table.id ? {...table, updatedAt: new Date()} : t));
     }, [setTablesData]);
 
     const deleteTable = useCallback((tableId: string) => {
@@ -1091,7 +1091,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date,
+                date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
             addAuditLog({
@@ -1116,7 +1116,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
                 ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
             } else {
-                const todaysSalesCount = sales.filter(s => isSameDay(new Date(s.date as Date), today) && s.documentType !== 'invoice').length;
+                const todaysSalesCount = sales.filter(s => {
+                    const saleDate = new Date(s.date as Date);
+                    return isSameDay(saleDate, today) && s.documentType !== 'invoice';
+                }).length;
                 ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
             }
             
@@ -1213,7 +1216,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id,
-                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
                 ...docData,
             };
             setSales(prev => [finalDoc, ...prev]);
@@ -1230,7 +1233,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
         
         toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
-        resetCommercialPage(type);
+        if (finalDoc.status !== 'paid') {
+          resetCommercialPage(type);
+        }
 
     }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
 
@@ -1474,7 +1479,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const convertToInvoice = useCallback((saleId: string) => {
       router.push(`/commercial/invoices?fromConversion=${saleId}`);
   }, [router]);
-
+  
   const addMappingTemplate = useCallback((template: MappingTemplate) => {
     setMappingTemplates(prev => {
         const existingIndex = prev.findIndex(t => t.name === template.name);
@@ -1551,7 +1556,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const newSales: Sale[] = [];
     for (let i = 0; i < count; i++) {
         const customer = customers[Math.floor(Math.random() * customers.length)];
-        const seller = users[Math.floor(Math.random() * users.length)];
+        const seller = users.length > 0 ? users[Math.floor(Math.random() * users.length)] : { id: 'demo-user-id', firstName: 'Demo', lastName: 'User' };
         const numItems = Math.floor(Math.random() * 5) + 1;
         const saleItems: OrderItem[] = [];
         let subtotal = 0;
@@ -1596,9 +1601,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSales(prev => [...prev, ...newSales]);
     toast({ title: `${count} pièces générées avec succès !` });
   }, [customers, users, items, paymentMethods, setSales, toast]);
-
-
-  const value: PosContextType = useMemo(() => ({
+  
+  const value: PosContextType = {
     order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder, addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, 
     updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount, clearOrder, resetCommercialPage, orderTotal, 
     orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -1629,38 +1633,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     cycleCommercialViewLevel, companyInfo, setCompanyInfo, smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, 
     setSendEmailOnSale, lastSelectedSaleId, setLastSelectedSaleId, itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, 
     deleteMappingTemplate, selectivelyResetData,
-  }), [
-    order, systemDate, dynamicBgImage, readOnlyOrder, addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, 
-    updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount, clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, 
-    currentSaleId, currentSaleContext, serialNumberItem, variantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, 
-    loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser, sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, 
-    forceSignOut, forceSignOutUser, sessionInvalidated, items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, 
-    categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite, getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, 
-    setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier, tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, 
-    setSelectedTableById, updateTableOrder, saveTableOrderAndExit, promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, 
-    generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, vatRates, addVatRate, updateVatRate, deleteVatRate, 
-    heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, 
-    resetAllData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, isLoading, user, 
-    toast, isCalculatorOpen, enableDynamicBg, dynamicBgOpacity, showTicketImages, showItemImagesInGrid, descriptionDisplay, popularItemsCount, 
-    itemCardOpacity, paymentMethodImageOpacity, itemDisplayMode, itemCardShowImageAsBackground, itemCardImageOverlayOpacity, itemCardTextColor, 
-    itemCardShowPrice, externalLinkModalEnabled, externalLinkUrl, externalLinkTitle, externalLinkModalWidth, externalLinkModalHeight, showDashboardStats, 
-    enableRestaurantCategoryFilter, showNotifications, notificationDuration, enableSerialNumber, defaultSalesMode, isForcedMode, requirePinForAdmin, 
-    directSaleBackgroundColor, restaurantModeBackgroundColor, directSaleBgOpacity, restaurantModeBgOpacity, dashboardBgType, dashboardBackgroundColor, 
-    dashboardBackgroundImage, dashboardBgOpacity, dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor, 
-    invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, 
-    creditNoteBgColor, creditNoteBgOpacity, commercialViewLevel, cycleCommercialViewLevel, companyInfo, smtpConfig, ftpConfig, twilioConfig, sendEmailOnSale, 
-    lastSelectedSaleId, itemsPerPage, importLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate, selectivelyResetData, 
-    setOrder, setReadOnlyOrder, setIsKeypadOpen, setCurrentSaleId, setCurrentSaleContext, setSerialNumberItem, setVariantItem, setSessionInvalidated, 
-    setCameFromRestaurant, setIsCalculatorOpen, setEnableDynamicBg, setDynamicBgOpacity, setShowTicketImages, setShowItemImagesInGrid, setDescriptionDisplay, 
-    setPopularItemsCount, setItemCardOpacity, setPaymentMethodImageOpacity, setItemDisplayMode, setItemCardShowImageAsBackground, setItemCardImageOverlayOpacity, 
-    setItemCardTextColor, setItemCardShowPrice, setExternalLinkModalEnabled, setExternalLinkUrl, setExternalLinkTitle, setExternalLinkModalWidth, 
-    setExternalLinkModalHeight, setShowDashboardStats, setEnableRestaurantCategoryFilter, setShowNotifications, setNotificationDuration, setEnableSerialNumber, 
-    setDefaultSalesMode, setIsForcedMode, setRequirePinForAdmin, setDirectSaleBackgroundColor, setRestaurantModeBackgroundColor, setDirectSaleBgOpacity, 
-    setRestaurantModeBgOpacity, setDashboardBgType, setDashboardBackgroundColor, setDashboardBackgroundImage, setDashboardBgOpacity, setDashboardButtonBackgroundColor, 
-    setDashboardButtonOpacity, setDashboardButtonShowBorder, setDashboardButtonBorderColor, setInvoiceBgColor, setInvoiceBgOpacity, setQuoteBgColor, 
-    setQuoteBgOpacity, setDeliveryNoteBgColor, setDeliveryNoteBgOpacity, setSupplierOrderBgColor, setSupplierOrderBgOpacity, setCreditNoteBgColor, 
-    setCreditNoteBgOpacity, setCompanyInfo, setSmtpConfig, setFtpConfig, setTwilioConfig, setSendEmailOnSale, setLastSelectedSaleId, setItemsPerPage, setImportLimit
-  ]);
+  };
 
 
   return (
@@ -1673,7 +1646,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
-    throw new Error('usePos doit être utilisé dans un PosProvider');
+    throw new Error('usePos must be used within a PosProvider');
   }
   return context;
 }
