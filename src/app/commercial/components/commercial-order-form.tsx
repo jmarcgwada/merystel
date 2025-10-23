@@ -53,7 +53,7 @@ const ClientFormattedDate = ({ date, formatString, withIcon, label }: { date: Da
   if(!date) return null;
 
   return (
-    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="flex items-center gap-1.5 text-muted-foreground">
         {withIcon && <Clock className="h-3 w-3" />}
         {label && <span>{label}:</span>}
         {formatted}
@@ -440,7 +440,7 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
-        <div className="flex-1 flex items-center gap-4">
+        <div className="flex items-center gap-4">
             <Button variant="outline" asChild className="btn-back">
                 <Link href={lastReportsUrl || '/reports'}>
                     <BarChart3 className="mr-2 h-4 w-4"/>
@@ -454,7 +454,7 @@ export const CommercialOrderForm = forwardRef<
                 </div>
             )}
         </div>
-        <div className="w-full lg:flex-1 flex items-center gap-2 relative">
+        <div className="flex-1 w-full lg:flex-1 flex items-center gap-2 relative">
             <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
