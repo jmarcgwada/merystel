@@ -30,7 +30,7 @@ import type {
   MappingTemplate,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, isSameDay, subDays } from 'date-fns';
+import { format, isSameDay, subDays, parse } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
@@ -1538,12 +1538,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (dataType === 'ventes_completes') {
             const groupedSales = jsonData.reduce((acc, row) => {
                 const ticketNum = row.ticketNumber;
-                if (!ticketNum) return acc;
+                if (!ticketNum) {
+                    if (Object.keys(acc).length > 0) {
+                        const lastTicket = acc[Object.keys(acc)[Object.keys(acc).length - 1]];
+                        if (lastTicket && lastTicket.items.length > 0) {
+                            lastTicket.items[lastTicket.items.length - 1].name += `\\n${row.itemName || ''}`;
+                        }
+                    }
+                    return acc;
+                }
                 if (!acc[ticketNum]) {
-                    acc[ticketNum] = {
-                        info: { ...row },
-                        items: [],
-                    };
+                    acc[ticketNum] = { info: { ...row }, items: [] };
                 }
                 acc[ticketNum].items.push(row);
                 return acc;
@@ -1555,6 +1560,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
             const newCustomers = new Set<string>();
             const newItems = new Set<string>();
+            let newSales = [];
 
             for (const ticketNumber in groupedSales) {
                 try {
@@ -1581,11 +1587,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     
                     const saleItems: OrderItem[] = [];
                     for(const itemRow of saleData.items) {
+                        if (!itemRow.itemBarcode || !itemRow.quantity || !itemRow.unitPriceHT) continue;
+
                         let item = items.find(i => i.barcode === itemRow.itemBarcode);
                         if (!item) {
-                            const defaultVat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10)) || vatRates[0];
+                            const defaultVat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
                             if(!defaultVat) {
-                                throw new Error(`Taux de TVA avec le code ${itemRow.vatCode} introuvable.`);
+                                throw new Error(`Taux de TVA avec le code ${itemRow.vatCode} introuvable. Assurez-vous qu'il existe dans Paramètres > TVA.`);
                             }
                             let categoryId: string | undefined = undefined;
                             if (itemRow.itemCategory) {
@@ -1598,14 +1606,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                                 }
                             }
                             
-                            const newItem = await addItem({
+                            const newItemData: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string} = {
                                 barcode: itemRow.itemBarcode,
                                 name: itemRow.itemName,
-                                price: itemRow.unitPriceHT * (1 + (defaultVat.rate / 100)),
+                                price: parseFloat(itemRow.unitPriceHT) * (1 + (defaultVat.rate / 100)),
                                 purchasePrice: itemRow.itemPurchasePrice || 0,
                                 vatId: defaultVat.id,
                                 categoryId: categoryId,
-                            });
+                            };
+
+                            const newItem = await addItem(newItemData);
                             if (newItem) {
                                 item = newItem;
                                 newItems.add(item.id);
@@ -1614,56 +1624,64 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                             }
                         }
                         
-                        const total = item.price * itemRow.quantity;
+                        const quantity = parseFloat(itemRow.quantity);
+                        const unitPriceHT = parseFloat(itemRow.unitPriceHT);
+                        const vatInfo = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10))!;
+                        const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
+                        const total = unitPriceTTC * quantity;
+
                         saleItems.push({
                             id: uuidv4(),
                             itemId: item.id,
                             name: item.name,
-                            price: item.price,
-                            quantity: itemRow.quantity,
+                            price: unitPriceTTC,
+                            quantity: quantity,
                             total: total,
                             vatId: item.vatId,
-                            barcode: item.barcode || '',
+                            barcode: item.barcode,
                             discount: 0,
                         });
                     }
+                    if (saleItems.length === 0) continue;
 
-                    const subtotal = saleItems.reduce((acc, i) => acc + i.total, 0);
-                    const tax = saleData.items.reduce((acc: number, itemRow: any) => {
-                      const vat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
-                      if(!vat) return acc;
-                      return acc + (itemRow.unitPriceHT * itemRow.quantity * (vat.rate/100));
-                    }, 0);
-
+                    const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
+                    const total = saleItems.reduce((acc, i) => acc + i.total, 0);
+                    const tax = total - subtotal;
 
                     const docTypeMap: { [key: string]: Sale['documentType'] } = {
                       'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
-                      'BL': 'delivery_note', 'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
+                      'BL': 'delivery_note', 'Bon de Livraison': 'delivery_note', 
+                      'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
                     };
                     const documentType = docTypeMap[saleData.info.pieceName] || 'ticket';
 
+                    const saleDate = saleData.info.date ? parse(saleData.info.date, 'dd/MM/yy HH:mm', new Date()) : new Date();
 
-                    const newSale: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
+                    const newSale: Sale = {
+                        id: uuidv4(),
+                        ticketNumber: saleData.info.ticketNumber,
                         items: saleItems,
-                        subtotal: subtotal,
-                        tax: tax,
-                        total: subtotal + tax,
-                        customerId: customerId,
+                        subtotal,
+                        tax,
+                        total,
+                        customerId,
                         userName: saleData.info.sellerName,
-                        date: new Date(saleData.info.date),
+                        date: saleDate,
                         status: 'paid',
                         payments: [],
                         documentType,
                     };
 
-                    await recordSale(newSale);
+                    newSales.push(newSale);
                     report.successCount++;
                 } catch (e: any) {
                     report.errorCount++;
                     report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
                 }
             }
-
+            if(newSales.length > 0) {
+              setSales(prev => [...prev, ...newSales]);
+            }
             report.newCustomersCount = newCustomers.size;
             report.newItemsCount = newItems.size;
             return report;
@@ -1691,7 +1709,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
         }
         return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories]);
+  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories, setSales]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
@@ -1702,12 +1720,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         const numItems = Math.floor(Math.random() * 5) + 1;
         const saleItems: OrderItem[] = [];
         let subtotal = 0;
+        let tax = 0;
         
         for (let j = 0; j < numItems; j++) {
             const item = items[Math.floor(Math.random() * items.length)];
             const quantity = Math.floor(Math.random() * 3) + 1;
+            const vatInfo = vatRates.find(v => v.id === item.vatId);
+            const vatRate = vatInfo ? vatInfo.rate / 100 : 0;
             const total = item.price * quantity;
-            subtotal += total;
+            const itemSubtotal = total / (1 + vatRate);
+            const itemTax = total - itemSubtotal;
+            
+            subtotal += itemSubtotal;
+            tax += itemTax;
+
             saleItems.push({
                 id: uuidv4(),
                 itemId: item.id,
@@ -1730,9 +1756,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             date: saleDate,
             items: saleItems,
             subtotal: subtotal,
-            tax: subtotal * 0.2, // Simplified
-            total: subtotal * 1.2,
-            payments: [{ method: paymentMethod, amount: subtotal * 1.2, date: saleDate }],
+            tax: tax,
+            total: subtotal + tax,
+            payments: [{ method: paymentMethod, amount: subtotal + tax, date: saleDate }],
             status: 'paid',
             customerId: customer.id,
             userId: seller.id,
@@ -1742,7 +1768,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
     setSales(prev => [...prev, ...newSales]);
     toast({ title: `${count} pièces générées avec succès !` });
-  }, [customers, users, items, paymentMethods, setSales, toast]);
+  }, [customers, users, items, paymentMethods, setSales, toast, vatRates]);
   
   const value: PosContextType = {
     order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder, addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, 
