@@ -31,7 +31,7 @@ import { EditCustomerDialog } from '@/app/management/customers/components/edit-c
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
+const ClientFormattedDate = ({ date, formatString, withIcon, label }: { date: Date | Timestamp | string | undefined; formatString: string, withIcon?: boolean; label?: string }) => {
   const [formatted, setFormatted] = useState('');
   useEffect(() => {
     if (date) {
@@ -49,7 +49,16 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
       }
     }
   }, [date, formatString]);
-  return <>{formatted}</>;
+  
+  if(!date) return null;
+
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {withIcon && <Clock className="h-3 w-3" />}
+        {label && <span>{label}:</span>}
+        {formatted}
+    </span>
+  );
 };
 
 const orderItemSchema = z.object({
@@ -431,6 +440,20 @@ export const CommercialOrderForm = forwardRef<
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row gap-6 items-start mt-4">
+        <div className="flex-1 flex items-center gap-4">
+            <Button variant="outline" asChild className="btn-back">
+                <Link href={lastReportsUrl || '/reports'}>
+                    <BarChart3 className="mr-2 h-4 w-4"/>
+                    Retour
+                </Link>
+            </Button>
+            {currentSaleContext?.date && (
+                <div className="space-y-1">
+                    <ClientFormattedDate date={currentSaleContext.date} formatString="d MMM yyyy, HH:mm" withIcon label="Créé le"/>
+                    {currentSaleContext.modifiedAt && <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM yyyy, HH:mm" withIcon label="Modifié le"/>}
+                </div>
+            )}
+        </div>
         <div className="w-full lg:flex-1 flex items-center gap-2 relative">
             <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
