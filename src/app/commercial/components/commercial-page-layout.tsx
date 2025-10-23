@@ -141,7 +141,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocTypeName} a été créée.` });
   };
   
-  const handleGenerateRandom = () => {
+const handleGenerateRandom = () => {
     if (!items?.length || !customers?.length || !vatRates) {
       toast({
         variant: 'destructive',
@@ -193,7 +193,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         subtotal: subTotalHT,
         tax: totalTVA,
         total: totalTTC,
-        status: 'invoice',
+        status: 'invoice', 
         payments: [],
         customerId: randomCustomer.id,
         documentType: 'invoice',
@@ -228,9 +228,6 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
           subtitle={pageSubtitle}
         >
             <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-14 w-14 flex-shrink-0" onClick={() => router.push(lastReportsUrl || '/reports')}>
-                    <ArrowLeft className="h-6 w-6" />
-                </Button>
                  <div className="flex items-center gap-2">
                     {!isEditing && (
                     <Button

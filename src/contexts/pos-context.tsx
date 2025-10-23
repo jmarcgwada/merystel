@@ -173,7 +173,7 @@ export interface PosContextType {
   ) => Promise<Sale | null>;
    recordCommercialDocument: (
     doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note',
+    type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice',
     docIdToUpdate?: string,
   ) => void,
   deleteAllSales: () => Promise<void>;
@@ -1184,66 +1184,71 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return finalSale;
     }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
     
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note', docIdToUpdate?: string) => {
-        const today = new Date();
-        const prefixMap = { quote: 'Devis', delivery_note: 'BL', supplier_order: 'CF', credit_note: 'Avoir' };
-        const prefix = prefixMap[type];
-        
-        let finalDoc: Sale;
+  const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice', docIdToUpdate?: string) => {
+    const today = new Date();
+    const prefixMap = {
+      invoice: 'Fact',
+      quote: 'Devis',
+      delivery_note: 'BL',
+      supplier_order: 'CF',
+      credit_note: 'Avoir',
+    };
+    const prefix = prefixMap[type];
 
-        if (docIdToUpdate) {
-            const existingDoc = sales.find(s => s.id === docIdToUpdate);
-            if (!existingDoc) return;
-            finalDoc = {
-                ...existingDoc,
-                ...docData,
-                modifiedAt: today,
-            };
-            setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
-            addAuditLog({
-              userId: user?.id || 'system',
-              userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-              action: 'update',
-              documentType: type,
-              documentId: finalDoc.id,
-              documentNumber: finalDoc.ticketNumber,
-              details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
-              richDetails: {
-                  before: existingDoc,
-                  after: finalDoc
-              }
-            });
-        } else {
-             const count = sales.filter(s => s.documentType === type).length;
-             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
-             finalDoc = {
-                id: uuidv4(),
-                date: today,
-                ticketNumber: number,
-                documentType: type,
-                userId: user?.id,
-                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-                ...docData,
-            };
-            setSales(prev => [finalDoc, ...prev]);
-             addAuditLog({
-                userId: user?.id || 'system',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'create',
-                documentType: type,
-                documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber,
-                details: `Création de la pièce #${finalDoc.ticketNumber}.`,
-                richDetails: { data: finalDoc }
-            });
-        }
-        
-        toast({ title: prefix + ' ' + (finalDoc.status === 'paid' ? 'facturé' : 'enregistré') });
-        if (finalDoc.status !== 'paid') {
-          resetCommercialPage(type);
-        }
+    let finalDoc: Sale;
 
-    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
+    if (docIdToUpdate) {
+      const existingDoc = sales.find(s => s.id === docIdToUpdate);
+      if (!existingDoc) return;
+      finalDoc = {
+        ...existingDoc,
+        ...docData,
+        modifiedAt: today,
+      };
+      setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
+      addAuditLog({
+        userId: user?.id || 'system',
+        userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+        action: 'update',
+        documentType: type,
+        documentId: finalDoc.id,
+        documentNumber: finalDoc.ticketNumber,
+        details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
+        richDetails: {
+          before: existingDoc,
+          after: finalDoc,
+        },
+      });
+    } else {
+      const count = sales.filter(s => s.documentType === type).length;
+      const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+      finalDoc = {
+        id: uuidv4(),
+        date: today,
+        ticketNumber: number,
+        documentType: type,
+        userId: user?.id,
+        userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+        ...docData,
+      };
+      setSales(prev => [finalDoc, ...prev]);
+      addAuditLog({
+        userId: user?.id || 'system',
+        userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+        action: 'create',
+        documentType: type,
+        documentId: finalDoc.id,
+        documentNumber: finalDoc.ticketNumber,
+        details: `Création de la pièce #${finalDoc.ticketNumber}.`,
+        richDetails: { data: finalDoc },
+      });
+    }
+
+    toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+    if (finalDoc.status !== 'paid') {
+      resetCommercialPage(type);
+    }
+  }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
