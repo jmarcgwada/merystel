@@ -142,7 +142,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   };
   
 const handleGenerateRandom = () => {
-    if (!items?.length || !customers?.length || !vatRates) {
+    if (!items?.length || !customers?.length || !vatRates?.length) {
       toast({
         variant: 'destructive',
         title: 'Données insuffisantes',
@@ -175,24 +175,21 @@ const handleGenerateRandom = () => {
         }
     }
     
-    let subTotalHT = 0;
-    let totalTVA = 0;
-    
+    let subtotal = 0;
+    let tax = 0;
     newOrder.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
-        if (!vatInfo) return;
-        const itemTotalHT = item.total / (1 + vatInfo.rate / 100);
-        subTotalHT += itemTotalHT;
-        totalTVA += item.total - itemTotalHT;
+        const rate = vatInfo ? vatInfo.rate / 100 : 0;
+        const itemHT = item.total / (1 + rate);
+        subtotal += itemHT;
+        tax += item.total - itemHT;
     });
-
-    const totalTTC = subTotalHT + totalTVA;
 
     const doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
         items: newOrder,
-        subtotal: subTotalHT,
-        tax: totalTVA,
-        total: totalTTC,
+        subtotal: subtotal,
+        tax: tax,
+        total: subtotal + tax,
         status: documentType, 
         payments: [],
         customerId: randomCustomer.id,
