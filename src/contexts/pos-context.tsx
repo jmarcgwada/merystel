@@ -336,19 +336,18 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
-                return defaultValue;
-            }
+        if (typeof window === 'undefined') {
+            return defaultValue;
         }
-        return defaultValue;
+        try {
+            const storedValue = localStorage.getItem(key);
+            return storedValue ? JSON.parse(storedValue) : defaultValue;
+        } catch (error) {
+            console.error(`Error reading localStorage key “${key}”:`, error);
+            return defaultValue;
+        }
     });
 
     useEffect(() => {
@@ -1582,7 +1581,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     for(const itemRow of saleData.items) {
                         let item = items.find(i => i.barcode === itemRow.itemBarcode);
                         if (!item) {
-                            const defaultVat = vatRates.find(v => v.rate === parseFloat(itemRow.vatRate)) || vatRates[0];
+                            const defaultVat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10)) || vatRates[0];
                             const newCat = await addCategory({ name: itemRow.itemCategory || 'Importé' });
                             const newItem = await addItem({
                                 barcode: itemRow.itemBarcode,
@@ -1615,7 +1614,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     const subtotal = saleItems.reduce((acc, i) => acc + i.total, 0);
-                    const tax = subtotal * (parseFloat(saleData.info.vatRate)/100);
+                    const tax = saleData.items.reduce((acc, itemRow) => {
+                        const vat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
+                        if(!vat) return acc;
+                        return acc + (itemRow.unitPriceHT * itemRow.quantity * (vat.rate/100));
+                    }, 0);
+
 
                     const newSale: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
                         items: saleItems,

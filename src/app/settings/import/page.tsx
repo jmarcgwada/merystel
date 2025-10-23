@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -50,7 +51,7 @@ const saleFields: string[] = [
     'quantity', 
     'unitPriceHT',
     'totalLineHT',
-    'vatRate',
+    'vatCode',
     'vatAmount',
     'discountPercentage',
     'discountAmount',
@@ -80,7 +81,7 @@ const completeSaleFields: string[] = [
     'quantity', 
     'unitPriceHT',
     'itemPurchasePrice',
-    'vatRate',
+    'vatCode',
     'paymentCash',
     'paymentCard',
     'paymentCheck',
@@ -128,7 +129,7 @@ const fieldLabels: Record<string, string> = {
   quantity: 'Quantité *',
   unitPriceHT: "Prix Unitaire HT *",
   totalLineHT: 'Prix Total Ligne HT',
-  vatRate: 'Code de TVA appliqué',
+  vatCode: 'Code de TVA appliqué',
   vatAmount: 'Montant TVA de la ligne',
   discountPercentage: 'Remise en %',
   discountAmount: 'Remise en montant',
@@ -152,7 +153,7 @@ const requiredFieldsMap: Record<string, string[]> = {
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
-    ventes_completes: ['ticketNumber', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatRate', 'customerName', 'customerCode'],
+    ventes_completes: ['ticketNumber', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode', 'customerName', 'customerCode'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -365,7 +366,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -375,7 +376,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
