@@ -336,34 +336,34 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(defaultValue);
-    const [isHydrated, setIsHydrated] = useState(false);
-
-    useEffect(() => {
-        setIsHydrated(true);
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
             }
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
         }
-    }, [key]);
+        return defaultValue;
+    });
 
     useEffect(() => {
-        if (isHydrated) {
+        if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error("Error setting localStorage key " + key + ":", error);
+                console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state, isHydrated]);
+    }, [key, state]);
 
     return [state, setState];
 }
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -673,7 +673,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setHeldOrders, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -1228,7 +1228,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         ticketNumber: number,
         documentType: type,
         userId: user?.id,
-        userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+        userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
         ...docData,
       };
       setSales(prev => [finalDoc, ...prev]);
@@ -1534,10 +1534,111 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         };
         
         if (dataType === 'ventes_completes') {
-            report.successCount = jsonData.length;
-            report.newSalesCount = new Set(jsonData.map(row => row.ticketNumber)).size;
-            report.newCustomersCount = new Set(jsonData.map(row => row.customerCode)).size;
-            report.newItemsCount = new Set(jsonData.map(row => row.itemBarcode)).size;
+            const groupedSales = jsonData.reduce((acc, row) => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) return acc;
+                if (!acc[ticketNum]) {
+                    acc[ticketNum] = {
+                        info: { ...row },
+                        items: [],
+                    };
+                }
+                acc[ticketNum].items.push(row);
+                return acc;
+            }, {} as Record<string, { info: any, items: any[] }>);
+
+            report.newSalesCount = Object.keys(groupedSales).length;
+            report.newCustomersCount = 0;
+            report.newItemsCount = 0;
+
+            const newCustomers = new Set<string>();
+            const newItems = new Set<string>();
+
+            for (const ticketNumber in groupedSales) {
+                try {
+                    const saleData = groupedSales[ticketNumber];
+                    
+                    // Auto-create customer if not exists
+                    let customerId = customers.find(c => c.id === saleData.info.customerCode)?.id;
+                    if (!customerId && !customers.some(c => c.name === saleData.info.customerName)) {
+                        const newCustomer = await addCustomer({
+                            id: saleData.info.customerCode,
+                            name: saleData.info.customerName,
+                            email: saleData.info.customerEmail,
+                            phone: saleData.info.customerPhone,
+                            address: saleData.info.customerAddress,
+                            postalCode: saleData.info.customerPostalCode,
+                            city: saleData.info.customerCity,
+                        });
+                        if (newCustomer) {
+                            customerId = newCustomer.id;
+                            newCustomers.add(customerId);
+                        }
+                    } else if (!customerId) {
+                        customerId = customers.find(c => c.name === saleData.info.customerName)!.id;
+                    }
+                    
+                    const saleItems: OrderItem[] = [];
+                    for(const itemRow of saleData.items) {
+                        let item = items.find(i => i.barcode === itemRow.itemBarcode);
+                        if (!item) {
+                            const defaultVat = vatRates.find(v => v.rate === parseFloat(itemRow.vatRate)) || vatRates[0];
+                            const newCat = await addCategory({ name: itemRow.itemCategory || 'Importé' });
+                            const newItem = await addItem({
+                                barcode: itemRow.itemBarcode,
+                                name: itemRow.itemName,
+                                price: itemRow.unitPriceHT * (1 + (defaultVat.rate / 100)),
+                                purchasePrice: itemRow.itemPurchasePrice || 0,
+                                vatId: defaultVat.id,
+                                categoryId: newCat?.id
+                            });
+                            if (newItem) {
+                                item = newItem;
+                                newItems.add(item.id);
+                            } else {
+                                throw new Error(`Impossible de créer l'article ${itemRow.itemName}`);
+                            }
+                        }
+                        
+                        const total = item.price * itemRow.quantity;
+                        saleItems.push({
+                            id: uuidv4(),
+                            itemId: item.id,
+                            name: item.name,
+                            price: item.price,
+                            quantity: itemRow.quantity,
+                            total: total,
+                            vatId: item.vatId,
+                            barcode: item.barcode || '',
+                            discount: 0,
+                        });
+                    }
+
+                    const subtotal = saleItems.reduce((acc, i) => acc + i.total, 0);
+                    const tax = subtotal * (parseFloat(saleData.info.vatRate)/100);
+
+                    const newSale: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
+                        items: saleItems,
+                        subtotal: subtotal,
+                        tax: tax,
+                        total: subtotal + tax,
+                        customerId: customerId,
+                        userName: saleData.info.sellerName,
+                        date: new Date(saleData.info.date),
+                        status: 'paid',
+                        payments: [],
+                    };
+
+                    await recordSale(newSale);
+                    report.successCount++;
+                } catch (e: any) {
+                    report.errorCount++;
+                    report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
+                }
+            }
+
+            report.newCustomersCount = newCustomers.size;
+            report.newItemsCount = newItems.size;
             return report;
         }
         
@@ -1563,7 +1664,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
         }
         return report;
-  }, [addCustomer, addItem, addSupplier]);
+  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
