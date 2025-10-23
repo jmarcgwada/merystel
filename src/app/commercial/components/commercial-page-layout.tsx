@@ -193,17 +193,17 @@ const handleGenerateRandom = () => {
         subtotal: subTotalHT,
         tax: totalTVA,
         total: totalTTC,
-        status: 'invoice', 
+        status: documentType, 
         payments: [],
         customerId: randomCustomer.id,
-        documentType: 'invoice',
+        documentType: documentType,
     };
     
-    recordCommercialDocument(doc, 'invoice');
+    recordCommercialDocument(doc, documentType);
 
     toast({
-      title: 'Facture Aléatoire Générée',
-      description: `Une nouvelle facture a été créée pour ${randomCustomer.name}.`,
+      title: 'Pièce Aléatoire Générée',
+      description: `Une nouvelle pièce a été créée pour ${randomCustomer.name}.`,
     });
   };
 
