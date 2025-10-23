@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -129,7 +128,7 @@ const fieldLabels: Record<string, string> = {
   quantity: 'Quantité *',
   unitPriceHT: "Prix Unitaire HT *",
   totalLineHT: 'Prix Total Ligne HT',
-  vatCode: 'Code de TVA appliqué',
+  vatCode: 'Code de TVA appliqué *',
   vatAmount: 'Montant TVA de la ligne',
   discountPercentage: 'Remise en %',
   discountAmount: 'Remise en montant',

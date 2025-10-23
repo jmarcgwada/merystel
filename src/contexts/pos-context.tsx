@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -1182,8 +1181,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
         return finalSale;
     }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
-    
-  const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice', docIdToUpdate?: string) => {
+  
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice', docIdToUpdate?: string) => {
     const today = new Date();
     const prefixMap = {
       invoice: 'Fact',
@@ -1369,7 +1368,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [setPaymentMethods]);
 
     const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt'>) => {
-        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
+        const existingCodes = vatRates.map(v => v.code);
+        let newCode = 1;
+        while(existingCodes.includes(newCode)) {
+          newCode++;
+        }
         const newVat = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
         setVatRates(prev => [...prev, newVat]);
         return newVat;
@@ -1557,7 +1560,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const saleData = groupedSales[ticketNumber];
                     
-                    // Auto-create customer if not exists
                     let customerId = customers.find(c => c.id === saleData.info.customerCode)?.id;
                     if (!customerId && !customers.some(c => c.name === saleData.info.customerName)) {
                         const newCustomer = await addCustomer({
@@ -1582,14 +1584,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         let item = items.find(i => i.barcode === itemRow.itemBarcode);
                         if (!item) {
                             const defaultVat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10)) || vatRates[0];
-                            const newCat = await addCategory({ name: itemRow.itemCategory || 'Importé' });
+                            if(!defaultVat) {
+                                throw new Error(`Taux de TVA avec le code ${itemRow.vatCode} introuvable.`);
+                            }
+                            let categoryId: string | undefined = undefined;
+                            if (itemRow.itemCategory) {
+                                let category = categories.find(c => c.name === itemRow.itemCategory);
+                                if (!category) {
+                                    const newCat = await addCategory({ name: itemRow.itemCategory });
+                                    if (newCat) categoryId = newCat.id;
+                                } else {
+                                    categoryId = category.id;
+                                }
+                            }
+                            
                             const newItem = await addItem({
                                 barcode: itemRow.itemBarcode,
                                 name: itemRow.itemName,
                                 price: itemRow.unitPriceHT * (1 + (defaultVat.rate / 100)),
                                 purchasePrice: itemRow.itemPurchasePrice || 0,
                                 vatId: defaultVat.id,
-                                categoryId: newCat?.id
+                                categoryId: categoryId,
                             });
                             if (newItem) {
                                 item = newItem;
@@ -1614,11 +1629,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     const subtotal = saleItems.reduce((acc, i) => acc + i.total, 0);
-                    const tax = saleData.items.reduce((acc, itemRow) => {
-                        const vat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
-                        if(!vat) return acc;
-                        return acc + (itemRow.unitPriceHT * itemRow.quantity * (vat.rate/100));
+                    const tax = saleData.items.reduce((acc: number, itemRow: any) => {
+                      const vat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
+                      if(!vat) return acc;
+                      return acc + (itemRow.unitPriceHT * itemRow.quantity * (vat.rate/100));
                     }, 0);
+
+
+                    const docTypeMap: { [key: string]: Sale['documentType'] } = {
+                      'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
+                      'BL': 'delivery_note', 'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
+                    };
+                    const documentType = docTypeMap[saleData.info.pieceName] || 'ticket';
 
 
                     const newSale: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
@@ -1631,6 +1653,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         date: new Date(saleData.info.date),
                         status: 'paid',
                         payments: [],
+                        documentType,
                     };
 
                     await recordSale(newSale);
@@ -1668,7 +1691,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
         }
         return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates]);
+  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
