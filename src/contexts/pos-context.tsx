@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -29,7 +30,7 @@ import type {
   MappingTemplate,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, isSameDay, subDays, parse } from 'date-fns';
+import { format, isSameDay, subDays, parse, isValid } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
@@ -334,18 +335,19 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
-        if (typeof window === 'undefined') {
-            return defaultValue;
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
+            }
         }
-        try {
-            const storedValue = localStorage.getItem(key);
-            return storedValue ? JSON.parse(storedValue) : defaultValue;
-        } catch (error) {
-            console.error(`Error reading localStorage key “${key}”:`, error);
-            return defaultValue;
-        }
+        return defaultValue;
     });
 
     useEffect(() => {
@@ -1540,13 +1542,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const lastTicketKey = Object.keys(acc)[Object.keys(acc).length - 1];
                     const lastTicket = acc[lastTicketKey];
                     if (lastTicket && lastTicket.items.length > 0) {
-                        lastTicket.items[lastTicket.items.length - 1].name += `\n${row.itemName || ''}`;
+                        lastTicket.items[lastTicket.items.length - 1].itemName += `\n${row.itemName || ''}`;
                     }
                 }
                 return acc;
             }
             if (!acc[ticketNum]) {
-                acc[ticketNum] = { info: { ...row }, items: [] };
+                acc[ticketNum] = { info: row, items: [] };
             }
             acc[ticketNum].items.push(row);
             return acc;
@@ -1563,32 +1565,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         for (const ticketNumber in groupedSales) {
             try {
                 const saleData = groupedSales[ticketNumber];
+                const saleInfo = saleData.info;
                 
                 const docTypeMap: { [key: string]: Sale['documentType'] } = {
                     'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
                     'BL': 'delivery_note', 'Bon de Livraison': 'delivery_note',
                     'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
                 };
-                const documentType = docTypeMap[saleData.info.pieceName] || 'ticket';
-                const prefix = (Object.entries(docTypeMap).find(([, val]) => val === documentType) || ['',''])[0];
+                const documentType = docTypeMap[saleInfo.pieceName] || 'ticket';
+                const prefix = (Object.entries(prefixMap).find(([, val]) => val === documentType) || ['',''])[0];
                 
                 const finalTicketNumber = `${prefix}-${ticketNumber}`;
                 if (sales.some(s => s.ticketNumber === finalTicketNumber)) {
                     throw new Error(`Le numéro de pièce ${finalTicketNumber} existe déjà.`);
                 }
 
-                let customerId = customers.find(c => c.id === saleData.info.customerCode)?.id;
-                if (!customerId && !customers.some(c => c.name === saleData.info.customerName)) {
+                let customerId = customers.find(c => c.id === saleInfo.customerCode)?.id;
+                if (!customerId && !customers.some(c => c.name === saleInfo.customerName)) {
                     const newCustomer = await addCustomer({
-                        id: saleData.info.customerCode,
-                        name: saleData.info.customerName,
+                        id: saleInfo.customerCode,
+                        name: saleInfo.customerName,
                     });
                     if (newCustomer) {
                         customerId = newCustomer.id;
                         newCustomers.add(customerId);
                     }
                 } else if (!customerId) {
-                    customerId = customers.find(c => c.name === saleData.info.customerName)!.id;
+                    customerId = customers.find(c => c.name === saleInfo.customerName)!.id;
                 }
                 
                 const saleItems: OrderItem[] = [];
@@ -1644,8 +1647,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const dateFormats = ['dd/MM/yyyy HH:mm', 'dd-MM-yyyy HH:mm', 'dd/MM/yyyy'];
                 let saleDate: Date | undefined;
                 for (const fmt of dateFormats) {
-                    const parsedDate = parse(saleData.info.date, fmt, new Date());
-                    if (!isNaN(parsedDate.getTime())) {
+                    const parsedDate = parse(saleInfo.date, fmt, new Date());
+                    if (isValid(parsedDate)) {
                         saleDate = parsedDate;
                         break;
                     }
@@ -1656,7 +1659,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 const newSale: Sale = {
                     id: uuidv4(), ticketNumber: finalTicketNumber, items: saleItems, subtotal, tax, total, customerId,
-                    userName: saleData.info.sellerName, date: saleDate, status: 'paid', payments: [], documentType,
+                    userName: saleInfo.sellerName, date: saleDate, status: 'paid', payments: [], documentType,
                 };
                 newSales.push(newSale);
                 report.successCount++;
