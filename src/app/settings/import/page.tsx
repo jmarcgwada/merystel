@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -121,7 +119,7 @@ const fieldLabels: Record<string, string> = {
   bic: 'BIC / SWIFT',
   pieceName: 'Nom de la pièce *',
   ticketNumber: 'Numéro de pièce *',
-  date: 'Date (JJ/MM/AA HH:mm) *',
+  date: 'Date (JJ/MM/AAAA HH:mm) *',
   customerCode: 'Code Client',
   customerName: 'Nom du Client',
   itemBarcode: "Code-barres de l'article *",
@@ -153,7 +151,7 @@ const requiredFieldsMap: Record<string, string[]> = {
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
-    ventes_completes: ['ticketNumber', 'date', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode', 'customerName', 'customerCode'],
+    ventes_completes: ['pieceName', 'ticketNumber', 'date', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -823,3 +821,5 @@ export default function ImportDataPage() {
     </>
   );
 }
+
+    

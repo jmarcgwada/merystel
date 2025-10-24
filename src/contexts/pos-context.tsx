@@ -338,28 +338,30 @@ export interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    });
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key “${key}”:`, error);
+                console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
     return [state, setState];
 }
@@ -738,6 +740,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, toast]);
   
+  
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -1085,21 +1088,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
-  
-    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        const today = new Date();
-        const dayMonth = format(today, 'ddMM');
-        const todaysSalesCount = sales.filter(s => {
-            const saleDate = new Date(s.date as Date);
-            return isSameDay(saleDate, today) && s.documentType === 'ticket';
-        }).length;
-        const ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
-        
-        return recordCommercialDocument({ ...saleData, ticketNumber }, 'ticket', saleIdToUpdate);
-    }, [sales, user, addAuditLog]);
     
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
         const today = new Date();
+        
         const prefixMap = {
             invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
             supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick'
@@ -1108,7 +1100,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
         let finalDoc: Sale;
     
-        if (docIdToUpdate) {
+        if (docIdToUpdate && !docIdToUpdate.startsWith('table-')) {
             const existingDoc = sales.find(s => s.id === docIdToUpdate);
             if (!existingDoc) return;
             finalDoc = { ...existingDoc, ...docData, modifiedAt: today };
@@ -1122,14 +1114,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         } else {
             let number;
             if (type === 'ticket') {
-                number = docData.ticketNumber;
+                const dayMonth = format(today, 'ddMM');
+                const todaysSalesCount = sales.filter(s => {
+                    const saleDate = new Date(s.date as Date);
+                    return isSameDay(saleDate, today) && s.documentType === 'ticket';
+                }).length;
+                number = `${prefix}-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
             } else {
                 const count = sales.filter(s => s.documentType === type).length;
                 number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
             }
-
+            
             finalDoc = {
-                id: uuidv4(), date: today, ticketNumber: number, documentType: type,
+                id: uuidv4(), date: docData.date || today, ticketNumber: number, documentType: type,
                 userId: user?.id, userName: user ? `${user.firstName} ${user.lastName}` : 'N/A', ...docData
             };
             setSales(prev => [finalDoc, ...prev]);
@@ -1140,18 +1137,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 richDetails: { data: finalDoc }
             });
         }
-    
-        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+        
+        toast({ title: `${prefixMap[type]} ${finalDoc.status === 'paid' ? 'finalisé(e)' : 'enregistré(e)'}` });
         
         if (finalDoc.status === 'paid') {
-            if (currentSaleContext?.isTableSale) router.push('/restaurant');
-            else if (['invoice', 'credit_note', 'supplier_order'].includes(type)) resetCommercialPage(type);
+            if(currentSaleContext?.isTableSale) {
+                setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
+                router.push('/restaurant');
+            }
+            else if (['invoice', 'credit_note', 'supplier_order'].includes(type)) resetCommercialPage(type as any);
             else clearOrder();
         } else {
-            router.push('/reports');
+             const reportPath = type === 'quote' ? '/reports?docType=quote'
+                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                        : '/reports';
+             router.push(reportPath);
         }
-    
-    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog, clearOrder, router, currentSaleContext]);
+    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog, clearOrder, router, currentSaleContext, setTablesData]);
+
+    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+        await recordCommercialDocument({ ...saleData }, 'ticket', saleIdToUpdate);
+        return null;
+    }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
@@ -1435,151 +1442,173 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     toast({ title: 'Données sélectionnées supprimées !' });
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, toast]);
   
-  const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
+ const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
     const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
-    
+    const limitedJsonData = jsonData.slice(0, importLimit || undefined);
+
     if (dataType === 'ventes_completes') {
-        const groupedSales = jsonData.reduce((acc, row, index) => {
-            const ticketNum = row.ticketNumber;
-            if (!ticketNum) {
-                if (Object.keys(acc).length > 0) {
-                    const lastTicketKey = Object.keys(acc)[Object.keys(acc).length - 1];
-                    const lastTicket = acc[lastTicketKey];
-                    if (lastTicket && lastTicket.items.length > 0) {
-                        const lastItem = lastTicket.items[lastTicket.items.length - 1];
-                        lastItem.note = [lastItem.note, row.itemName].filter(Boolean).join('\n');
-                    }
-                }
-                return acc;
-            }
-            if (!acc[ticketNum]) {
-                acc[ticketNum] = { info: row, items: [], rowIndex: index };
-            }
-            acc[ticketNum].items.push(row);
-            return acc;
-        }, {} as Record<string, { info: any, items: any[], rowIndex: number }>);
-
-        report.newSalesCount = 0;
-        report.newCustomersCount = 0;
-        report.newItemsCount = 0;
-
-        let createdSales: Sale[] = [];
+        const salesMap = new Map<string, { sale: Sale, paymentTotals: Record<string, number> }>();
+        const tempNewCustomers = new Map<string, Customer>();
+        const tempNewItems = new Map<string, Item>();
+        const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
         
-        for (const ticketNumber in groupedSales) {
+        let newCustomersCount = 0;
+        let newItemsCount = 0;
+        
+        const groupedRows: Record<string, any[]> = {};
+        for (const row of limitedJsonData) {
+            const ticketNum = row.ticketNumber;
+            if (!ticketNum) continue;
+            if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
+            groupedRows[ticketNum].push(row);
+        }
+
+        for (const ticketNumber in groupedRows) {
+            const rows = groupedRows[ticketNumber];
+            const firstRow = rows[0];
+
             try {
-                const saleData = groupedSales[ticketNumber];
-                const saleInfo = saleData.info;
+                const docName = firstRow.pieceName?.toLowerCase() || '';
+                const documentType = docName.includes('facture') ? 'invoice'
+                                : docName.includes('devis') ? 'quote'
+                                : docName.includes('livraison') ? 'delivery_note'
+                                : docName.includes('avoir') ? 'credit_note'
+                                : 'ticket';
+                const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
+                const finalTicketNumber = ticketNumber.startsWith(prefix) ? ticketNumber : `${prefix}${ticketNumber}`;
                 
-                const docTypeMap: { [key: string]: Sale['documentType'] } = {
-                    'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
-                    'BL': 'delivery_note', 'Bon de Livraison': 'delivery_note',
-                    'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
-                };
-                const documentType = docTypeMap[saleInfo.pieceName] || 'ticket';
-                
-                const prefixMap = {
-                    invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
-                    supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick',
-                };
-                const prefix = prefixMap[documentType] || 'DOC';
-                
-                const finalTicketNumber = `${prefix}-${ticketNumber}`;
-                if (sales.some(s => s.ticketNumber === finalTicketNumber)) {
+                if (existingSaleNumbers.has(finalTicketNumber)) {
                     throw new Error(`Le numéro de pièce ${finalTicketNumber} existe déjà.`);
                 }
 
-                let customerId = customers.find(c => c.id === saleInfo.customerCode)?.id;
-                if (!customerId && !customers.some(c => c.name === saleInfo.customerName)) {
-                    const newCustomer = await addCustomer({
-                        id: saleInfo.customerCode,
-                        name: saleInfo.customerName,
-                    });
-                    if (newCustomer) {
-                        customerId = newCustomer.id;
-                        if(report.newCustomersCount !== undefined) report.newCustomersCount++;
-                    }
-                } else if (!customerId) {
-                    customerId = customers.find(c => c.name === saleInfo.customerName)!.id;
-                }
-                
-                const saleItems: OrderItem[] = [];
-                for (const itemRow of saleData.items) {
-                    if (!itemRow.itemBarcode || !itemRow.quantity || !itemRow.unitPriceHT) continue;
-                    let item = items.find(i => i.barcode === itemRow.itemBarcode);
-                    if (!item) {
-                        const vatInfo = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
-                        if (!vatInfo) throw new Error(`Code de TVA '${itemRow.vatCode}' invalide pour l'article ${itemRow.itemName}.`);
-                        
-                        let categoryId: string | undefined = undefined;
-                        if (itemRow.itemCategory) {
-                          let category = categories.find(c => c.name === itemRow.itemCategory);
-                          if (!category) {
-                              const newCat = await addCategory({ name: itemRow.itemCategory });
-                              if (newCat) categoryId = newCat.id;
-                          } else {
-                              categoryId = category.id;
-                          }
-                        }
-
-                        const newItem = await addItem({
-                            barcode: itemRow.itemBarcode, name: itemRow.itemName,
-                            price: parseFloat(itemRow.unitPriceHT) * (1 + (vatInfo.rate / 100)),
-                            vatId: vatInfo.id, categoryId
-                        });
-
-                        if (newItem) {
-                            item = newItem;
-                            if(report.newItemsCount !== undefined) report.newItemsCount++;
-                        } else {
-                            throw new Error(`Impossible de créer l'article ${itemRow.itemName}`);
-                        }
-                    }
-                    const quantity = parseFloat(itemRow.quantity);
-                    const unitPriceHT = parseFloat(itemRow.unitPriceHT);
-                    const vatInfo = vatRates.find(v => v.id === item.vatId);
-                    if (!vatInfo) throw new Error(`Taux de TVA introuvable pour l'article ${item.name}.`);
-                    const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
-                    const total = unitPriceTTC * quantity;
-                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total, vatId: item.vatId, barcode: item.barcode, discount: 0, note: itemRow.note });
-                }
-
-                if (saleItems.length === 0) continue;
-
-                const subtotal = saleItems.reduce((acc, i) => {
-                  const vatInfo = vatRates.find(v => v.id === i.vatId);
-                  const rate = vatInfo ? vatInfo.rate / 100 : 0;
-                  return acc + (i.total / (1 + rate));
-                }, 0);
-                const total = saleItems.reduce((acc, i) => acc + i.total, 0);
-                const tax = total - subtotal;
-                
                 const dateFormats = ['dd/MM/yyyy HH:mm', 'dd-MM-yyyy HH:mm', 'dd/MM/yyyy'];
                 let saleDate: Date | undefined;
                 for (const fmt of dateFormats) {
-                    const parsedDate = parse(saleInfo.date, fmt, new Date());
+                    const parsedDate = parse(firstRow.date, fmt, new Date());
                     if (isValid(parsedDate)) {
                         saleDate = parsedDate;
                         break;
                     }
                 }
                 if (!saleDate) {
-                  throw new Error(`Format de date invalide pour la pièce ${ticketNumber}.`);
+                    throw new Error(`Format de date invalide pour la pièce ${ticketNumber}.`);
                 }
 
-                const docToCreate = {
-                    items: saleItems, subtotal, tax, total, customerId,
-                    userName: saleInfo.sellerName, date: saleDate, status: 'paid', payments: [], documentType,
+                let customer = customers.find(c => c.id === firstRow.customerCode) || tempNewCustomers.get(firstRow.customerCode);
+                if (!customer && firstRow.customerCode && firstRow.customerName) {
+                    const newCustomerData: Omit<Customer, 'isDefault' | 'createdAt'> & {id?: string} = {
+                        id: firstRow.customerCode, name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                        address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
+                    };
+                    if (!customers.some(c => c.id === newCustomerData.id) && !tempNewCustomers.has(newCustomerData.id!)) {
+                        const newCustomer = await addCustomer(newCustomerData);
+                        if (newCustomer) {
+                            customer = newCustomer;
+                            tempNewCustomers.set(newCustomer.id, newCustomer);
+                            newCustomersCount++;
+                        }
+                    }
+                }
+                 if (!customer && firstRow.customerName) {
+                    customer = customers.find(c => c.name === firstRow.customerName) || Array.from(tempNewCustomers.values()).find(c => c.name === firstRow.customerName);
+                }
+
+                const saleItems: OrderItem[] = [];
+                for (const row of rows) {
+                    if (!row.itemBarcode) {
+                        if (saleItems.length > 0) {
+                            const lastItem = saleItems[saleItems.length - 1];
+                            lastItem.note = (lastItem.note ? lastItem.note + '\n' : '') + (row.itemName || '');
+                        }
+                        continue;
+                    }
+
+                    let item = items.find(i => i.barcode === row.itemBarcode) || tempNewItems.get(row.itemBarcode);
+                    if (!item && row.itemBarcode && row.itemName) {
+                        const vatCodeInput = parseInt(String(row.vatCode).trim(), 10);
+                        const vatRate = vatRates.find(v => v.code === vatCodeInput);
+                        
+                        if (!vatRate) {
+                          throw new Error(`Code TVA '${row.vatCode}' invalide pour l'article ${row.itemName}.`);
+                        }
+                        
+                        let categoryId: string | undefined = undefined;
+                        if (row.itemCategory) {
+                          let category = categories.find(c => c.name === row.itemCategory);
+                          if (!category) {
+                              const newCat = await addCategory({ name: row.itemCategory });
+                              if (newCat) categoryId = newCat.id;
+                          } else {
+                              categoryId = category.id;
+                          }
+                        }
+                        
+                        const newItemData = await addItem({ barcode: row.itemBarcode, name: row.itemName, price: parseFloat(row.unitPriceHT) * (1 + vatRate.rate / 100), vatId: vatRate.id, categoryId, purchasePrice: row.itemPurchasePrice });
+                        if (newItemData) {
+                            item = newItemData;
+                            tempNewItems.set(item.barcode!, item);
+                            newItemsCount++;
+                        } else {
+                            throw new Error(`Impossible de créer l'article ${row.itemName}.`);
+                        }
+                    }
+
+                    if (!item) {
+                       throw new Error(`Article introuvable ou non créé pour la ligne avec code-barres ${row.itemBarcode}.`);
+                    }
+
+                    const quantity = parseFloat(row.quantity);
+                    const unitPriceHT = parseFloat(row.unitPriceHT);
+                    const vatInfo = vatRates.find(v => v.id === item.vatId);
+                    if (!vatInfo) throw new Error(`Taux de TVA introuvable pour l'article ${item.name}.`);
+                    const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
+
+                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total: unitPriceTTC * quantity, vatId: item.vatId, barcode: item.barcode!, discount: 0 });
+                }
+
+                const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
+                const total = saleItems.reduce((acc, i) => acc + i.total, 0);
+
+                const seller = users.find(u => `${u.firstName} ${u.lastName}` === firstRow.sellerName);
+
+                const sale: Sale = {
+                    id: uuidv4(), ticketNumber: finalTicketNumber, date: saleDate, items: saleItems, subtotal, tax: total - subtotal, total, 
+                    payments: [], status: 'paid', customerId: customer?.id, userId: seller?.id, userName: firstRow.sellerName, documentType: documentType
                 };
                 
-                await recordCommercialDocument(docToCreate, documentType);
-                report.successCount++;
-                if(report.newSalesCount !== undefined) report.newSalesCount++;
+                const paymentTotals: Record<string, number> = {};
+                 rows.forEach(row => {
+                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+                    paymentFields.forEach(field => {
+                        if (row[field] && parseFloat(row[field]) > 0) {
+                            const methodName = field.replace('payment', '');
+                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
+                        }
+                    });
+                });
                 
+                salesMap.set(finalTicketNumber, { sale, paymentTotals });
+
             } catch (e: any) {
                 report.errorCount++;
-                report.errors.push(`Pièce #${ticketNumber} (Ligne ${saleData.rowIndex + 1}): ${e.message}`);
+                report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
             }
         }
+
+        for (const { sale, paymentTotals } of salesMap.values()) {
+            Object.entries(paymentTotals).forEach(([methodName, amount]) => {
+                const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
+                if (method && amount > 0) {
+                    sale.payments.push({ method, amount, date: sale.date });
+                }
+            });
+            setSales(prev => [sale, ...prev]);
+            report.successCount++;
+        }
+        
+        report.newSalesCount = salesMap.size;
+        report.newCustomersCount = newCustomersCount;
+        report.newItemsCount = newItemsCount;
         
         return report;
     }
@@ -1596,7 +1625,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return report;
     }
 
-    for (const data of jsonData) {
+    for (const data of limitedJsonData) {
         try {
             const success = await importer(data);
             if (success) report.successCount++;
@@ -1610,7 +1639,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     }
     return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordCommercialDocument, customers, items, vatRates, categories, sales]);
+  }, [addCustomer, addItem, addSupplier, addCategory, customers, items, vatRates, categories, sales, users, paymentMethods, importLimit, setSales]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
