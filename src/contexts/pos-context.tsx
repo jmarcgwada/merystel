@@ -335,19 +335,18 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
-                return defaultValue;
-            }
+        if (typeof window === 'undefined') {
+            return defaultValue;
         }
-        return defaultValue;
+        try {
+            const storedValue = localStorage.getItem(key);
+            return storedValue ? JSON.parse(storedValue) : defaultValue;
+        } catch (error) {
+            console.error(`Error reading localStorage key “${key}”:`, error);
+            return defaultValue;
+        }
     });
 
     useEffect(() => {
@@ -362,7 +361,6 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
 
     return [state, setState];
 }
-
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -1542,7 +1540,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const lastTicketKey = Object.keys(acc)[Object.keys(acc).length - 1];
                     const lastTicket = acc[lastTicketKey];
                     if (lastTicket && lastTicket.items.length > 0) {
-                        lastTicket.items[lastTicket.items.length - 1].itemName += `\n${row.itemName || ''}`;
+                        const lastItem = lastTicket.items[lastTicket.items.length - 1];
+                        lastItem.itemName = [lastItem.itemName, row.itemName].filter(Boolean).join('\n');
                     }
                 }
                 return acc;
@@ -1573,7 +1572,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
                 };
                 const documentType = docTypeMap[saleInfo.pieceName] || 'ticket';
-                const prefix = (Object.entries(prefixMap).find(([, val]) => val === documentType) || ['',''])[0];
+                const prefixMap = {
+                    invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
+                    supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick',
+                };
+                const prefix = prefixMap[documentType] || 'Pièce';
                 
                 const finalTicketNumber = `${prefix}-${ticketNumber}`;
                 if (sales.some(s => s.ticketNumber === finalTicketNumber)) {
@@ -1635,7 +1638,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const vatInfo = vatRates.find(v => v.id === item.vatId)!;
                     const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
                     const total = unitPriceTTC * quantity;
-                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total, vatId: item.vatId, barcode: item.barcode, discount: 0 });
+                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total, vatId: item.vatId, barcode: item.barcode, discount: 0, note: itemRow.note });
                 }
 
                 if (saleItems.length === 0) continue;
@@ -1676,7 +1679,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return report;
     }
     
-    // Fallback for other data types
     const importer = {
         clients: (data: any) => addCustomer(data).then(res => !!res),
         articles: (data: any) => addItem(data).then(res => !!res),
@@ -1812,3 +1814,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
