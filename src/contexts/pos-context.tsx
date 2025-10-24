@@ -281,6 +281,8 @@ export interface PosContextType {
   setDashboardBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonBackgroundColor: string;
   setDashboardButtonBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
+  dashboardButtonTextColor: string;
+  setDashboardButtonTextColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
   setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
@@ -336,28 +338,30 @@ export interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window === 'undefined') {
-            return defaultValue;
-        }
-        try {
-            const storedValue = localStorage.getItem(key);
-            return storedValue ? JSON.parse(storedValue) : defaultValue;
-        } catch (error) {
-            console.error(`Error reading localStorage key “${key}”:`, error);
-            return defaultValue;
-        }
-    });
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key “${key}”:`, error);
+                console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
     return [state, setState];
 }
@@ -408,6 +412,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [dashboardBackgroundImage, setDashboardBackgroundImage] = usePersistentState('settings.dashboardBgImage', '');
   const [dashboardBgOpacity, setDashboardBgOpacity] = usePersistentState('settings.dashboardBgOpacity', 100);
   const [dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor] = usePersistentState('settings.dashboardButtonBgColor', '#ffffff');
+  const [dashboardButtonTextColor, setDashboardButtonTextColor] = usePersistentState('settings.dashboardButtonTextColor', '#000000');
   const [dashboardButtonOpacity, setDashboardButtonOpacity] = usePersistentState('settings.dashboardButtonOpacity', 100);
   const [dashboardButtonShowBorder, setDashboardButtonShowBorder] = usePersistentState('settings.dashboardButtonShowBorder', true);
   const [dashboardButtonBorderColor, setDashboardButtonBorderColor] = usePersistentState('settings.dashboardButtonBorderColor', '#e2e8f0');
@@ -1559,7 +1564,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
         const newCustomers = new Set<string>();
         const newItems = new Set<string>();
-        let newSales = [];
+        let newSales: Sale[] = [];
         
         for (const ticketNumber in groupedSales) {
             try {
@@ -1643,7 +1648,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 if (saleItems.length === 0) continue;
 
-                const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
+                const subtotal = saleItems.reduce((acc, i) => {
+                  const vatInfo = vatRates.find(v => v.id === i.vatId);
+                  const rate = vatInfo ? vatInfo.rate / 100 : 0;
+                  return acc + (i.total / (1 + rate));
+                }, 0);
                 const total = saleItems.reduce((acc, i) => acc + i.total, 0);
                 const tax = total - subtotal;
                 
@@ -1790,6 +1799,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     directSaleBackgroundColor, setDirectSaleBackgroundColor, restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, 
     restaurantModeBgOpacity, setRestaurantModeBgOpacity, dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, 
     dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity, setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, 
+    dashboardButtonTextColor, setDashboardButtonTextColor,
     dashboardButtonOpacity, setDashboardButtonOpacity, dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
     invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity, quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity, deliveryNoteBgColor, 
     setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity, supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, 
@@ -1814,5 +1824,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

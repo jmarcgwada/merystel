@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -68,6 +67,7 @@ export default function DashboardPage() {
         dashboardBackgroundImage, 
         dashboardBgOpacity,
         dashboardButtonBackgroundColor,
+        dashboardButtonTextColor,
         dashboardButtonOpacity,
         dashboardButtonShowBorder,
         dashboardButtonBorderColor,
