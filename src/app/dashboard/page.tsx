@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity, Trash2 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Item, Sale } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,6 +44,17 @@ const hexToRgba = (hex: string, opacity: number) => {
     }
     return `hsla(var(--card), ${opacity / 100})`;
 };
+
+const getDateFromSale = (saleDate: Sale['date']): Date | null => {
+    if (!saleDate) return null;
+    if (saleDate instanceof Date) return saleDate;
+    if (typeof (saleDate as Timestamp)?.toDate === 'function') {
+        return (saleDate as Timestamp).toDate();
+    }
+    const d = new Date(saleDate as any);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 
 export default function DashboardPage() {
     const { user: authUser } = useUser();
@@ -95,24 +106,16 @@ export default function DashboardPage() {
     
     const todaysSalesData = useMemo(() => {
         if (!relevantSales || !users) return { count: 0, total: 0, lastSale: null, averageBasket: 0 };
+        
         const today = new Date();
+
         const salesOfToday = relevantSales
             .map(sale => {
-              let saleDate;
-              if (sale.date instanceof Date) {
-                  saleDate = sale.date;
-              } else if (sale.date && typeof (sale.date as Timestamp).toDate === 'function') {
-                  saleDate = (sale.date as Timestamp).toDate();
-              } else {
-                  saleDate = new Date(sale.date as any);
-              }
-              return { ...sale, date: saleDate };
+              const saleDate = getDateFromSale(sale.date);
+              return { ...sale, jsDate: saleDate };
             })
-            .filter(sale => {
-                if (isNaN(sale.date.getTime())) return false; // Invalid date
-                return format(sale.date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
-            })
-            .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort descending by date
+            .filter(sale => sale.jsDate && isSameDay(sale.jsDate, today))
+            .sort((a, b) => b.jsDate!.getTime() - a.jsDate!.getTime());
 
         const todaysTotal = salesOfToday.reduce((acc, sale) => acc + sale.total, 0);
         const lastSale = salesOfToday.length > 0 ? salesOfToday[0] : null;
@@ -241,7 +244,7 @@ export default function DashboardPage() {
           subtitle={`Bienvenue, ${authUser?.firstName || 'Utilisateur'}. Voici un aperçu de votre journée.`}
         >
           <div className="flex items-center gap-4">
-            {isMounted && todaysSalesData.lastSale && (
+            {isMounted && todaysSalesData.lastSale && todaysSalesData.lastSale.jsDate && (
                 <Card style={buttonStyle} className="bg-accent/10 border-accent/20 hidden xl:block">
                   <CardContent className="p-3">
                       <div className="flex flex-wrap items-center justify-between gap-x-4">
@@ -249,7 +252,7 @@ export default function DashboardPage() {
                             <Badge variant="outline">Dernière vente</Badge>
                             <div className="flex items-center gap-2 text-xs">
                               <Clock className="h-3 w-3" />
-                              <span>{format(todaysSalesData.lastSale.date, 'HH:mm')}</span>
+                              <span>{format(todaysSalesData.lastSale.jsDate, 'HH:mm')}</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
                               <User className="h-3 w-3" />
