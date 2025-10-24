@@ -338,30 +338,28 @@ export interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(defaultValue);
-    const [isHydrated, setIsHydrated] = useState(false);
-
-    useEffect(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
             }
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
         }
-        setIsHydrated(true);
-    }, [key]);
+        return defaultValue;
+    });
 
     useEffect(() => {
-        if (isHydrated) {
+        if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error("Error setting localStorage key " + key + ":", error);
+                console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state, isHydrated]);
+    }, [key, state]);
 
     return [state, setState];
 }
@@ -1090,168 +1088,70 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const today = new Date();
-        let finalSale: Sale;
+        const dayMonth = format(today, 'ddMM');
+        const todaysSalesCount = sales.filter(s => {
+            const saleDate = new Date(s.date as Date);
+            return isSameDay(saleDate, today) && s.documentType === 'ticket';
+        }).length;
+        const ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+        
+        return recordCommercialDocument({ ...saleData, ticketNumber }, 'ticket', saleIdToUpdate);
+    }, [sales, user, addAuditLog]);
     
-        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
-            const existingSale = sales.find(s => s.id === saleIdToUpdate);
-            if (!existingSale) return null;
-            
-            finalSale = {
-                ...existingSale,
-                ...saleData,
-                date: existingSale.date, // Preserve original date on update
-                modifiedAt: today, 
-            };
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
+        const today = new Date();
+        const prefixMap = {
+            invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
+            supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick'
+        };
+        const prefix = prefixMap[type] || 'DOC';
+    
+        let finalDoc: Sale;
+    
+        if (docIdToUpdate) {
+            const existingDoc = sales.find(s => s.id === docIdToUpdate);
+            if (!existingDoc) return;
+            finalDoc = { ...existingDoc, ...docData, modifiedAt: today };
+            setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
             addAuditLog({
-                userId: user?.id || 'system',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'update',
-                documentType: finalSale.documentType || 'ticket',
-                documentId: finalSale.id,
-                documentNumber: finalSale.ticketNumber,
-                details: `Mise à jour de la pièce #${finalSale.ticketNumber}.`,
-                richDetails: {
-                    before: existingSale,
-                    after: finalSale
-                }
+                userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'update', documentType: type, documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber, details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
+                richDetails: { before: existingDoc, after: finalDoc }
             });
         } else {
-            const dayMonth = format(today, 'ddMM');
-            let ticketNumber: string;
-            let newId = uuidv4();
-    
-            if (saleData.documentType === 'invoice') {
-                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+            let number;
+            if (type === 'ticket') {
+                number = docData.ticketNumber;
             } else {
-                const todaysSalesCount = sales.filter(s => {
-                    const saleDate = new Date(s.date as Date);
-                    return isSameDay(saleDate, today) && s.documentType !== 'invoice';
-                }).length;
-                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+                const count = sales.filter(s => s.documentType === type).length;
+                number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
             }
-            
-            finalSale = {
-                id: newId,
-                ticketNumber,
-                ...saleData,
-                date: today
-            };
 
+            finalDoc = {
+                id: uuidv4(), date: today, ticketNumber: number, documentType: type,
+                userId: user?.id, userName: user ? `${user.firstName} ${user.lastName}` : 'N/A', ...docData
+            };
+            setSales(prev => [finalDoc, ...prev]);
             addAuditLog({
-                userId: user?.id || 'system',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'create',
-                documentType: finalSale.documentType || 'ticket',
-                documentId: finalSale.id,
-                documentNumber: finalSale.ticketNumber,
-                details: `Création de la pièce #${finalSale.ticketNumber}.`,
-                richDetails: { data: finalSale }
+                userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'create', documentType: type, documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber, details: `Création de la pièce #${finalDoc.ticketNumber}.`,
+                richDetails: { data: finalDoc }
             });
         }
+    
+        toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
         
-        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-            setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
-        }
-        
-        if (currentSaleId && !currentSaleId.startsWith('table-')) {
-            setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
-        }
-
-        if (currentSaleContext?.originalSaleId) {
-          addAuditLog({
-            userId: user?.id || 'system',
-            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-            action: 'transform',
-            documentType: 'invoice',
-            documentId: finalSale.id,
-            documentNumber: finalSale.ticketNumber,
-            details: `Transformation de la pièce #${sales.find(s => s.id === currentSaleContext.originalSaleId)?.ticketNumber} en Facture #${finalSale.ticketNumber}.`
-          });
-          setSales(currentSales =>
-            currentSales.map(s =>
-              s.id === currentSaleContext.originalSaleId
-                ? { ...s, status: 'invoiced' }
-                : s
-            )
-          );
-        }
-
-        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
-           setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+        if (finalDoc.status === 'paid') {
+            if (currentSaleContext?.isTableSale) router.push('/restaurant');
+            else if (['invoice', 'credit_note', 'supplier_order'].includes(type)) resetCommercialPage(type);
+            else clearOrder();
         } else {
-           setSales(prev => [finalSale, ...prev]);
+            router.push('/reports');
         }
     
-        return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
-  
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice', docIdToUpdate?: string) => {
-      const today = new Date();
-      const prefixMap = {
-        invoice: 'Fact',
-        quote: 'Devis',
-        delivery_note: 'BL',
-        supplier_order: 'CF',
-        credit_note: 'Avoir',
-        ticket: 'Tick',
-      };
-      const prefix = prefixMap[type];
-  
-      let finalDoc: Sale;
-  
-      if (docIdToUpdate) {
-        const existingDoc = sales.find(s => s.id === docIdToUpdate);
-        if (!existingDoc) return;
-        finalDoc = {
-          ...existingDoc,
-          ...docData,
-          modifiedAt: today,
-        };
-        setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
-        addAuditLog({
-          userId: user?.id || 'system',
-          userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-          action: 'update',
-          documentType: type,
-          documentId: finalDoc.id,
-          documentNumber: finalDoc.ticketNumber,
-          details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
-          richDetails: {
-            before: existingDoc,
-            after: finalDoc,
-          },
-        });
-      } else {
-        const count = sales.filter(s => s.documentType === type).length;
-        const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
-        finalDoc = {
-          id: uuidv4(),
-          date: today,
-          ticketNumber: number,
-          documentType: type,
-          userId: user?.id,
-          userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-          ...docData,
-        };
-        setSales(prev => [finalDoc, ...prev]);
-        addAuditLog({
-          userId: user?.id || 'system',
-          userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-          action: 'create',
-          documentType: type,
-          documentId: finalDoc.id,
-          documentNumber: finalDoc.ticketNumber,
-          details: `Création de la pièce #${finalDoc.ticketNumber}.`,
-          richDetails: { data: finalDoc },
-        });
-      }
-  
-      toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
-      if (finalDoc.status !== 'paid') {
-        resetCommercialPage(type);
-      }
-    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
+    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog, clearOrder, router, currentSaleContext]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
@@ -1563,9 +1463,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         report.newCustomersCount = 0;
         report.newItemsCount = 0;
 
-        const newCustomers = new Set<string>();
-        const newItems = new Set<string>();
-        let newSales: Sale[] = [];
+        let createdSales: Sale[] = [];
         
         for (const ticketNumber in groupedSales) {
             try {
@@ -1583,7 +1481,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
                     supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick',
                 };
-                const prefix = prefixMap[documentType] || 'Pièce';
+                const prefix = prefixMap[documentType] || 'DOC';
                 
                 const finalTicketNumber = `${prefix}-${ticketNumber}`;
                 if (sales.some(s => s.ticketNumber === finalTicketNumber)) {
@@ -1598,7 +1496,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     });
                     if (newCustomer) {
                         customerId = newCustomer.id;
-                        newCustomers.add(customerId);
+                        if(report.newCustomersCount !== undefined) report.newCustomersCount++;
                     }
                 } else if (!customerId) {
                     customerId = customers.find(c => c.name === saleInfo.customerName)!.id;
@@ -1631,14 +1529,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                         if (newItem) {
                             item = newItem;
-                            newItems.add(item.id);
+                            if(report.newItemsCount !== undefined) report.newItemsCount++;
                         } else {
                             throw new Error(`Impossible de créer l'article ${itemRow.itemName}`);
                         }
                     }
                     const quantity = parseFloat(itemRow.quantity);
                     const unitPriceHT = parseFloat(itemRow.unitPriceHT);
-                    const vatInfo = vatRates.find(v => v.id === item.vatId)!;
+                    const vatInfo = vatRates.find(v => v.id === item.vatId);
+                    if (!vatInfo) throw new Error(`Taux de TVA introuvable pour l'article ${item.name}.`);
                     const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
                     const total = unitPriceTTC * quantity;
                     saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total, vatId: item.vatId, barcode: item.barcode, discount: 0, note: itemRow.note });
@@ -1667,22 +1566,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                   throw new Error(`Format de date invalide pour la pièce ${ticketNumber}.`);
                 }
 
-                const newSale: Sale = {
-                    id: uuidv4(), ticketNumber: finalTicketNumber, items: saleItems, subtotal, tax, total, customerId,
+                const docToCreate = {
+                    items: saleItems, subtotal, tax, total, customerId,
                     userName: saleInfo.sellerName, date: saleDate, status: 'paid', payments: [], documentType,
                 };
-                newSales.push(newSale);
+                
+                await recordCommercialDocument(docToCreate, documentType);
                 report.successCount++;
+                if(report.newSalesCount !== undefined) report.newSalesCount++;
+                
             } catch (e: any) {
                 report.errorCount++;
                 report.errors.push(`Pièce #${ticketNumber} (Ligne ${saleData.rowIndex + 1}): ${e.message}`);
             }
         }
-        if(newSales.length > 0) setSales(prev => [...prev, ...newSales]);
-        report.newCustomersCount = newCustomers.size;
-        report.newItemsCount = newItems.size;
-        report.newSalesCount = newSales.length;
-
+        
         return report;
     }
     
@@ -1712,7 +1610,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     }
     return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordCommercialDocument, customers, items, vatRates, categories, setSales, sales]);
+  }, [addCustomer, addItem, addSupplier, addCategory, recordCommercialDocument, customers, items, vatRates, categories, sales]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
