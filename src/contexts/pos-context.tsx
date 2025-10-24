@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1253,6 +1252,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             toast({ variant: "destructive", title: "Mot de passe requis" });
             return null;
         }
+        if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+            toast({ variant: "destructive", title: "Email déjà utilisé" });
+            throw new Error("Email déjà utilisé");
+        }
         const newUser: User = {
             id: uuidv4(),
             ...userData,
@@ -1261,7 +1264,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         };
         setUsers(prev => [...prev, newUser]);
         return newUser;
-    }, [toast, setUsers]);
+    }, [toast, users, setUsers]);
 
     const updateUser = useCallback((userData: User) => {
       setUsers(prev => prev.map(u => u.id === userData.id ? {...userData, updatedAt: new Date()} : u));
@@ -1527,189 +1530,177 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, toast]);
   
   const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
-        
-        const importers = {
-            clients: (data: any) => addCustomer(data).then(res => !!res),
-            articles: (data: any) => addItem(data).then(res => !!res),
-            fournisseurs: (data: any) => addSupplier(data).then(res => !!res),
-        };
-        
-        if (dataType === 'ventes_completes') {
-            const groupedSales = jsonData.reduce((acc, row) => {
-                const ticketNum = row.ticketNumber;
-                if (!ticketNum) {
-                    if (Object.keys(acc).length > 0) {
-                        const lastTicket = acc[Object.keys(acc)[Object.keys(acc).length - 1]];
-                        if (lastTicket && lastTicket.items.length > 0) {
-                            lastTicket.items[lastTicket.items.length - 1].name += `\\n${row.itemName || ''}`;
-                        }
+    const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
+    
+    if (dataType === 'ventes_completes') {
+        const groupedSales = jsonData.reduce((acc, row) => {
+            const ticketNum = row.ticketNumber;
+            if (!ticketNum) {
+                if (Object.keys(acc).length > 0) {
+                    const lastTicketKey = Object.keys(acc)[Object.keys(acc).length - 1];
+                    const lastTicket = acc[lastTicketKey];
+                    if (lastTicket && lastTicket.items.length > 0) {
+                        lastTicket.items[lastTicket.items.length - 1].name += `\n${row.itemName || ''}`;
                     }
-                    return acc;
                 }
-                if (!acc[ticketNum]) {
-                    acc[ticketNum] = { info: { ...row }, items: [] };
-                }
-                acc[ticketNum].items.push(row);
                 return acc;
-            }, {} as Record<string, { info: any, items: any[] }>);
+            }
+            if (!acc[ticketNum]) {
+                acc[ticketNum] = { info: { ...row }, items: [] };
+            }
+            acc[ticketNum].items.push(row);
+            return acc;
+        }, {} as Record<string, { info: any, items: any[] }>);
 
-            report.newSalesCount = Object.keys(groupedSales).length;
-            report.newCustomersCount = 0;
-            report.newItemsCount = 0;
+        report.newSalesCount = 0;
+        report.newCustomersCount = 0;
+        report.newItemsCount = 0;
 
-            const newCustomers = new Set<string>();
-            const newItems = new Set<string>();
-            let newSales = [];
+        const newCustomers = new Set<string>();
+        const newItems = new Set<string>();
+        let newSales = [];
+        
+        for (const ticketNumber in groupedSales) {
+            try {
+                const saleData = groupedSales[ticketNumber];
+                
+                const docTypeMap: { [key: string]: Sale['documentType'] } = {
+                    'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
+                    'BL': 'delivery_note', 'Bon de Livraison': 'delivery_note',
+                    'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
+                };
+                const documentType = docTypeMap[saleData.info.pieceName] || 'ticket';
+                const prefix = (Object.entries(docTypeMap).find(([, val]) => val === documentType) || ['',''])[0];
+                
+                const finalTicketNumber = `${prefix}-${ticketNumber}`;
+                if (sales.some(s => s.ticketNumber === finalTicketNumber)) {
+                    throw new Error(`Le numéro de pièce ${finalTicketNumber} existe déjà.`);
+                }
 
-            for (const ticketNumber in groupedSales) {
-                try {
-                    const saleData = groupedSales[ticketNumber];
-                    
-                    let customerId = customers.find(c => c.id === saleData.info.customerCode)?.id;
-                    if (!customerId && !customers.some(c => c.name === saleData.info.customerName)) {
-                        const newCustomer = await addCustomer({
-                            id: saleData.info.customerCode,
-                            name: saleData.info.customerName,
-                            email: saleData.info.customerEmail,
-                            phone: saleData.info.customerPhone,
-                            address: saleData.info.customerAddress,
-                            postalCode: saleData.info.customerPostalCode,
-                            city: saleData.info.customerCity,
-                        });
-                        if (newCustomer) {
-                            customerId = newCustomer.id;
-                            newCustomers.add(customerId);
-                        }
-                    } else if (!customerId) {
-                        customerId = customers.find(c => c.name === saleData.info.customerName)!.id;
+                let customerId = customers.find(c => c.id === saleData.info.customerCode)?.id;
+                if (!customerId && !customers.some(c => c.name === saleData.info.customerName)) {
+                    const newCustomer = await addCustomer({
+                        id: saleData.info.customerCode,
+                        name: saleData.info.customerName,
+                    });
+                    if (newCustomer) {
+                        customerId = newCustomer.id;
+                        newCustomers.add(customerId);
                     }
-                    
-                    const saleItems: OrderItem[] = [];
-                    for(const itemRow of saleData.items) {
-                        if (!itemRow.itemBarcode || !itemRow.quantity || !itemRow.unitPriceHT) continue;
-
-                        let item = items.find(i => i.barcode === itemRow.itemBarcode);
-                        if (!item) {
-                            const defaultVat = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
-                            if(!defaultVat) {
-                                throw new Error(`Taux de TVA avec le code ${itemRow.vatCode} introuvable. Assurez-vous qu'il existe dans Paramètres > TVA.`);
-                            }
-                            let categoryId: string | undefined = undefined;
-                            if (itemRow.itemCategory) {
-                                let category = categories.find(c => c.name === itemRow.itemCategory);
-                                if (!category) {
-                                    const newCat = await addCategory({ name: itemRow.itemCategory });
-                                    if (newCat) categoryId = newCat.id;
-                                } else {
-                                    categoryId = category.id;
-                                }
-                            }
-                            
-                            const newItemData: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string} = {
-                                barcode: itemRow.itemBarcode,
-                                name: itemRow.itemName,
-                                price: parseFloat(itemRow.unitPriceHT) * (1 + (defaultVat.rate / 100)),
-                                purchasePrice: itemRow.itemPurchasePrice || 0,
-                                vatId: defaultVat.id,
-                                categoryId: categoryId,
-                            };
-
-                            const newItem = await addItem(newItemData);
-                            if (newItem) {
-                                item = newItem;
-                                newItems.add(item.id);
-                            } else {
-                                throw new Error(`Impossible de créer l'article ${itemRow.itemName}`);
-                            }
+                } else if (!customerId) {
+                    customerId = customers.find(c => c.name === saleData.info.customerName)!.id;
+                }
+                
+                const saleItems: OrderItem[] = [];
+                for (const itemRow of saleData.items) {
+                    if (!itemRow.itemBarcode || !itemRow.quantity || !itemRow.unitPriceHT) continue;
+                    let item = items.find(i => i.barcode === itemRow.itemBarcode);
+                    if (!item) {
+                        const vatInfo = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
+                        if (!vatInfo) {
+                            throw new Error(`Code de TVA '${itemRow.vatCode}' invalide pour l'article ${itemRow.itemName}.`);
                         }
                         
-                        const quantity = parseFloat(itemRow.quantity);
-                        const unitPriceHT = parseFloat(itemRow.unitPriceHT);
-                        const vatInfo = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10))!;
-                        const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
-                        const total = unitPriceTTC * quantity;
+                        let categoryId: string | undefined = undefined;
+                        if (itemRow.itemCategory) {
+                          let category = categories.find(c => c.name === itemRow.itemCategory);
+                          if (!category) {
+                              const newCat = await addCategory({ name: itemRow.itemCategory });
+                              if (newCat) categoryId = newCat.id;
+                          } else {
+                              categoryId = category.id;
+                          }
+                        }
 
-                        saleItems.push({
-                            id: uuidv4(),
-                            itemId: item.id,
-                            name: item.name,
-                            price: unitPriceTTC,
-                            quantity: quantity,
-                            total: total,
-                            vatId: item.vatId,
-                            barcode: item.barcode,
-                            discount: 0,
-                        });
+                        const newItemData: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string} = {
+                            barcode: itemRow.itemBarcode,
+                            name: itemRow.itemName,
+                            price: parseFloat(itemRow.unitPriceHT) * (1 + (vatInfo.rate / 100)),
+                            vatId: vatInfo.id,
+                            categoryId: categoryId
+                        };
+                        const newItem = await addItem(newItemData);
+                        if (newItem) {
+                            item = newItem;
+                            newItems.add(item.id);
+                        } else {
+                            throw new Error(`Impossible de créer l'article ${itemRow.itemName}`);
+                        }
                     }
-                    if (saleItems.length === 0) continue;
-
-                    const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
-                    const total = saleItems.reduce((acc, i) => acc + i.total, 0);
-                    const tax = total - subtotal;
-
-                    const docTypeMap: { [key: string]: Sale['documentType'] } = {
-                      'Facture': 'invoice', 'Ticket': 'ticket', 'Devis': 'quote',
-                      'BL': 'delivery_note', 'Bon de Livraison': 'delivery_note', 
-                      'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
-                    };
-                    const documentType = docTypeMap[saleData.info.pieceName] || 'ticket';
-
-                    const saleDate = saleData.info.date ? parse(saleData.info.date, 'dd/MM/yy HH:mm', new Date()) : new Date();
-
-                    const newSale: Sale = {
-                        id: uuidv4(),
-                        ticketNumber: saleData.info.ticketNumber,
-                        items: saleItems,
-                        subtotal,
-                        tax,
-                        total,
-                        customerId,
-                        userName: saleData.info.sellerName,
-                        date: saleDate,
-                        status: 'paid',
-                        payments: [],
-                        documentType,
-                    };
-
-                    newSales.push(newSale);
-                    report.successCount++;
-                } catch (e: any) {
-                    report.errorCount++;
-                    report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
+                    const quantity = parseFloat(itemRow.quantity);
+                    const unitPriceHT = parseFloat(itemRow.unitPriceHT);
+                    const vatInfo = vatRates.find(v => v.id === item.vatId)!;
+                    const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
+                    const total = unitPriceTTC * quantity;
+                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total, vatId: item.vatId, barcode: item.barcode, discount: 0 });
                 }
-            }
-            if(newSales.length > 0) {
-              setSales(prev => [...prev, ...newSales]);
-            }
-            report.newCustomersCount = newCustomers.size;
-            report.newItemsCount = newItems.size;
-            return report;
-        }
-        
-        const importer = importers[dataType as keyof typeof importers];
-        if (!importer) {
-            report.errors.push(`Type de données non supporté: ${dataType}`);
-            report.errorCount = jsonData.length;
-            return report;
-        }
 
-        for (const data of jsonData) {
-            try {
-                const success = await importer(data);
-                if (success) {
-                    report.successCount++;
-                } else {
-                    report.errorCount++;
-                    report.errors.push(`Échec de l'import de la ligne : ${JSON.stringify(data)}`);
+                if (saleItems.length === 0) continue;
+
+                const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
+                const total = saleItems.reduce((acc, i) => acc + i.total, 0);
+                const tax = total - subtotal;
+                
+                const dateFormats = ['dd/MM/yyyy HH:mm', 'dd-MM-yyyy HH:mm', 'dd/MM/yyyy'];
+                let saleDate: Date | undefined;
+                for (const fmt of dateFormats) {
+                    const parsedDate = parse(saleData.info.date, fmt, new Date());
+                    if (!isNaN(parsedDate.getTime())) {
+                        saleDate = parsedDate;
+                        break;
+                    }
                 }
+                if (!saleDate) {
+                  throw new Error(`Format de date invalide pour la pièce ${ticketNumber}.`);
+                }
+
+                const newSale: Sale = {
+                    id: uuidv4(), ticketNumber: finalTicketNumber, items: saleItems, subtotal, tax, total, customerId,
+                    userName: saleData.info.sellerName, date: saleDate, status: 'paid', payments: [], documentType,
+                };
+                newSales.push(newSale);
+                report.successCount++;
             } catch (e: any) {
                 report.errorCount++;
-                report.errors.push(`Ligne ${report.successCount + report.errorCount}: ${e.message}`);
+                report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
             }
         }
+        if(newSales.length > 0) setSales(prev => [...prev, ...newSales]);
+        report.newCustomersCount = newCustomers.size;
+        report.newItemsCount = newItems.size;
+        report.newSalesCount = newSales.length;
+
         return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories, setSales]);
+    }
+    
+    // Fallback for other data types
+    const importer = {
+        clients: (data: any) => addCustomer(data).then(res => !!res),
+        articles: (data: any) => addItem(data).then(res => !!res),
+        fournisseurs: (data: any) => addSupplier(data).then(res => !!res),
+    }[dataType];
+
+    if (!importer) {
+        report.errors.push(`Type de données non supporté: ${dataType}`);
+        report.errorCount = jsonData.length;
+        return report;
+    }
+
+    for (const data of jsonData) {
+        try {
+            const success = await importer(data);
+            if (success) report.successCount++;
+            else {
+                report.errorCount++;
+                report.errors.push(`Échec de l'import de la ligne : ${JSON.stringify(data)}`);
+            }
+        } catch (e: any) {
+            report.errorCount++;
+            report.errors.push(`Ligne ${report.successCount + report.errorCount}: ${e.message}`);
+        }
+    }
+    return report;
+  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories, setSales, sales]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });
