@@ -1187,70 +1187,71 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales, addAuditLog]);
   
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice', docIdToUpdate?: string) => {
-    const today = new Date();
-    const prefixMap = {
-      invoice: 'Fact',
-      quote: 'Devis',
-      delivery_note: 'BL',
-      supplier_order: 'CF',
-      credit_note: 'Avoir',
-    };
-    const prefix = prefixMap[type];
-
-    let finalDoc: Sale;
-
-    if (docIdToUpdate) {
-      const existingDoc = sales.find(s => s.id === docIdToUpdate);
-      if (!existingDoc) return;
-      finalDoc = {
-        ...existingDoc,
-        ...docData,
-        modifiedAt: today,
+      const today = new Date();
+      const prefixMap = {
+        invoice: 'Fact',
+        quote: 'Devis',
+        delivery_note: 'BL',
+        supplier_order: 'CF',
+        credit_note: 'Avoir',
+        ticket: 'Tick',
       };
-      setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
-      addAuditLog({
-        userId: user?.id || 'system',
-        userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-        action: 'update',
-        documentType: type,
-        documentId: finalDoc.id,
-        documentNumber: finalDoc.ticketNumber,
-        details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
-        richDetails: {
-          before: existingDoc,
-          after: finalDoc,
-        },
-      });
-    } else {
-      const count = sales.filter(s => s.documentType === type).length;
-      const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
-      finalDoc = {
-        id: uuidv4(),
-        date: today,
-        ticketNumber: number,
-        documentType: type,
-        userId: user?.id,
-        userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-        ...docData,
-      };
-      setSales(prev => [finalDoc, ...prev]);
-      addAuditLog({
-        userId: user?.id || 'system',
-        userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-        action: 'create',
-        documentType: type,
-        documentId: finalDoc.id,
-        documentNumber: finalDoc.ticketNumber,
-        details: `Création de la pièce #${finalDoc.ticketNumber}.`,
-        richDetails: { data: finalDoc },
-      });
-    }
-
-    toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
-    if (finalDoc.status !== 'paid') {
-      resetCommercialPage(type);
-    }
-  }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
+      const prefix = prefixMap[type];
+  
+      let finalDoc: Sale;
+  
+      if (docIdToUpdate) {
+        const existingDoc = sales.find(s => s.id === docIdToUpdate);
+        if (!existingDoc) return;
+        finalDoc = {
+          ...existingDoc,
+          ...docData,
+          modifiedAt: today,
+        };
+        setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
+        addAuditLog({
+          userId: user?.id || 'system',
+          userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+          action: 'update',
+          documentType: type,
+          documentId: finalDoc.id,
+          documentNumber: finalDoc.ticketNumber,
+          details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
+          richDetails: {
+            before: existingDoc,
+            after: finalDoc,
+          },
+        });
+      } else {
+        const count = sales.filter(s => s.documentType === type).length;
+        const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+        finalDoc = {
+          id: uuidv4(),
+          date: today,
+          ticketNumber: number,
+          documentType: type,
+          userId: user?.id,
+          userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
+          ...docData,
+        };
+        setSales(prev => [finalDoc, ...prev]);
+        addAuditLog({
+          userId: user?.id || 'system',
+          userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+          action: 'create',
+          documentType: type,
+          documentId: finalDoc.id,
+          documentNumber: finalDoc.ticketNumber,
+          details: `Création de la pièce #${finalDoc.ticketNumber}.`,
+          richDetails: { data: finalDoc },
+        });
+      }
+  
+      toast({ title: `${prefix} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+      if (finalDoc.status !== 'paid') {
+        resetCommercialPage(type);
+      }
+    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
@@ -1538,7 +1539,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
     
     if (dataType === 'ventes_completes') {
-        const groupedSales = jsonData.reduce((acc, row) => {
+        const groupedSales = jsonData.reduce((acc, row, index) => {
             const ticketNum = row.ticketNumber;
             if (!ticketNum) {
                 if (Object.keys(acc).length > 0) {
@@ -1546,17 +1547,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     const lastTicket = acc[lastTicketKey];
                     if (lastTicket && lastTicket.items.length > 0) {
                         const lastItem = lastTicket.items[lastTicket.items.length - 1];
-                        lastItem.itemName = [lastItem.itemName, row.itemName].filter(Boolean).join('\n');
+                        lastItem.note = [lastItem.note, row.itemName].filter(Boolean).join('\n');
                     }
                 }
                 return acc;
             }
             if (!acc[ticketNum]) {
-                acc[ticketNum] = { info: row, items: [] };
+                acc[ticketNum] = { info: row, items: [], rowIndex: index };
             }
             acc[ticketNum].items.push(row);
             return acc;
-        }, {} as Record<string, { info: any, items: any[] }>);
+        }, {} as Record<string, { info: any, items: any[], rowIndex: number }>);
 
         report.newSalesCount = 0;
         report.newCustomersCount = 0;
@@ -1577,6 +1578,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     'Cde Fournisseur': 'supplier_order', 'Avoir': 'credit_note',
                 };
                 const documentType = docTypeMap[saleInfo.pieceName] || 'ticket';
+                
                 const prefixMap = {
                     invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
                     supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick',
@@ -1608,9 +1610,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     let item = items.find(i => i.barcode === itemRow.itemBarcode);
                     if (!item) {
                         const vatInfo = vatRates.find(v => v.code === parseInt(itemRow.vatCode, 10));
-                        if (!vatInfo) {
-                            throw new Error(`Code de TVA '${itemRow.vatCode}' invalide pour l'article ${itemRow.itemName}.`);
-                        }
+                        if (!vatInfo) throw new Error(`Code de TVA '${itemRow.vatCode}' invalide pour l'article ${itemRow.itemName}.`);
                         
                         let categoryId: string | undefined = undefined;
                         if (itemRow.itemCategory) {
@@ -1623,14 +1623,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                           }
                         }
 
-                        const newItemData: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string} = {
-                            barcode: itemRow.itemBarcode,
-                            name: itemRow.itemName,
+                        const newItem = await addItem({
+                            barcode: itemRow.itemBarcode, name: itemRow.itemName,
                             price: parseFloat(itemRow.unitPriceHT) * (1 + (vatInfo.rate / 100)),
-                            vatId: vatInfo.id,
-                            categoryId: categoryId
-                        };
-                        const newItem = await addItem(newItemData);
+                            vatId: vatInfo.id, categoryId
+                        });
+
                         if (newItem) {
                             item = newItem;
                             newItems.add(item.id);
@@ -1677,7 +1675,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 report.successCount++;
             } catch (e: any) {
                 report.errorCount++;
-                report.errors.push(`Pièce #${ticketNumber}: ${e.message}`);
+                report.errors.push(`Pièce #${ticketNumber} (Ligne ${saleData.rowIndex + 1}): ${e.message}`);
             }
         }
         if(newSales.length > 0) setSales(prev => [...prev, ...newSales]);
@@ -1714,7 +1712,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     }
     return report;
-  }, [addCustomer, addItem, addSupplier, addCategory, recordSale, customers, items, vatRates, categories, setSales, sales]);
+  }, [addCustomer, addItem, addSupplier, addCategory, recordCommercialDocument, customers, items, vatRates, categories, setSales, sales]);
 
   const generateRandomSales = useCallback(async (count: number) => {
     toast({ title: `Génération de ${count} pièces en cours...` });

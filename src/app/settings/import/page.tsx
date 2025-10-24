@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -117,7 +118,7 @@ const fieldLabels: Record<string, string> = {
   siret: 'SIRET',
   website: 'Site Web',
   bic: 'BIC / SWIFT',
-  pieceName: 'Nom de la pièce (Facture, Ticket...)',
+  pieceName: 'Nom de la pièce *',
   ticketNumber: 'Numéro de pièce *',
   date: 'Date (JJ/MM/AA HH:mm) *',
   customerCode: 'Code Client',
@@ -674,7 +675,7 @@ export default function ImportDataPage() {
                                     <li>Utilisez le champ <strong>Numéro de pièce</strong> pour regrouper les lignes d'articles appartenant à la même transaction.</li>
                                     <li>Les champs obligatoires sont marqués d'un astérisque (*). Assurez-vous qu'ils sont bien mappés.</li>
                                     <li>Pour les paiements, vous pouvez utiliser une ou plusieurs colonnes (ex: `paymentCash`, `paymentCard`). Le système additionnera les montants pour obtenir le paiement total.</li>
-                                     <li>Si une ligne ne contient pas de numéro de pièce, son champ 'Désignation' sera ajouté aux notes de la pièce précédente.</li>
+                                     <li>Si une ligne ne contient pas de code-barres article, sa désignation est automatiquement ajoutée comme une note à l'article de la ligne précédente (au sein de la même pièce).</li>
                                 </ul>
                                 </div>
                             </AccordionContent>
