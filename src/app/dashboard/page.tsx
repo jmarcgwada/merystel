@@ -71,7 +71,6 @@ export default function DashboardPage() {
         dashboardButtonOpacity,
         dashboardButtonShowBorder,
         dashboardButtonBorderColor,
-        dashboardButtonTextColor,
         showDashboardStats,
         users,
         defaultSalesMode,
@@ -115,7 +114,7 @@ export default function DashboardPage() {
               return { ...sale, jsDate: saleDate };
             })
             .filter(sale => sale.jsDate && isSameDay(sale.jsDate, today))
-            .sort((a, b) => b.jsDate!.getTime() - a.jsDate!.getTime());
+            .sort((a, b) => (b.jsDate?.getTime() || 0) - (a.jsDate?.getTime() || 0));
 
         const todaysTotal = salesOfToday.reduce((acc, sale) => acc + sale.total, 0);
         const lastSale = salesOfToday.length > 0 ? salesOfToday[0] : null;
