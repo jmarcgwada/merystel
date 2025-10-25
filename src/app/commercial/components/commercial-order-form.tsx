@@ -453,6 +453,47 @@ export const CommercialOrderForm = forwardRef<
                     {currentSaleContext.modifiedAt && <ClientFormattedDate date={currentSaleContext.modifiedAt} formatString="d MMM yyyy, HH:mm" withIcon label="Modifié le"/>}
                 </div>
             )}
+            <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Columns className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columns.map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    checked={visibleColumns[column.id]}
+                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                >
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                            <DropdownMenuCheckboxItem
+                                checked={visibleColumns.discount}
+                                onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
+                            >
+                                Remise %
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
+                            <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Options d'affichage</p>
+                </TooltipContent>
+            </Tooltip>
+            </TooltipProvider>
         </div>
         <div className="flex-1 w-full lg:flex-1 flex items-center gap-2 relative">
             <div className="relative flex-grow">
@@ -542,49 +583,6 @@ export const CommercialOrderForm = forwardRef<
                     )}
                 </CardContent>
             </Card>
-        </div>
-        <div className="flex items-center gap-2 self-end">
-            <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Columns className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {columns.map(column => (
-                                <DropdownMenuCheckboxItem
-                                    key={column.id}
-                                    checked={visibleColumns[column.id]}
-                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                >
-                                    {column.label}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                            <DropdownMenuCheckboxItem
-                                checked={visibleColumns.discount}
-                                onCheckedChange={(checked) => handleColumnVisibilityChange('discount', checked)}
-                            >
-                                Remise %
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Type de prix</DropdownMenuLabel>
-                            <DropdownMenuRadioGroup value={priceDisplayType} onValueChange={handlePriceDisplayChange}>
-                            <DropdownMenuRadioItem value="ht">Hors Taxe (HT)</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="ttc">Toutes Taxes Comprises (TTC)</DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Options d'affichage</p>
-                </TooltipContent>
-            </Tooltip>
-            </TooltipProvider>
         </div>
       </div>
       
