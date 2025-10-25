@@ -1455,6 +1455,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         let newCustomersCount = 0;
         let newItemsCount = 0;
         
+        const processPayment = (saleEntry: { sale: Sale, paymentTotals: Record<string, number> }, row: any) => {
+            const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+            paymentFields.forEach(field => {
+                if (row[field] && parseFloat(row[field]) > 0) {
+                    const methodName = field.replace('payment', '');
+                    saleEntry.paymentTotals[methodName] = (saleEntry.paymentTotals[methodName] || 0) + parseFloat(row[field]);
+                }
+            });
+        };
+
         const groupedRows: Record<string, any[]> = {};
         for (const row of limitedJsonData) {
             const ticketNum = row.ticketNumber;
@@ -1563,29 +1573,21 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     if (!vatInfo) throw new Error(`Taux de TVA introuvable pour l'article ${item.name}.`);
                     const unitPriceTTC = unitPriceHT * (1 + vatInfo.rate / 100);
 
-                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total: unitPriceTTC * quantity, vatId: item.vatId, barcode: item.barcode!, discount: 0 });
+                    saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: unitPriceTTC, quantity, total: unitPriceTTC * quantity, vatId: item.vatId, barcode: item.barcode || '', discount: 0 });
                 }
-
-                const subtotal = saleItems.reduce((acc, i) => acc + (i.total / (1 + (vatRates.find(v => v.id === i.vatId)?.rate || 0)/100)), 0);
-                const total = saleItems.reduce((acc, i) => acc + i.total, 0);
+                
+                const total = saleItems.reduce((acc, item) => acc + item.total, 0);
 
                 const seller = users.find(u => `${u.firstName} ${u.lastName}` === firstRow.sellerName);
 
                 const sale: Sale = {
-                    id: uuidv4(), ticketNumber: finalTicketNumber, date: saleDate, items: saleItems, subtotal, tax: total - subtotal, total, 
-                    payments: [], status: 'paid', customerId: customer?.id, userId: seller?.id, userName: firstRow.sellerName, documentType: documentType
+                    id: uuidv4(), ticketNumber: finalTicketNumber, date: saleDate,
+                    items: saleItems, subtotal: 0, tax: 0, total, payments: [], status: 'pending', // Default to pending
+                    customerId: customer?.id, userId: seller?.id, userName: firstRow.sellerName, documentType: documentType,
                 };
                 
                 const paymentTotals: Record<string, number> = {};
-                 rows.forEach(row => {
-                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                    paymentFields.forEach(field => {
-                        if (row[field] && parseFloat(row[field]) > 0) {
-                            const methodName = field.replace('payment', '');
-                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
-                        }
-                    });
-                });
+                rows.forEach(row => processPayment({ sale, paymentTotals }, row));
                 
                 salesMap.set(finalTicketNumber, { sale, paymentTotals });
 
@@ -1596,12 +1598,34 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
 
         for (const { sale, paymentTotals } of salesMap.values()) {
-            Object.entries(paymentTotals).forEach(([methodName, amount]) => {
+            const total = sale.items.reduce((acc, item) => acc + item.total, 0);
+            let totalTax = 0;
+            let totalSub = 0;
+
+            sale.items.forEach(item => {
+                const vatRateValue = vatRates.find(v => v.id === item.vatId)?.rate || 0;
+                const sub = item.total / (1 + vatRateValue / 100);
+                totalSub += sub;
+                totalTax += item.total - sub;
+            });
+
+            sale.total = total;
+            sale.tax = totalTax;
+            sale.subtotal = totalSub;
+
+            const totalPaid = Object.values(paymentTotals).reduce((sum, amount) => sum + amount, 0);
+
+            if (totalPaid >= total) {
+                sale.status = 'paid';
+            }
+            
+             Object.entries(paymentTotals).forEach(([methodName, amount]) => {
                 const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
                 if (method && amount > 0) {
                     sale.payments.push({ method, amount, date: sale.date });
                 }
             });
+
             setSales(prev => [sale, ...prev]);
             report.successCount++;
         }
