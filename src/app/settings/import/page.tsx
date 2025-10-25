@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature, ArrowUpDown, Rows, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +33,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader as ReportDialogHeader, DialogTitle as ReportDialogTitle, DialogDescription as ReportDialogDescription, DialogContent as ReportDialogContent } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -156,6 +157,7 @@ const requiredFieldsMap: Record<string, string[]> = {
 };
 
 type MappingMode = 'column' | 'fixed';
+type MappedColumnBehavior = 'disable' | 'hide';
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
@@ -279,6 +281,7 @@ export default function ImportDataPage() {
   const [mappings, setMappings] = useState<Record<string, number | null>>({});
   const [mappingModes, setMappingModes] = useState<Record<string, 'column' | 'fixed'>>({});
   const [fixedValues, setFixedValues] = useState<Record<string, string>>({});
+  const [mappedColumnBehavior, setMappedColumnBehavior] = usePersistentState<MappedColumnBehavior>('import.mappedColumnBehavior', 'disable');
   
   const [jsonData, setJsonData] = useState<any[] | null>(null);
   const [isConfirmImportOpen, setConfirmImportOpen] = useState(false);
@@ -378,6 +381,13 @@ export default function ImportDataPage() {
   };
 
   const availableFields = getAvailableFields();
+
+  const handleClearMapping = () => {
+    setMappings({});
+    setMappingModes({});
+    setFixedValues({});
+    toast({ title: 'Mappage réinitialisé' });
+  };
 
   const handleGenerateJson = () => {
     const requiredForType = requiredFieldsMap[dataType] || [];
@@ -667,45 +677,71 @@ export default function ImportDataPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center gap-4 mb-6 p-4 border rounded-lg">
-                        <Label>Modèles</Label>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-[200px] justify-between">
-                                Appliquer un modèle
-                                <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                {mappingTemplates.filter(t => t.dataType === dataType).length === 0 && <DropdownMenuItem disabled>Aucun modèle</DropdownMenuItem>}
-                                {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
-                                    <DropdownMenuItem key={template.name} onSelect={() => applyTemplate(template)}>
-                                        {template.name}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                    <div className="flex flex-wrap items-center gap-4 mb-6 p-4 border rounded-lg">
                         <div className="flex items-center gap-2">
-                            <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} />
-                            <Button onClick={handleSaveTemplate}><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
+                            <Label>Modèles</Label>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-[200px] justify-between">
+                                    Appliquer un modèle
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    {mappingTemplates.filter(t => t.dataType === dataType).length === 0 && <DropdownMenuItem disabled>Aucun modèle</DropdownMenuItem>}
+                                    {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                        <DropdownMenuItem key={template.name} onSelect={() => applyTemplate(template)}>
+                                            {template.name}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <div className="flex items-center gap-2">
+                                <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} />
+                                <Button onClick={handleSaveTemplate}><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
+                            </div>
+                            {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[200px] p-0" align="start">
+                                        <div className="flex flex-col text-sm">
+                                            <div className="p-2 font-semibold border-b">Supprimer un modèle</div>
+                                            {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
+                                                <Button key={template.name} variant="ghost" className="justify-start p-2" onClick={() => deleteMappingTemplate(template.name)}>
+                                                    {template.name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                </PopoverContent>
+                                </Popover>
+                            )}
                         </div>
-                        {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
-                             <Popover>
+                        <div className="flex-1" />
+                        <div className="flex items-center gap-2">
+                           <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="outline" size="icon"><Settings className="h-4 w-4"/></Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[200px] p-0" align="start">
-                                    <div className="flex flex-col text-sm">
-                                        <div className="p-2 font-semibold border-b">Supprimer un modèle</div>
-                                        {mappingTemplates.filter(t => t.dataType === dataType).map(template => (
-                                            <Button key={template.name} variant="ghost" className="justify-start p-2" onClick={() => deleteMappingTemplate(template.name)}>
-                                                {template.name}
-                                            </Button>
-                                        ))}
+                                <PopoverContent>
+                                     <div className="space-y-4">
+                                        <Label>Comportement des colonnes mappées</Label>
+                                        <RadioGroup value={mappedColumnBehavior} onValueChange={(v) => setMappedColumnBehavior(v as MappedColumnBehavior)}>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="disable" id="bh-disable" />
+                                                <Label htmlFor="bh-disable">Griser les colonnes utilisées</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="hide" id="bh-hide" />
+                                                <Label htmlFor="bh-hide">Masquer les colonnes utilisées</Label>
+                                            </div>
+                                        </RadioGroup>
                                     </div>
-                            </PopoverContent>
+                                </PopoverContent>
                             </Popover>
-                        )}
+                            <Button variant="outline" onClick={handleClearMapping}>Effacer le mappage</Button>
+                        </div>
                     </div>
 
                     {(dataType === 'ventes' || dataType === 'ventes_completes') && (
@@ -733,9 +769,8 @@ export default function ImportDataPage() {
                     )}
 
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
-                    <div className="space-y-4 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-6">
                       {availableFields.filter(f => f !== 'ignore').map((field) => {
-                        const required = requiredFieldsMap[dataType]?.includes(field as string);
                         const currentMode = mappingModes[field as string] || 'column';
                         return (
                             <div key={field as string} className={cn("grid grid-cols-2 gap-4 items-center p-2 border rounded-md transition-colors", currentMode === 'fixed' && "bg-blue-50 dark:bg-blue-900/20")}>
@@ -760,15 +795,16 @@ export default function ImportDataPage() {
                                       </SelectTrigger>
                                       <SelectContent>
                                           <SelectItem value="ignore">Ignorer</SelectItem>
-                                          {headerRow.map((header, index) => (
-                                              <SelectItem 
-                                                key={index} 
-                                                value={String(index)} 
-                                                disabled={mappedColumnIndices.has(index) && mappings[field as string] !== index}
-                                              >
-                                                {header}
-                                              </SelectItem>
-                                          ))}
+                                          {headerRow.map((header, index) => {
+                                              const isDisabled = mappedColumnBehavior === 'disable' && mappedColumnIndices.has(index) && mappings[field as string] !== index;
+                                              const isHidden = mappedColumnBehavior === 'hide' && mappedColumnIndices.has(index) && mappings[field as string] !== index;
+                                              if (isHidden) return null;
+                                              return (
+                                                <SelectItem key={index} value={String(index)} disabled={isDisabled}>
+                                                  {header}
+                                                </SelectItem>
+                                              )
+                                          })}
                                       </SelectContent>
                                   </Select>
                                 ) : (
