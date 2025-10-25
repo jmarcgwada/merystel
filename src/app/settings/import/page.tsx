@@ -659,16 +659,16 @@ export default function ImportDataPage() {
             </div>
         </TabsContent>
         <TabsContent value="mapping">
-            <Card className="mt-4">
-                 <CardHeader className="pb-2">
+            <Card className="mt-2">
+                 <CardHeader className="pb-4 pt-4">
                     <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
-                            <CardDescription className="mt-1">
+                        <div className="space-y-1">
+                            <CardTitle className="text-xl">Étape 2: Mappage des Colonnes</CardTitle>
+                            <CardDescription>
                                 Faites correspondre chaque champ requis (*) à une colonne de votre fichier.
                             </CardDescription>
                         </div>
-                        {fileName && (
+                         {fileName && (
                             <div className="text-sm text-muted-foreground text-right flex-shrink-0 ml-4">
                                 <p className="font-semibold">{fileName}</p>
                                 <p>{parsedData.length} lignes détectées</p>
@@ -677,7 +677,7 @@ export default function ImportDataPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                     <div className="flex flex-wrap items-center gap-2 mb-4 p-2 border rounded-lg bg-muted/50">
+                    <div className="flex flex-wrap items-center gap-2 mb-4 p-2 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2">
                             <Label className="text-xs">Modèles:</Label>
                             <DropdownMenu>
@@ -697,8 +697,8 @@ export default function ImportDataPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <div className="flex items-center gap-2 flex-1">
-                            <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} className="h-8 text-xs" />
+                        <div className="flex items-center gap-2 flex-grow">
+                            <Input placeholder="Nom du modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} className="h-8 text-xs max-w-xs" />
                             <Button onClick={handleSaveTemplate} size="sm" className="h-8"><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
                              {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
                                 <Popover>
@@ -714,11 +714,38 @@ export default function ImportDataPage() {
                                                 </Button>
                                             ))}
                                         </div>
-                                </PopoverContent>
+                                    </PopoverContent>
                                 </Popover>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
+                           {(dataType === 'ventes' || dataType === 'ventes_completes') && (
+                                <Accordion type="single" collapsible className="w-auto">
+                                    <AccordionItem value="help" className="border-b-0">
+                                    <AccordionTrigger className="p-0 hover:no-underline">
+                                        <div className="flex items-center gap-2 text-sm text-primary">
+                                        <HelpCircle className="h-4 w-4" />
+                                        Aide
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <Card className="mt-2">
+                                            <CardContent className="pt-4 text-xs">
+                                                <div className="prose prose-sm max-w-none text-muted-foreground">
+                                                    <p>L'importation des ventes se fait ligne par ligne, où chaque ligne de votre fichier CSV représente une ligne d'article dans une pièce (facture, ticket...).</p>
+                                                    <ul>
+                                                        <li>Utilisez le champ <strong>Numéro de pièce</strong> pour regrouper les lignes d'articles appartenant à la même transaction.</li>
+                                                        <li>Les champs obligatoires sont marqués d'un astérisque (*).</li>
+                                                        <li>Pour les paiements, vous pouvez utiliser une ou plusieurs colonnes (ex: `paymentCash`, `paymentCard`). Le système additionnera les montants.</li>
+                                                        <li>Si une ligne ne contient pas de code-barres article, sa désignation est ajoutée comme une note à l'article de la ligne précédente.</li>
+                                                    </ul>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            )}
                            <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant="outline" size="icon" className="h-8 w-8"><Settings className="h-4 w-4"/></Button>
@@ -742,30 +769,6 @@ export default function ImportDataPage() {
                             <Button variant="outline" size="sm" className="h-8" onClick={handleClearMapping}>Effacer</Button>
                         </div>
                     </div>
-
-                    {(dataType === 'ventes' || dataType === 'ventes_completes') && (
-                        <Accordion type="single" collapsible className="mb-4">
-                            <AccordionItem value="help">
-                            <AccordionTrigger>
-                                <div className="flex items-center gap-2 text-sm text-primary">
-                                <HelpCircle className="h-4 w-4" />
-                                Aide pour l'importation des ventes
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="prose prose-sm max-w-none text-muted-foreground p-4 bg-muted/50 rounded-md">
-                                <p>L'importation des ventes se fait ligne par ligne, où chaque ligne de votre fichier CSV représente une ligne d'article dans une pièce (facture, ticket...).</p>
-                                <ul>
-                                    <li>Utilisez le champ <strong>Numéro de pièce</strong> pour regrouper les lignes d'articles appartenant à la même transaction.</li>
-                                    <li>Les champs obligatoires sont marqués d'un astérisque (*). Assurez-vous qu'ils sont bien mappés.</li>
-                                    <li>Pour les paiements, vous pouvez utiliser une ou plusieurs colonnes (ex: `paymentCash`, `paymentCard`). Le système additionnera les montants pour obtenir le paiement total.</li>
-                                     <li>Si une ligne ne contient pas de code-barres article, sa désignation est automatiquement ajoutée comme une note à l'article de la ligne précédente (au sein de la même pièce).</li>
-                                </ul>
-                                </div>
-                            </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    )}
 
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pr-6">
