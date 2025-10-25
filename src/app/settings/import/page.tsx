@@ -659,17 +659,17 @@ export default function ImportDataPage() {
             </div>
         </TabsContent>
         <TabsContent value="mapping">
-            <Card className="mt-2">
+            <Card className="mt-4">
                  <CardHeader className="pb-4 pt-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-4">
                         <div className="space-y-1">
-                            <CardTitle className="text-xl">Étape 2: Mappage des Colonnes</CardTitle>
+                            <CardTitle className="text-lg">Étape 2: Mappage des Colonnes</CardTitle>
                             <CardDescription>
                                 Faites correspondre chaque champ requis (*) à une colonne de votre fichier.
                             </CardDescription>
                         </div>
                          {fileName && (
-                            <div className="text-sm text-muted-foreground text-right flex-shrink-0 ml-4">
+                            <div className="text-sm text-muted-foreground text-right flex-shrink-0">
                                 <p className="font-semibold">{fileName}</p>
                                 <p>{parsedData.length} lignes détectées</p>
                             </div>
@@ -697,8 +697,8 @@ export default function ImportDataPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <div className="flex items-center gap-2 flex-grow">
-                            <Input placeholder="Nom du modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} className="h-8 text-xs max-w-xs" />
+                        <div className="flex items-center gap-2">
+                            <Input placeholder="Nom du modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} className="h-8 text-xs max-w-40" />
                             <Button onClick={handleSaveTemplate} size="sm" className="h-8"><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
                              {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
                                 <Popover>
@@ -718,8 +718,9 @@ export default function ImportDataPage() {
                                 </Popover>
                             )}
                         </div>
+                        <div className="flex-grow"></div>
                         <div className="flex items-center gap-2">
-                           {(dataType === 'ventes' || dataType === 'ventes_completes') && (
+                            {(dataType === 'ventes' || dataType === 'ventes_completes') && (
                                 <Accordion type="single" collapsible className="w-auto">
                                     <AccordionItem value="help" className="border-b-0">
                                     <AccordionTrigger className="p-0 hover:no-underline">
@@ -835,13 +836,37 @@ export default function ImportDataPage() {
         </TabsContent>
          <TabsContent value="json">
             <Card className="mt-4">
-                 <CardHeader>
+                <CardHeader>
                     <CardTitle>Étape 3: JSON & Importation</CardTitle>
                     <CardDescription>
                         Voici les données formatées en JSON. Vérifiez-les avant d'importer.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="flex justify-between items-center mb-4 p-4 border rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-4">
+                            <Label htmlFor="import-limit" className="whitespace-nowrap">Lignes à importer</Label>
+                            <Input
+                                id="import-limit"
+                                type="number"
+                                value={importLimit}
+                                onChange={(e) => setImportLimit(Number(e.target.value))}
+                                min={0}
+                                className="w-32 h-9"
+                                placeholder="Toutes"
+                            />
+                            <p className="text-sm text-muted-foreground">({jsonData?.length || 0} lignes au total)</p>
+                        </div>
+                        <div className="flex gap-2">
+                             <Button variant="outline" onClick={() => setActiveTab('mapping')}>
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
+                            </Button>
+                            <Button onClick={() => setConfirmImportOpen(true)} disabled={isImporting}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                {isImporting ? 'Importation...' : 'Importer les Données'}
+                            </Button>
+                        </div>
+                    </div>
                      <Alert className="mb-4">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Vérification des doublons</AlertTitle>
@@ -849,30 +874,11 @@ export default function ImportDataPage() {
                             Le système vérifiera les doublons pour les champs obligatoires (Code Client, Code Fournisseur, Code-barres article, Numéro de pièce). Les lignes avec des identifiants déjà existants seront ignorées.
                         </p>
                     </Alert>
-                    <div className="mb-4 space-y-2">
-                        <Label htmlFor="import-limit">Nombre de lignes à importer (0 ou vide pour tout importer)</Label>
-                        <Input 
-                            id="import-limit" 
-                            type="number" 
-                            value={importLimit} 
-                            onChange={(e) => setImportLimit(Number(e.target.value))} 
-                            min={0} 
-                            className="w-48"
-                        />
-                    </div>
+                    
                     <ScrollArea className="h-[400px] border rounded-md bg-muted/50 p-4">
                         <pre className="text-xs">{jsonData ? JSON.stringify(jsonData.slice(0, importLimit || undefined), null, 2) : "Aucune donnée générée."}</pre>
                     </ScrollArea>
                 </CardContent>
-                <CardFooter className="justify-between">
-                     <Button variant="outline" onClick={() => setActiveTab('mapping')}>
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
-                    </Button>
-                    <Button onClick={() => setConfirmImportOpen(true)} disabled={isImporting}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        {isImporting ? 'Importation en cours...' : 'Importer les Données'}
-                    </Button>
-                </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>
@@ -909,3 +915,4 @@ export default function ImportDataPage() {
     </>
   );
 }
+
