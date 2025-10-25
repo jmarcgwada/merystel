@@ -417,7 +417,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -427,7 +427,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatRate', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());
@@ -518,7 +518,7 @@ export default function ImportDataPage() {
         </Button>
       </PageHeader>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
         <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="file">Étape 1: Fichier & Format</TabsTrigger>
             <TabsTrigger value="mapping" disabled={!fileContent}>Étape 2: Mappage</TabsTrigger>
@@ -660,30 +660,30 @@ export default function ImportDataPage() {
         </TabsContent>
         <TabsContent value="mapping">
             <Card className="mt-4">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
-                      <CardDescription>
-                          Faites correspondre chaque champ de l'application à une colonne de votre fichier. Les champs avec * sont obligatoires.
-                      </CardDescription>
-                    </div>
-                     {fileName && (
-                        <div className="text-sm text-muted-foreground text-right flex-shrink-0 ml-4">
-                            <p className="font-semibold">{fileName}</p>
-                            <p>{parsedData.length} lignes détectées</p>
+                 <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>Étape 2: Mappage des Colonnes</CardTitle>
+                            <CardDescription className="mt-1">
+                                Faites correspondre chaque champ requis (*) à une colonne de votre fichier.
+                            </CardDescription>
                         </div>
-                    )}
-                  </div>
+                        {fileName && (
+                            <div className="text-sm text-muted-foreground text-right flex-shrink-0 ml-4">
+                                <p className="font-semibold">{fileName}</p>
+                                <p>{parsedData.length} lignes détectées</p>
+                            </div>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-wrap items-center gap-4 mb-6 p-4 border rounded-lg">
+                     <div className="flex flex-wrap items-center gap-2 mb-4 p-2 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2">
-                            <Label>Modèles</Label>
+                            <Label className="text-xs">Modèles:</Label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-[200px] justify-between">
-                                    Appliquer un modèle
+                                    <Button variant="outline" size="sm" className="h-8">
+                                    Appliquer
                                     <ChevronDown className="ml-2 h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -696,14 +696,14 @@ export default function ImportDataPage() {
                                     ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <div className="flex items-center gap-2">
-                                <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} />
-                                <Button onClick={handleSaveTemplate}><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
-                            </div>
-                            {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
+                        </div>
+                        <div className="flex items-center gap-2 flex-1">
+                            <Input placeholder="Nom du nouveau modèle..." value={templateName} onChange={e => setTemplateName(e.target.value)} className="h-8 text-xs" />
+                            <Button onClick={handleSaveTemplate} size="sm" className="h-8"><Save className="mr-2 h-4 w-4" />Sauvegarder</Button>
+                             {mappingTemplates.filter(t => t.dataType === dataType).length > 0 && (
                                 <Popover>
                                     <PopoverTrigger asChild>
-                                        <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                        <Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[200px] p-0" align="start">
                                         <div className="flex flex-col text-sm">
@@ -718,11 +718,10 @@ export default function ImportDataPage() {
                                 </Popover>
                             )}
                         </div>
-                        <div className="flex-1" />
                         <div className="flex items-center gap-2">
                            <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="icon"><Settings className="h-4 w-4"/></Button>
+                                    <Button variant="outline" size="icon" className="h-8 w-8"><Settings className="h-4 w-4"/></Button>
                                 </PopoverTrigger>
                                 <PopoverContent>
                                      <div className="space-y-4">
@@ -740,12 +739,12 @@ export default function ImportDataPage() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                            <Button variant="outline" onClick={handleClearMapping}>Effacer le mappage</Button>
+                            <Button variant="outline" size="sm" className="h-8" onClick={handleClearMapping}>Effacer</Button>
                         </div>
                     </div>
 
                     {(dataType === 'ventes' || dataType === 'ventes_completes') && (
-                        <Accordion type="single" collapsible className="mb-6">
+                        <Accordion type="single" collapsible className="mb-4">
                             <AccordionItem value="help">
                             <AccordionTrigger>
                                 <div className="flex items-center gap-2 text-sm text-primary">
@@ -769,7 +768,7 @@ export default function ImportDataPage() {
                     )}
 
                   <ScrollArea className="max-h-[60vh] overflow-y-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pr-6">
                       {availableFields.filter(f => f !== 'ignore').map((field) => {
                         const currentMode = mappingModes[field as string] || 'column';
                         return (
