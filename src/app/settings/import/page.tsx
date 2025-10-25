@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature, ArrowUpDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -288,6 +289,8 @@ export default function ImportDataPage() {
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
 
+  const [sortConfig, setSortConfig] = useState<{ key: number; direction: 'asc' | 'desc' } | null>(null);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -300,6 +303,7 @@ export default function ImportDataPage() {
         setMappings({});
         setMappingModes({});
         setFixedValues({});
+        setSortConfig(null);
         setActiveTab('file'); 
       };
       reader.readAsText(file);
@@ -310,6 +314,7 @@ export default function ImportDataPage() {
     setFileName('');
     setFileContent('');
     setJsonData(null);
+    setSortConfig(null);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -322,6 +327,44 @@ export default function ImportDataPage() {
 
   const headerRow = useMemo(() => (hasHeader && parsedData.length > 0) ? parsedData[0] : (parsedData.length > 0 ? parsedData[0].map((_, i) => `Colonne ${i + 1}`) : []), [parsedData, hasHeader]);
   const dataRows = useMemo(() => hasHeader ? parsedData.slice(1) : parsedData, [parsedData, hasHeader]);
+
+  const sortedDataRows = useMemo(() => {
+    if (!sortConfig) return dataRows;
+    
+    const sorted = [...dataRows].sort((a, b) => {
+      const aValue = a[sortConfig.key] || '';
+      const bValue = b[sortConfig.key] || '';
+      
+      const isNumeric = !isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue));
+      
+      if (isNumeric) {
+        return sortConfig.direction === 'asc' 
+          ? parseFloat(aValue) - parseFloat(bValue)
+          : parseFloat(bValue) - parseFloat(aValue);
+      }
+      
+      return sortConfig.direction === 'asc' 
+        ? aValue.localeCompare(bValue) 
+        : bValue.localeCompare(aValue);
+    });
+    
+    return sorted;
+  }, [dataRows, sortConfig]);
+
+  const requestSort = (key: number) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (columnIndex: number) => {
+    if (!sortConfig || sortConfig.key !== columnIndex) {
+      return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  };
   
   const getAvailableFields = () => {
     switch (dataType) {
@@ -565,15 +608,22 @@ export default function ImportDataPage() {
                                 {headerRow.length > 0 && (
                                   <TableHeader className="sticky top-0 bg-background z-10">
                                     <TableRow>
+                                       <TableHead className="w-12">#</TableHead>
                                       {headerRow.map((header, index) => (
-                                        <TableHead key={index} className="whitespace-nowrap">{header}</TableHead>
+                                        <TableHead key={index} className="whitespace-nowrap">
+                                           <Button variant="ghost" onClick={() => requestSort(index)} className="px-2">
+                                              {header}
+                                              {getSortIcon(index)}
+                                           </Button>
+                                        </TableHead>
                                       ))}
                                     </TableRow>
                                   </TableHeader>
                                 )}
                                 <TableBody>
-                                  {dataRows.slice(0, 100).map((row, rowIndex) => (
+                                  {sortedDataRows.slice(0, 100).map((row, rowIndex) => (
                                     <TableRow key={rowIndex}>
+                                      <TableCell className="text-xs text-muted-foreground">{rowIndex + 1}</TableCell>
                                       {row.map((cell, cellIndex) => (
                                         <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
                                       ))}
@@ -821,5 +871,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-
-    
