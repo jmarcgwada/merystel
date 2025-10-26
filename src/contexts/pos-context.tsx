@@ -166,6 +166,7 @@ export interface PosContextType {
   saveTableOrderAndExit: (tableId: string, order: OrderItem[]) => void;
   promoteTableToTicket: (tableId: string, order: OrderItem[]) => void;
   sales: Sale[];
+  updateSale: (sale: Sale) => Promise<void>;
   recordSale: (
     sale: Omit<Sale, 'id' | 'ticketNumber' | 'date'>,
     saleIdToUpdate?: string
@@ -1199,6 +1200,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       return null;
   }, [recordCommercialDocument, sendEmailOnSale, smtpConfig]);
 
+  const updateSale = useCallback(async (saleData: Sale) => {
+      setSales(prev => prev.map(s => s.id === saleData.id ? {...saleData, updatedAt: new Date()} : s));
+  }, [setSales]);
+
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
             toast({ variant: "destructive", title: "Mot de passe requis" });
@@ -1776,7 +1781,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setSessionInvalidated, items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, 
     updateCategory, deleteCategory, toggleCategoryFavorite, getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, 
     suppliers, addSupplier, updateSupplier, deleteSupplier, tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, 
-    setSelectedTableById, updateTableOrder, saveTableOrderAndExit, promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, 
+    setSelectedTableById, updateTableOrder, saveTableOrderAndExit, promoteTableToTicket, sales, updateSale, recordSale, recordCommercialDocument, deleteAllSales, 
     generateRandomSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, vatRates, addVatRate, updateVatRate, deleteVatRate, 
     heldOrders, holdOrder, recallOrder, deleteHeldOrder, auditLogs, isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation, seedInitialData, 
     resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDataFromJson, importDemoData, importDemoCustomers, importDemoSuppliers, cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
