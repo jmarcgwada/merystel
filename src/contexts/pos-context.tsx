@@ -1601,6 +1601,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const saleItems: OrderItem[] = [];
                 const paymentTotals: Record<string, number> = {};
 
+                // Process payments only from the first row
+                const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+                paymentFields.forEach(field => {
+                    if (firstRow[field] && parseFloat(firstRow[field]) > 0) {
+                        const methodName = field.replace('payment', '').toLowerCase();
+                        paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(firstRow[field]);
+                    }
+                });
+
                 for (const row of rows) {
                     if (!row.itemBarcode) {
                         if (saleItems.length > 0) {
@@ -1654,15 +1663,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
                 
                 const total = saleItems.reduce((acc, item) => acc + item.total, 0);
-                const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                rows.forEach(row => {
-                    paymentFields.forEach(field => {
-                        if (row[field] && parseFloat(row[field]) > 0) {
-                            const methodName = field.replace('payment', '').toLowerCase();
-                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
-                        }
-                    });
-                });
 
                 const seller = users.find(u => `${u.firstName} ${u.lastName}` === firstRow.sellerName);
 
