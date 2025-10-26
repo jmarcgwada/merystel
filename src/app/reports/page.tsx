@@ -44,6 +44,8 @@ import jsPDF from 'jspdf';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { SaleDetailModal } from './components/sale-detail-modal';
+
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
 
@@ -229,6 +231,9 @@ function ReportsPageContent() {
   
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [saleToConvert, setSaleToConvert] = useState<Sale | null>(null);
+
+  const [selectedSaleForModal, setSelectedSaleForModal] = useState<Sale | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -580,6 +585,11 @@ function ReportsPageContent() {
         }
         router.push(path);
     };
+
+    const handleOpenDetailModal = (sale: Sale) => {
+        setSelectedSaleForModal(sale);
+        setIsDetailModalOpen(true);
+    };
     
   const getDetailLink = (saleId: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -862,7 +872,6 @@ function ReportsPageContent() {
                                             <TableRow 
                                             key={sale.id}
                                             ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
-                                            onClick={() => setLastSelectedSaleId(sale.id)}
                                             className={cn(
                                                 'cursor-pointer',
                                                 sale.id === lastSelectedSaleId
@@ -872,7 +881,7 @@ function ReportsPageContent() {
                                             style={getRowStyle(sale)}
                                             >
                                                 {visibleColumns.type && <TableCell>
-                                                    <Link href={getDetailLink(sale.id)} className="block w-full h-full">
+                                                     <Link href={getDetailLink(sale.id)} className="block w-full h-full" onClick={(e) => e.stopPropagation()}>
                                                         <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
                                                     </Link>
                                                 </TableCell>}
@@ -912,10 +921,8 @@ function ReportsPageContent() {
                                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                             <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                        <Button asChild variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                            <Link href={getDetailLink(sale.id)}>
-                                                                <Eye className="h-4 w-4" />
-                                                            </Link>
+                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleOpenDetailModal(sale);}}>
+                                                            <Eye className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -929,6 +936,11 @@ function ReportsPageContent() {
                 </div>
             </div>
         </div>
+      <SaleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        sale={selectedSaleForModal}
+      />
     </>
     );
 }

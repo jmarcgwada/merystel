@@ -13,6 +13,7 @@ import { User, Calendar, Clock } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 interface SaleDetailModalProps {
   isOpen: boolean;
@@ -36,7 +37,8 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
 };
 
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
-  const { customers, users, loadSaleForEditing } = usePos();
+  const { customers, users, loadSaleForEditing, lastReportsUrl } = usePos();
+  const router = useRouter();
   
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
@@ -48,10 +50,13 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   const isInvoice = sale.documentType === 'invoice';
 
   const handleEdit = () => {
-    if (sale.documentType === 'invoice') {
-        onClose();
-        loadSaleForEditing(sale.id, 'invoice');
-    }
+    onClose();
+    let path = '/commercial/invoices';
+    if(sale.documentType === 'quote') path = '/commercial/quotes';
+    else if (sale.documentType === 'delivery_note') path = '/commercial/delivery-notes';
+    else if (sale.documentType === 'supplier_order') path = '/commercial/supplier-orders';
+    else if (sale.documentType === 'credit_note') path = '/commercial/credit-notes';
+    router.push(`${path}?edit=${sale.id}`);
   };
 
   return (
@@ -117,7 +122,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" asChild>
-                <Link href={`/reports/${sale.id}?from=payments`}>Voir la fiche détaillée</Link>
+                <Link href={lastReportsUrl || `/reports/${sale.id}?from=payments`}>Voir la fiche détaillée</Link>
             </Button>
             {isInvoice && balanceDue > 0 && (
                 <Button onClick={handleEdit}>
