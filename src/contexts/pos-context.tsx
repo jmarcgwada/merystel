@@ -1156,7 +1156,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog, clearOrder, router, currentSaleContext, setTablesData]);
 
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        await recordCommercialDocument({ ...saleData }, 'ticket', saleIdToUpdate);
+        await recordCommercialDocument({ ...saleData, documentType: 'ticket' }, 'ticket', saleIdToUpdate);
         return null;
     }, [recordCommercialDocument]);
 
@@ -1517,7 +1517,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const paymentTotals: Record<string, number> = {};
 
                 for (const row of rows) {
-                    // Process payments for each row
                     const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
                     paymentFields.forEach(field => {
                         if (row[field] && parseFloat(row[field]) > 0) {
@@ -1583,7 +1582,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 const sale: Sale = {
                     id: uuidv4(), ticketNumber: finalTicketNumber, date: saleDate,
-                    items: saleItems, subtotal: 0, tax: 0, total, payments: [], status: 'pending', // Default to pending
+                    items: saleItems, subtotal: 0, tax: 0, total, payments: [], status: 'pending',
                     customerId: customer?.id, userId: seller?.id, userName: firstRow.sellerName, documentType: documentType,
                 };
                 
@@ -1613,7 +1612,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
             const totalPaid = Object.values(paymentTotals).reduce((sum, amount) => sum + amount, 0);
             
-            if (totalPaid >= total) {
+            if (totalPaid >= total - 0.009) {
                 sale.status = 'paid';
             } else if (totalPaid > 0) {
                 sale.status = 'pending';
@@ -1775,5 +1774,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
