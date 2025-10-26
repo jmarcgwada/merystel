@@ -305,7 +305,7 @@ export default function FirestoreDataPage() {
                             <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
                             <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace">
                                 <Delete className="h-6 w-6"/>
-                            </Button>
+                             </Button>
                             <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
                        </div>
                     </div>
@@ -364,12 +364,26 @@ export default function FirestoreDataPage() {
                 </Card>
 
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Gestion des Données</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Sauvegarde et Restauration</h2>
+                     <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Sauvegarde du Code Projet</CardTitle>
+                            <CardDescription>
+                                La méthode la plus fiable pour sauvegarder votre projet est de générer un "Prompt Projet". Il contient la description complète de l'architecture et de la logique de l'application, vous permettant de la recréer à l'identique.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button variant="default" onClick={() => setPromptViewerOpen(true)}>
+                              <FileCode className="mr-2 h-4 w-4" />
+                              Générer le Prompt Projet
+                            </Button>
+                        </CardContent>
+                    </Card>
                     <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Importation / Exportation</CardTitle>
+                            <CardTitle>Sauvegarde des Données</CardTitle>
                             <CardDescription>
-                                Sauvegardez ou restaurez l'ensemble de votre configuration (articles, catégories, paramètres, etc.).
+                                Exportez uniquement les données de configuration (articles, catégories, etc.) sous forme de fichier JSON. Utile pour les transferts ou comme sauvegarde simple.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row gap-4">
@@ -474,13 +488,6 @@ export default function FirestoreDataPage() {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                          <div className="w-full">
-                            <Separator className="my-4"/>
-                            <Button variant="link" onClick={() => setPromptViewerOpen(true)}>
-                              <FileCode className="mr-2 h-4 w-4" />
-                              Générer le Prompt Projet
-                            </Button>
-                          </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -489,4 +496,4 @@ export default function FirestoreDataPage() {
        <SelectiveResetDialog isOpen={isSelectiveResetOpen} onClose={() => setSelectiveResetOpen(false)} />
     </>
   );
-}
+ 
