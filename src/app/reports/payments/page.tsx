@@ -293,7 +293,17 @@ export default function PaymentsReportPage() {
         return filteredAndSortedPayments.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedPayments, currentPage, itemsPerPage]);
 
-     const { summaryTitle, totalRevenue, totalPayments, averagePayment } = useMemo(() => {
+     const { summaryTitle, totalRevenue, totalPayments, averagePayment, paymentMethodSummary } = useMemo(() => {
+        const paymentSummary = filteredAndSortedPayments.reduce((acc, p) => {
+            const name = p.method.name;
+            if (!acc[name]) {
+                acc[name] = { count: 0, total: 0 };
+            }
+            acc[name].count += 1;
+            acc[name].total += p.amount;
+            return acc;
+        }, {} as Record<string, { count: number; total: number }>);
+        
         const totalRev = filteredAndSortedPayments.reduce((acc, p) => acc + p.amount, 0);
         const totalPay = filteredAndSortedPayments.length;
         const avgPay = totalPay > 0 ? totalRev / totalPay : 0;
@@ -309,7 +319,13 @@ export default function PaymentsReportPage() {
             else if (type === 'out') title = "Total Dépensé";
         }
         
-        return { summaryTitle: title, totalRevenue: totalRev, totalPayments: totalPay, averagePayment: avgPay };
+        return { 
+            summaryTitle: title, 
+            totalRevenue: totalRev, 
+            totalPayments: totalPay, 
+            averagePayment: avgPay,
+            paymentMethodSummary: paymentSummary,
+        };
     }, [filteredAndSortedPayments, filterDocTypes]);
 
     const requestSort = (key: SortKey) => {
@@ -340,6 +356,11 @@ export default function PaymentsReportPage() {
         setFilterSellerName('');
         setGeneralFilter('');
         setCurrentPage(1);
+    }
+    
+    const setTodayFilter = () => {
+        const today = new Date();
+        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
     }
 
     const getRowStyle = (payment: (typeof paginatedPayments)[0]) => {
@@ -386,6 +407,7 @@ export default function PaymentsReportPage() {
         subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedPayments.length} paiements sur ${allPayments.length} au total)`}
       >
         <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
             <Button asChild variant="secondary">
                 <Link href="/reports">
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -401,11 +423,56 @@ export default function PaymentsReportPage() {
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div>
+              </CardContent>
+          </Card>
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">+{totalPayments}</div>
+              </CardContent>
+          </Card>
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle>
+                  <Scale className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div>
+              </CardContent>
+          </Card>
         </div>
+        
+        {Object.keys(paymentMethodSummary).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(paymentMethodSummary).map(([method, data]) => (
+                <Card key={method}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{method}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
+                    <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
             <Card>
@@ -443,7 +510,7 @@ export default function PaymentsReportPage() {
                   </div>
                 </CardHeader>
                 <CollapsibleContent asChild>
-                    <CardContent className="flex items-center gap-2 flex-wrap">
+                    <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                         <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
@@ -495,7 +562,15 @@ export default function PaymentsReportPage() {
             </div></div></CardHeader>
             <CardContent className="pt-0">
                 <Table>
-                    <TableHeader><TableRow><TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead><TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead><TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead><TableHead className="w-[80px] text-right">Actions</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow>
+                        <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead>
+                        <TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead>
+                        <TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead>
+                        <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
+                        <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>
+                        <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead>
+                        <TableHead className="w-[80px] text-right">Actions</TableHead>
+                    </TableRow></TableHeader>
                     <TableBody>
                         {!paginatedPayments.length && <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucun paiement trouvé pour cette sélection.</TableCell></TableRow>}
                         {paginatedPayments.map((payment, index) => {
