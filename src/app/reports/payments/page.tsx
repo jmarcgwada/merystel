@@ -579,18 +579,13 @@ export default function PaymentsReportPage() {
                           {paginatedPayments.map((payment, index) => {
                               const customerName = getCustomerName(payment.customerId);
                               const sellerName = getUserName(payment.userId, payment.userName);
-                              const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-                              
                               return (
                                   <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
                                       <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                       <TableCell>
-                                          <div className="flex flex-col">
-                                              <Button variant="link" className="p-0 h-auto justify-start" onClick={() => openSaleDetailModal(payment.saleId)}>
-                                                <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
-                                              </Button>
-                                              <span className="text-xs text-muted-foreground mt-1 capitalize">{documentTypes[docType as keyof typeof documentTypes]?.label || docType}</span>
-                                          </div>
+                                          <Button variant="link" className="p-0 h-auto justify-start" onClick={() => openSaleDetailModal(payment.saleId)}>
+                                              <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
+                                          </Button>
                                       </TableCell>
                                       <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                       <TableCell>{customerName}</TableCell>
