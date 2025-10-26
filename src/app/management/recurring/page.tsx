@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -33,7 +34,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 
 export default function RecurringInvoicesPage() {
-  const { sales, customers, isLoading, updateSale, recordCommercialDocument } = usePos();
+  const { sales, customers, isLoading, updateSale, recordCommercialDocument, generateSingleRecurringInvoice } = usePos();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -42,6 +43,9 @@ export default function RecurringInvoicesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isGenerateConfirmOpen, setGenerateConfirmOpen] = useState(false);
   const [generationNote, setGenerationNote] = useState('');
+  
+  const [saleToGenerate, setSaleToGenerate] = useState<Sale | null>(null);
+  const [isSingleGenerateConfirmOpen, setSingleGenerateConfirmOpen] = useState(false);
 
   const recurringSales = useMemo(() => {
     return sales?.filter(s => s.isRecurring).sort((a,b) => new Date(a.date as any).getTime() - new Date(b.date as any).getTime()) || [];
@@ -98,23 +102,26 @@ export default function RecurringInvoicesPage() {
     const selectedSales = recurringSales.filter(s => selectedIds.includes(s.id));
 
     for (const sale of selectedSales) {
-        const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
-            items: sale.items,
-            subtotal: sale.subtotal,
-            tax: sale.tax,
-            total: sale.total,
-            status: 'pending',
-            customerId: sale.customerId,
-            payments: [],
-            notes: generationNote || undefined,
-        };
-        await recordCommercialDocument(newInvoiceData, 'invoice');
+        await recordCommercialDocument({ ...sale, status: 'pending', notes: generationNote || undefined }, 'invoice');
     }
     
     setGenerationNote('');
     toast({ title: "Génération terminée", description: `${selectedSales.length} factures ont été créées.` });
     setSelectedIds([]);
   }
+  
+  const handleGenerateSingle = async () => {
+    if (!saleToGenerate) return;
+    
+    setSingleGenerateConfirmOpen(false);
+    toast({ title: "Génération en cours..." });
+    
+    await generateSingleRecurringInvoice(saleToGenerate.id, generationNote);
+    
+    setSaleToGenerate(null);
+    setGenerationNote('');
+  };
+
 
   return (
     <>
@@ -165,7 +172,7 @@ export default function RecurringInvoicesPage() {
                           <TableHead>Fréquence</TableHead>
                           <TableHead>Prochaine Échéance</TableHead>
                           <TableHead>Statut</TableHead>
-                          <TableHead className="w-[100px] text-right">Actions</TableHead>
+                          <TableHead className="w-[150px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -214,6 +221,9 @@ export default function RecurringInvoicesPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" title="Générer maintenant" onClick={(e) => { e.stopPropagation(); setSaleToGenerate(sale); setSingleGenerateConfirmOpen(true); }}>
+                                    <FileCog className="h-4 w-4 text-blue-600" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
                                       <Edit className="h-4 w-4"/>
                                   </Button>
@@ -263,6 +273,31 @@ export default function RecurringInvoicesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleGenerateSelected}>
+                Confirmer et Générer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isSingleGenerateConfirmOpen} onOpenChange={setSingleGenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Générer une facture manuellement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous allez créer une nouvelle facture basée sur le modèle "{saleToGenerate?.ticketNumber}". La date de prochaine échéance ne sera pas modifiée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="single-generation-note">Note pour la facture (optionnel)</Label>
+            <Textarea 
+              id="single-generation-note"
+              placeholder="Ex: Facturation anticipée..."
+              value={generationNote}
+              onChange={(e) => setGenerationNote(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGenerateSingle}>
                 Confirmer et Générer
             </AlertDialogAction>
           </AlertDialogFooter>
