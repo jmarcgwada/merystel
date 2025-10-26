@@ -1150,7 +1150,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisée' : 'enregistrée'}` });
         clearOrder();
   
-        // Redirect after saving/updating a commercial doc, but not for tickets from POS
         if (type !== 'ticket') {
           const reportPath = type === 'quote' ? '/reports?docType=quote'
                            : type === 'delivery_note' ? '/reports?docType=delivery_note'
@@ -1160,13 +1159,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           router.push(reportPath);
         }
       },
-      [sales, user, clearOrder, toast, router, setSales]
+      [sales, setSales, user, toast, router, clearOrder]
     );
 
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
         const docType = saleData.documentType || 'ticket';
         recordCommercialDocument(saleData, docType, saleIdToUpdate);
-        return null;
+        return null; // The function now returns void, so we adapt.
     }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
@@ -1528,14 +1527,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const paymentTotals: Record<string, number> = {};
 
                 for (const row of rows) {
-                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                    paymentFields.forEach(field => {
-                        if (row[field] && parseFloat(row[field]) > 0) {
-                            const methodName = field.replace('payment', '').toLowerCase();
-                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
-                        }
-                    });
-
                     if (!row.itemBarcode) {
                         if (saleItems.length > 0) {
                             const lastItem = saleItems[saleItems.length - 1];
@@ -1588,6 +1579,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
                 
                 const total = saleItems.reduce((acc, item) => acc + item.total, 0);
+                const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+                rows.forEach(row => {
+                    paymentFields.forEach(field => {
+                        if (row[field] && parseFloat(row[field]) > 0) {
+                            const methodName = field.replace('payment', '').toLowerCase();
+                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
+                        }
+                    });
+                });
 
                 const seller = users.find(u => `${u.firstName} ${u.lastName}` === firstRow.sellerName);
 
@@ -1626,15 +1626,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (totalPaid >= total - 0.009) {
                 sale.status = 'paid';
             } else if (totalPaid > 0) {
-                sale.status = 'pending'; // Partial payment
+                sale.status = 'pending';
             } else {
-                sale.status = 'pending'; // No payment
+                sale.status = 'pending';
             }
 
             for (const methodName in paymentTotals) {
               const amount = paymentTotals[methodName];
               if (amount > 0) {
-                const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
+                let method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
+                if (!method) {
+                   method = paymentMethods.find(m => m.name === 'AUTRE');
+                }
                 if (method) {
                   sale.payments.push({ method, amount, date: sale.date });
                 }
@@ -1789,4 +1792,3 @@ export function usePos() {
   return context;
 }
 
-    
