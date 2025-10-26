@@ -1455,16 +1455,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         let newCustomersCount = 0;
         let newItemsCount = 0;
         
-        const processPayment = (saleEntry: { sale: Sale, paymentTotals: Record<string, number> }, row: any) => {
-            const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-            paymentFields.forEach(field => {
-                if (row[field] && parseFloat(row[field]) > 0) {
-                    const methodName = field.replace('payment', '');
-                    saleEntry.paymentTotals[methodName] = (saleEntry.paymentTotals[methodName] || 0) + parseFloat(row[field]);
-                }
-            });
-        };
-
         const groupedRows: Record<string, any[]> = {};
         for (const row of limitedJsonData) {
             const ticketNum = row.ticketNumber;
@@ -1524,7 +1514,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 const saleItems: OrderItem[] = [];
+                const paymentTotals: Record<string, number> = {};
+
                 for (const row of rows) {
+                    // Process payments for each row
+                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+                    paymentFields.forEach(field => {
+                        if (row[field] && parseFloat(row[field]) > 0) {
+                            const methodName = field.replace('payment', '').toLowerCase();
+                            paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(row[field]);
+                        }
+                    });
+
                     if (!row.itemBarcode) {
                         if (saleItems.length > 0) {
                             const lastItem = saleItems[saleItems.length - 1];
@@ -1586,9 +1587,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     customerId: customer?.id, userId: seller?.id, userName: firstRow.sellerName, documentType: documentType,
                 };
                 
-                const paymentTotals: Record<string, number> = {};
-                rows.forEach(row => processPayment({ sale, paymentTotals }, row));
-                
                 salesMap.set(finalTicketNumber, { sale, paymentTotals });
 
             } catch (e: any) {
@@ -1618,12 +1616,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (totalPaid >= total) {
                 sale.status = 'paid';
             } else if (totalPaid > 0) {
-                sale.status = 'pending'; // Partial payment
+                sale.status = 'pending';
             } else {
                 sale.status = 'pending';
             }
             
-             Object.entries(paymentTotals).forEach(([methodName, amount]) => {
+            Object.entries(paymentTotals).forEach(([methodName, amount]) => {
                 const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
                 if (method && amount > 0) {
                     sale.payments.push({ method, amount, date: sale.date });
@@ -1777,3 +1775,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
