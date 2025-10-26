@@ -156,6 +156,19 @@ export default function PaymentsReportPage() {
         setIsClient(true);
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
+
+     const getRowStyle = (payment: any) => {
+        const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
+            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
+            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
+        }
+        return { backgroundColor: hexToRgba(color, opacity) };
+    };
     
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
@@ -607,4 +620,3 @@ export default function PaymentsReportPage() {
     </>
   );
 }
-
