@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -52,6 +51,11 @@ export default function FirestoreDataPage() {
   const { 
       exportConfiguration, 
       importConfiguration,
+      resetAllData,
+      seedInitialData,
+      importDemoData,
+      importDemoCustomers,
+      importDemoSuppliers,
       ftpConfig,
       smtpConfig,
       requirePinForAdmin,
@@ -63,6 +67,7 @@ export default function FirestoreDataPage() {
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [isSelectiveResetOpen, setSelectiveResetOpen] = useState(false);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -389,13 +394,6 @@ export default function FirestoreDataPage() {
                             </Button>
                         </CardContent>
                     </Card>
-                    <Separator className="my-6" />
-                     <div className="space-y-4">
-                        <Button variant="secondary" onClick={() => setPromptViewerOpen(true)}>
-                            <FileCode className="mr-2 h-4 w-4" />
-                            Générer le Prompt Projet
-                        </Button>
-                    </div>
                 </div>
                 
                 <div>
@@ -408,11 +406,23 @@ export default function FirestoreDataPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-wrap gap-4">
-                          <Button variant="destructive" onClick={() => setResetDialogOpen(true)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Réinitialisation sélective
+                          <Button variant="outline" onClick={() => seedInitialData()}>
+                            <Database className="mr-2" />
+                            Initialiser les données
                           </Button>
-                           <AlertDialog>
+                          <Button variant="outline" onClick={() => importDemoData()}>
+                            <Sparkles className="mr-2" />
+                            Importer articles de démo
+                          </Button>
+                          <Button variant="outline" onClick={() => importDemoCustomers()}>
+                            <Users className="mr-2" />
+                            Importer clients de démo
+                          </Button>
+                           <Button variant="outline" onClick={() => importDemoSuppliers()}>
+                            <Truck className="mr-2" />
+                            Importer fournisseurs de démo
+                          </Button>
+                          <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="destructive" className="bg-destructive/80 hover:bg-destructive" disabled={!canGenerateSales}>
                                         <TestTube2 className="mr-2 h-4 w-4" />
@@ -439,13 +449,44 @@ export default function FirestoreDataPage() {
                                     (Données manquantes pour la génération : {missingDataForGeneration})
                                 </p>
                             )}
+                          <Separator className="my-4"/>
+                           <Button variant="destructive" onClick={() => setSelectiveResetOpen(true)}>
+                            <Eraser className="mr-2 h-4 w-4" />
+                            Réinitialisation sélective
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Trash2 className="mr-2"/>
+                                    Réinitialiser l'application
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    Cette action est irréversible. Toutes les données seront supprimées et l'application sera remise à son état initial.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={resetAllData}>Confirmer la réinitialisation</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <div className="w-full">
+                            <Separator className="my-4"/>
+                            <Button variant="link" onClick={() => setPromptViewerOpen(true)}>
+                              <FileCode className="mr-2 h-4 w-4" />
+                              Générer le Prompt Projet
+                            </Button>
+                          </div>
                         </CardContent>
                     </Card>
                 </div>
             </div>
        <PromptViewer isOpen={isPromptViewerOpen} onClose={() => setPromptViewerOpen(false)} />
-       <SelectiveResetDialog isOpen={isResetDialogOpen} onClose={() => setResetDialogOpen(false)} />
+       <SelectiveResetDialog isOpen={isSelectiveResetOpen} onClose={() => setSelectiveResetOpen(false)} />
     </>
   );
 }
-
