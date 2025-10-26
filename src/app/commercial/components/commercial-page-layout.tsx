@@ -134,7 +134,13 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     const nextPath = `/commercial/${pathSegment}`;
     const nextDocTypeName = docTypeConfig[nextDocType].title.toLowerCase() || 'document';
 
-    setCurrentSaleContext({ documentType: nextDocType });
+    // Conserver le client lors de la duplication
+    const customerId = currentSaleContext?.customerId;
+
+    setCurrentSaleContext({ 
+        documentType: nextDocType,
+        customerId: customerId, // On garde le client
+    });
     setOrder(duplicatedItems);
     
     router.push(nextPath);
