@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { History, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { History, Edit, Trash2, ArrowLeft, AlertCircle, FileCog, Checkbox } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -25,17 +26,30 @@ import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RecurringInvoicesPage() {
-  const { sales, customers, isLoading, updateSale } = usePos();
+  const { sales, customers, isLoading, updateSale, recordCommercialDocument } = usePos();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [saleToModify, setSaleToModify] = useState<Sale | null>(null);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const recurringSales = useMemo(() => {
     return sales?.filter(s => s.isRecurring).sort((a,b) => new Date(a.date as any).getTime() - new Date(b.date as any).getTime()) || [];
   }, [sales]);
+  
+  const dueInvoices = useMemo(() => {
+    const now = new Date();
+    return recurringSales.filter(s => 
+      s.recurrence?.isActive &&
+      s.recurrence?.nextDueDate &&
+      new Date(s.recurrence.nextDueDate as any) <= now
+    );
+  }, [recurringSales]);
 
   const getCustomerName = useCallback((customerId?: string) => {
     if (!customerId || !customers) return 'N/A';
@@ -68,6 +82,32 @@ export default function RecurringInvoicesPage() {
     router.push(`/reports/${sale.id}?from=recurring`);
   }
 
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? dueInvoices.map(s => s.id) : []);
+  }
+
+  const handleGenerateSelected = async () => {
+    toast({ title: "Génération en cours...", description: "Veuillez patienter." });
+
+    const selectedSales = recurringSales.filter(s => selectedIds.includes(s.id));
+
+    for (const sale of selectedSales) {
+        const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+            items: sale.items,
+            subtotal: sale.subtotal,
+            tax: sale.tax,
+            total: sale.total,
+            status: 'pending',
+            customerId: sale.customerId,
+            payments: [],
+        };
+        recordCommercialDocument(newInvoiceData, 'invoice');
+    }
+    
+    toast({ title: "Génération terminée", description: `${selectedSales.length} factures ont été créées.` });
+    setSelectedIds([]);
+  }
+
   return (
     <>
       <PageHeader
@@ -83,12 +123,35 @@ export default function RecurringInvoicesPage() {
             </Button>
         </div>
       </PageHeader>
+      
+      {dueInvoices.length > 0 && (
+        <Card className="mt-8 bg-blue-50 border-blue-200">
+            <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-blue-600" />
+                    <p className="font-semibold">{dueInvoices.length} facture(s) récurrente(s) sont arrivées à échéance.</p>
+                </div>
+                <Button onClick={handleGenerateSelected} disabled={selectedIds.length === 0}>
+                    <FileCog className="mr-2 h-4 w-4" />
+                    Générer les {selectedIds.length} factures
+                </Button>
+            </CardContent>
+        </Card>
+      )}
+
        <div className="mt-8">
         <Card>
           <CardContent className="pt-6">
               <Table>
                   <TableHeader>
                       <TableRow>
+                          <TableHead className="w-12">
+                              <Checkbox
+                                  checked={selectedIds.length === dueInvoices.length && dueInvoices.length > 0}
+                                  onCheckedChange={handleSelectAll}
+                                  disabled={dueInvoices.length === 0}
+                                />
+                          </TableHead>
                           <TableHead>Client</TableHead>
                           <TableHead>Pièce d'origine</TableHead>
                           <TableHead>Fréquence</TableHead>
@@ -100,16 +163,27 @@ export default function RecurringInvoicesPage() {
                   <TableBody>
                       {isLoading && Array.from({ length: 3 }).map((_, i) => (
                           <TableRow key={i}>
-                              <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
+                              <TableCell colSpan={7}><Skeleton className="h-10 w-full" /></TableCell>
                           </TableRow>
                       ))}
                       {!isLoading && recurringSales.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center h-24">Aucune facture récurrente configurée.</TableCell>
+                            <TableCell colSpan={7} className="text-center h-24">Aucune facture récurrente configurée.</TableCell>
                           </TableRow>
                       )}
-                      {!isLoading && recurringSales.map(sale => (
-                          <TableRow key={sale.id}>
+                      {!isLoading && recurringSales.map(sale => {
+                        const isDue = dueInvoices.some(due => due.id === sale.id);
+                        return (
+                          <TableRow key={sale.id} className={cn(isDue && "bg-blue-50")}>
+                              <TableCell>
+                                <Checkbox 
+                                    checked={selectedIds.includes(sale.id)}
+                                    onCheckedChange={(checked) => {
+                                        setSelectedIds(prev => checked ? [...prev, sale.id] : prev.filter(id => id !== sale.id))
+                                    }}
+                                    disabled={!isDue}
+                                />
+                              </TableCell>
                               <TableCell className="font-medium">{getCustomerName(sale.customerId)}</TableCell>
                               <TableCell>
                                 <Link href={`/reports/${sale.id}?from=recurring`} className="text-blue-600 hover:underline">
@@ -140,7 +214,8 @@ export default function RecurringInvoicesPage() {
                                   </Button>
                               </TableCell>
                           </TableRow>
-                      ))}
+                        )}
+                      )}
                   </TableBody>
               </Table>
           </CardContent>
