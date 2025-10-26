@@ -1089,84 +1089,87 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const recordCommercialDocument = useCallback(
-      (
-        docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-        type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket',
-        docIdToUpdate?: string
-      ) => {
-        const today = new Date();
-        let finalDoc: Sale;
-    
-        if (docIdToUpdate) {
-          const existingDoc = sales.find((s) => s.id === docIdToUpdate);
-          if (!existingDoc) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Document original introuvable pour la mise à jour.' });
-            return;
-          }
-          finalDoc = {
-            ...existingDoc,
-            ...docData,
-            modifiedAt: today,
-          };
-          setSales((prev) => prev.map((s) => (s.id === docIdToUpdate ? finalDoc : s)));
-        } else {
-          const prefixMap = {
-            invoice: 'Fact',
-            quote: 'Devis',
-            delivery_note: 'BL',
-            supplier_order: 'CF',
-            credit_note: 'Avoir',
-            ticket: 'Tick',
-          };
-          const prefix = prefixMap[type] || 'DOC';
-          let number;
-    
-          if (type === 'ticket') {
-            const dayMonth = format(today, 'ddMM');
-            const todaysSalesCount = sales.filter((s) => {
-              const saleDate = new Date(s.date as any);
-              return isSameDay(saleDate, today) && s.documentType === 'ticket';
-            }).length;
-            number = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
-          } else {
-            const count = sales.filter((s) => s.documentType === type).length;
-            number = (count + 1).toString().padStart(4, '0');
-          }
-    
-          finalDoc = {
-            id: uuidv4(),
-            date: today,
-            ticketNumber: `${prefix}-${number}`,
-            documentType: type,
-            userId: user?.id,
-            userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
-            ...docData,
-          };
-          setSales((prev) => [finalDoc, ...prev]);
-        }
-        
-        const readableDocType = (prefixMap[type] || 'Document').replace('Fact', 'Facture').replace('Tick', 'Ticket');
-        toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisée' : 'enregistrée'}` });
-        clearOrder();
-  
-        if (type !== 'ticket') {
-          const reportPath = type === 'quote' ? '/reports?docType=quote'
-                           : type === 'delivery_note' ? '/reports?docType=delivery_note'
-                           : type === 'supplier_order' ? '/reports?docType=supplier_order'
-                           : type === 'credit_note' ? '/reports?docType=credit_note'
-                           : '/reports?docType=invoice';
-          router.push(reportPath);
-        }
-      },
-      [sales, setSales, user, toast, router, clearOrder]
-    );
+  const recordCommercialDocument = useCallback(
+    (
+      docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+      type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket',
+      docIdToUpdate?: string
+    ) => {
+      const today = new Date();
+      let finalDoc: Sale;
 
-    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        const docType = saleData.documentType || 'ticket';
-        recordCommercialDocument(saleData, docType, saleIdToUpdate);
-        return null; // The function now returns void, so we adapt.
-    }, [recordCommercialDocument]);
+      const prefixMap = {
+        invoice: 'Fact',
+        quote: 'Devis',
+        delivery_note: 'BL',
+        supplier_order: 'CF',
+        credit_note: 'Avoir',
+        ticket: 'Tick',
+      };
+  
+      if (docIdToUpdate) {
+        const existingDoc = sales.find((s) => s.id === docIdToUpdate);
+        if (!existingDoc) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Document original introuvable pour la mise à jour.' });
+          return;
+        }
+        finalDoc = {
+          ...existingDoc,
+          ...docData,
+          modifiedAt: today,
+        };
+        setSales((prev) => prev.map((s) => (s.id === docIdToUpdate ? finalDoc : s)));
+      } else {
+        const prefix = prefixMap[type] || 'DOC';
+        let number;
+  
+        if (type === 'ticket') {
+          const dayMonth = format(today, 'ddMM');
+          const todaysSalesCount = sales.filter((s) => {
+            const saleDate = new Date(s.date as any);
+            return isSameDay(saleDate, today) && s.documentType === 'ticket';
+          }).length;
+          number = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+        } else {
+          const count = sales.filter((s) => s.documentType === type).length;
+          number = (count + 1).toString().padStart(4, '0');
+        }
+  
+        finalDoc = {
+          id: uuidv4(),
+          date: today,
+          ticketNumber: `${prefix}-${number}`,
+          documentType: type,
+          userId: user?.id,
+          userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+          ...docData,
+        };
+        setSales((prev) => [finalDoc, ...prev]);
+      }
+      
+      const readableDocType = (prefixMap[type] || 'Document').replace('Fact', 'Facture').replace('Tick', 'Ticket');
+      toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisée' : 'enregistrée'}` });
+      clearOrder();
+
+      if (type !== 'ticket') {
+        const reportPath = type === 'quote' ? '/reports?docType=quote'
+                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                         : type === 'supplier_order' ? '/reports?docType=supplier_order'
+                         : type === 'credit_note' ? '/reports?docType=credit_note'
+                         : '/reports?docType=invoice';
+        router.push(reportPath);
+      }
+    },
+    [sales, setSales, user, toast, router, clearOrder]
+  );
+  
+  const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+      const docType = saleData.documentType || 'ticket';
+      recordCommercialDocument(saleData, docType, saleIdToUpdate);
+      // Since recordCommercialDocument handles everything, we can just fulfill the promise.
+      // We return null as the original function might expect a Sale object which we don't have synchronously.
+      return null; 
+  }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
@@ -1791,4 +1794,3 @@ export function usePos() {
   }
   return context;
 }
-
