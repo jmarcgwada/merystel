@@ -90,6 +90,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       customers,
       setCurrentSaleContext,
       currentSaleId,
+      setCurrentSaleId,
       updateItemQuantityInOrder,
       updateItemPrice,
       convertToInvoice,
@@ -128,21 +129,24 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
         return;
     }
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
-    
+    const customerId = currentSaleContext?.customerId;
     const nextDocType = documentType;
     const pathSegment = typeMap[nextDocType] || `${nextDocType}s`;
     const nextPath = `/commercial/${pathSegment}`;
     const nextDocTypeName = docTypeConfig[nextDocType].title.toLowerCase() || 'document';
-
-    // Conserver le client lors de la duplication
-    const customerId = currentSaleContext?.customerId;
-
+    
+    // This is the correct logic:
+    // 1. Clear current sale ID to exit edit mode.
+    setCurrentSaleId(null); 
+    // 2. Set the context for a NEW document, carrying over the customer.
     setCurrentSaleContext({ 
         documentType: nextDocType,
-        customerId: customerId, // On garde le client
+        customerId: customerId,
     });
+    // 3. Set the order with newly identified items.
     setOrder(duplicatedItems);
     
+    // 4. Navigate to the creation page.
     router.push(nextPath);
     toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocTypeName} a été créée.` });
   };
