@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +22,8 @@ export default function ManagementSideNav() {
       customers, 
       suppliers, 
       paymentMethods, 
-      vatRates 
+      vatRates,
+      sales,
   } = usePos();
   
   useEffect(() => {
@@ -38,6 +38,7 @@ export default function ManagementSideNav() {
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, count: paymentMethods?.length || 0 },
     { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+    { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
   
   const reportLinks = [
@@ -49,7 +50,7 @@ export default function ManagementSideNav() {
       // Render a placeholder or skeleton while waiting for client-side mount
       return (
           <div className="p-4 space-y-2">
-              {Array.from({ length: 7 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                   <Skeleton key={i} className="h-9 w-full" />
               ))}
           </div>
