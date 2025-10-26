@@ -5,7 +5,7 @@ import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'rea
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, startOfDay, endOfDay, isSameDay, parseISO, addMonths, addYears, addWeeks, addDays } from 'date-fns';
