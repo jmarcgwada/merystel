@@ -118,6 +118,7 @@ export interface PosContextType {
   loadSaleForEditing: (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => Promise<boolean>;
   loadSaleForConversion: (saleId: string) => void;
   convertToInvoice: (saleId: string) => void;
+  generateSingleRecurringInvoice: (saleId: string, note?: string) => Promise<void>;
 
   users: User[];
   addUser: (user: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string) => Promise<User | null>;
@@ -339,33 +340,32 @@ export interface PosContextType {
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(defaultValue);
-    const [isHydrated, setIsHydrated] = useState(false);
-
-    useEffect(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error("Error reading localStorage key " + key + ":", error);
+                return defaultValue;
             }
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
         }
-        setIsHydrated(true);
-    }, [key]);
+        return defaultValue;
+    });
 
     useEffect(() => {
-        if (isHydrated) {
+        if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
                 console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state, isHydrated]);
+    }, [key, state]);
 
     return [state, setState];
 }
+
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -377,7 +377,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { setIsHydrated(true); }, []);
 
 
-  // Settings States
+  // ... (all other usePersistentState hooks as they are)
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -1081,9 +1081,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tables, setTablesData]);
     
     const forceFreeTable = useCallback((tableId: string) => {
-      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: []} : t));
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], lockedBy: null, verrou: false, closedAt: new Date(), closedByUserId: user?.id } : t));
       toast({ title: 'Table libérée' });
-    }, [setTablesData, toast]);
+    }, [setTablesData, toast, user]);
 
     const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt'>) => {
       const newTable: Table = {
@@ -1178,11 +1178,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       clearOrder();
 
       if (type !== 'ticket') {
-        const reportPath = type === 'quote' ? '/reports?docType=quote'
-                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
-                         : type === 'supplier_order' ? '/reports?docType=supplier_order'
-                         : type === 'credit_note' ? '/reports?docType=credit_note'
-                         : '/reports?docType=invoice';
+        const reportPath = `/reports/${finalDoc.id}?from=commercial`;
         router.push(reportPath);
       }
     },
@@ -1203,6 +1199,28 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const updateSale = useCallback(async (saleData: Sale) => {
       setSales(prev => prev.map(s => s.id === saleData.id ? {...saleData, updatedAt: new Date()} : s));
   }, [setSales]);
+
+  const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
+    const saleTemplate = sales.find(s => s.id === saleId && s.isRecurring);
+    if (!saleTemplate) {
+        toast({ variant: "destructive", title: "Modèle de récurrence introuvable." });
+        return;
+    }
+
+    const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
+        ...saleTemplate,
+        status: 'pending',
+        payments: [],
+        date: new Date(),
+        isRecurring: false, 
+        recurrence: undefined,
+        originalSaleId: saleId,
+        notes: note
+    };
+
+    recordCommercialDocument(newInvoiceData, 'invoice');
+
+  }, [sales, recordCommercialDocument, toast]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
         if (!password) {
@@ -1779,7 +1797,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount, clearOrder, resetCommercialPage, orderTotal, 
     orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
     variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, 
-    users, addUser, updateUser, deleteUser, sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, 
+    generateSingleRecurringInvoice, users, addUser, updateUser, deleteUser, sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, 
     setSessionInvalidated, items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, 
     updateCategory, deleteCategory, toggleCategoryFavorite, getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, 
     suppliers, addSupplier, updateSupplier, deleteSupplier, tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, 
