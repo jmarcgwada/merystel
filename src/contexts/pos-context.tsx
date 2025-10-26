@@ -1088,74 +1088,85 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
+  
+    const recordCommercialDocument = useCallback(
+      (
+        docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
+        type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket',
+        docIdToUpdate?: string
+      ) => {
+        const today = new Date();
+        let finalDoc: Sale;
     
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
-      const today = new Date();
-      
-      const prefixMap = {
-        invoice: 'Fact',
-        quote: 'Devis',
-        delivery_note: 'BL',
-        supplier_order: 'CF',
-        credit_note: 'Avoir',
-        ticket: 'Tick',
-      };
-  
-      let finalDoc: Sale;
-  
-      if (docIdToUpdate) {
-        const existingDoc = sales.find(s => s.id === docIdToUpdate);
-        if (!existingDoc) return;
-        finalDoc = {
-          ...existingDoc,
-          ...docData,
-          modifiedAt: today,
-        };
-        setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
-      } else {
-        const prefix = prefixMap[type] || 'DOC';
-        let number;
-        if(type === 'ticket') {
-          const dayMonth = format(today, 'ddMM');
-          const todaysSalesCount = sales.filter(s => {
-              const saleDate = new Date(s.date as Date);
-              return saleDate.toDateString() === today.toDateString() && s.documentType === 'ticket';
-          }).length;
-          number = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+        if (docIdToUpdate) {
+          const existingDoc = sales.find((s) => s.id === docIdToUpdate);
+          if (!existingDoc) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Document original introuvable pour la mise à jour.' });
+            return;
+          }
+          finalDoc = {
+            ...existingDoc,
+            ...docData,
+            modifiedAt: today,
+          };
+          setSales((prev) => prev.map((s) => (s.id === docIdToUpdate ? finalDoc : s)));
         } else {
-          const count = sales.filter(s => s.documentType === type).length;
-          number = (count + 1).toString().padStart(4, '0');
+          const prefixMap = {
+            invoice: 'Fact',
+            quote: 'Devis',
+            delivery_note: 'BL',
+            supplier_order: 'CF',
+            credit_note: 'Avoir',
+            ticket: 'Tick',
+          };
+          const prefix = prefixMap[type] || 'DOC';
+          let number;
+    
+          if (type === 'ticket') {
+            const dayMonth = format(today, 'ddMM');
+            const todaysSalesCount = sales.filter((s) => {
+              const saleDate = new Date(s.date as any);
+              return isSameDay(saleDate, today) && s.documentType === 'ticket';
+            }).length;
+            number = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+          } else {
+            const count = sales.filter((s) => s.documentType === type).length;
+            number = (count + 1).toString().padStart(4, '0');
+          }
+    
+          finalDoc = {
+            id: uuidv4(),
+            date: today,
+            ticketNumber: `${prefix}-${number}`,
+            documentType: type,
+            userId: user?.id,
+            userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+            ...docData,
+          };
+          setSales((prev) => [finalDoc, ...prev]);
         }
-
-        finalDoc = {
-          id: uuidv4(),
-          date: today,
-          ticketNumber: `${prefix}-${number}`,
-          documentType: type,
-          userId: user?.id,
-          userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
-          ...docData,
-        };
-        setSales(prev => [finalDoc, ...prev]);
-      }
-      
-      const readableDocType = prefixMap[type] || 'Document';
-      toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisé' : 'enregistré'}` });
-      clearOrder();
+        
+        const readableDocType = (prefixMap[type] || 'Document').replace('Fact', 'Facture').replace('Tick', 'Ticket');
+        toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisée' : 'enregistrée'}` });
+        clearOrder();
   
-      if (type !== 'ticket') {
-        const reportPath = type === 'quote' ? '/reports?docType=quote'
-                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
-                        : type === 'invoice' ? '/reports?docType=invoice'
-                        : '/reports';
-        router.push(reportPath);
-      }
-    }, [sales, user, clearOrder, toast, router, setSales]);
+        // Redirect after saving/updating a commercial doc, but not for tickets from POS
+        if (type !== 'ticket') {
+          const reportPath = type === 'quote' ? '/reports?docType=quote'
+                           : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                           : type === 'supplier_order' ? '/reports?docType=supplier_order'
+                           : type === 'credit_note' ? '/reports?docType=credit_note'
+                           : '/reports?docType=invoice';
+          router.push(reportPath);
+        }
+      },
+      [sales, user, clearOrder, toast, router, setSales]
+    );
 
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-      const docType = saleData.documentType || 'ticket';
-      await recordCommercialDocument(saleData, docType, saleIdToUpdate);
-      return null;
+        const docType = saleData.documentType || 'ticket';
+        recordCommercialDocument(saleData, docType, saleIdToUpdate);
+        return null;
     }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
@@ -1472,8 +1483,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                                 : docName.includes('livraison') ? 'delivery_note'
                                 : docName.includes('avoir') ? 'credit_note'
                                 : 'ticket';
-                const prefix = documentType === 'invoice' ? 'Fact-' : documentType === 'quote' ? 'Devis-' : documentType === 'delivery_note' ? 'BL-' : documentType === 'credit_note' ? 'Avoir-' : 'Tick-';
-                const finalTicketNumber = ticketNumber.startsWith(prefix) ? ticketNumber : `${prefix}${ticketNumber}`;
+                const prefixMap = { invoice: 'Fact', quote: 'Devis', delivery_note: 'BL', credit_note: 'Avoir', ticket: 'Tick' };
+                const prefix = prefixMap[documentType as keyof typeof prefixMap] || 'DOC';
+
+                const finalTicketNumber = ticketNumber.startsWith(prefix) ? ticketNumber : `${prefix}-${ticketNumber}`;
                 
                 if (existingSaleNumbers.has(finalTicketNumber)) {
                     throw new Error(`Le numéro de pièce ${finalTicketNumber} existe déjà.`);
@@ -1607,15 +1620,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             sale.total = total;
             sale.tax = totalTax;
             sale.subtotal = totalSub;
-
+            
             const totalPaid = Object.values(paymentTotals).reduce((sum, amount) => sum + amount, 0);
 
             if (totalPaid >= total - 0.009) {
                 sale.status = 'paid';
             } else if (totalPaid > 0) {
-                sale.status = 'pending';
+                sale.status = 'pending'; // Partial payment
             } else {
-                sale.status = 'pending';
+                sale.status = 'pending'; // No payment
             }
 
             for (const methodName in paymentTotals) {
@@ -1627,7 +1640,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 }
               }
             }
-
+            
             setSales(prev => [sale, ...prev]);
             report.successCount++;
         }
@@ -1775,3 +1788,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
