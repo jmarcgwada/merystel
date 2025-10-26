@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -49,7 +48,7 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
             let jsDate: Date;
             if (date instanceof Date) {
                 jsDate = date;
-            } else if (date && typeof (date as Timestamp).toDate === 'function') {
+            } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
                 jsDate = (date as Timestamp).toDate();
             } else if (date && typeof (date as any).seconds === 'number') {
                 // Handle serialized Firestore Timestamp
@@ -271,6 +270,8 @@ function SaleDetailContent() {
       backUrl = '/reports/analytics';
     } else if (from === 'audit-log') {
       backUrl = '/settings/audit-log';
+    } else if (from === 'payments') {
+      backUrl = '/reports/payments';
     }
     router.push(`${backUrl}?${navigationParams}`);
   };

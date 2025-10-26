@@ -516,7 +516,13 @@ export default function PaymentsReportPage() {
                                     <TableCell>{customerName}</TableCell>
                                     <TableCell>{sellerName}</TableCell>
                                     <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
-                                    <TableCell className="text-right"><Button asChild variant="ghost" size="icon"><Link href={`/reports/${payment.saleId}`}><Eye className="h-4 w-4" /></Link></Button></TableCell>
+                                    <TableCell className="text-right">
+                                        <Button asChild variant="ghost" size="icon">
+                                            <Link href={`/reports/${payment.saleId}?from=payments`}>
+                                                <Eye className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             )
                         })}
