@@ -314,6 +314,8 @@ function SaleDetailContent() {
       backUrl = '/settings/audit-log';
     } else if (from === 'payments') {
       backUrl = '/reports/payments';
+    } else if (from === 'recurring') {
+      backUrl = '/management/recurring';
     }
     router.push(`${backUrl}?${navigationParams}`);
   };

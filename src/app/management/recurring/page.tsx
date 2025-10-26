@@ -65,7 +65,7 @@ export default function RecurringInvoicesPage() {
   }
 
   const handleEdit = (sale: Sale) => {
-    router.push(`/reports/${sale.id}`);
+    router.push(`/reports/${sale.id}?from=recurring`);
   }
 
   return (
@@ -112,7 +112,7 @@ export default function RecurringInvoicesPage() {
                           <TableRow key={sale.id}>
                               <TableCell className="font-medium">{getCustomerName(sale.customerId)}</TableCell>
                               <TableCell>
-                                <Link href={`/reports/${sale.id}`} className="text-blue-600 hover:underline">
+                                <Link href={`/reports/${sale.id}?from=recurring`} className="text-blue-600 hover:underline">
                                     {sale.ticketNumber}
                                 </Link>
                               </TableCell>
