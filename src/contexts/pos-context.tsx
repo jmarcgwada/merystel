@@ -172,7 +172,7 @@ export interface PosContextType {
   ) => Promise<Sale | null>;
    recordCommercialDocument: (
     doc: Omit<Sale, 'id' | 'date' | 'ticketNumber'>,
-    type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice',
+    type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket',
     docIdToUpdate?: string,
   ) => void,
   deleteAllSales: () => Promise<void>;
@@ -337,7 +337,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -1089,11 +1088,74 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
+    
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
+      const today = new Date();
+      
+      const prefixMap = {
+        invoice: 'Fact',
+        quote: 'Devis',
+        delivery_note: 'BL',
+        supplier_order: 'CF',
+        credit_note: 'Avoir',
+        ticket: 'Tick',
+      };
   
+      let finalDoc: Sale;
+  
+      if (docIdToUpdate) {
+        const existingDoc = sales.find(s => s.id === docIdToUpdate);
+        if (!existingDoc) return;
+        finalDoc = {
+          ...existingDoc,
+          ...docData,
+          modifiedAt: today,
+        };
+        setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
+      } else {
+        const prefix = prefixMap[type] || 'DOC';
+        let number;
+        if(type === 'ticket') {
+          const dayMonth = format(today, 'ddMM');
+          const todaysSalesCount = sales.filter(s => {
+              const saleDate = new Date(s.date as Date);
+              return saleDate.toDateString() === today.toDateString() && s.documentType === 'ticket';
+          }).length;
+          number = `${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+        } else {
+          const count = sales.filter(s => s.documentType === type).length;
+          number = (count + 1).toString().padStart(4, '0');
+        }
+
+        finalDoc = {
+          id: uuidv4(),
+          date: today,
+          ticketNumber: `${prefix}-${number}`,
+          documentType: type,
+          userId: user?.id,
+          userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+          ...docData,
+        };
+        setSales(prev => [finalDoc, ...prev]);
+      }
+      
+      const readableDocType = prefixMap[type] || 'Document';
+      toast({ title: `${readableDocType} ${finalDoc.status === 'paid' ? 'finalisé' : 'enregistré'}` });
+      clearOrder();
+  
+      if (type !== 'ticket') {
+        const reportPath = type === 'quote' ? '/reports?docType=quote'
+                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                        : type === 'invoice' ? '/reports?docType=invoice'
+                        : '/reports';
+        router.push(reportPath);
+      }
+    }, [sales, user, clearOrder, toast, router, setSales]);
+
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        const docType = saleData.documentType || 'ticket';
-        await recordCommercialDocument(saleData, docType, saleIdToUpdate);
-        return null; // The function now returns void, so we adapt.
+      const docType = saleData.documentType || 'ticket';
+      await recordCommercialDocument(saleData, docType, saleIdToUpdate);
+      return null;
     }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
@@ -1556,12 +1618,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 sale.status = 'pending';
             }
 
-            Object.entries(paymentTotals).forEach(([methodName, amount]) => {
+            for (const methodName in paymentTotals) {
+              const amount = paymentTotals[methodName];
+              if (amount > 0) {
                 const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
-                if (method && amount > 0) {
-                    sale.payments.push({ method, amount, date: sale.date });
+                if (method) {
+                  sale.payments.push({ method, amount, date: sale.date });
                 }
-            });
+              }
+            }
 
             setSales(prev => [sale, ...prev]);
             report.successCount++;
