@@ -1088,7 +1088,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
-    
+  
     const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
         const today = new Date();
         
@@ -1614,9 +1614,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             sale.subtotal = totalSub;
 
             const totalPaid = Object.values(paymentTotals).reduce((sum, amount) => sum + amount, 0);
-
+            
             if (totalPaid >= total) {
                 sale.status = 'paid';
+            } else if (totalPaid > 0) {
+                sale.status = 'pending'; // Partial payment
+            } else {
+                sale.status = 'pending';
             }
             
              Object.entries(paymentTotals).forEach(([methodName, amount]) => {
