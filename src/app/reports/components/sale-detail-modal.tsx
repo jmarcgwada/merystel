@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Calendar, Clock } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SaleDetailModalProps {
   isOpen: boolean;
