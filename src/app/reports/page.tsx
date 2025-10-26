@@ -173,6 +173,7 @@ function ReportsPageContent() {
       setLastSelectedSaleId,
       itemsPerPage,
       setItemsPerPage,
+      lastReportsUrl,
       setLastReportsUrl
   } = usePos();
   const { user } = useUser();
@@ -853,7 +854,11 @@ function ReportsPageContent() {
                                             )}
                                             style={getRowStyle(sale)}
                                             >
-                                                {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
+                                                {visibleColumns.type && <TableCell>
+                                                    <Link href={getDetailLink(sale.id)} className="block w-full h-full">
+                                                        <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
+                                                    </Link>
+                                                </TableCell>}
                                                 {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
                                                 {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
                                                 {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
