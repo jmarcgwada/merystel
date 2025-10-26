@@ -138,6 +138,7 @@ export default function PaymentsReportPage() {
     });
     const [generalFilter, setGeneralFilter] = useState('');
     const [isFiltersOpen, setFiltersOpen] = useState(!!dateFilterParam);
+    const [isSummaryOpen, setSummaryOpen] = useState(true);
     const [filterSellerName, setFilterSellerName] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
@@ -436,46 +437,46 @@ export default function PaymentsReportPage() {
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent>
-          </Card>
-           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader>
-              <CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent>
-          </Card>
-           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
-              <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
-          </Card>
-        </div>
-        
-        {Object.keys(paymentMethodSummary).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(paymentMethodSummary).map(([method, data]) => (
-                <Card key={method}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{method}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
-                    <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
-                  </CardContent>
+        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                    Résumé de la sélection
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                      <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
+                    </Card>
+                </div>
+                {Object.keys(paymentMethodSummary).length > 0 && (
+                <Card className="mt-4">
+                    <CardHeader>
+                    <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {Object.entries(paymentMethodSummary).map(([method, data]) => (
+                        <Card key={method}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{method}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
+                            <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
+                        </CardContent>
+                        </Card>
+                    ))}
+                    </CardContent>
                 </Card>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
+                )}
+            </CollapsibleContent>
+        </Collapsible>
+        
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
             <Card>
                 <CardHeader>
@@ -582,7 +583,7 @@ export default function PaymentsReportPage() {
                             
                             return (
                                 <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
-                                    <TableCell className="font-medium"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
+                                    <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
