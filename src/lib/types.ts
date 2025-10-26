@@ -187,6 +187,13 @@ export interface Sale {
   userId?: string;
   userName?: string;
   originalSaleId?: string;
+  isRecurring?: boolean;
+  recurrence?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    nextDueDate?: Date | Timestamp;
+    lastGeneratedDate?: Date | Timestamp;
+    isActive?: boolean;
+  };
 }
 
 export interface HeldOrder {

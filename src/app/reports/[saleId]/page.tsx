@@ -8,11 +8,11 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, addMonths, addYears, addWeeks, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send, Repeat, Save } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +38,11 @@ import {
 import { Dialog, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
@@ -51,10 +56,8 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
             } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
                 jsDate = (date as Timestamp).toDate();
             } else if (date && typeof (date as any).seconds === 'number') {
-                // Handle serialized Firestore Timestamp
                 jsDate = new Date((date as any).seconds * 1000);
             } else {
-                // Fallback for string or number representations
                 jsDate = new Date(date as any);
             }
             
@@ -78,7 +81,6 @@ const PaymentsList = ({ payments, title }: { payments: Payment[], title: string 
                         <span className="font-medium">{p.amount.toFixed(2)}€</span>
                     </div>
                 ))}
-                {/* Display total for this payment group */}
                 <div className="flex justify-between items-center text-sm font-bold pt-2 border-t">
                     <span>Total</span>
                     <span>{payments.reduce((acc, p) => acc + p.amount, 0).toFixed(2)}€</span>
@@ -123,7 +125,7 @@ function SaleDetailContent() {
   const articleFilter = searchParams.get('article');
 
 
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo, smtpConfig } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, loadTicketForViewing, users: allUsers, companyInfo, smtpConfig, updateSale } = usePos();
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -132,12 +134,51 @@ function SaleDetailContent() {
 
   const [sale, setSale] = useState<Sale | null>(null);
 
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
+  const [nextDueDate, setNextDueDate] = useState<Date | undefined>(undefined);
+  const [isRecurrenceModified, setIsRecurrenceModified] = useState(false);
+
   useEffect(() => {
     if (allSales && saleId) {
       const foundSale = allSales.find(s => s.id === saleId);
       setSale(foundSale || null);
+      if (foundSale?.isRecurring) {
+        setIsRecurring(true);
+        setRecurrenceFrequency(foundSale.recurrence?.frequency || 'monthly');
+        setNextDueDate(foundSale.recurrence?.nextDueDate ? new Date(foundSale.recurrence.nextDueDate as any) : undefined);
+      } else {
+        setIsRecurring(false);
+        setRecurrenceFrequency('monthly');
+        setNextDueDate(undefined);
+      }
+      setIsRecurrenceModified(false);
     }
   }, [allSales, saleId]);
+
+  const handleSaveRecurrence = async () => {
+    if (!sale) return;
+
+    let newNextDueDate = nextDueDate;
+    if (isRecurring && !newNextDueDate) {
+        const now = new Date();
+        newNextDueDate = addMonths(now, 1); // Default to one month from now
+        setNextDueDate(newNextDueDate);
+    }
+
+    const updatedSale: Sale = {
+      ...sale,
+      isRecurring,
+      recurrence: isRecurring ? {
+        frequency: recurrenceFrequency,
+        nextDueDate: newNextDueDate,
+        isActive: true,
+      } : undefined,
+    };
+    await updateSale(updatedSale);
+    setIsRecurrenceModified(false);
+    toast({ title: 'Configuration de la récurrence sauvegardée.' });
+  };
   
   const getCustomerName = useCallback((customerId?: string) => {
       if (!customerId || !customers) return 'Client au comptoir';
@@ -481,7 +522,7 @@ function SaleDetailContent() {
       </PageHeader>
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Articles vendus</CardTitle>
@@ -539,6 +580,80 @@ function SaleDetailContent() {
               </Table>
             </CardContent>
           </Card>
+           {sale.documentType === 'invoice' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Repeat />Gestion de la Récurrence</CardTitle>
+                <CardDescription>
+                  Configurez cette facture pour qu'elle soit générée automatiquement à intervalle régulier.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-recurring" className="text-base">Activer la récurrence pour cette facture</Label>
+                  </div>
+                  <Switch
+                    id="is-recurring"
+                    checked={isRecurring}
+                    onCheckedChange={(checked) => { setIsRecurring(checked); setIsRecurrenceModified(true); }}
+                  />
+                </div>
+                {isRecurring && (
+                  <div className="grid md:grid-cols-2 gap-6 pt-4 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="frequency">Fréquence</Label>
+                      <Select
+                        value={recurrenceFrequency}
+                        onValueChange={(value) => { setRecurrenceFrequency(value); setIsRecurrenceModified(true); }}
+                      >
+                        <SelectTrigger id="frequency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Journalière</SelectItem>
+                          <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                          <SelectItem value="monthly">Mensuelle</SelectItem>
+                          <SelectItem value="yearly">Annuelle</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                       <Label htmlFor="next-due-date">Prochaine échéance</Label>
+                       <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !nextDueDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {nextDueDate ? format(nextDueDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={nextDueDate}
+                            onSelect={(date) => { setNextDueDate(date); setIsRecurrenceModified(true); }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button onClick={handleSaveRecurrence} disabled={!isRecurrenceModified}>
+                    <Save className="mr-2 h-4 w-4"/>
+                    Enregistrer la configuration
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
         </div>
         
         <div className="lg:col-span-1 space-y-8">

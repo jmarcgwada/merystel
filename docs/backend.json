@@ -172,7 +172,17 @@
         "customerId": { "type": "string" },
         "tableId": { "type": "string" },
         "tableName": { "type": "string" },
-        "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note", "credit_note"] }
+        "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note", "credit_note"] },
+        "isRecurring": { "type": "boolean", "description": "Indicates if this sale is a template for recurring invoices." },
+        "recurrence": {
+            "type": "object",
+            "properties": {
+                "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly", "yearly"] },
+                "nextDueDate": { "type": "string", "format": "date-time" },
+                "lastGeneratedDate": { "type": "string", "format": "date-time" },
+                "isActive": { "type": "boolean" }
+            }
+        }
       },
       "required": ["ticketNumber", "date", "items", "subtotal", "tax", "total", "status"]
     },
