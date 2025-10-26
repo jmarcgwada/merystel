@@ -1,12 +1,11 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { History, Edit, Trash2, ArrowLeft, AlertCircle, FileCog, Checkbox } from 'lucide-react';
+import { History, Edit, Trash2, ArrowLeft, AlertCircle, FileCog } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
