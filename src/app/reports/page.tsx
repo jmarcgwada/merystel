@@ -502,6 +502,11 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
     
+    const setTodayFilter = () => {
+        const today = new Date();
+        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
+    };
+    
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
       const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
       const saleTotal = Math.abs(sale.total);
@@ -595,7 +600,18 @@ function ReportsPageContent() {
             </div>
         );
     }
-  
+    
+  if (isLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
+            <div className="mt-8">
+                <Skeleton className="h-[700px] w-full" />
+            </div>
+        </div>
+    )
+  }
+
   return (
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
@@ -636,6 +652,7 @@ function ReportsPageContent() {
                 subtitle={isClient && filteredAndSortedSales ? `Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)` : "Analysez vos performances."}
             >
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
                     <Button onClick={handleNewDocumentClick}>
                         <FilePlus className="mr-2 h-4 w-4" />
                         Nouvelle Pièce
