@@ -337,6 +337,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -1089,75 +1090,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
-        const today = new Date();
-        
-        const prefixMap = {
-            invoice: 'Fact', quote: 'Devis', delivery_note: 'BL',
-            supplier_order: 'CF', credit_note: 'Avoir', ticket: 'Tick'
-        };
-        const prefix = prefixMap[type] || 'DOC';
-    
-        let finalDoc: Sale;
-    
-        if (docIdToUpdate && !docIdToUpdate.startsWith('table-')) {
-            const existingDoc = sales.find(s => s.id === docIdToUpdate);
-            if (!existingDoc) return;
-            finalDoc = { ...existingDoc, ...docData, modifiedAt: today };
-            setSales(prev => prev.map(s => (s.id === docIdToUpdate ? finalDoc : s)));
-            addAuditLog({
-                userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'update', documentType: type, documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber, details: `Mise à jour de la pièce #${finalDoc.ticketNumber}.`,
-                richDetails: { before: existingDoc, after: finalDoc }
-            });
-        } else {
-            let number;
-            if (type === 'ticket') {
-                const dayMonth = format(today, 'ddMM');
-                const todaysSalesCount = sales.filter(s => {
-                    const saleDate = new Date(s.date as Date);
-                    return isSameDay(saleDate, today) && s.documentType === 'ticket';
-                }).length;
-                number = `${prefix}-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
-            } else {
-                const count = sales.filter(s => s.documentType === type).length;
-                number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
-            }
-            
-            finalDoc = {
-                id: uuidv4(), date: docData.date || today, ticketNumber: number, documentType: type,
-                userId: user?.id, userName: user ? `${user.firstName} ${user.lastName}` : 'N/A', ...docData
-            };
-            setSales(prev => [finalDoc, ...prev]);
-            addAuditLog({
-                userId: user?.id || 'system', userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'create', documentType: type, documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber, details: `Création de la pièce #${finalDoc.ticketNumber}.`,
-                richDetails: { data: finalDoc }
-            });
-        }
-        
-        toast({ title: `${prefixMap[type]} ${finalDoc.status === 'paid' ? 'finalisé(e)' : 'enregistré(e)'}` });
-        
-        if (finalDoc.status === 'paid') {
-            if(currentSaleContext?.isTableSale) {
-                setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
-                router.push('/restaurant');
-            }
-            else if (['invoice', 'credit_note', 'supplier_order'].includes(type)) resetCommercialPage(type as any);
-            else clearOrder();
-        } else {
-             const reportPath = type === 'quote' ? '/reports?docType=quote'
-                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
-                        : '/reports';
-             router.push(reportPath);
-        }
-    }, [sales, setSales, user, toast, resetCommercialPage, addAuditLog, clearOrder, router, currentSaleContext, setTablesData]);
-
     const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        await recordCommercialDocument({ ...saleData, documentType: 'ticket' }, 'ticket', saleIdToUpdate);
-        return null;
+        const docType = saleData.documentType || 'ticket';
+        await recordCommercialDocument(saleData, docType, saleIdToUpdate);
+        return null; // The function now returns void, so we adapt.
     }, [recordCommercialDocument]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id' | 'companyId' | 'createdAt'>, password?: string): Promise<User | null> => {
@@ -1611,7 +1547,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             sale.subtotal = totalSub;
 
             const totalPaid = Object.values(paymentTotals).reduce((sum, amount) => sum + amount, 0);
-            
+
             if (totalPaid >= total - 0.009) {
                 sale.status = 'paid';
             } else if (totalPaid > 0) {
@@ -1619,7 +1555,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             } else {
                 sale.status = 'pending';
             }
-            
+
             Object.entries(paymentTotals).forEach(([methodName, amount]) => {
                 const method = paymentMethods.find(m => m.name.toLowerCase().includes(methodName.toLowerCase()));
                 if (method && amount > 0) {
