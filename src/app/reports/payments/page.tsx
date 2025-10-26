@@ -28,6 +28,7 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { SaleDetailModal } from '../components/sale-detail-modal';
 
 
 type SortKey = 'date' | 'amount' | 'customerName' | 'ticketNumber' | 'methodName' | 'userName';
@@ -49,7 +50,7 @@ const hexToRgba = (hex: string, opacity: number) => {
         c = '0x' + c.join('');
         return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${opacity / 100})`;
     }
-    return `hsla(var(--background), ${opacity / 100})`;
+    return `hsla(var(--background), ${opacity/100})`;
 };
 
 
@@ -147,6 +148,9 @@ export default function PaymentsReportPage() {
     const generalFilterRef = useRef<HTMLInputElement>(null);
     const customerNameFilterRef = useRef<HTMLInputElement>(null);
     const sellerNameFilterRef = useRef<HTMLInputElement>(null);
+
+    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     
     useEffect(() => {
         setIsClient(true);
@@ -377,30 +381,12 @@ export default function PaymentsReportPage() {
         setDateRange({ from: startOfDay(today), to: endOfDay(today) });
     }
 
-    const getRowStyle = (payment: (typeof paginatedPayments)[0]) => {
-        if (!isClient) return {};
-        const docType = payment.saleDocumentType;
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice':
-                color = invoiceBgColor;
-                opacity = invoiceBgOpacity;
-                break;
-            case 'supplier_order':
-                color = supplierOrderBgColor;
-                opacity = supplierOrderBgOpacity;
-                break;
-            case 'credit_note':
-                color = creditNoteBgColor;
-                opacity = creditNoteBgOpacity;
-                break;
+    const openSaleDetailModal = (saleId: string) => {
+        const sale = allSales.find(s => s.id === saleId);
+        if (sale) {
+            setSelectedSale(sale);
+            setIsDetailModalOpen(true);
         }
-
-        return {
-            backgroundColor: hexToRgba(color, opacity),
-        };
     };
   
   if (!isClient || isPosLoading) {
@@ -415,200 +401,210 @@ export default function PaymentsReportPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Rapport des Paiements"
-        subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedPayments.length} paiements sur ${allPayments.length} au total)`}
-      >
-        <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
-            <Button asChild variant="secondary">
-                <Link href="/reports">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Pièces de vente
-                </Link>
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
-            <Button asChild variant="outline" size="icon" className="btn-back">
-                <Link href="/dashboard">
-                    <LayoutDashboard />
-                </Link>
-            </Button>
-        </div>
-      </PageHeader>
-      <div className="mt-8 space-y-4">
-        <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
-            <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
-                    Résumé de la sélection
-                </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                      <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
-                    </Card>
-                </div>
-                {Object.keys(paymentMethodSummary).length > 0 && (
-                <Card className="mt-4">
-                    <CardHeader>
-                    <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {Object.entries(paymentMethodSummary).map(([method, data]) => (
-                        <Card key={method}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{method}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
-                            <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
-                        </CardContent>
-                        </Card>
-                    ))}
-                    </CardContent>
-                </Card>
-                )}
-            </CollapsibleContent>
-        </Collapsible>
-        
-        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
-            <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                            <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />Filtres
-                        </Button>
-                    </CollapsibleTrigger>
-                    <div className="flex items-center gap-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-[220px] justify-between">
-                                    <span>Types de pièce</span>
-                                    <ChevronDown className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {Object.entries(documentTypes).map(([type, { label }]) => (
-                                    <DropdownMenuCheckboxItem
-                                        key={type}
-                                        checked={filterDocTypes[type]}
-                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                                    >
-                                        {label}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
-                    </div>
+    <>
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Rapport des Paiements"
+          subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedPayments.length} paiements sur ${allPayments.length} au total)`}
+        >
+          <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+              <Button asChild variant="secondary">
+                  <Link href="/reports">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Pièces de vente
+                  </Link>
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
+              <Button asChild variant="outline" size="icon" className="btn-back">
+                  <Link href="/dashboard">
+                      <LayoutDashboard />
+                  </Link>
+              </Button>
+          </div>
+        </PageHeader>
+        <div className="mt-8 space-y-4">
+          <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
+              <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                      Résumé de la sélection
+                  </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                        <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
+                      </Card>
                   </div>
-                </CardHeader>
-                <CollapsibleContent asChild>
-                    <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
-                        <Popover>
-                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                        </Popover>
-                        <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                        <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
-                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px]"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
-                    </CardContent>
-                </CollapsibleContent>
-            </Card>
-        </Collapsible>
-        
-        <Card>
-            <CardHeader><div className="flex items-center justify-end"><div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                            Page {currentPage} / {totalPages || 1}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-48 p-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                            <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                <span>{itemsPerPageState}</span>
-                            </div>
-                            <Slider
-                                id="items-per-page-slider"
-                                value={[itemsPerPageState]}
-                                onValueChange={(value) => setItemsPerPageState(value[0])}
-                                onValueCommit={(value) => setItemsPerPage(value[0])}
-                                min={10}
-                                max={100}
-                                step={10}
-                            />
-                        </div>
-                    </PopoverContent>
-                </Popover>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-            </div></div></CardHeader>
-            <CardContent className="pt-0">
-                <Table>
-                    <TableHeader><TableRow>
-                        <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead>
-                        <TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead>
-                        <TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead>
-                        <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
-                        <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>
-                        <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead>
-                        <TableHead className="w-[80px] text-right">Actions</TableHead>
-                    </TableRow></TableHeader>
-                    <TableBody>
-                        {!paginatedPayments.length && <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucun paiement trouvé pour cette sélection.</TableCell></TableRow>}
-                        {paginatedPayments.map((payment, index) => {
-                            const customerName = getCustomerName(payment.customerId);
-                            const sellerName = getUserName(payment.userId, payment.userName);
-                            const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-                            
-                            return (
-                                <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
-                                    <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
-                                            <span className="text-xs text-muted-foreground mt-1 capitalize">{documentTypes[docType as keyof typeof documentTypes]?.label || docType}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
-                                    <TableCell>{customerName}</TableCell>
-                                    <TableCell>{sellerName}</TableCell>
-                                    <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button asChild variant="ghost" size="icon">
-                                            <Link href={`/reports/${payment.saleId}?from=payments`}>
-                                                <Eye className="h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                  {Object.keys(paymentMethodSummary).length > 0 && (
+                  <Card className="mt-4">
+                      <CardHeader>
+                      <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      {Object.entries(paymentMethodSummary).map(([method, data]) => (
+                          <Card key={method}>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">{method}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
+                              <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
+                          </CardContent>
+                          </Card>
+                      ))}
+                      </CardContent>
+                  </Card>
+                  )}
+              </CollapsibleContent>
+          </Collapsible>
+          
+          <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+              <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                              <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />Filtres
+                          </Button>
+                      </CollapsibleTrigger>
+                      <div className="flex items-center gap-2">
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" className="w-[220px] justify-between">
+                                      <span>Types de pièce</span>
+                                      <ChevronDown className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                  <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {Object.entries(documentTypes).map(([type, { label }]) => (
+                                      <DropdownMenuCheckboxItem
+                                          key={type}
+                                          checked={filterDocTypes[type]}
+                                          onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                      >
+                                          {label}
+                                      </DropdownMenuCheckboxItem>
+                                  ))}
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                          <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CollapsibleContent asChild>
+                      <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                          <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
+                          <Popover>
+                              <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                  <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                      {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                          </Popover>
+                          <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
+                          <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                          <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                          <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
+                      </CardContent>
+                  </CollapsibleContent>
+              </Card>
+          </Collapsible>
+          
+          <Card>
+              <CardHeader><div className="flex items-center justify-end"><div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                  <Popover>
+                      <PopoverTrigger asChild>
+                          <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                              Page {currentPage} / {totalPages || 1}
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-2">
+                          <div className="space-y-2">
+                              <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                              <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                  <span>{itemsPerPageState}</span>
+                              </div>
+                              <Slider
+                                  id="items-per-page-slider"
+                                  value={[itemsPerPageState]}
+                                  onValueChange={(value) => setItemsPerPageState(value[0])}
+                                  onValueCommit={(value) => setItemsPerPage(value[0])}
+                                  min={10}
+                                  max={100}
+                                  step={10}
+                              />
+                          </div>
+                      </PopoverContent>
+                  </Popover>
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+              </div></div></CardHeader>
+              <CardContent className="pt-0">
+                  <Table>
+                      <TableHeader><TableRow>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>
+                          <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead>
+                          <TableHead className="w-[80px] text-right">Actions</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                          {!paginatedPayments.length && <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucun paiement trouvé pour cette sélection.</TableCell></TableRow>}
+                          {paginatedPayments.map((payment, index) => {
+                              const customerName = getCustomerName(payment.customerId);
+                              const sellerName = getUserName(payment.userId, payment.userName);
+                              const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                              
+                              return (
+                                  <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
+                                      <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
+                                      <TableCell>
+                                          <div className="flex flex-col">
+                                              <Button variant="link" className="p-0 h-auto justify-start" onClick={() => openSaleDetailModal(payment.saleId)}>
+                                                <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
+                                              </Button>
+                                              <span className="text-xs text-muted-foreground mt-1 capitalize">{documentTypes[docType as keyof typeof documentTypes]?.label || docType}</span>
+                                          </div>
+                                      </TableCell>
+                                      <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
+                                      <TableCell>{customerName}</TableCell>
+                                      <TableCell>{sellerName}</TableCell>
+                                      <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
+                                      <TableCell className="text-right">
+                                          <Button asChild variant="ghost" size="icon">
+                                              <Link href={`/reports/${payment.saleId}?from=payments`}>
+                                                  <Eye className="h-4 w-4" />
+                                              </Link>
+                                          </Button>
+                                      </TableCell>
+                                  </TableRow>
+                              )
+                          })}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+      <SaleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        sale={selectedSale}
+      />
+    </>
   );
 }
+
