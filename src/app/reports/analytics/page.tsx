@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
     const [filterSeller, setFilterSeller] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(false);
     const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(false);
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -409,6 +409,11 @@ export default function AnalyticsPage() {
         setSelectedTopCategories([]);
         setCurrentPage(1);
     }
+    
+    const setTodayFilter = () => {
+        const today = new Date();
+        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
+    };
 
     const currentFilterParams = useMemo(() => {
       const params = new URLSearchParams();
@@ -460,6 +465,7 @@ export default function AnalyticsPage() {
         subtitle="Analysez chaque ligne de vente pour des informations détaillées."
       >
         <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
             <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
             <Button asChild variant="outline" size="icon" className="btn-back">
                 <Link href="/dashboard">
@@ -476,7 +482,7 @@ export default function AnalyticsPage() {
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
         </div>
 
-        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
