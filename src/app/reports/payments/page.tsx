@@ -293,7 +293,7 @@ export default function PaymentsReportPage() {
         return filteredAndSortedPayments.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedPayments, currentPage, itemsPerPage]);
 
-     const { summaryTitle, totalRevenue, totalPayments, averagePayment, paymentMethodSummary } = useMemo(() => {
+     const { summaryTitle, totalRevenue, totalPayments, averagePayment, paymentMethodSummary, totalDeferred } = useMemo(() => {
         const paymentSummary = filteredAndSortedPayments.reduce((acc, p) => {
             const name = p.method.name;
             if (!acc[name]) {
@@ -307,6 +307,18 @@ export default function PaymentsReportPage() {
         const totalRev = filteredAndSortedPayments.reduce((acc, p) => acc + p.amount, 0);
         const totalPay = filteredAndSortedPayments.length;
         const avgPay = totalPay > 0 ? totalRev / totalPay : 0;
+        
+        const deferredTotal = filteredAndSortedPayments.filter(p => {
+             const toJsDate = (d: Date | Timestamp | undefined | string): Date => {
+                if (!d) return new Date(0); if (d instanceof Date) return d;
+                if (typeof d === 'object' && d !== null && 'toDate' in d && typeof (d as any).toDate === 'function') return (d as Timestamp).toDate();
+                const parsedDate = new Date(d as string);
+                return isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
+            };
+            const paymentJsDate = toJsDate(p.date);
+            const saleJsDate = toJsDate(p.saleDate);
+            return !isSameDay(paymentJsDate, saleJsDate);
+        }).reduce((acc, p) => acc + p.amount, 0);
         
         const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
         
@@ -325,6 +337,7 @@ export default function PaymentsReportPage() {
             totalPayments: totalPay, 
             averagePayment: avgPay,
             paymentMethodSummary: paymentSummary,
+            totalDeferred: deferredTotal
         };
     }, [filteredAndSortedPayments, filterDocTypes]);
 
@@ -425,31 +438,20 @@ export default function PaymentsReportPage() {
       <div className="mt-8 space-y-4">
          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div>
-              </CardContent>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent>
           </Card>
            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle>
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">+{totalPayments}</div>
-              </CardContent>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader>
+              <CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent>
           </Card>
            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle>
-                  <Scale className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div>
-              </CardContent>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
+              <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
           </Card>
         </div>
         
