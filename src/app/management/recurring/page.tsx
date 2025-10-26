@@ -27,6 +27,10 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
 
 export default function RecurringInvoicesPage() {
   const { sales, customers, isLoading, updateSale, recordCommercialDocument } = usePos();
@@ -36,6 +40,8 @@ export default function RecurringInvoicesPage() {
   const [saleToModify, setSaleToModify] = useState<Sale | null>(null);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isGenerateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [generationNote, setGenerationNote] = useState('');
 
   const recurringSales = useMemo(() => {
     return sales?.filter(s => s.isRecurring).sort((a,b) => new Date(a.date as any).getTime() - new Date(b.date as any).getTime()) || [];
@@ -86,6 +92,7 @@ export default function RecurringInvoicesPage() {
   }
 
   const handleGenerateSelected = async () => {
+    setGenerateConfirmOpen(false);
     toast({ title: "Génération en cours...", description: "Veuillez patienter." });
 
     const selectedSales = recurringSales.filter(s => selectedIds.includes(s.id));
@@ -99,10 +106,12 @@ export default function RecurringInvoicesPage() {
             status: 'pending',
             customerId: sale.customerId,
             payments: [],
+            notes: generationNote || undefined,
         };
-        recordCommercialDocument(newInvoiceData, 'invoice');
+        await recordCommercialDocument(newInvoiceData, 'invoice');
     }
     
+    setGenerationNote('');
     toast({ title: "Génération terminée", description: `${selectedSales.length} factures ont été créées.` });
     setSelectedIds([]);
   }
@@ -130,7 +139,7 @@ export default function RecurringInvoicesPage() {
                     <AlertCircle className="h-5 w-5 text-blue-600" />
                     <p className="font-semibold">{dueInvoices.length} facture(s) récurrente(s) sont arrivées à échéance.</p>
                 </div>
-                <Button onClick={handleGenerateSelected} disabled={selectedIds.length === 0}>
+                <Button onClick={() => setGenerateConfirmOpen(true)} disabled={selectedIds.length === 0}>
                     <FileCog className="mr-2 h-4 w-4" />
                     Générer les {selectedIds.length} factures
                 </Button>
@@ -234,6 +243,31 @@ export default function RecurringInvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+       <Dialog open={isGenerateConfirmOpen} onOpenChange={setGenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous allez créer {selectedIds.length} nouvelle(s) facture(s). Vous pouvez ajouter une note commune.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="generation-note">Note pour les factures (optionnel)</Label>
+            <Textarea 
+              id="generation-note"
+              placeholder="Ex: Facturation pour le mois de Novembre 2025"
+              value={generationNote}
+              onChange={(e) => setGenerationNote(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGenerateSelected}>
+                Confirmer et Générer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </Dialog>
     </>
   );
 }

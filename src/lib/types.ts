@@ -187,6 +187,7 @@ export interface Sale {
   userId?: string;
   userName?: string;
   originalSaleId?: string;
+  notes?: string;
   isRecurring?: boolean;
   recurrence?: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';

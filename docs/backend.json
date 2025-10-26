@@ -173,6 +173,7 @@
         "tableId": { "type": "string" },
         "tableName": { "type": "string" },
         "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note", "credit_note"] },
+        "notes": { "type": "string", "description": "Notes spécifiques à cette pièce." },
         "isRecurring": { "type": "boolean", "description": "Indicates if this sale is a template for recurring invoices." },
         "recurrence": {
             "type": "object",

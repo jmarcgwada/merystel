@@ -30,7 +30,7 @@ import type {
   MappingTemplate,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
-import { format, isSameDay, subDays, parse, isValid } from 'date-fns';
+import { format, isSameDay, subDays, parse, isValid, addMonths, addYears, addWeeks, addDays } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
@@ -1608,12 +1608,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
                 // Process payments only from the first row
                 const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                paymentFields.forEach(field => {
-                    if (firstRow[field] && parseFloat(firstRow[field]) > 0) {
-                        const methodName = field.replace('payment', '').toLowerCase();
-                        paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(firstRow[field]);
-                    }
-                });
+                if(firstRow) {
+                  paymentFields.forEach(field => {
+                      if (firstRow[field] && parseFloat(firstRow[field]) > 0) {
+                          const methodName = field.replace('payment', '').toLowerCase();
+                          paymentTotals[methodName] = (paymentTotals[methodName] || 0) + parseFloat(firstRow[field]);
+                      }
+                  });
+                }
 
                 for (const row of rows) {
                     if (!row.itemBarcode) {
