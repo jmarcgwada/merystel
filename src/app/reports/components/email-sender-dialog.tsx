@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -20,10 +19,11 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
-import { X, Mail, Edit, Send, File, Upload, Trash2 } from 'lucide-react';
+import { X, Mail, Edit, Send, File, Upload, Trash2, Link as LinkIcon, FilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { DocumentSelectionDialog } from './document-selection-dialog';
 
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -57,6 +57,7 @@ export function EmailSenderDialog({
   const [emailToSend, setEmailToSend] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isDocSelectionOpen, setIsDocSelectionOpen] = useState(false);
 
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -110,6 +111,18 @@ export function EmailSenderDialog({
       encoding: 'base64',
     };
   }, [toast, pieceType]);
+  
+  const handleDocumentSelected = useCallback(async (selectedSale: Sale) => {
+    setIsDocSelectionOpen(false);
+    toast({ title: 'Génération du PDF en cours...'});
+
+    const pdfAttachment = await generatePdfForEmail(selectedSale);
+    if(pdfAttachment) {
+        setAttachments(prev => [...prev, pdfAttachment]);
+        toast({ title: 'Pièce jointe ajoutée !' });
+    }
+  }, [generatePdfForEmail, toast]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -291,11 +304,20 @@ export function EmailSenderDialog({
     onClose();
   };
   
-  const handleClickOutside = useCallback((e: MouseEvent) => {
+   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         // Do not close on outside click
     }
    }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, handleClickOutside]);
 
   useEffect(() => {
     if (isDragging || isResizing) {
@@ -324,6 +346,15 @@ export function EmailSenderDialog({
       case 'sw': return 'cursor-sw-resize bottom-0 left-0 h-3 w-3';
     }
   };
+
+  const [isVisible, setIsVisible] = useState(false);
+   useEffect(() => {
+    if(isOpen) {
+        setIsVisible(true);
+    } else {
+        setIsVisible(false);
+    }
+  }, [isOpen]);
   
   if (!isOpen || !sale) return null;
 
@@ -408,10 +439,16 @@ export function EmailSenderDialog({
                            </Badge>
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Ajouter une pièce jointe
-                    </Button>
+                    <div className="flex gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Joindre un fichier local
+                        </Button>
+                         <Button variant="outline" size="sm" onClick={() => setIsDocSelectionOpen(true)}>
+                            <FilePlus className="mr-2 h-4 w-4" />
+                            Joindre une pièce de l'application
+                        </Button>
+                    </div>
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"/>
                 </div>
             </div>
@@ -435,6 +472,11 @@ export function EmailSenderDialog({
         isOpen={isEditCustomerOpen}
         onClose={() => setIsEditCustomerOpen(false)}
         customer={customer}
+      />
+      <DocumentSelectionDialog
+        isOpen={isDocSelectionOpen}
+        onClose={() => setIsDocSelectionOpen(false)}
+        onDocumentSelected={handleDocumentSelected}
       />
     </>
   );
