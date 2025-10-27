@@ -356,6 +356,8 @@ export interface PosContextType {
   mappingTemplates: MappingTemplate[];
   addMappingTemplate: (template: MappingTemplate) => void;
   deleteMappingTemplate: (templateName: string) => void;
+  companyInfo: CompanyInfo | null;
+  setCompanyInfo: (info: CompanyInfo) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -412,9 +414,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // Settings States
   const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
   const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
@@ -1579,7 +1581,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 tax: total * 0.2 / 1.2,
                 total: total,
                 payments: [{ method: randomPaymentMethod, amount: total, date: saleDate }],
-                customerId: randomCustomer.id,
                 status: 'paid',
                 documentType: 'ticket',
                 userId: user.id,
@@ -1802,6 +1803,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
 
+  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    setCompanyInfo(info);
+  }, [setCompanyInfo]);
+
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
@@ -1849,6 +1854,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDataFromJson,
       updateSale,
       generateSingleRecurringInvoice,
+      companyInfo,
+      setCompanyInfo: setCompanyInfoCallback
   };
 
   return (
@@ -1865,5 +1872,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
