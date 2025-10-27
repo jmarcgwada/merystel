@@ -37,15 +37,22 @@ import { Slider } from '@/components/ui/slider';
 
 type SortKey = 'name' | 'email' | 'phone';
 
-const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
+const DetailItem = ({ icon, label, value, isEmail }: { icon: React.ElementType, label: string, value?: string, isEmail?: boolean }) => {
     if (!value) return null;
     const Icon = icon;
+    
+    const content = isEmail ? (
+        <a href={`mailto:${value}`} className="text-primary hover:underline">{value}</a>
+    ) : (
+        <p className="text-sm font-medium">{value}</p>
+    );
+
     return (
         <div className="flex items-start gap-3">
             <Icon className="h-4 w-4 mt-1 text-muted-foreground" />
             <div className="flex-1">
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="text-sm font-medium">{value}</p>
+                {content}
             </div>
         </div>
     )
@@ -374,7 +381,11 @@ function CustomersPageContent() {
                                       </Button>
                                   </TableCell>
                                   <TableCell className="font-medium">{customer.name} <span className="font-mono text-xs text-muted-foreground ml-2">({customer.id.slice(0,8)}...)</span></TableCell>
-                                  <TableCell>{customer.email}</TableCell>
+                                  <TableCell>
+                                    {customer.email ? (
+                                        <a href={`mailto:${customer.email}`} className="text-primary hover:underline">{customer.email}</a>
+                                    ) : ''}
+                                  </TableCell>
                                   <TableCell>{customer.phone}</TableCell>
                                   <TableCell className="text-right">
                                       <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDefaultCustomer(customer.id)}}>
@@ -395,7 +406,7 @@ function CustomersPageContent() {
                                          <div className="space-y-4">
                                             <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
                                             <DetailItem icon={Fingerprint} label="Code Client" value={customer.id} />
-                                            <DetailItem icon={Mail} label="Email" value={customer.email} />
+                                            <DetailItem icon={Mail} label="Email" value={customer.email} isEmail />
                                             <DetailItem icon={Phone} label="Téléphone" value={customer.phone} />
                                             <DetailItem icon={Phone} label="Téléphone 2" value={customer.phone2} />
                                             <DetailItem icon={MapPin} label="Adresse" value={customer.address} />
