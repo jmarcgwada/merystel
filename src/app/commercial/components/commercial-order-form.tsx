@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -128,7 +129,7 @@ function NoteEditor({ orderItem, onSave, onCancel }: { orderItem: OrderItem; onS
 
 
 export const CommercialOrderForm = forwardRef<
-  { submit: () => void },
+  { submit: (notes?: string) => void },
   CommercialOrderFormProps
 >(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
   const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl } = usePos();
@@ -403,7 +404,7 @@ export const CommercialOrderForm = forwardRef<
         });
         return;
       }
-  
+      
       const finalNotes = form.getValues('notes');
   
       if (documentType === 'invoice' || documentType === 'credit_note') {

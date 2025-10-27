@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -101,7 +102,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const isEditing = !!currentSaleId;
   const isReadOnly = currentSaleContext?.isReadOnly ?? false;
 
-  const formRef = useRef<{ submit: () => void }>(null);
+  const formRef = useRef<{ submit: (notes?: string) => void }>(null);
   const { toast } = useToast();
   const router = useRouter();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
