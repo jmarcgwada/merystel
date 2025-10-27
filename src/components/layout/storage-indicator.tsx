@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Progress } from '@/components/ui/progress';
 import {
   Tooltip,
@@ -13,44 +13,62 @@ import {
 const LOCAL_STORAGE_QUOTA = 5 * 1024 * 1024; // 5 MB in bytes
 
 function formatBytes(bytes: number, decimals = 2) {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return '0 Octets';
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ['Octets', 'Ko', 'Mo', 'Go'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
 export function StorageIndicator() {
   const [usage, setUsage] = useState({ percentage: 0, totalSize: 0 });
-
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
-    const calculateStorage = () => {
-      let total = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          const value = localStorage.getItem(key);
-          if (value) {
-            total += new Blob([value]).size;
-          }
+    setIsClient(true);
+  }, []);
+
+  const calculateStorage = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          total += new Blob([value]).size;
         }
       }
-      setUsage({
+    }
+    
+    const newPercentage = Math.round((total / LOCAL_STORAGE_QUOTA) * 100);
+    
+    // Use functional update to prevent unnecessary re-renders
+    setUsage(prevUsage => {
+      if (prevUsage.totalSize === total) {
+        return prevUsage; // No change, return the same state
+      }
+      return {
         totalSize: total,
-        percentage: (total / LOCAL_STORAGE_QUOTA) * 100,
-      });
-    };
+        percentage: newPercentage,
+      };
+    });
+  }, []);
 
-    calculateStorage(); // Initial calculation
-    const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
+  useEffect(() => {
+    if (isClient) {
+      calculateStorage(); // Initial calculation
+      const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
+      return () => clearInterval(interval); // Cleanup on unmount
+    }
+  }, [isClient, calculateStorage]);
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []); // Empty dependency array ensures this effect runs only once
 
   // Calculate color based on usage percentage
   // Green (hsl(120, 70%, 50%)) to Yellow (hsl(48, 96%, 57%)) to Red (hsl(0, 84%, 60%))
-  const hue = 120 - (usage.percentage * 1.2); // 120 (green) -> 0 (red)
+  const hue = 120 - (usage.percentage * 1.2);
 
   return (
     <TooltipProvider>
@@ -77,3 +95,4 @@ export function StorageIndicator() {
     </TooltipProvider>
   );
 }
+

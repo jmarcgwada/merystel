@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Sale, Customer } from '@/lib/types';
+import type { Sale, Customer, DunningLog } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,6 +22,8 @@ import {
   Phone,
   MessageSquare,
   MoreVertical,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
@@ -33,14 +36,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { EmailSenderDialog } from '../components/email-sender-dialog';
-
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 export default function UnpaidInvoicesPage() {
-  const { sales, customers, isLoading, updateSale } = usePos();
+  const { sales, customers, isLoading, updateSale, dunningLogs, addDunningLog } = usePos();
   const router = useRouter();
   const { toast } = useToast();
   
   const [dunningAction, setDunningAction] = useState<{ sale: Sale; actionType: 'email' | 'phone' | 'whatsapp' } | null>(null);
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   const unpaidInvoices = useMemo(() => {
     if (!sales) return [];
@@ -56,6 +61,10 @@ export default function UnpaidInvoicesPage() {
     },
     [customers]
   );
+  
+  const saleDunningLogs = useCallback((saleId: string) => {
+    return dunningLogs.filter(log => log.saleId === saleId).sort((a, b) => new Date(b.date as any).getTime() - new Date(a.date as any).getTime());
+  }, [dunningLogs]);
 
   const handleDunningAction = async (sale: Sale, actionType: 'email' | 'phone' | 'whatsapp', notes?: string) => {
     const updatedSale: Sale = {
@@ -65,6 +74,13 @@ export default function UnpaidInvoicesPage() {
     };
     
     await updateSale(updatedSale);
+    
+    await addDunningLog({
+      saleId: sale.id,
+      actionType,
+      notes: notes,
+      status: 'completed',
+    });
 
     toast({
       title: 'Relance enregistrée',
@@ -80,6 +96,10 @@ export default function UnpaidInvoicesPage() {
         return acc + (sale.total - totalPaid);
     }, 0);
   }, [unpaidInvoices]);
+  
+  const toggleDetails = (saleId: string) => {
+    setOpenDetails(prev => ({...prev, [saleId]: !prev[saleId]}));
+  }
 
   return (
     <>
@@ -107,6 +127,7 @@ export default function UnpaidInvoicesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12"></TableHead>
                     <TableHead>N° Facture</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Date d'échéance</TableHead>
@@ -117,13 +138,20 @@ export default function UnpaidInvoicesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}><TableCell colSpan={6} className="h-12" /></TableRow>
+                      <TableRow key={i}><TableCell colSpan={7} className="h-12" /></TableRow>
                   ))}
                   {!isLoading && unpaidInvoices.map((sale) => {
                       const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
                       const amountDue = sale.total - totalPaid;
+                      const logs = saleDunningLogs(sale.id);
                       return (
-                          <TableRow key={sale.id}>
+                        <React.Fragment key={sale.id}>
+                          <TableRow>
+                              <TableCell>
+                                  <Button variant="ghost" size="icon" onClick={() => toggleDetails(sale.id)}>
+                                      {openDetails[sale.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  </Button>
+                              </TableCell>
                               <TableCell>
                                   <Link href={`/reports/${sale.id}?from=unpaid`} className="font-medium text-primary hover:underline">
                                       {sale.ticketNumber}
@@ -154,18 +182,49 @@ export default function UnpaidInvoicesPage() {
                                               <Mail className="mr-2 h-4 w-4" />
                                               Relance par Email
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleDunningAction(sale, 'phone')}>
+                                          <DropdownMenuItem onClick={() => handleDunningAction(sale, 'phone', 'Appel téléphonique effectué.')}>
                                               <Phone className="mr-2 h-4 w-4" />
                                               Enregistrer un Appel
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleDunningAction(sale, 'whatsapp')}>
+                                          <DropdownMenuItem onClick={() => handleDunningAction(sale, 'whatsapp', 'Message WhatsApp envoyé.')}>
                                               <MessageSquare className="mr-2 h-4 w-4" />
-                                              Envoyer un WhatsApp
+                                              Enregistrer un WhatsApp
                                           </DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
                               </TableCell>
                           </TableRow>
+                           {openDetails[sale.id] && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="p-0">
+                                        <div className="bg-muted/50 p-4">
+                                            {logs.length > 0 ? (
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Date</TableHead>
+                                                            <TableHead>Type</TableHead>
+                                                            <TableHead>Note</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {logs.map(log => (
+                                                            <TableRow key={log.id}>
+                                                                <TableCell className="text-xs"><ClientFormattedDate date={log.date} formatString="d MMM yy, HH:mm" /></TableCell>
+                                                                <TableCell><Badge variant="secondary" className="capitalize">{log.actionType}</Badge></TableCell>
+                                                                <TableCell className="text-xs">{log.notes || '-'}</TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            ) : (
+                                                <p className="text-center text-sm text-muted-foreground py-4">Aucune action de relance enregistrée pour cette facture.</p>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                          </React.Fragment>
                       )
                   })}
                 </TableBody>
@@ -192,3 +251,4 @@ export default function UnpaidInvoicesPage() {
     </>
   );
 }
+
