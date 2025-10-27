@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import type { Timestamp } from 'firebase/firestore';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { bankList } from '@/lib/banks';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -313,7 +313,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setCheques(prev => [...prev, {
       numeroCheque: '',
       banque: '',
-      montant: prev.length === 0 ? balanceDue : 0,
+      montant: prev.length === 0 ? parseFloat(balanceDue.toFixed(2)) : 0,
       dateEcheance: new Date(),
       statut: 'enPortefeuille',
     }]);
@@ -384,6 +384,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         toast({ variant: 'destructive', title: 'Banque manquante', description: 'Veuillez sélectionner une banque pour chaque chèque.' });
         return;
       }
+      
       const totalCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
       if (Math.abs(totalCheques - balanceDue) > 0.01) {
          toast({ variant: 'destructive', title: 'Montant incorrect', description: 'Le total des chèques ne correspond pas au solde restant.' });
@@ -398,7 +399,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             setCheques([{
                 numeroCheque: '',
                 banque: '',
-                montant: balanceDue,
+                montant: parseFloat(balanceDue.toFixed(2)),
                 dateEcheance: new Date(),
                 statut: 'enPortefeuille',
             }]);
