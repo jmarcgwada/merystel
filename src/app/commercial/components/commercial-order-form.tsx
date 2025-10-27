@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -218,13 +219,6 @@ export const CommercialOrderForm = forwardRef<
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
-  const watchNotes = form.watch('notes');
-
-  useEffect(() => {
-    if (watchNotes !== currentSaleContext?.notes) {
-        setCurrentSaleContext(prev => ({ ...prev, notes: watchNotes }));
-    }
-  }, [watchNotes, currentSaleContext?.notes, setCurrentSaleContext]);
   
   useEffect(() => {
     if (currentSaleContext?.customerId && customers) {
@@ -416,6 +410,7 @@ export const CommercialOrderForm = forwardRef<
       if (documentType === 'invoice' || documentType === 'credit_note') {
         setCurrentSaleContext(prev => ({
           ...prev,
+          items: order,
           isInvoice: true,
           customerId: selectedCustomer?.id,
           acompte,
