@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History, Landmark } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +24,7 @@ export default function ManagementSideNav() {
       paymentMethods, 
       vatRates,
       sales,
+      cheques,
   } = usePos();
   
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function ManagementSideNav() {
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, count: paymentMethods?.length || 0 },
+    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
     { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
@@ -50,7 +52,7 @@ export default function ManagementSideNav() {
       // Render a placeholder or skeleton while waiting for client-side mount
       return (
           <div className="p-4 space-y-2">
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: 9 }).map((_, i) => (
                   <Skeleton key={i} className="h-9 w-full" />
               ))}
           </div>
@@ -70,7 +72,7 @@ export default function ManagementSideNav() {
           >
           <link.icon className="h-4 w-4" />
           <span className="flex-1">{link.label}</span>
-          <Badge variant="secondary">{link.count}</Badge>
+          <Badge variant={pathname.startsWith(link.href) ? "default" : "secondary"}>{link.count}</Badge>
         </Link>
       ))}
       <div className="my-2 border-t -mx-4"></div>
