@@ -18,6 +18,14 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentSelectionDialog } from './document-selection-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
@@ -72,7 +80,6 @@ export function EmailSenderDialog({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
   const modalRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   const pieceType = sale?.documentType === 'invoice' ? 'facture'
                   : sale?.documentType === 'quote' ? 'devis'
@@ -93,11 +100,9 @@ export function EmailSenderDialog({
 
   useEffect(() => {
     if(isOpen) {
-        setIsVisible(true);
-    } else {
-        setIsVisible(false);
+        initializeModalState();
     }
-  }, [isOpen]);
+  }, [isOpen, initializeModalState]);
 
   const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<Attachment | null> => {
     if (!printRef.current || !saleForPdf) {
@@ -140,7 +145,6 @@ export function EmailSenderDialog({
 
   useEffect(() => {
     if (isOpen) {
-        initializeModalState();
         if (sale) {
             setIsGeneratingPdf(true);
             generatePdfForEmail(sale).then(pdfAttachment => {
@@ -153,7 +157,7 @@ export function EmailSenderDialog({
     } else {
         setAttachments([]); // Clear attachments when closing
     }
-  }, [isOpen, initializeModalState, sale, generatePdfForEmail]);
+  }, [isOpen, sale, generatePdfForEmail]);
 
   useEffect(() => {
     if (!customer) return;
@@ -283,21 +287,6 @@ export function EmailSenderDialog({
     });
   };
 
-  const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        setIsVisible(false);
-    }
-   }, []);
-
-  useEffect(() => {
-    if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isVisible, handleClickOutside]);
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
         setModalPositionState({
@@ -346,10 +335,6 @@ export function EmailSenderDialog({
     setIsResizing(false);
   }, [isDragging, isResizing, modalPosition, setEmailModalPosition, modalSize, setEmailModalWidth, setEmailModalHeight]);
 
-  const handleCloseAndReset = () => {
-    onClose();
-  };
-
    useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -379,26 +364,30 @@ export function EmailSenderDialog({
   };
 
   
-  if (!isOpen) return null;
-
   return (
     <>
        <div className="absolute -left-[9999px] -top-[9999px]">
         {sale && vatRates && <InvoicePrintTemplate ref={printRef} sale={sale} customer={customer} companyInfo={companyInfo} vatRates={vatRates} />}
       </div>
-      <div className="fixed inset-0 z-50 bg-black/80">
-          <div
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent
             ref={modalRef}
+            hideCloseButton={true}
             style={{
                 width: `${modalSize.width}px`,
                 height: `${modalSize.height}px`,
                 top: `${modalPosition.y}px`,
                 left: `${modalPosition.x}px`,
-                position: 'fixed',
+                transform: 'none',
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: 0
             }}
-            className="z-50 flex flex-col rounded-lg border bg-background shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+            className="z-50 rounded-lg border bg-background shadow-2xl overflow-hidden"
+            onInteractOutside={(e) => { e.preventDefault(); }}
+        >
             <div 
                 data-drag-handle
                 onMouseDown={handleDragStart}
@@ -410,7 +399,7 @@ export function EmailSenderDialog({
                 <h2 className="font-semibold leading-none tracking-tight">
                   {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
                 </h2>
-                <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                <button onClick={onClose} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                   <X className="h-4 w-4" />
                   <span className="sr-only">Fermer</span>
                 </button>
@@ -502,7 +491,7 @@ export function EmailSenderDialog({
                 </Card>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
-              <Button variant="ghost" onClick={handleCloseAndReset}>Annuler</Button>
+              <Button variant="ghost" onClick={onClose}>Annuler</Button>
               <Button onClick={handleSendEmail} disabled={isSending}>
                 <Send className="mr-2 h-4 w-4" /> {isSending ? 'Envoi...' : 'Envoyer'}
               </Button>
@@ -515,8 +504,8 @@ export function EmailSenderDialog({
                   className={cn('absolute z-10', getResizeHandleClass(dir))}
               />
             ))}
-          </div>
-      </div>
+      </DialogContent>
+      </Dialog>
       <EditCustomerDialog 
         isOpen={isEditCustomerOpen}
         onClose={() => setIsEditCustomerOpen(false)}
