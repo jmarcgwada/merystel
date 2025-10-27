@@ -388,27 +388,24 @@ export function EmailSenderDialog({
             className="z-50 rounded-lg border bg-background shadow-2xl overflow-hidden"
             onInteractOutside={(e) => { e.preventDefault(); }}
         >
-            <DialogHeader className="p-0">
-                <DialogTitle className="sr-only">
-                    {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
-                </DialogTitle>
-            </DialogHeader>
-            <div 
+            <DialogHeader 
                 data-drag-handle
                 onMouseDown={handleDragStart}
                 className={cn(
-                    "flex items-center justify-between p-4 bg-muted/50 border-b cursor-grab",
+                    "flex-row items-center justify-between p-4 bg-muted/50 border-b cursor-grab",
                     isDragging && "cursor-grabbing"
                 )}
             >
-                <h2 className="font-semibold leading-none tracking-tight">
-                  {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
-                </h2>
-                <button onClick={onClose} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Fermer</span>
-                </button>
-            </div>
+              <DialogTitle className="text-base font-semibold">
+                {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
+              </DialogTitle>
+                <DialogClose asChild>
+                  <button className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Fermer</span>
+                  </button>
+                </DialogClose>
+            </DialogHeader>
             <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                 <Card>
                   <CardContent className="pt-6">
@@ -509,7 +506,7 @@ export function EmailSenderDialog({
                   className={cn('absolute z-10', getResizeHandleClass(dir))}
               />
             ))}
-      </DialogContent>
+        </DialogContent>
       </Dialog>
       <EditCustomerDialog 
         isOpen={isEditCustomerOpen}
@@ -524,3 +521,5 @@ export function EmailSenderDialog({
     </>
   );
 }
+
+    
