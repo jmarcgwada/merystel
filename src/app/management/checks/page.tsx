@@ -95,6 +95,7 @@ export default function ChecksManagementPage() {
 
   const handleUpdateStatus = (cheque: Cheque, newStatus: Cheque['statut']) => {
     updateCheque({ ...cheque, statut: newStatus });
+    toast({ title: 'Statut mis à jour', description: `Le chèque n°${cheque.numeroCheque} est maintenant "${statutLabels[newStatus]}".` });
   };
 
   const isEcheanceProche = (dateEcheance: Cheque['dateEcheance']) => {
@@ -262,6 +263,9 @@ export default function ChecksManagementPage() {
                             </DropdownMenuItem>
                              <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'impaye')} className="text-destructive" disabled={cheque.statut !== 'remisEnBanque'}>
                                <CircleAlert className="mr-2 h-4 w-4"/> Marquer comme Impayé
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'annule')} className="text-destructive">
+                                <XCircle className="mr-2 h-4 w-4"/> Marquer comme Annulé
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => setChequeToDelete(cheque)} className="text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4"/> Supprimer
