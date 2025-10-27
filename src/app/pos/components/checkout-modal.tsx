@@ -39,6 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import type { Timestamp } from 'firebase/firestore';
+import { Card } from '@/components/ui/card';
 
 
 interface CheckoutModalProps {
