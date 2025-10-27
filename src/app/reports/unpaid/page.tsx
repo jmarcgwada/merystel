@@ -47,6 +47,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
+
 
 type DunningAction = {
   sale: Sale;
@@ -64,6 +66,9 @@ export default function UnpaidInvoicesPage() {
   const [emailBody, setEmailBody] = useState('');
   const [emailToSend, setEmailToSend] = useState('');
 
+  const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+
   const unpaidInvoices = useMemo(() => {
     if (!sales) return [];
     return sales
@@ -76,6 +81,12 @@ export default function UnpaidInvoicesPage() {
     return customers.find(c => c.id === dunningAction.sale.customerId);
   }, [dunningAction, customers]);
 
+  useEffect(() => {
+    if (dunningAction?.actionType === 'email' && customerForDunning) {
+        setEmailToSend(customerForDunning.email || '');
+    }
+  }, [dunningAction, customerForDunning]);
+  
   useEffect(() => {
     if (dunningAction && dunningAction.actionType === 'email') {
         const sale = dunningAction.sale;
@@ -144,6 +155,13 @@ L'équipe de ${'votre entreprise'}`
         return acc + (sale.total - totalPaid);
     }, 0);
   }, [unpaidInvoices]);
+  
+  const openEditCustomerModal = () => {
+    if (customerForDunning) {
+      setCustomerToEdit(customerForDunning);
+      setIsEditCustomerOpen(true);
+    }
+  };
 
 
   return (
@@ -264,14 +282,11 @@ L'équipe de ${'votre entreprise'}`
                                   value={emailToSend} 
                                   onChange={(e) => setEmailToSend(e.target.value)}
                                   placeholder={customerForDunning ? "Email manquant" : "Aucun client associé"}
-                                  disabled={!customerForDunning}
                                 />
                                 {customerForDunning && (
-                                  <Button asChild variant="outline" size="sm">
-                                      <Link href={`/management/customers?filter=${customerForDunning.id}`}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Modifier le client
-                                      </Link>
+                                  <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Modifier le client
                                   </Button>
                                 )}
                            </div>
@@ -311,6 +326,12 @@ L'équipe de ${'votre entreprise'}`
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <EditCustomerDialog 
+        isOpen={isEditCustomerOpen}
+        onClose={() => setIsEditCustomerOpen(false)}
+        customer={customerToEdit}
+      />
     </>
   );
 }
