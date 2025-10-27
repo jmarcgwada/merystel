@@ -20,7 +20,7 @@ import {
   ChevronRight,
   SlidersHorizontal,
   X,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -239,7 +239,7 @@ export default function UnpaidInvoicesPage() {
   const toggleDetails = (saleId: string) => {
     setOpenDetails((prev) => ({ ...prev, [saleId]: !prev[saleId] }));
   };
-
+  
   const resetFilters = () => {
     setSearchTerm('');
     setDateRange(undefined);
@@ -481,7 +481,6 @@ export default function UnpaidInvoicesPage() {
               )}
             </CardContent>
           </Card>
-        </div>
       </div>
       
       {isEmailDialogOpen && (
