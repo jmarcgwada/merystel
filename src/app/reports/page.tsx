@@ -887,11 +887,13 @@ function ReportsPageContent() {
                                             style={getRowStyle(sale)}
                                             >
                                                 {visibleColumns.type && <TableCell>
-                                                     <Link href={getDetailLink(sale.id)} className="block w-full h-full" onClick={(e) => e.stopPropagation()}>
-                                                        <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
-                                                    </Link>
+                                                    <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
                                                 </TableCell>}
-                                                {visibleColumns.ticketNumber && <TableCell className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</TableCell>}
+                                                {visibleColumns.ticketNumber && <TableCell>
+                                                  <Link href={getDetailLink(sale.id)} className="font-mono text-muted-foreground text-xs hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                                                    {sale.ticketNumber}
+                                                  </Link>
+                                                </TableCell>}
                                                 {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
                                                 {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
                                                 {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
@@ -959,4 +961,3 @@ export default function ReportsPage() {
     )
 }
 
-    
