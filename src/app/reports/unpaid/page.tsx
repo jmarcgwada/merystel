@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Sale } from '@/lib/types';
+import type { Sale, Customer } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { useRouter } from 'next/navigation';
 import {
@@ -32,6 +32,7 @@ import {
   Phone,
   MessageSquare,
   MoreVertical,
+  Edit,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
@@ -61,6 +62,7 @@ export default function UnpaidInvoicesPage() {
   const [dunningNotes, setDunningNotes] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [emailToSend, setEmailToSend] = useState('');
 
   const unpaidInvoices = useMemo(() => {
     if (!sales) return [];
@@ -79,6 +81,7 @@ export default function UnpaidInvoicesPage() {
         const sale = dunningAction.sale;
         const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
 
+        setEmailToSend(customerForDunning?.email || '');
         setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
         setEmailBody(
 `Bonjour ${customerForDunning?.name || 'client(e)'},
@@ -255,7 +258,23 @@ L'équipe de ${'votre entreprise'}`
                   <div className="space-y-4">
                        <div className="space-y-2">
                            <Label htmlFor="email-to">Destinataire</Label>
-                           <Input id="email-to" value={customerForDunning?.email || ''} readOnly disabled />
+                           <div className="flex items-center gap-2">
+                                <Input 
+                                  id="email-to" 
+                                  value={emailToSend} 
+                                  onChange={(e) => setEmailToSend(e.target.value)}
+                                  placeholder={customerForDunning ? "Email manquant" : "Aucun client associé"}
+                                  disabled={!customerForDunning}
+                                />
+                                {customerForDunning && (
+                                  <Button asChild variant="outline" size="sm">
+                                      <Link href={`/management/customers?filter=${customerForDunning.id}`}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier le client
+                                      </Link>
+                                  </Button>
+                                )}
+                           </div>
                        </div>
                        <div className="space-y-2">
                            <Label htmlFor="email-subject">Sujet</Label>
@@ -295,4 +314,3 @@ L'équipe de ${'votre entreprise'}`
     </>
   );
 }
-
