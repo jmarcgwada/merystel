@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -7,15 +8,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogContent,
-  AlertDialogDescription,
+  AlertDialogDescription as AlertDialogDescriptionComponent,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle as AlertDialogTitleComponent,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -745,7 +747,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <Label>Date d'échéance</Label>
                     <Popover>
                       <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{format(cheque.dateEcheance as Date, "PPP", { locale: fr })}</Button></PopoverTrigger>
-                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={cheque.dateEcheance as Date} onSelect={date => date && handleChequeChange(index, 'dateEcheance', date)} initialFocus /></PopoverContent>
+                      <PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={cheque.dateEcheance as Date} onSelect={date => date && handleChequeChange(index, 'dateEcheance', date)} initialFocus /></PopoverContent>
                     </Popover>
                   </div>
                 </div>
@@ -796,10 +798,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     <AlertDialog open={showOverpaymentAlert} onOpenChange={setShowOverpaymentAlert}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Paiement impossible</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitleComponent>Paiement impossible</AlertDialogTitleComponent>
+                <AlertDialogDescriptionComponent>
                     Le montant saisi est supérieur au solde restant. Les paiements par carte ou chèque ne peuvent pas excéder le montant dû.
-                </AlertDialogDescription>
+                </AlertDialogDescriptionComponent>
             </AlertDialogHeader>
             <AlertDialogAction onClick={() => {
                 setCurrentAmount(balanceDue.toFixed(2));
