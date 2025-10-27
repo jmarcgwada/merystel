@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,6 +45,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 type DunningAction = {
   sale: Sale;
@@ -58,6 +59,8 @@ export default function UnpaidInvoicesPage() {
 
   const [dunningAction, setDunningAction] = useState<DunningAction | null>(null);
   const [dunningNotes, setDunningNotes] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
 
   const unpaidInvoices = useMemo(() => {
     if (!sales) return [];
@@ -65,6 +68,32 @@ export default function UnpaidInvoicesPage() {
       .filter((sale) => sale.status === 'pending' && sale.documentType === 'invoice')
       .sort((a, b) => new Date(a.date as any).getTime() - new Date(b.date as any).getTime());
   }, [sales]);
+  
+  const customerForDunning = useMemo(() => {
+    if (!dunningAction || !customers) return null;
+    return customers.find(c => c.id === dunningAction.sale.customerId);
+  }, [dunningAction, customers]);
+
+  useEffect(() => {
+    if (dunningAction && dunningAction.actionType === 'email') {
+        const sale = dunningAction.sale;
+        const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+
+        setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
+        setEmailBody(
+`Bonjour ${customerForDunning?.name || 'client(e)'},
+
+Sauf erreur de notre part, il semble que votre facture n°${sale.ticketNumber} d'un montant de ${totalDue.toFixed(2)}€, datée du ${new Date(sale.date as any).toLocaleDateString('fr-FR')}, soit toujours en attente de règlement.
+
+Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.
+
+Nous restons à votre disposition pour toute question.
+
+Cordialement,
+L'équipe de ${'votre entreprise'}`
+        );
+    }
+  }, [dunningAction, customerForDunning]);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -214,27 +243,51 @@ export default function UnpaidInvoicesPage() {
       </div>
 
        <AlertDialog open={!!dunningAction} onOpenChange={(open) => !open && setDunningAction(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className={dunningAction?.actionType === 'email' ? 'sm:max-w-xl' : 'sm:max-w-md'}>
           <AlertDialogHeader>
             <AlertDialogTitle>Enregistrer une action de relance</AlertDialogTitle>
             <AlertDialogDescription>
               Vous êtes sur le point d'enregistrer une relance de type "{dunningAction?.actionType}" pour la facture #{dunningAction?.sale.ticketNumber}.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-4">
-              <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
-              <Textarea
-                id="dunning-notes"
-                placeholder="Ex: Laissé un message vocal, email envoyé sans réponse..."
-                value={dunningNotes}
-                onChange={(e) => setDunningNotes(e.target.value)}
-                className="mt-2"
-              />
+          <div className="py-4 space-y-4">
+              {dunningAction?.actionType === 'email' ? (
+                  <div className="space-y-4">
+                       <div className="space-y-2">
+                           <Label htmlFor="email-to">Destinataire</Label>
+                           <Input id="email-to" value={customerForDunning?.email || ''} readOnly disabled />
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="email-subject">Sujet</Label>
+                           <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="email-body">Message</Label>
+                           <Textarea
+                                id="email-body"
+                                value={emailBody}
+                                onChange={(e) => setEmailBody(e.target.value)}
+                                rows={8}
+                            />
+                       </div>
+                  </div>
+              ) : (
+                <div>
+                    <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
+                    <Textarea
+                        id="dunning-notes"
+                        placeholder="Ex: Laissé un message vocal, email envoyé sans réponse..."
+                        value={dunningNotes}
+                        onChange={(e) => setDunningNotes(e.target.value)}
+                        className="mt-2"
+                    />
+                </div>
+              )}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setDunningAction(null); setDunningNotes(''); }}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDunningAction}>
-              Enregistrer l'action
+              {dunningAction?.actionType === 'email' ? 'Envoyer la relance' : 'Enregistrer l\'action'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -242,3 +295,4 @@ export default function UnpaidInvoicesPage() {
     </>
   );
 }
+
