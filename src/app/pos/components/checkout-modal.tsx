@@ -100,7 +100,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }, [previousPayments, previousChange]);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const chequesTotal = useMemo(() => cheques.reduce((acc, c) => sum + c.montant, 0), [cheques]);
+  const chequesTotal = useMemo(() => cheques.reduce((acc, c) => acc + c.montant, 0), [cheques]);
   const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid;
   const balanceDue = useMemo(() => displayTotalAmount - totalAmountPaid, [displayTotalAmount, totalAmountPaid]);
 
@@ -407,11 +407,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         }
         setChequeTotalToPay(amount);
         setView('cheque');
+        const roundedAmount = parseFloat(amount.toFixed(2));
         if (cheques.length === 0) {
             setCheques([{
                 numeroCheque: '',
                 banque: '',
-                montant: amount,
+                montant: roundedAmount,
                 dateEcheance: new Date(),
                 statut: 'enPortefeuille',
             }]);
@@ -738,7 +739,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       <div className="py-4 h-[60vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <div className="text-lg">Montant du paiement : <span className="font-bold text-primary">{chequeTotalToPay.toFixed(2)}€</span></div>
-          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(cheques.reduce((s, c) => s + c.montant, 0) - chequeTotalToPay) > 0.01 ? 'text-destructive' : 'text-green-600')}>{cheques.reduce((s, c) => s + c.montant, 0).toFixed(2)}€</span></div>
+          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(cheques.reduce((s, c) => s + c.montant, 0) - chequeTotalToPay) > 0.01 ? 'text-destructive' : 'text-green-600')}>{cheques.reduce((acc, c) => acc + c.montant, 0).toFixed(2)}€</span></div>
         </div>
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4">
