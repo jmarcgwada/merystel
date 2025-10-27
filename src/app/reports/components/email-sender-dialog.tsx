@@ -388,6 +388,11 @@ export function EmailSenderDialog({
             className="z-50 rounded-lg border bg-background shadow-2xl overflow-hidden"
             onInteractOutside={(e) => { e.preventDefault(); }}
         >
+            <DialogHeader className="p-0">
+                <DialogTitle className="sr-only">
+                    {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
+                </DialogTitle>
+            </DialogHeader>
             <div 
                 data-drag-handle
                 onMouseDown={handleDragStart}
