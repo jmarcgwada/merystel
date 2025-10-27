@@ -256,8 +256,8 @@ export function EmailSenderDialog({
                           id="email-body"
                           value={emailBody}
                           onChange={(e) => setEmailBody(e.target.value)}
-                          rows={8}
-                          className="min-h-[150px]"
+                          rows={6}
+                          className="min-h-[120px]"
                       />
                   </div>
                 </CardContent>
