@@ -299,7 +299,7 @@ export interface Cheque {
   clientId: string;
   scanUrl?: string;
   notes?: string;
-  createdAt: Date | Timestamp;
+  createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }
 
@@ -316,7 +316,7 @@ export interface RemiseCheque {
   dateRemise: Date | Timestamp;
   chequeIds: string[];
   montantTotal: number;
-  createdAt: Date | Timestamp;
+  createdAt?: Date | Timestamp;
 }
 
 export interface MappingTemplate {

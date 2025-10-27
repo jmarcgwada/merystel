@@ -259,22 +259,23 @@
         "required": ["date", "saleId", "actionType", "status"]
     },
     "Cheque": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Cheque",
-        "type": "object",
-        "description": "Represents a post-dated check held in portfolio.",
-        "properties": {
-            "id": { "type": "string" },
-            "numeroCheque": { "type": "string" },
-            "banque": { "type": "string" },
-            "montant": { "type": "number" },
-            "dateEcheance": { "type": "string", "format": "date-time" },
-            "statut": { "type": "string", "enum": ["enPortefeuille", "remisEnBanque", "encaisse", "impaye", "annule"] },
-            "factureId": { "type": "string" },
-            "scanUrl": { "type": "string" },
-            "notes": { "type": "string" }
-        },
-        "required": ["id", "numeroCheque", "montant", "dateEcheance", "statut", "factureId"]
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cheque",
+      "type": "object",
+      "description": "Represents a post-dated check held in portfolio.",
+      "properties": {
+        "id": { "type": "string" },
+        "numeroCheque": { "type": "string" },
+        "banque": { "type": "string" },
+        "montant": { "type": "number" },
+        "dateEcheance": { "type": "string", "format": "date-time" },
+        "statut": { "type": "string", "enum": ["enPortefeuille", "remisEnBanque", "encaisse", "impaye", "annule"] },
+        "factureId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "scanUrl": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "numeroCheque", "montant", "dateEcheance", "statut", "factureId", "clientId"]
     },
     "PaiementPartiel": {
         "$schema": "http://json-schema.org/draft-07/schema#",
