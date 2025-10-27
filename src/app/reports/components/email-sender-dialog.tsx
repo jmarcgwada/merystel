@@ -210,8 +210,6 @@ export function EmailSenderDialog({
     setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
@@ -220,85 +218,85 @@ export function EmailSenderDialog({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-3xl flex flex-col p-0">
           <DialogHeader className="p-6 pb-2">
-              <DialogTitle>
-                  {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
-              </DialogTitle>
+            <DialogTitle>
+              {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
+            </DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-0 space-y-4 flex-1 overflow-y-auto">
-              <Card>
-                <CardContent className="pt-6">
-                   <div className="space-y-2">
-                      <Label htmlFor="email-to">Destinataire</Label>
-                      <div className="flex items-center gap-2">
-                          <Input 
-                            id="email-to" 
-                            value={emailToSend} 
-                            onChange={(e) => setEmailToSend(e.target.value)}
-                            placeholder={customer ? "Email manquant" : "Aucun client associé"}
-                          />
-                     </div>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email-to">Destinataire</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="email-to"
+                      value={emailToSend}
+                      onChange={(e) => setEmailToSend(e.target.value)}
+                      placeholder={customer ? "Email manquant" : "Aucun client associé"}
+                    />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Contenu de l'e-mail</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                   <div className="space-y-2">
-                      <Label htmlFor="email-subject">Sujet</Label>
-                      <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
-                  </div>
-                  <div className="space-y-2 flex-1 flex flex-col">
-                      <Label htmlFor="email-body">Message</Label>
-                      <Textarea
-                          id="email-body"
-                          value={emailBody}
-                          onChange={(e) => setEmailBody(e.target.value)}
-                          rows={6}
-                          className="min-h-[120px]"
-                      />
-                  </div>
-                </CardContent>
-              </Card>
+            <Card>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Contenu de l'e-mail</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-subject">Sujet</Label>
+                  <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                </div>
+                <div className="space-y-2 flex-1 flex flex-col">
+                  <Label htmlFor="email-body">Message</Label>
+                  <Textarea
+                    id="email-body"
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    rows={6}
+                    className="min-h-[120px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-               <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">Pièces jointes</CardTitle>
-                      <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                              <Upload className="mr-2 h-4 w-4" /> Fichier local
-                          </Button>
-                      </div>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Pièces jointes</CardTitle>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" /> Fichier local
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-24 overflow-y-auto border rounded-md p-2 bg-muted/50">
-                      {attachments.length === 0 && !isGeneratingPdf && <p className="text-sm text-center text-muted-foreground p-4">Aucune pièce jointe.</p>}
-                      {isGeneratingPdf && <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Préparation du PDF...</div>}
-                      <Table>
-                        <TableBody>
-                          {attachments.map((att, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium flex items-center gap-2">
-                                  <File className="h-4 w-4 text-muted-foreground" />
-                                  {att.filename}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => removeAttachment(index)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                  </div>
-                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"/>
-                </CardContent>
-              </Card>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-24 overflow-y-auto border rounded-md p-2 bg-muted/50">
+                  {attachments.length === 0 && !isGeneratingPdf && <p className="text-sm text-center text-muted-foreground p-4">Aucune pièce jointe.</p>}
+                  {isGeneratingPdf && <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Préparation du PDF...</div>}
+                  <Table>
+                    <TableBody>
+                      {attachments.map((att, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium flex items-center gap-2">
+                            <File className="h-4 w-4 text-muted-foreground" />
+                            {att.filename}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => removeAttachment(index)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+              </CardContent>
+            </Card>
           </div>
           <DialogFooter className="p-4 border-t bg-muted/50">
             <Button variant="ghost" onClick={onClose}>Annuler</Button>
