@@ -100,7 +100,7 @@ export default function DashboardPage() {
 
     const relevantSales = useMemo(() => {
       if (!sales) return [];
-      return sales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'))
+      return sales.filter(sale => sale.documentType === 'invoice' || sale.documentType === 'ticket')
     }, [sales]);
 
     
@@ -137,7 +137,7 @@ export default function DashboardPage() {
     const outstandingBalance = useMemo(() => {
         if (!sales) return 0;
         // Outstanding balance should only be calculated from invoices
-        const invoiceSales = sales.filter(sale => sale.ticketNumber?.startsWith('Fact-'));
+        const invoiceSales = sales.filter(sale => sale.documentType === 'invoice');
         return invoiceSales.reduce((acc, sale) => {
             if (sale.status === 'pending') {
                 const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
@@ -197,6 +197,7 @@ export default function DashboardPage() {
         if (!isMounted) return {};
         const style: React.CSSProperties = {
              backgroundColor: hexToRgba(dashboardButtonBackgroundColor, dashboardButtonOpacity),
+             color: dashboardButtonTextColor,
         };
         if (dashboardButtonShowBorder) {
             style.borderColor = dashboardButtonBorderColor;
@@ -205,7 +206,7 @@ export default function DashboardPage() {
             style.borderColor = 'transparent';
         }
         return style;
-    }, [isMounted, dashboardButtonBackgroundColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
+    }, [isMounted, dashboardButtonBackgroundColor, dashboardButtonTextColor, dashboardButtonOpacity, dashboardButtonShowBorder, dashboardButtonBorderColor]);
 
 
     if (!isMounted || isLoading) {
@@ -411,6 +412,7 @@ export default function DashboardPage() {
                                   <Button asChild variant="secondary" size="sm"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
                                   <Button asChild variant="secondary" size="sm"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
                                   <Button variant="secondary" size="sm" onClick={() => setCreditNoteConfirmOpen(true)}>Avoirs</Button>
+                                  <Button asChild variant="destructive" size="sm"><Link href="/reports/unpaid">Impayés</Link></Button>
                           </div>
                       </CardContent>
                   </Card>
