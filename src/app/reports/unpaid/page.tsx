@@ -13,16 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import type { Sale, Customer } from '@/lib/types';
 import { usePos } from '@/contexts/pos-context';
 import { useRouter } from 'next/navigation';
@@ -34,6 +24,7 @@ import {
   MoreVertical,
   Edit,
   X,
+  Send,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
@@ -50,6 +41,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { cn } from '@/lib/utils';
+import { sendEmail } from '@/ai/flows/send-email-flow';
+import jsPDF from 'jspdf';
+import { InvoicePrintTemplate } from '../components/invoice-print-template';
 
 
 type DunningAction = {
@@ -61,10 +55,11 @@ type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 
 export default function UnpaidInvoicesPage() {
-  const { sales, customers, isLoading, updateSale } = usePos();
+  const { sales, customers, isLoading, updateSale, smtpConfig, companyInfo, vatRates } = usePos();
   const router = useRouter();
   const { toast } = useToast();
-
+  const printRef = useRef<HTMLDivElement>(null);
+  
   const [dunningAction, setDunningAction] = useState<DunningAction | null>(null);
   const [dunningNotes, setDunningNotes] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
@@ -73,6 +68,7 @@ export default function UnpaidInvoicesPage() {
 
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   // State for draggable/resizable modal
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
@@ -135,10 +131,10 @@ Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les 
 Nous restons à votre disposition pour toute question.
 
 Cordialement,
-L'équipe de ${'votre entreprise'}`
+L'équipe de ${companyInfo?.name || 'votre entreprise'}`
         );
     }
-  }, [dunningAction, customerForDunning]);
+  }, [dunningAction, customerForDunning, companyInfo]);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -147,12 +143,44 @@ L'équipe de ${'votre entreprise'}`
     },
     [customers]
   );
-
+  
   const handleDunningAction = async () => {
     if (!dunningAction) return;
 
-    // Here you would implement the actual logic for sending email/whatsapp
-    // For now, we just log it and update the sale.
+    if (dunningAction.actionType === 'email') {
+      if (!smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
+        toast({ variant: 'destructive', title: 'Configuration SMTP requise', description: 'Veuillez configurer les paramètres SMTP dans la page "Connectivité" avant d\'envoyer des e-mails.' });
+        return;
+      }
+       if (!emailToSend) {
+        toast({ variant: 'destructive', title: 'Email manquant', description: 'Veuillez renseigner l\'adresse e-mail du client.' });
+        return;
+      }
+      
+      setIsSending(true);
+      toast({ title: 'Envoi en cours...' });
+      
+      const emailResult = await sendEmail({
+          smtpConfig: {
+              host: smtpConfig.host, port: smtpConfig.port, secure: smtpConfig.secure || false,
+              auth: { user: smtpConfig.user, pass: smtpConfig.password },
+              senderEmail: smtpConfig.senderEmail,
+          },
+          to: emailToSend,
+          subject: emailSubject,
+          text: emailBody,
+          html: `<p>${emailBody.replace(/\n/g, '<br>')}</p>`,
+          // attachments: pdfData ? [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }] : undefined,
+      });
+
+      toast({
+          variant: emailResult.success ? 'default' : 'destructive',
+          title: emailResult.success ? 'E-mail envoyé !' : "Échec de l'envoi",
+          description: emailResult.message,
+      });
+      setIsSending(false);
+
+    }
     
     const updatedSale: Sale = {
       ...dunningAction.sale,
@@ -162,18 +190,13 @@ L'équipe de ${'votre entreprise'}`
     
     await updateSale(updatedSale);
 
-    // Here you would also save the dunning log entry
-    // addDunningLog({
-    //   saleId: dunningAction.sale.id,
-    //   actionType: dunningAction.actionType,
-    //   notes: dunningNotes,
-    //   status: 'sent',
-    // });
-    
-    toast({
-      title: 'Relance enregistrée',
-      description: `Une relance de type "${dunningAction.actionType}" a été enregistrée pour la facture #${dunningAction.sale.ticketNumber}.`,
-    });
+    // addDunningLog({ saleId, actionType, notes, status });
+    if(dunningAction.actionType !== 'email') {
+        toast({
+          title: 'Relance enregistrée',
+          description: `Une relance de type "${dunningAction.actionType}" a été enregistrée pour la facture #${dunningAction.sale.ticketNumber}.`,
+        });
+    }
 
     setDunningAction(null);
     setDunningNotes('');
@@ -386,7 +409,7 @@ L'équipe de ${'votre entreprise'}`
       </div>
       
       {dunningAction && (
-        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setDunningAction(null)}>
+        <div className="fixed inset-0 z-50 bg-black/80">
             <div
               ref={modalRef}
               style={{
@@ -417,7 +440,7 @@ L'équipe de ${'votre entreprise'}`
               </div>
               <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                    {dunningAction?.actionType === 'email' ? (
-                        <div className="space-y-4">
+                        <div className="space-y-4 h-full flex flex-col">
                             <div className="space-y-2">
                                 <Label htmlFor="email-to">Destinataire</Label>
                                 <div className="flex items-center gap-2">
@@ -439,7 +462,7 @@ L'équipe de ${'votre entreprise'}`
                                 <Label htmlFor="email-subject">Sujet</Label>
                                 <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
                             </div>
-                            <div className="space-y-2 h-full flex flex-col">
+                            <div className="space-y-2 flex-1 flex flex-col">
                                 <Label htmlFor="email-body">Message</Label>
                                 <Textarea
                                     id="email-body"
@@ -465,8 +488,10 @@ L'équipe de ${'votre entreprise'}`
               </div>
               <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
                 <Button variant="ghost" onClick={() => { setDunningAction(null); setDunningNotes(''); }}>Annuler</Button>
-                <Button onClick={handleDunningAction}>
-                  {dunningAction?.actionType === 'email' ? 'Envoyer la relance' : 'Enregistrer l\'action'}
+                <Button onClick={handleDunningAction} disabled={isSending}>
+                  {dunningAction?.actionType === 'email' ? (
+                    <> <Send className="mr-2 h-4 w-4" /> {isSending ? 'Envoi...' : 'Envoyer la relance'} </>
+                  ) : 'Enregistrer l\'action'}
                 </Button>
               </div>
               {resizeHandles.map(dir => (
@@ -489,4 +514,3 @@ L'équipe de ${'votre entreprise'}`
     </>
   );
 }
-
