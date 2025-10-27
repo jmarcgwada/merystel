@@ -323,8 +323,6 @@ export interface PosContextType {
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   commercialViewLevel: number;
   cycleCommercialViewLevel: () => void;
-  companyInfo: CompanyInfo | null;
-  setCompanyInfo: (info: CompanyInfo) => void;
   smtpConfig: SmtpConfig;
   setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
   ftpConfig: FtpConfig;
@@ -533,11 +531,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleContext(null);
     setSelectedTable(null);
   }, [readOnlyOrder]);
-
-  const showNavConfirm = (url: string) => {
-    setNextUrl(url);
-    setNavConfirmOpen(true);
-  };
   
   const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
@@ -552,6 +545,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     closeNavConfirm();
   }, [nextUrl, clearOrder, closeNavConfirm, router]);
 
+  const showNavConfirm = (url: string) => {
+    setNextUrl(url);
+    setNavConfirmOpen(true);
+  };
+  
   const prevPathnameRef = useRef(pathname);
 
     useEffect(() => {
@@ -1077,8 +1075,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order, status: order.length > 0 ? 'occupied' : 'available'} : t));
     }, [setTablesData]);
 
-    const saveTableOrderAndExit = useCallback((tableId: string, order: OrderItem[]) => {
-      updateTableOrder(tableId, order);
+    const saveTableOrderAndExit = useCallback((tableId: string, orderData: OrderItem[]) => {
+      updateTableOrder(tableId, orderData);
       router.push('/restaurant');
       showToast({ title: 'Table sauvegardée' });
       clearOrder();
@@ -1741,6 +1739,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const updateSale = async (sale: Sale) => {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
   };
+    
+  const cycleCommercialViewLevel = useCallback(() => {
+      setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
 
 
   const value: PosContextType = {
