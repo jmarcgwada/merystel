@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MoreHorizontal, ArrowLeft, Banknote, Landmark, CircleAlert } from 'lucide-react';
+import { MoreHorizontal, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
 import type { Cheque } from '@/lib/types';
@@ -44,6 +44,8 @@ import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfToday, endOfDay, addDays } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
 
 const statutLabels: Record<Cheque['statut'], string> = {
   enPortefeuille: 'En Portefeuille',
@@ -62,10 +64,12 @@ const statutColors: Record<Cheque['statut'], string> = {
 };
 
 export default function ChecksManagementPage() {
-  const { cheques, customers, deleteCheque, updateCheque } = usePos();
+  const { cheques, customers, deleteCheque, updateCheque, addRemise } = usePos();
+  const { toast } = useToast();
   const [filterStatut, setFilterStatut] = useState<Cheque['statut'] | 'all'>('enPortefeuille');
   const [filterCustomer, setFilterCustomer] = useState('');
   const [chequeToDelete, setChequeToDelete] = useState<Cheque | null>(null);
+  const [selectedChequeIds, setSelectedChequeIds] = useState<string[]>([]);
 
   const getCustomerName = useCallback((customerId: string) => {
     return customers.find(c => c.id === customerId)?.name || 'Client inconnu';
@@ -99,6 +103,40 @@ export default function ChecksManagementPage() {
     const dansSeptJours = endOfDay(addDays(today, 7));
     return isAfter(échéance, today) && isBefore(échéance, dansSeptJours);
   };
+  
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+        const portefeuilleIds = filteredCheques
+            .filter(c => c.statut === 'enPortefeuille')
+            .map(c => c.id);
+        setSelectedChequeIds(portefeuilleIds);
+    } else {
+        setSelectedChequeIds([]);
+    }
+  };
+
+  const handleCreateRemise = async () => {
+    if(selectedChequeIds.length === 0) return;
+
+    const chequesToRemit = cheques.filter(c => selectedChequeIds.includes(c.id));
+    const totalRemise = chequesToRemit.reduce((sum, c) => sum + c.montant, 0);
+
+    await addRemise({
+        dateRemise: new Date(),
+        chequeIds: selectedChequeIds,
+        montantTotal: totalRemise,
+    });
+    
+    for (const cheque of chequesToRemit) {
+        await updateCheque({ ...cheque, statut: 'remisEnBanque' });
+    }
+
+    toast({
+        title: 'Bordereau créé',
+        description: `${selectedChequeIds.length} chèque(s) marqué(s) comme "Remis en banque".`
+    });
+    setSelectedChequeIds([]);
+  }
 
   return (
     <>
@@ -106,12 +144,20 @@ export default function ChecksManagementPage() {
         title="Gestion du Portefeuille de Chèques"
         subtitle={`Suivi de ${filteredCheques.length} chèque(s) pour un total de ${totalAmount.toFixed(2)}€`}
       >
-        <Button asChild variant="outline">
-          <Link href="/management/items">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour à la gestion
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+            {selectedChequeIds.length > 0 && (
+                <Button onClick={handleCreateRemise}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Créer bordereau de remise ({selectedChequeIds.length})
+                </Button>
+            )}
+            <Button asChild variant="outline">
+                <Link href="/management/items">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Retour à la gestion
+                </Link>
+            </Button>
+        </div>
       </PageHeader>
       
       <div className="mt-8">
@@ -126,7 +172,10 @@ export default function ChecksManagementPage() {
                         onChange={e => setFilterCustomer(e.target.value)}
                         className="w-64"
                     />
-                    <Select value={filterStatut} onValueChange={(v) => setFilterStatut(v as any)}>
+                    <Select value={filterStatut} onValueChange={(v) => {
+                        setFilterStatut(v as any);
+                        setSelectedChequeIds([]);
+                    }}>
                         <SelectTrigger className="w-[200px]">
                             <SelectValue />
                         </SelectTrigger>
@@ -144,6 +193,13 @@ export default function ChecksManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                   <TableHead className="w-12">
+                       <Checkbox
+                           checked={selectedChequeIds.length > 0 && selectedChequeIds.length === filteredCheques.filter(c => c.statut === 'enPortefeuille').length}
+                           onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                           disabled={filterStatut !== 'enPortefeuille'}
+                       />
+                   </TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>N° Chèque / Banque</TableHead>
                   <TableHead>Montant</TableHead>
@@ -155,11 +211,24 @@ export default function ChecksManagementPage() {
               <TableBody>
                 {filteredCheques.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
+                    <TableCell colSpan={7} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
                   </TableRow>
                 ) : (
                   filteredCheques.map(cheque => (
-                    <TableRow key={cheque.id}>
+                    <TableRow key={cheque.id} data-state={selectedChequeIds.includes(cheque.id) && 'selected'}>
+                      <TableCell>
+                          <Checkbox
+                              checked={selectedChequeIds.includes(cheque.id)}
+                              onCheckedChange={(checked) => {
+                                  setSelectedChequeIds(prev => 
+                                      checked 
+                                      ? [...prev, cheque.id] 
+                                      : prev.filter(id => id !== cheque.id)
+                                  )
+                              }}
+                              disabled={cheque.statut !== 'enPortefeuille'}
+                          />
+                      </TableCell>
                       <TableCell className="font-medium">{getCustomerName(cheque.clientId)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
