@@ -1208,7 +1208,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
-    const { ticketNumber, ...restOfTemplate } = saleTemplate;
+    const { id, ticketNumber, ...restOfTemplate } = saleTemplate;
 
     const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
         ...restOfTemplate,
@@ -1523,8 +1523,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 quantity: quantity,
                 total: total,
                 vatId: item.vatId,
-                discount: 0,
                 barcode: item.barcode || '',
+                discount: 0,
             });
         }
         
