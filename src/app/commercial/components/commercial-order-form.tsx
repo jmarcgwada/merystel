@@ -411,7 +411,7 @@ export const CommercialOrderForm = forwardRef<
         return;
       }
   
-      const currentNotes = form.getValues('notes');
+      const finalNotes = form.getValues('notes');
   
       if (documentType === 'invoice' || documentType === 'credit_note') {
         setCurrentSaleContext(prev => ({
@@ -423,7 +423,7 @@ export const CommercialOrderForm = forwardRef<
           tax: totalTVA,
           total: totalTTC,
           documentType: documentType,
-          notes: currentNotes,
+          notes: finalNotes,
         }));
         setCheckoutOpen(true);
       } else {
@@ -435,7 +435,7 @@ export const CommercialOrderForm = forwardRef<
           status: documentType,
           payments: [],
           customerId: selectedCustomer.id,
-          notes: currentNotes,
+          notes: finalNotes,
         };
         recordCommercialDocument(doc, documentType, currentSaleId || undefined);
       }
@@ -759,7 +759,7 @@ export const CommercialOrderForm = forwardRef<
                            <div>
                               <Label htmlFor="notes">Notes générales</Label>
                               <Controller control={form.control} name="notes" render={({ field }) => (
-                                <Textarea id="notes" placeholder="Notes pour la facture, conditions spécifiques..." className="mt-1" {...field} />
+                                <Textarea id="notes" placeholder="Notes pour la facture, conditions spécifiques..." className="mt-1" rows={2} {...field} />
                               )} />
                             </div>
                           <h4 className="font-semibold text-xs">Taux de TVA</h4>
