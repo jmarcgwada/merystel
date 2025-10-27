@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -77,10 +78,10 @@ export function DocumentSelectionDialog({ isOpen, onClose, onDocumentSelected }:
                             )}
                         >
                             <div>
-                                <p className="font-semibold flex items-center gap-2">
+                                <div className="font-semibold flex items-center gap-2">
                                     <Badge variant="outline">{sale.documentType || 'TICKET'}</Badge>
                                     <span>{sale.ticketNumber}</span>
-                                </p>
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                     <ClientFormattedDate date={sale.date} formatString="d MMM yyyy" /> - {customers.find(c => c.id === sale.customerId)?.name || 'N/A'}
                                 </p>
