@@ -346,9 +346,6 @@ export interface PosContextType {
   deleteMappingTemplate: (templateName: string) => void;
 }
 
-// ... (PosContext and usePersistentState hook remain the same)
-// ...
-
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -388,15 +385,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => { setIsHydrated(true); }, []);
 
-  // ... (all other usePersistentState hooks as they are)
+
+  // Settings States
   const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 700);
-  const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 800);
+  const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
+  const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
-
-  // ... (rest of the state initializations)
-
-  // ...
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -492,6 +486,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = userLoading || !isHydrated;
   
+  const showToast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
+    if (showNotifications) {
+      shadcnToast({
+        ...props,
+        duration: props?.duration || notificationDuration,
+      });
+    }
+  }, [showNotifications, notificationDuration, shadcnToast]);
+  
   const addDunningLog = useCallback(async (logData: Omit<DunningLog, 'id' | 'date'>) => {
     const newLog: DunningLog = {
       id: uuidv4(),
@@ -500,8 +503,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     setDunningLogs(prev => [newLog, ...prev]);
   }, [setDunningLogs]);
-
-  // ... (rest of the provider logic, unchanged)
+  
   const addAuditLog = useCallback((logData: Omit<AuditLog, 'id' | 'date'>) => {
     const newLog: AuditLog = {
       id: uuidv4(),
@@ -511,80 +513,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [newLog, ...prev]);
   }, [setAuditLogs]);
 
-  const cycleCommercialViewLevel = () => {
-    setCommercialViewLevel(prev => (prev + 1) % 3);
-  };
-
-  const prevPathnameRef = useRef(pathname);
-
-  const clearOrder = useCallback(() => {
-    setOrder([]);
-    setDynamicBgImage(null);
-    if (readOnlyOrder) setReadOnlyOrder(null);
-    setCurrentSaleId(null);
-    setCurrentSaleContext(null);
-    setSelectedTable(null);
-  }, [readOnlyOrder]);
-
-    useEffect(() => {
-        const prevPath = prevPathnameRef.current;
-        const salesModes = ['/pos', '/supermarket', '/restaurant'];
-        const commercialModes = ['/commercial'];
-
-        const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
-        const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
-
-        if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
-            clearOrder();
-        }
-
-        prevPathnameRef.current = pathname;
-    }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
-
-  const showNavConfirm = (url: string) => {
-    setNextUrl(url);
-    setNavConfirmOpen(true);
-  };
-  
-  const closeNavConfirm = useCallback(() => {
-    setNextUrl(null);
-    setNavConfirmOpen(false);
-  }, []);
-
-  const confirmNavigation = useCallback(async () => {
-    if (nextUrl) {
-      clearOrder();
-      router.push(nextUrl);
-    } else {
-      router.back();
-    }
-    closeNavConfirm();
-  }, [nextUrl, clearOrder, closeNavConfirm, router]);
-
-  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
-    clearOrder();
-    const counters = {
-        invoice: (sales.filter(s => s.documentType === 'invoice').length + 1).toString().padStart(4, '0'),
-        quote: (sales.filter(s => s.documentType === 'quote').length + 1).toString().padStart(4, '0'),
-        delivery_note: (sales.filter(s => s.documentType === 'delivery_note').length + 1).toString().padStart(4, '0'),
-        supplier_order: (sales.filter(s => s.documentType === 'supplier_order').length + 1).toString().padStart(4, '0'),
-        credit_note: (sales.filter(s => s.documentType === 'credit_note').length + 1).toString().padStart(4, '0'),
-    };
-    const prefixMap = {
-        invoice: 'Fact',
-        quote: 'Devis',
-        delivery_note: 'BL',
-        supplier_order: 'CF',
-        credit_note: 'Avoir',
-    };
-    setCurrentSaleId(null);
-    setCurrentSaleContext({ 
-        documentType: pageType,
-        date: new Date(),
-        ticketNumber: `${prefixMap[pageType]}-${counters[pageType]} (provisoire)`
-    });
-  }, [clearOrder, sales]);
-  
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
     if (hasData) {
@@ -606,9 +534,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     ];
     setPaymentMethods(defaultPaymentMethods);
     
-    toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
-    
+    showToast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
+  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, showToast]);
+  
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
     const newItems: Item[] = [];
@@ -616,7 +544,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
     
     if (!defaultVatId) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
+        showToast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
         return;
     }
 
@@ -650,8 +578,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     setCategories(prev => [...prev, ...newCategories]);
     setItems(prev => [...prev, ...newItems]);
-    toast({ title: 'Données de démo importées !' });
-  }, [vatRates, toast, setCategories, setItems]);
+    showToast({ title: 'Données de démo importées !' });
+  }, [vatRates, showToast, setCategories, setItems]);
 
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
@@ -661,8 +589,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date(),
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
-    toast({ title: 'Clients de démo importés !' });
-  }, [setCustomers, toast]);
+    showToast({ title: 'Clients de démo importés !' });
+  }, [setCustomers, showToast]);
     
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
@@ -672,8 +600,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date(),
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
-    toast({ title: 'Fournisseurs de démo importés !' });
-  }, [setSuppliers, toast]);
+    showToast({ title: 'Fournisseurs de démo importés !' });
+  }, [setSuppliers, showToast]);
 
   const resetAllData = useCallback(async () => {
     setItems([]);
@@ -689,7 +617,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setDunningLogs([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
-    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
+    showToast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
     setTimeout(() => {
       seedInitialData();
       importDemoData();
@@ -697,10 +625,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, showToast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
-    toast({ title: 'Suppression en cours...' });
+    showToast({ title: 'Suppression en cours...' });
     if (dataToReset.items) setItems([]);
     if (dataToReset.categories) setCategories([]);
     if (dataToReset.customers) setCustomers([]);
@@ -711,8 +639,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (dataToReset.vatRates) setVatRates([]);
     if (dataToReset.heldOrders) setHeldOrders([]);
     if (dataToReset.auditLogs) setAuditLogs([]);
-    toast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, toast]);
+    showToast({ title: 'Données sélectionnées supprimées !' });
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, showToast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -727,18 +655,37 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
 
+  // ... (the rest of the provider)
+  
+  const cycleCommercialViewLevel = () => {
+    setCommercialViewLevel(prev => (prev + 1) % 3);
+  };
 
+  const prevPathnameRef = useRef(pathname);
+
+  // ... (rest of the provider logic, unchanged)
   useEffect(() => {
-    const timer = setInterval(() => setSystemDate(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    const prevPath = prevPathnameRef.current;
+    const salesModes = ['/pos', '/supermarket', '/restaurant'];
+    const commercialModes = ['/commercial'];
 
+    const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
+    const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
+
+    if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
+        clearOrder();
+    }
+
+    prevPathnameRef.current = pathname;
+  }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
+
+  
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => (a.number || 0) - (b.number || 0))], [tablesData]);
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
-    toast({ title: 'Ventes supprimées' });
-  }, [setSales, toast]);
+    showToast({ title: 'Ventes supprimées' });
+  }, [setSales, showToast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -771,13 +718,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
-            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+            showToast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+            showToast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, showToast]);
   
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -820,8 +767,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
-  }, [toast]);
+    showToast({ title: item.name + ' ajouté/mis à jour dans la commande' });
+  }, [showToast]);
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -830,18 +777,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!itemToAdd) return;
       
       if (itemToAdd.isDisabled) {
-          toast({ variant: 'destructive', title: 'Article désactivé', description: "Cet article ne peut pas être vendu." });
+          showToast({ variant: 'destructive', title: 'Article désactivé', description: "Cet article ne peut pas être vendu." });
           return;
       }
       if (itemToAdd.manageStock && (itemToAdd.stock || 0) <= 0) {
-        toast({ variant: 'destructive', title: 'Rupture de stock', description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock." });
+        showToast({ variant: 'destructive', title: 'Rupture de stock', description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock." });
         return;
       }
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
-        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
+        showToast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
     }
 
@@ -894,29 +841,915 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: itemToAdd.name + ' ajouté à la commande' });
+    showToast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, showToast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
   
-  // ... (the rest of the provider logic)
+  const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
+      setOrder(currentOrder => currentOrder.map(item => 
+          item.id === itemId 
+              ? { ...item, quantity: quantity, total: item.price * quantity - (item.discount || 0) } 
+              : item
+      ));
+  }, []);
 
-  // @ts-ignore
-  const value: PosContextType = {
-    //... all the other properties
-    addDunningLog,
-    dunningLogs,
+  const updateQuantity = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      const itemToUpdate = order.find((item) => item.id === itemId);
+      if (!itemToUpdate) return;
+      
+      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
+      if(!originalItem) return;
+
+      if (originalItem.requiresSerialNumber && enableSerialNumber) {
+        if (quantity <= 0) {
+          removeFromOrder(itemId);
+        } else {
+          setSerialNumberItem({ item: itemToUpdate, quantity });
+        }
+        return;
+      }
+      
+      if (quantity <= 0) {
+        removeFromOrder(itemId);
+        return;
+      }
+      setOrder((currentOrder) =>
+        currentOrder.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                quantity,
+                total: item.price * quantity - (item.discount || 0),
+              }
+            : item
+        )
+      );
+    },
+    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
+  );
+  
+  const updateQuantityFromKeypad = useCallback(
+    (itemId: OrderItem['id'], quantity: number) => {
+      updateQuantity(itemId, quantity);
+    },
+    [updateQuantity]
+  );
+
+   const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item =>
+        item.id === itemId ? { ...item, note } : item
+      )
+    );
+    showToast({ title: 'Note ajoutée à l\'article.' });
+  }, [showToast]);
+
+   const updateItemPrice = useCallback((itemId: string, newPriceTTC: number) => {
+        setOrder(currentOrder =>
+            currentOrder.map(item =>
+                item.id === itemId
+                    ? {
+                        ...item,
+                        price: newPriceTTC,
+                        total: newPriceTTC * item.quantity - (item.discount || 0),
+                      }
+                    : item
+            )
+        );
+    }, []);
+
+  const updateOrderItem = useCallback((updatedItem: Item) => {
+    setOrder(currentOrder => 
+      currentOrder.map(orderItem => 
+        orderItem.itemId === updatedItem.id 
+          ? { 
+              ...orderItem, 
+              name: updatedItem.name, 
+              price: updatedItem.price, 
+              description: updatedItem.description, 
+              description2: updatedItem.description2 
+            }
+          : orderItem
+      )
+    );
+  }, []);
+
+  const applyDiscount = useCallback(
+    (
+      itemId: OrderItem['id'],
+      value: number,
+      type: 'percentage' | 'fixed'
+    ) => {
+      setOrder((currentOrder) =>
+        currentOrder.map((item) => {
+          if (item.id === itemId) {
+            let discountAmount = 0;
+            let discountPercent: number | undefined = undefined;
+            if (type === 'percentage') {
+              discountAmount = item.price * item.quantity * (value / 100);
+              discountPercent = value;
+            } else {
+              discountAmount = value;
+            }
+            if (discountAmount < 0) discountAmount = 0;
+            if (value === 0) discountPercent = undefined;
+            const newTotal = item.price * item.quantity - discountAmount;
+            return {
+              ...item,
+              discount: discountAmount,
+              discountPercent,
+              total: newTotal > 0 ? newTotal : 0,
+            };
+          }
+          return item;
+        })
+      );
+    },
+    []
+  );
+
+  const orderTotal = useMemo(
+    () => (readOnlyOrder || order).reduce((sum, item) => sum + item.total, 0),
+    [order, readOnlyOrder]
+  );
+  const orderTax = useMemo(() => {
+    if (!vatRates) return 0;
+    return (readOnlyOrder || order).reduce((sum, item) => {
+      const vat = vatRates.find((v) => v.id === item.vatId);
+      const taxForItem = item.total * ((vat?.rate || 0) / 100);
+      return sum + taxForItem;
+    }, 0);
+  }, [order, readOnlyOrder, vatRates]);
+  
+    const holdOrder = useCallback(() => {
+        if (order.length === 0) return;
+        const newHeldOrder: HeldOrder = {
+            id: uuidv4(),
+            date: new Date(),
+            items: order,
+            total: orderTotal + orderTax,
+        };
+        setHeldOrders(prev => [...(prev || []), newHeldOrder]);
+        clearOrder();
+        showToast({ title: 'Commande mise en attente' });
+    }, [order, orderTotal, orderTax, setHeldOrders, clearOrder, showToast]);
+
+    const recallOrder = useCallback((orderId: string) => {
+        const orderToRecall = heldOrders?.find(o => o.id === orderId);
+        if (orderToRecall) {
+            setOrder(orderToRecall.items);
+            setCurrentSaleId(orderToRecall.id);
+            setSelectedTable(null);
+            setCurrentSaleContext({
+                tableId: orderToRecall.tableId,
+                tableName: orderToRecall.tableName,
+            });
+            setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
+            showToast({ title: 'Commande rappelée' });
+        }
+    }, [heldOrders, setHeldOrders, showToast]);
+
+    const deleteHeldOrder = useCallback((orderId: string) => {
+        setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
+        showToast({ title: 'Ticket en attente supprimé' });
+    }, [setHeldOrders, showToast]);
+
+    const setSelectedTableById = useCallback((tableId: string | null) => {
+      if (!tableId) {
+        setSelectedTable(null);
+        if (cameFromRestaurant) clearOrder();
+        return;
+      }
+      const table = tables.find(t => t.id === tableId);
+      if (table) {
+        setSelectedTable(table);
+        setOrder(table.order || []);
+         router.push('/pos?tableId=' + tableId);
+      }
+    }, [tables, cameFromRestaurant, clearOrder, router]);
+
+    const updateTableOrder = useCallback((tableId: string, order: OrderItem[]) => {
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order, status: order.length > 0 ? 'occupied' : 'available'} : t));
+    }, [setTablesData]);
+
+    const saveTableOrderAndExit = useCallback((tableId: string, order: OrderItem[]) => {
+      updateTableOrder(tableId, order);
+      router.push('/restaurant');
+      showToast({ title: 'Table sauvegardée' });
+      clearOrder();
+    }, [updateTableOrder, router, clearOrder, showToast]);
+
+    const promoteTableToTicket = useCallback((tableId: string, orderData: OrderItem[]) => {
+      const table = tables.find(t => t.id === tableId);
+      if (!table) return;
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'paying'} : t));
+      setCurrentSaleId('table-' + tableId);
+      setCurrentSaleContext({ tableId: table.id, tableName: table.name, isTableSale: true });
+      setOrder(orderData);
+    }, [tables, setTablesData]);
+    
+    const forceFreeTable = useCallback((tableId: string) => {
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: []} : t));
+      showToast({ title: 'Table libérée' });
+    }, [setTablesData, showToast]);
+
+    const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt' | 'updatedAt'>) => {
+      const newTable: Table = {
+        ...tableData,
+        id: uuidv4(),
+        number: (tablesData.length > 0 ? Math.max(...tablesData.map(t => t.number)) : 0) + 1,
+        status: 'available' as const,
+        order: [],
+        createdAt: new Date(),
+      };
+      setTablesData(prev => [...prev, newTable]);
+    }, [tablesData, setTablesData]);
+
+    const updateTable = useCallback((table: Table) => {
+      setTablesData(prev => prev.map(t => t.id === table.id ? {...table, updatedAt: new Date()} : t));
+    }, [setTablesData]);
+
+    const deleteTable = useCallback((tableId: string) => {
+      setTablesData(prev => prev.filter(t => t.id !== tableId));
+    }, [setTablesData]);
+  
+    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+        const today = new Date();
+        let finalSale: Sale;
+    
+        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+            const existingSale = sales.find(s => s.id === saleIdToUpdate);
+            if (!existingSale) return null;
+            
+            finalSale = {
+                ...existingSale,
+                ...saleData,
+                date: existingSale.date, 
+                modifiedAt: today, 
+            };
+        } else {
+            const dayMonth = format(today, 'ddMM');
+            let ticketNumber: string;
+            let newId = uuidv4();
+    
+            if (saleData.documentType === 'invoice') {
+                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
+                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+            } else {
+                const todaysSalesCount = sales.filter(s => {
+                    const saleDate = new Date(s.date as Date);
+                    return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
+                }).length;
+                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+            }
+            
+            finalSale = {
+                id: newId,
+                ticketNumber,
+                ...saleData,
+                date: today
+            };
+        }
+        
+        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+            setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
+        }
+        
+        if (currentSaleId && !currentSaleId.startsWith('table-')) {
+            setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
+        }
+
+        if (currentSaleContext?.originalSaleId) {
+          setSales(currentSales =>
+            currentSales.map(s =>
+              s.id === currentSaleContext.originalSaleId
+                ? { ...s, status: 'invoiced', modifiedAt: new Date() }
+                : s
+            )
+          );
+        }
+
+        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+           setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+        } else {
+           setSales(prev => [finalSale, ...prev]);
+        }
+    
+        return finalSale;
+    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
+    
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
+        const today = new Date();
+        const prefixMap = {
+          quote: 'Devis',
+          delivery_note: 'BL',
+          supplier_order: 'CF',
+          invoice: 'Fact',
+          ticket: 'Tick',
+          credit_note: 'Avoir'
+        };
+        const prefix = prefixMap[type] || 'DOC';
+        
+        let finalDoc: Sale;
+
+        if (docIdToUpdate) {
+            const existingDoc = sales.find(s => s.id === docIdToUpdate);
+            if (!existingDoc) return;
+            finalDoc = {
+                ...existingDoc,
+                ...docData,
+                documentType: type,
+                modifiedAt: today,
+            };
+            addAuditLog({
+                userId: user?.id,
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'update',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Mise à jour de la pièce.`,
+                richDetails: {
+                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: docData.total,
+                }
+            });
+            setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
+        } else {
+             const count = sales.filter(s => s.documentType === type).length;
+             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
+             finalDoc = {
+                id: uuidv4(),
+                date: today,
+                ticketNumber: number,
+                documentType: type,
+                userId: user?.id,
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
+                ...docData,
+            };
+            addAuditLog({
+                userId: user?.id,
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'create',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Création d'une nouvelle pièce.`,
+                 richDetails: {
+                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: docData.total,
+                }
+            });
+            setSales(prev => [finalDoc, ...prev]);
+        }
+        
+        showToast({ title: `${prefixMap[type]} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
+        clearOrder();
+
+        const reportPath = type === 'quote' ? '/reports?docType=quote'
+                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                        : '/reports';
+        router.push(reportPath);
+    }, [sales, setSales, user, clearOrder, showToast, router, addAuditLog]);
+
+    const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
+        if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+            showToast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
+            throw new Error('Email already in use.');
+        }
+        const newUser = { ...userData, id: uuidv4(), companyId: 'main', createdAt: new Date() };
+        setUsers(prev => [...prev, newUser]);
+        showToast({ title: 'Utilisateur créé' });
+        return newUser;
+    }, [showToast, setUsers, users]);
+    
+    const updateUser = useCallback((userData: User) => {
+        setUsers(prev => prev.map(u => u.id === userData.id ? {...userData, updatedAt: new Date()} : u));
+        showToast({ title: 'Utilisateur mis à jour' });
+    }, [setUsers, showToast]);
+
+    const deleteUser = useCallback((id: string) => {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        showToast({ title: 'Utilisateur supprimé' });
+    }, [setUsers, showToast]);
+
+    const sendPasswordResetEmailForUser = useCallback(() => { showToast({ title: 'Fonctionnalité désactivée' }) }, [showToast]);
+    const findUserByEmail = useCallback((email: string) => users.find(u => u.email.toLowerCase() === email.toLowerCase()), [users]);
+    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
+    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
+    const forceSignOutUser = useCallback(() => { showToast({ title: 'Fonctionnalité désactivée' }) }, [showToast]);
+
+    const addCategory = useCallback(async (category: Omit<Category, 'id'|'createdAt'|'updatedAt'>) => {
+        const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
+        setCategories(prev => [...prev, newCategory]);
+        return newCategory;
+    }, [setCategories]);
+    
+    const updateCategory = useCallback((category: Category) => {
+        setCategories(prev => prev.map(c => c.id === category.id ? {...category, updatedAt: new Date()} : c));
+    }, [setCategories]);
+    
+    const deleteCategory = useCallback((id: string) => {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        setItems(prev => prev.filter(i => i.categoryId !== id));
+    }, [setCategories, setItems]);
+    const toggleCategoryFavorite = useCallback((id: string) => {
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
+    }, [setCategories]);
+    
+    const getCategoryColor = useCallback((categoryId: string) => {
+      return categories.find(c => c.id === categoryId)?.color;
+    }, [categories]);
+
+    const addItem = useCallback(async (item: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string}) => {
+        const newItem = { ...item, id: uuidv4(), createdAt: new Date() };
+        setItems(prev => [newItem, ...prev]);
+        return newItem;
+    }, [setItems]);
+    const updateItem = useCallback((item: Item) => {
+        setItems(prev => prev.map(i => i.id === item.id ? {...item, updatedAt: new Date()} : i));
+    }, [setItems]);
+    const deleteItem = useCallback((id: string) => {
+        setItems(prev => prev.filter(i => i.id !== id));
+    }, [setItems]);
+    const toggleItemFavorite = useCallback((id: string) => {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
+    }, [setItems]);
+    const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
+        setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
+    }, [setItems]);
+
+    const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'|'createdAt'> & {id?: string}) => {
+        const newId = customer.id || uuidv4();
+        if (customers.some(c => c.id === newId)) {
+            throw new Error('Un client avec ce code existe déjà.');
+        }
+        const newCustomer = { ...customer, id: newId, isDefault: customers.length === 0, createdAt: new Date() };
+        setCustomers(prev => [...prev, newCustomer]);
+        return newCustomer;
+    }, [customers, setCustomers]);
+    const updateCustomer = useCallback((customer: Customer) => {
+        setCustomers(prev => prev.map(c => c.id === customer.id ? {...customer, updatedAt: new Date()} : c));
+    }, [setCustomers]);
+    const deleteCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.filter(c => c.id !== id));
+    }, [setCustomers]);
+    const setDefaultCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
+    }, [setCustomers]);
+
+    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'|'createdAt'> & {id?: string}) => {
+        const newId = supplier.id || uuidv4();
+        if (suppliers.some(s => s.id === newId)) {
+            throw new Error('Un fournisseur avec ce code existe déjà.');
+        }
+        const newSupplier = { ...supplier, id: newId, createdAt: new Date() };
+        setSuppliers(prev => [...prev, newSupplier]);
+        return newSupplier;
+    }, [suppliers, setSuppliers]);
+    const updateSupplier = useCallback((supplier: Supplier) => {
+        setSuppliers(prev => prev.map(s => s.id === supplier.id ? {...supplier, updatedAt: new Date()} : s));
+    }, [setSuppliers]);
+    const deleteSupplier = useCallback((id: string) => {
+        setSuppliers(prev => prev.filter(s => s.id !== id));
+    }, [setSuppliers]);
+
+    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'|'createdAt'|'updatedAt'>) => {
+        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
+    }, [setPaymentMethods]);
+    const updatePaymentMethod = useCallback((method: PaymentMethod) => {
+        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? {...method, updatedAt: new Date()} : pm));
+    }, [setPaymentMethods]);
+    const deletePaymentMethod = useCallback((id: string) => {
+        setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
+    }, [setPaymentMethods]);
+
+    const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt'|'updatedAt'>): Promise<VatRate | null> => {
+        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
+        const newVatRate = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
+        setVatRates(prev => [...prev, newVatRate]);
+        return newVatRate;
+    }, [vatRates, setVatRates]);
+    const updateVatRate = useCallback((vatRate: VatRate) => {
+        setVatRates(prev => prev.map(v => v.id === vatRate.id ? {...vatRate, updatedAt: new Date()} : v));
+    }, [setVatRates]);
+    const deleteVatRate = useCallback((id: string) => {
+        setVatRates(prev => prev.filter(v => v.id !== id));
+    }, [setVatRates]);
+  
+  const popularItems = useMemo(() => {
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
+  
+  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    if (!sales || sales.length === 0) {
+        return { lastDirectSale: null, lastRestaurantSale: null };
+    }
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date as any);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date as any);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
+    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
+
+    return { lastDirectSale, lastRestaurantSale };
+  }, [sales]);
+
+  const loadTicketForViewing = useCallback((ticket: Sale) => {
+    setReadOnlyOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
+    setCurrentSaleId(ticket.id);
+    setCurrentSaleContext({
+      ticketNumber: ticket.ticketNumber,
+      date: ticket.date,
+      userName: ticket.userName,
+      isTableSale: !!ticket.tableId,
+      tableName: ticket.tableName,
+      tableId: ticket.tableId,
+      isReadOnly: true,
+    });
+  }, []);
+  
+  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note'): Promise<boolean> => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
+        
+        const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
+
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+          isReadOnly: isReadOnly,
+          originalTotal: saleToEdit.total,
+          originalPayments: saleToEdit.payments,
+          acompte: totalPaid,
+          change: saleToEdit.change,
+        });
+        return true;
+      } else {
+        showToast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
+        return false;
+      }
+    }, [sales, showToast]);
+
+    const loadSaleForConversion = useCallback((saleId: string) => {
+      const saleToConvert = sales.find(s => s.id === saleId);
+      if (!saleToConvert) {
+          showToast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+          return;
+      }
+  
+      setOrder(saleToConvert.items);
+      setCurrentSaleId(null); 
+      
+      const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
+
+      setCurrentSaleContext({
+        ...restOfSale,
+        documentType: 'invoice',
+        status: 'pending',
+        date: new Date(),
+        payments: [],            
+        originalTotal: undefined,
+        originalPayments: undefined,
+        change: undefined,
+        modifiedAt: undefined,
+        originalSaleId: saleToConvert.id,
+      });
+  }, [sales, showToast]);
+
+    const convertToInvoice = useCallback((saleId: string) => {
+        router.push(`/commercial/invoices?fromConversion=${saleId}`);
+    }, [router]);
+    
+    const generateRandomSales = useCallback(async (count: number) => {
+        if (!items || !customers || !paymentMethods || !user) {
+            showToast({ variant: 'destructive', title: 'Données manquantes', description: 'Clients, articles ou méthodes de paiement manquants.' });
+            return;
+        }
+
+        const newSales: Sale[] = [];
+        for (let i = 0; i < count; i++) {
+            const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
+            const numItems = Math.floor(Math.random() * 5) + 1;
+            const saleItems: OrderItem[] = [];
+            for (let j = 0; j < numItems; j++) {
+                const randomItem = items[Math.floor(Math.random() * items.length)];
+                const quantity = Math.floor(Math.random() * 3) + 1;
+                saleItems.push({
+                    itemId: randomItem.id, id: uuidv4(), name: randomItem.name, price: randomItem.price,
+                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity, discount: 0, barcode: randomItem.barcode,
+                });
+            }
+            const total = saleItems.reduce((acc, item) => acc + item.total, 0);
+            const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+            const randomPaymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
+            
+            const newSale: Sale = {
+                id: uuidv4(),
+                ticketNumber: `Tick-RAND-${uuidv4().substring(0, 4)}`,
+                date: saleDate,
+                items: saleItems,
+                subtotal: total / 1.2,
+                tax: total * 0.2 / 1.2,
+                total: total,
+                payments: [{ method: randomPaymentMethod, amount: total, date: saleDate }],
+                customerId: randomCustomer.id,
+                status: 'paid',
+                documentType: 'ticket',
+                userId: user.id,
+                userName: user.firstName,
+            };
+            newSales.push(newSale);
+        }
+        setSales(prev => [...prev, ...newSales]);
+        showToast({ title: `${count} ventes aléatoires générées !` });
+    }, [items, customers, paymentMethods, user, setSales, showToast]);
+    
+     const addMappingTemplate = useCallback((template: MappingTemplate) => {
+        setMappingTemplates(prev => {
+            const existingIndex = prev.findIndex(t => t.name === template.name);
+            if (existingIndex > -1) {
+                const newTemplates = [...prev];
+                newTemplates[existingIndex] = template;
+                return newTemplates;
+            }
+            return [...prev, template];
+        });
+        showToast({ title: 'Modèle de mappage sauvegardé !' });
+    }, [setMappingTemplates, showToast]);
+
+    const deleteMappingTemplate = useCallback((templateName: string) => {
+        setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+        showToast({ title: 'Modèle supprimé.' });
+    }, [setMappingTemplates, showToast]);
+    
+    const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
+        const saleToRecur = sales.find(s => s.id === saleId);
+        if (!saleToRecur) return;
+        
+        await recordCommercialDocument(
+            { ...saleToRecur, status: 'pending', notes: note || undefined }, 
+            'invoice'
+        );
+    }, [sales, recordCommercialDocument]);
+    
+    const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
+    
+        const addError = (line: number, message: string) => {
+            report.errorCount++;
+            report.errors.push(`Ligne ${line + 1}: ${message}`);
+        };
+
+        if (dataType === 'clients') {
+            const customerIds = new Set(customers.map(c => c.id));
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.id || !row.name) {
+                    addError(index, "L'ID et le nom du client sont requis."); continue;
+                }
+                if (customerIds.has(row.id)) {
+                    addError(index, `Le client avec l'ID ${row.id} existe déjà.`); continue;
+                }
+                await addCustomer(row);
+                report.successCount++;
+                customerIds.add(row.id);
+            }
+        } else if (dataType === 'articles') {
+            const itemBarcodes = new Set(items.map(i => i.barcode));
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.barcode || !row.name || !row.price || !row.vatId) {
+                    addError(index, 'Champs article manquants (code-barres, nom, prix, TVA).'); continue;
+                }
+                if (itemBarcodes.has(row.barcode)) {
+                    addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
+                }
+                await addItem(row);
+                report.successCount++;
+                itemBarcodes.add(row.barcode);
+            }
+        } else if (dataType === 'fournisseurs') {
+             const supplierIds = new Set(suppliers.map(s => s.id));
+             for (const [index, row] of jsonData.entries()) {
+                if (!row.id || !row.name) {
+                    addError(index, "L'ID et le nom du fournisseur sont requis."); continue;
+                }
+                if (supplierIds.has(row.id)) {
+                    addError(index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue;
+                }
+                await addSupplier(row);
+                report.successCount++;
+                supplierIds.add(row.id);
+             }
+        } else if (dataType === 'ventes_completes') {
+            const groupedRows: Record<string, any[]> = {};
+            jsonData.forEach(row => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) return;
+                if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
+                groupedRows[ticketNum].push(row);
+            });
+
+            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+            const salesMap = new Map<string, { sale: Omit<Sale, 'id'>, paymentTotals: Record<string, number> }>();
+
+            for (const ticketNumber in groupedRows) {
+                const rows = groupedRows[ticketNumber];
+                const firstRow = rows[0];
+                try {
+                    const finalTicketNumber = firstRow.ticketNumber;
+                    if (existingSaleNumbers.has(finalTicketNumber)) {
+                        addError(0, `La pièce #${finalTicketNumber} existe déjà.`); continue;
+                    }
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
+
+                    let saleEntry = salesMap.get(finalTicketNumber);
+                    if (!saleEntry) {
+                        let customer: Customer | null = null;
+                        if(firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
+                        if (!customer && firstRow.customerName) {
+                            customer = await addCustomer({
+                                id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                                name: firstRow.customerName,
+                                email: firstRow.customerEmail,
+                                phone: firstRow.customerPhone,
+                                address: firstRow.customerAddress,
+                                postalCode: firstRow.customerPostalCode,
+                                city: firstRow.customerCity
+                            });
+                            if(customer) report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                        }
+
+                        saleEntry = {
+                            sale: {
+                                ticketNumber: finalTicketNumber,
+                                date: parse(firstRow.date, 'dd/MM/yyyy HH:mm', new Date()),
+                                items: [],
+                                subtotal: 0, tax: 0, total: 0,
+                                payments: [],
+                                status: 'paid',
+                                customerId: customer?.id,
+                                documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                                userId: user?.id,
+                                userName: firstRow.sellerName || user?.firstName || 'Import',
+                            },
+                            paymentTotals: {}
+                        };
+                        salesMap.set(finalTicketNumber, saleEntry);
+                    }
+
+                    for(const row of rows) {
+                        let item = items.find(i => i.barcode === row.itemBarcode);
+                        if (!item && row.itemName) {
+                            let category = categories.find(c => c.name === row.itemCategory);
+                            if (!category) {
+                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                            }
+                            let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                            if (!vat) vat = vatRates[0];
+                             
+                            item = await addItem({
+                                name: row.itemName,
+                                barcode: row.itemBarcode,
+                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                                purchasePrice: row.itemPurchasePrice,
+                                categoryId: category?.id,
+                                vatId: vat?.id || '',
+                            });
+                            if(item) report.newItemsCount = (report.newItemsCount || 0) + 1;
+                        }
+
+                        if (item) {
+                             const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                             const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                             saleEntry.sale.items.push({
+                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC,
+                                vatId: item.vatId, quantity: row.quantity, total: priceTTC * row.quantity,
+                                discount: 0, barcode: item.barcode!,
+                            });
+                        }
+                    }
+                    
+                    rows.forEach(row => {
+                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
+                            if (row[pm]) {
+                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + row[pm];
+                            }
+                        });
+                    });
+
+                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
+            }
+
+            for (const { sale, paymentTotals } of salesMap.values()) {
+                const total = sale.items.reduce((sum, i) => sum + i.total, 0);
+                sale.total = total;
+                const totalTax = sale.items.reduce((sum, i) => {
+                    const vat = vatRates.find(v => v.id === i.vatId);
+                    return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+                }, 0);
+                sale.tax = totalTax;
+                sale.subtotal = total - totalTax;
+
+                const paymentMapping: Record<string, string> = {
+                  paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
+                  paymentCheck: 'Chèque', paymentOther: 'AUTRE'
+                };
+                
+                Object.entries(paymentTotals).forEach(([key, amount]) => {
+                  const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
+                  if(method && amount > 0) sale.payments.push({ method, amount, date: sale.date });
+                });
+                
+                await recordSale(sale);
+                report.successCount++;
+            }
+        }
+    
+        return report;
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user]);
+
+
+  // ... (and so on for all your crud functions)
+
+  const value = {
+      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast: showToast, 
+      enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
+      emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
+      isCalculatorOpen, setIsCalculatorOpen, requirePinForAdmin, setRequirePinForAdmin,
+      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      commercialViewLevel, cycleCommercialViewLevel,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+      lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
+      itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate,
+      auditLogs, addAuditLog,
+      dunningLogs, addDunningLog,
+      selectivelyResetData,
+      generateRandomSales,
+      importDataFromJson,
+      dashboardButtonTextColor, setDashboardButtonTextColor,
   };
 
   return (
-    <PosContext.Provider value={value}>
+    <PosContext.Provider value={value as PosContextType}>
       {children}
     </PosContext.Provider>
   );
 }
 
-// ... (rest of the file as it is)
-// ... all the other exports ...
 export function usePos() {
   const context = useContext(PosContext);
   if (context === undefined) {
