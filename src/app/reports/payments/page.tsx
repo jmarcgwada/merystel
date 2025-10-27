@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Timestamp } from 'firebase/firestore';
@@ -64,7 +64,8 @@ const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | unde
             return;
         }
         
-        const toJsDate = (d: Date | Timestamp | string): Date => {
+        const toJsDate = (d: Date | Timestamp | undefined | string): Date => {
+            if (!d) return new Date(0);
             if (d instanceof Date) return d;
             if (typeof d === 'object' && d !== null && 'toDate' in d && typeof (d as any).toDate === 'function') {
                 return (d as Timestamp).toDate();
@@ -92,7 +93,7 @@ const ClientFormattedDate = ({ date, saleDate }: { date: Date | Timestamp | unde
     );
 }
 
-export default function PaymentsReportPage() {
+function PaymentsReportPageContent() {
     const { 
         sales: allSales, 
         customers, 
@@ -108,7 +109,6 @@ export default function PaymentsReportPage() {
         itemsPerPage,
         setItemsPerPage,
     } = usePos();
-    const { user } = useUser();
     const router = useRouter();
     const searchParams = useSearchParams();
     const dateFilterParam = searchParams.get('date');
@@ -583,19 +583,19 @@ export default function PaymentsReportPage() {
                                   <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
                                       <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                       <TableCell>
-                                          <Button variant="link" className="p-0 h-auto justify-start" onClick={() => openSaleDetailModal(payment.saleId)}>
-                                              <Badge variant="secondary">{payment.saleTicketNumber}</Badge>
-                                          </Button>
+                                          <Link href={`/reports/${payment.saleId}?from=payments`}>
+                                              <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground">
+                                                {payment.saleTicketNumber}
+                                              </Badge>
+                                          </Link>
                                       </TableCell>
                                       <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                       <TableCell>{customerName}</TableCell>
                                       <TableCell>{sellerName}</TableCell>
                                       <TableCell className="text-right font-bold">{payment.amount.toFixed(2)}€</TableCell>
                                       <TableCell className="text-right">
-                                          <Button asChild variant="ghost" size="icon">
-                                              <Link href={`/reports/${payment.saleId}?from=payments`}>
-                                                  <Eye className="h-4 w-4" />
-                                              </Link>
+                                          <Button variant="ghost" size="icon" onClick={() => openSaleDetailModal(payment.saleId)}>
+                                              <Eye className="h-4 w-4" />
                                           </Button>
                                       </TableCell>
                                   </TableRow>
@@ -614,4 +614,12 @@ export default function PaymentsReportPage() {
       />
     </>
   );
+}
+
+export default function PaymentsPage() {
+    return (
+        <Suspense>
+            <PaymentsReportPageContent/>
+        </Suspense>
+    )
 }
