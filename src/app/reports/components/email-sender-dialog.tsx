@@ -20,13 +20,19 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
-import { X, Mail, Edit, Send, File } from 'lucide-react';
+import { X, Mail, Edit, Send, File, Upload, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+interface Attachment {
+  filename: string;
+  content: string; // Base64 encoded content
+  encoding: 'base64';
+}
 
 interface EmailSenderDialogProps {
   isOpen: boolean;
@@ -50,9 +56,11 @@ export function EmailSenderDialog({
   const [emailBody, setEmailBody] = useState('');
   const [emailToSend, setEmailToSend] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const customer = useMemo(() => {
     if (!sale || !customers) return null;
@@ -83,18 +91,47 @@ export function EmailSenderDialog({
       });
   }, []);
 
+  const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<Attachment | null> => {
+    if (!printRef.current || !saleForPdf) {
+      toast({ variant: 'destructive', title: "Erreur de génération PDF" });
+      return null;
+    }
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await pdf.html(printRef.current, {
+      autoPaging: 'text',
+      width: 210,
+      windowWidth: printRef.current.scrollWidth,
+    });
+    const pdfDataString = pdf.output('datauristring');
+    const filename = `${pieceType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
+    return {
+      content: pdfDataString.split(',')[1],
+      filename: filename,
+      encoding: 'base64',
+    };
+  }, [toast, pieceType]);
+
   useEffect(() => {
     if (isOpen) {
         initializeModalState();
+        if (sale) {
+            generatePdfForEmail(sale).then(pdfAttachment => {
+                if(pdfAttachment) {
+                    setAttachments([pdfAttachment]);
+                }
+            });
+        }
+    } else {
+        setAttachments([]); // Clear attachments when closing
     }
-  }, [isOpen, initializeModalState]);
+  }, [isOpen, initializeModalState, sale, generatePdfForEmail]);
 
   useEffect(() => {
     if (sale && customer) {
       setEmailToSend(customer.email || '');
       
       const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-      const companySignature = `\n\nCordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}\n${companyInfo?.address || ''}\n${companyInfo?.phone || ''}\n${companyInfo?.email || ''}`;
+      const companySignature = `\n\nCordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}\n${companyInfo?.address || ''}\n${companyInfo?.postalCode || ''} ${companyInfo?.city || ''}\n${companyInfo?.phone || ''}\n${companyInfo?.email || ''}`;
 
       if (dunningMode) {
         setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
@@ -116,24 +153,6 @@ export function EmailSenderDialog({
     }
   }, [sale, customer, dunningMode, companyInfo, pieceType]);
 
-  const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<{ content: string; filename: string } | null> => {
-    if (!printRef.current || !saleForPdf) {
-      toast({ variant: 'destructive', title: "Erreur de génération PDF" });
-      return null;
-    }
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    await pdf.html(printRef.current, {
-      autoPaging: 'text',
-      width: 210,
-      windowWidth: printRef.current.scrollWidth,
-    });
-    const pdfDataString = pdf.output('datauristring');
-    const filename = `${pieceType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
-    return {
-      content: pdfDataString.split(',')[1],
-      filename: filename,
-    };
-  }, [toast, pieceType]);
   
   const handleSendEmail = async () => {
     if (!sale || !smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
@@ -153,12 +172,6 @@ export function EmailSenderDialog({
     setIsSending(true);
     toast({ title: 'Envoi en cours...' });
 
-    const pdfData = await generatePdfForEmail(sale);
-    if (!pdfData) {
-        setIsSending(false);
-        return;
-    }
-
     const emailResult = await sendEmail({
         smtpConfig: {
             host: smtpConfig.host, port: smtpConfig.port, secure: smtpConfig.secure || false,
@@ -169,7 +182,7 @@ export function EmailSenderDialog({
         subject: emailSubject,
         text: emailBody,
         html: `<p>${emailBody.replace(/\n/g, '<br>')}</p>`,
-        attachments: pdfData ? [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }] : undefined,
+        attachments: attachments,
     });
 
     toast({
@@ -183,6 +196,27 @@ export function EmailSenderDialog({
       onClose();
     }
   };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const base64Content = (loadEvent.target?.result as string).split(',')[1];
+        setAttachments(prev => [...prev, {
+          filename: file.name,
+          content: base64Content,
+          encoding: 'base64'
+        }]);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeAttachment = (indexToRemove: number) => {
+    setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
 
   const openEditCustomerModal = () => {
     if (customer) {
@@ -360,11 +394,25 @@ export function EmailSenderDialog({
                     />
                 </div>
                  <div className="space-y-2">
-                    <Label>Pièce jointe</Label>
-                    <Badge variant="secondary">
-                        <File className="mr-2 h-4 w-4" />
-                        {`${pieceType}-${sale.ticketNumber || 'document'}.pdf`.replace(/ /g, '_')}
-                    </Badge>
+                    <Label>Pièces jointes</Label>
+                    <div className="space-y-2">
+                        {attachments.map((att, index) => (
+                           <Badge key={index} variant="secondary" className="flex justify-between items-center">
+                             <div className="flex items-center gap-2">
+                                <File className="h-4 w-4" />
+                                {att.filename}
+                             </div>
+                             <button onClick={() => removeAttachment(index)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5">
+                                 <X className="h-3 w-3" />
+                             </button>
+                           </Badge>
+                        ))}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Ajouter une pièce jointe
+                    </Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"/>
                 </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
