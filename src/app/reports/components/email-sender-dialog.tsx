@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +22,7 @@ import { InvoicePrintTemplate } from './invoice-print-template';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { X, Mail, Edit, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -30,7 +32,7 @@ interface EmailSenderDialogProps {
   onClose: () => void;
   sale: Sale | null;
   dunningMode?: boolean;
-  onSend: (notes?: string) => void;
+  onSend?: (notes?: string) => void;
 }
 
 export function EmailSenderDialog({
@@ -40,7 +42,7 @@ export function EmailSenderDialog({
   dunningMode = false,
   onSend,
 }: EmailSenderDialogProps) {
-  const { customers, companyInfo, smtpConfig, vatRates } = usePos();
+  const { customers, companyInfo, smtpConfig, vatRates, updateSale } = usePos();
   const { toast } = useToast();
   
   const [emailSubject, setEmailSubject] = useState('');
@@ -175,7 +177,7 @@ export function EmailSenderDialog({
         description: emailResult.message,
     });
     setIsSending(false);
-    if (emailResult.success) {
+    if (emailResult.success && onSend) {
       onSend(emailBody);
       onClose();
     }
