@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { usePos } from '@/contexts/pos-context';
 import type { Sale, Customer } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
@@ -324,5 +324,3 @@ export function EmailSenderDialog({
     </>
   );
 }
-
-    
