@@ -34,15 +34,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { EmailSenderDialog } from '@/app/reports/components/email-sender-dialog';
 
 type SortKey = 'name' | 'email' | 'phone';
 
-const DetailItem = ({ icon, label, value, isEmail }: { icon: React.ElementType, label: string, value?: string, isEmail?: boolean }) => {
+const DetailItem = ({ icon, label, value, onEmailClick, customer }: { icon: React.ElementType, label: string, value?: string, onEmailClick?: (customer: Customer) => void, customer?: Customer }) => {
     if (!value) return null;
     const Icon = icon;
     
-    const content = isEmail ? (
-        <a href={`mailto:${value}`} className="text-primary hover:underline">{value}</a>
+    const content = onEmailClick && customer ? (
+        <button onClick={() => onEmailClick(customer)} className="text-primary hover:underline text-left">
+            {value}
+        </button>
     ) : (
         <p className="text-sm font-medium">{value}</p>
     );
@@ -84,6 +87,9 @@ function CustomersPageContent() {
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
+  
+  const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [customerForEmail, setCustomerForEmail] = useState<Customer | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -113,6 +119,11 @@ function CustomersPageContent() {
   useEffect(() => {
     setItemsPerPageState(itemsPerPage);
   }, [itemsPerPage]);
+
+  const handleEmailClick = (customer: Customer) => {
+    setCustomerForEmail(customer);
+    setEmailDialogOpen(true);
+  };
 
 
   const handleDeleteCustomer = () => {
@@ -383,7 +394,9 @@ function CustomersPageContent() {
                                   <TableCell className="font-medium">{customer.name} <span className="font-mono text-xs text-muted-foreground ml-2">({customer.id.slice(0,8)}...)</span></TableCell>
                                   <TableCell>
                                     {customer.email ? (
-                                        <a href={`mailto:${customer.email}`} className="text-primary hover:underline">{customer.email}</a>
+                                        <button onClick={() => handleEmailClick(customer)} className="text-primary hover:underline">
+                                            {customer.email}
+                                        </button>
                                     ) : ''}
                                   </TableCell>
                                   <TableCell>{customer.phone}</TableCell>
@@ -406,7 +419,7 @@ function CustomersPageContent() {
                                          <div className="space-y-4">
                                             <h4 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4"/>Coordonnées</h4>
                                             <DetailItem icon={Fingerprint} label="Code Client" value={customer.id} />
-                                            <DetailItem icon={Mail} label="Email" value={customer.email} isEmail />
+                                            <DetailItem icon={Mail} label="Email" value={customer.email} onEmailClick={handleEmailClick} customer={customer} />
                                             <DetailItem icon={Phone} label="Téléphone" value={customer.phone} />
                                             <DetailItem icon={Phone} label="Téléphone 2" value={customer.phone2} />
                                             <DetailItem icon={MapPin} label="Adresse" value={customer.address} />
@@ -454,6 +467,11 @@ function CustomersPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <EmailSenderDialog
+        isOpen={isEmailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        customer={customerForEmail}
+      />
     </>
   );
 }

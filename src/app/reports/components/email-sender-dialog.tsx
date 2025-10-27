@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -29,7 +30,8 @@ interface Attachment {
 interface EmailSenderDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  sale: Sale | null;
+  sale?: Sale | null;
+  customer?: Customer | null;
   dunningMode?: boolean;
   onSend?: (notes?: string) => void;
 }
@@ -38,6 +40,7 @@ export function EmailSenderDialog({
   isOpen,
   onClose,
   sale,
+  customer: initialCustomer,
   dunningMode = false,
   onSend,
 }: EmailSenderDialogProps) {
@@ -57,9 +60,10 @@ export function EmailSenderDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const customer = useMemo(() => {
+    if (initialCustomer) return initialCustomer;
     if (!sale || !customers) return null;
     return customers.find(c => c.id === sale.customerId);
-  }, [sale, customers]);
+  }, [sale, customers, initialCustomer]);
 
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const [modalSize, setModalSize] = useState({ width: 700, height: 800 });
@@ -151,35 +155,41 @@ export function EmailSenderDialog({
   }, [isOpen, initializeModalState, sale, generatePdfForEmail]);
 
   useEffect(() => {
-    if (sale && customer) {
-      setEmailToSend(customer.email || '');
-      
-      const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-      const companySignature = `\n\nCordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}\n${companyInfo?.address || ''}\n${companyInfo?.postalCode || ''} ${companyInfo?.city || ''}\n${companyInfo?.phone || ''}\n${companyInfo?.email || ''}`;
+    if (!customer) return;
 
-      if (dunningMode) {
-        setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
-        setEmailBody(
-          `Bonjour ${customer.name || 'client(e)'},\n\n` +
-          `Sauf erreur de notre part, il semble que votre facture n°${sale.ticketNumber} d'un montant de ${totalDue.toFixed(2)}€, datée du ${new Date(sale.date as any).toLocaleDateString('fr-FR')}, soit toujours en attente de règlement.\n\n` +
-          `Vous trouverez la facture en pièce jointe pour votre référence.\n\n` +
-          `Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.` +
-          companySignature
-        );
-      } else {
-        setEmailSubject(`Votre ${pieceType} #${sale.ticketNumber}`);
-        setEmailBody(
-          `Bonjour ${customer.name || 'client(e)'},\n\n` +
-          `Veuillez trouver ci-joint votre ${pieceType} n°${sale.ticketNumber}.` +
-          companySignature
-        );
-      }
+    setEmailToSend(customer.email || '');
+    const companySignature = `\n\nCordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}\n${companyInfo?.address || ''}\n${companyInfo?.postalCode || ''} ${companyInfo?.city || ''}\n${companyInfo?.phone || ''}\n${companyInfo?.email || ''}`;
+    
+    if (sale) {
+        const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+
+        if (dunningMode) {
+            setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
+            setEmailBody(
+            `Bonjour ${customer.name || 'client(e)'},\n\n` +
+            `Sauf erreur de notre part, il semble que votre facture n°${sale.ticketNumber} d'un montant de ${totalDue.toFixed(2)}€, datée du ${new Date(sale.date as any).toLocaleDateString('fr-FR')}, soit toujours en attente de règlement.\n\n` +
+            `Vous trouverez la facture en pièce jointe pour votre référence.\n\n` +
+            `Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.` +
+            companySignature
+            );
+        } else {
+            setEmailSubject(`Votre ${pieceType} #${sale.ticketNumber}`);
+            setEmailBody(
+            `Bonjour ${customer.name || 'client(e)'},\n\n` +
+            `Veuillez trouver ci-joint votre ${pieceType} n°${sale.ticketNumber}.` +
+            companySignature
+            );
+        }
+    } else {
+        // Spontaneous email
+        setEmailSubject(`Message de ${companyInfo?.name || 'votre entreprise'}`);
+        setEmailBody(`Bonjour ${customer.name || 'client(e)'},\n\n` + companySignature);
     }
   }, [sale, customer, dunningMode, companyInfo, pieceType]);
 
   
   const handleSendEmail = async () => {
-    if (!sale || !smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
+    if (!smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
       toast({ 
         variant: 'destructive', 
         title: 'Configuration SMTP requise', 
@@ -299,7 +309,7 @@ export function EmailSenderDialog({
       if (newWidth < 400) newWidth = 400;
       if (newHeight < 300) newHeight = 300;
 
-      setModalSize({ width: newWidth, height: newHeight });
+      setSize({ width: newWidth, height: newHeight });
        if (resizeStart.direction.includes('w') || resizeStart.direction.includes('n')) {
             setModalPosition({ x: newX, y: newY });
         }
@@ -359,7 +369,7 @@ export function EmailSenderDialog({
   };
 
   
-  if (!isOpen || !sale) return null;
+  if (!isOpen) return null;
 
   return (
     <>
@@ -388,7 +398,7 @@ export function EmailSenderDialog({
                 )}
             >
                 <h2 className="font-semibold leading-none tracking-tight">
-                  {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale.ticketNumber}
+                  {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
                 </h2>
                 <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                   <X className="h-4 w-4" />
