@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
-import { Edit, Send, File, Upload, Trash2, FilePlus, Loader2, Link as LinkIcon, User } from 'lucide-react';
+import { Send, File, Upload, Trash2, Loader2, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import {
@@ -23,7 +24,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
 
 interface Attachment {
   filename: string;
@@ -49,7 +49,7 @@ export function EmailSenderDialog({
   onSend,
 }: EmailSenderDialogProps) {
   const { customers, companyInfo, smtpConfig, vatRates } = usePos();
-  const { toast } = useToast();
+  const { toast } = useShadcnToast();
   
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -251,8 +251,11 @@ export function EmailSenderDialog({
                     </Card>
                 </TabsContent>
                 <TabsContent value="content" className="pt-4">
-                     <Card>
-                        <CardContent className="pt-6 space-y-4">
+                    <Card>
+                        <CardHeader className='pb-4 pt-4'>
+                             <CardTitle className="text-base">Contenu de l'e-mail</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                             <div className="space-y-2">
                             <Label htmlFor="email-subject">Sujet</Label>
                             <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
@@ -264,7 +267,7 @@ export function EmailSenderDialog({
                                 value={emailBody}
                                 onChange={(e) => setEmailBody(e.target.value)}
                                 rows={6}
-                                className="min-h-[120px]"
+                                className="min-h-[100px]"
                             />
                             </div>
                         </CardContent>
@@ -321,3 +324,5 @@ export function EmailSenderDialog({
     </>
   );
 }
+
+    
