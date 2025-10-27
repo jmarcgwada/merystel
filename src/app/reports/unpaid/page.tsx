@@ -126,6 +126,8 @@ export default function UnpaidInvoicesPage() {
 
 Sauf erreur de notre part, il semble que votre facture n°${sale.ticketNumber} d'un montant de ${totalDue.toFixed(2)}€, datée du ${new Date(sale.date as any).toLocaleDateString('fr-FR')}, soit toujours en attente de règlement.
 
+Vous trouverez la facture en pièce jointe pour votre référence.
+
 Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.
 
 Nous restons à votre disposition pour toute question.
@@ -144,12 +146,42 @@ L'équipe de ${companyInfo?.name || 'votre entreprise'}`
     [customers]
   );
   
+    const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<{ content: string; filename: string } | null> => {
+        if (!printRef.current || !saleForPdf) {
+            toast({ variant: 'destructive', title: "Erreur de génération" });
+            return null;
+        }
+        
+        // This is a trick to render the component off-screen to generate the PDF
+        const element = printRef.current;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        await pdf.html(element, {
+            autoPaging: 'text',
+            width: 210,
+            windowWidth: element.scrollWidth,
+        });
+
+        const pdfDataString = pdf.output('datauristring');
+        
+        return {
+            content: pdfDataString.split(',')[1],
+            filename: `Facture-${saleForPdf.ticketNumber || 'document'}.pdf`,
+        };
+    }, [toast]);
+
+
   const handleDunningAction = async () => {
     if (!dunningAction) return;
 
     if (dunningAction.actionType === 'email') {
       if (!smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
-        toast({ variant: 'destructive', title: 'Configuration SMTP requise', description: 'Veuillez configurer les paramètres SMTP dans la page "Connectivité" avant d\'envoyer des e-mails.' });
+        toast({ 
+          variant: 'destructive', 
+          title: 'Configuration SMTP requise', 
+          description: 'Veuillez configurer les paramètres SMTP avant d\'envoyer des e-mails.',
+          action: <Button variant="secondary" size="sm" asChild><Link href="/settings/connectivity">Configurer</Link></Button>
+        });
         return;
       }
        if (!emailToSend) {
@@ -160,6 +192,8 @@ L'équipe de ${companyInfo?.name || 'votre entreprise'}`
       setIsSending(true);
       toast({ title: 'Envoi en cours...' });
       
+      const pdfData = await generatePdfForEmail(dunningAction.sale);
+
       const emailResult = await sendEmail({
           smtpConfig: {
               host: smtpConfig.host, port: smtpConfig.port, secure: smtpConfig.secure || false,
@@ -170,7 +204,7 @@ L'équipe de ${companyInfo?.name || 'votre entreprise'}`
           subject: emailSubject,
           text: emailBody,
           html: `<p>${emailBody.replace(/\n/g, '<br>')}</p>`,
-          // attachments: pdfData ? [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }] : undefined,
+          attachments: pdfData ? [{ filename: pdfData.filename, content: pdfData.content, encoding: 'base64' }] : undefined,
       });
 
       toast({
@@ -311,6 +345,18 @@ L'équipe de ${companyInfo?.name || 'votre entreprise'}`
 
   return (
     <>
+      <div className="absolute -left-[9999px] -top-[9999px]">
+        {dunningAction?.sale && vatRates && companyInfo && (
+          <InvoicePrintTemplate 
+            ref={printRef} 
+            sale={dunningAction.sale} 
+            customer={customers.find(c => c.id === dunningAction!.sale.customerId) || null} 
+            companyInfo={companyInfo} 
+            vatRates={vatRates} 
+          />
+        )}
+      </div>
+
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Factures Impayées"
