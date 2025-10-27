@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -104,13 +105,18 @@ export function EmailSenderDialog({
       windowWidth: printRef.current.scrollWidth,
     });
     const pdfDataString = pdf.output('datauristring');
-    const filename = `${pieceType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
+    const pdfType = saleForPdf.documentType === 'invoice' ? 'facture'
+                    : saleForPdf.documentType === 'quote' ? 'devis'
+                    : saleForPdf.documentType === 'delivery_note' ? 'bon_de_livraison'
+                    : saleForPdf.documentType === 'credit_note' ? 'avoir'
+                    : 'document';
+    const filename = `${pdfType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
     return {
       content: pdfDataString.split(',')[1],
       filename: filename,
       encoding: 'base64',
     };
-  }, [toast, pieceType]);
+  }, [toast]);
   
   const handleDocumentSelected = useCallback(async (selectedSale: Sale) => {
     setIsDocSelectionOpen(false);
@@ -303,6 +309,15 @@ export function EmailSenderDialog({
   const handleCloseAndReset = () => {
     onClose();
   };
+
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    if(isOpen) {
+        setIsVisible(true);
+    } else {
+        setIsVisible(false);
+    }
+  }, [isOpen]);
   
    const handleClickOutside = useCallback((e: MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -347,14 +362,6 @@ export function EmailSenderDialog({
     }
   };
 
-  const [isVisible, setIsVisible] = useState(false);
-   useEffect(() => {
-    if(isOpen) {
-        setIsVisible(true);
-    } else {
-        setIsVisible(false);
-    }
-  }, [isOpen]);
   
   if (!isOpen || !sale) return null;
 
