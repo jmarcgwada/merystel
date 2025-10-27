@@ -386,7 +386,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
       
       const totalCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
-      if (Math.abs(totalCheques - balanceDue) > 0.01) {
+      if (Math.abs(totalCheques - balanceDue) > 0.001) {
          toast({ variant: 'destructive', title: 'Montant incorrect', description: 'Le total des chèques ne correspond pas au solde restant.' });
         return;
       }
@@ -516,9 +516,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               </div>
               <div className={cn(
                   "flex justify-between font-bold text-lg mt-2",
-                  balanceDue !== 0 ? "text-primary" : "text-green-600"
+                  balanceDue > 0.009 ? "text-primary" : "text-green-600"
               )}>
-                  <span>{balanceDue > 0.009 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : 'Soldé'}</span>
+                  <span>{balanceDue > 0.009 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : (balanceDue < -0.009 ? 'Rendu' : 'Soldé')}</span>
                   <span>{Math.abs(balanceDue).toFixed(2)}€</span>
               </div>
           </div>
@@ -744,7 +744,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       <div className="py-4 h-[60vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <div className="text-lg">Solde à régler : <span className="font-bold text-primary">{balanceDue.toFixed(2)}€</span></div>
-          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(chequesTotal - balanceDue) > 0.01 ? 'text-destructive' : 'text-green-600')}>{chequesTotal.toFixed(2)}€</span></div>
+          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(chequesTotal - balanceDue) > 0.001 ? 'text-destructive' : 'text-green-600')}>{chequesTotal.toFixed(2)}€</span></div>
         </div>
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4">
