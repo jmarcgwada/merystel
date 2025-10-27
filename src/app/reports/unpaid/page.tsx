@@ -96,14 +96,14 @@ function DunningActionDialog({
   useEffect(() => {
     // SpeechRecognition setup
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'fr-FR';
 
-        recognition.onresult = (event) => {
+        recognition.onresult = (event: any) => {
           let interimTranscript = '';
           let finalTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -290,7 +290,7 @@ export default function UnpaidInvoicesPage() {
 
     toast({
       title: 'Relance enregistrée',
-      description: `Une relance de type "${actionType}" a été enregistrée pour la facture #${sale.ticketNumber}.`,
+      description: `Une relance de type "${'${actionType}'}" a été enregistrée pour la facture #${'${sale.ticketNumber}'}.`,
     });
 
     setDunningActionState({ sale: null, actionType: null });
@@ -345,7 +345,7 @@ export default function UnpaidInvoicesPage() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Factures Impayées"
-          subtitle={`Suivi de ${unpaidInvoices.length} factures en attente de paiement.`}
+          subtitle={`Suivi de ${'${unpaidInvoices.length}'} factures en attente de paiement.`}
         >
           <div className="flex items-center gap-2">
             <Card className="p-2 text-center">
@@ -439,7 +439,7 @@ export default function UnpaidInvoicesPage() {
                             </TableCell>
                             <TableCell>
                               <Link
-                                href={`/reports/${sale.id}?from=unpaid`}
+                                href={`/reports/${'${sale.id}'}?from=unpaid`}
                                 className="font-medium text-primary hover:underline"
                               >
                                 {sale.ticketNumber}

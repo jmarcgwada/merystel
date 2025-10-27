@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -313,6 +313,8 @@ function SaleDetailContent() {
       backUrl = '/reports/payments';
     } else if (from === 'recurring') {
       backUrl = '/management/recurring';
+    } else if (from === 'unpaid') {
+      backUrl = '/reports/unpaid';
     }
     router.push(`${backUrl}?${navigationParams}`);
   };
@@ -412,6 +414,7 @@ function SaleDetailContent() {
   }
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="absolute -left-[9999px] -top-[9999px]">
          {sale && vatRates && <InvoicePrintTemplate ref={printRef} sale={sale} customer={customer || null} companyInfo={companyInfo} vatRates={vatRates} />}
@@ -636,7 +639,7 @@ function SaleDetailContent() {
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
                 <div key={rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
+                    <span>Base TVA (${parseFloat(rate).toFixed(2)}%)</span>
                     <span>{values.base.toFixed(2)}€</span>
                 </div>
               ))}
@@ -654,7 +657,7 @@ function SaleDetailContent() {
                 </div>
               )}
               <div className="flex justify-between font-bold text-lg">
-                <span>Total {sale.originalTotal ? 'Final ' : ''}(TTC)</span>
+                <span>Total ${sale.originalTotal ? 'Final ' : ''}(TTC)</span>
                 <span>{sale.total.toFixed(2)}€</span>
               </div>
             </CardContent>
@@ -663,7 +666,7 @@ function SaleDetailContent() {
                     <PaymentsList payments={sale.originalPayments} title="Paiements Originaux" />
                  )}
                  {sale.originalPayments && <Separator />}
-                 <PaymentsList payments={sale.payments || []} title={sale.originalPayments ? "Paiements de la Modification" : "Paiements"} />
+                 <PaymentsList payments={sale.payments || []} title={`${sale.originalPayments ? "Paiements de la Modification" : "Paiements"}`} />
 
                  {sale.change && sale.change > 0 && (
                   <div className="w-full flex justify-between items-center text-sm text-amber-600 pt-2 border-t">
@@ -697,6 +700,7 @@ function SaleDetailContent() {
           }}
         />
     </div>
+    </>
   );
 }
 
