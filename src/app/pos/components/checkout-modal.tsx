@@ -73,6 +73,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [cheques, setCheques] = useState<Omit<Cheque, 'id' | 'factureId' | 'clientId'>[]>([]);
+  const [chequeTotalToPay, setChequeTotalToPay] = useState(0);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -99,8 +100,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }, [previousPayments, previousChange]);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const chequesTotal = useMemo(() => cheques.reduce((acc, c) => acc + c.montant, 0), [cheques]);
-  const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid + chequesTotal;
+  const chequesTotal = useMemo(() => cheques.reduce((acc, c) => sum + c.montant, 0), [cheques]);
+  const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid;
   const balanceDue = useMemo(() => displayTotalAmount - totalAmountPaid, [displayTotalAmount, totalAmountPaid]);
 
   const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
@@ -302,7 +303,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
-        const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newAmountPaid + chequesTotal);
+        const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newAmountPaid);
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         return newPayments;
     });
@@ -313,7 +314,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setCheques(prev => [...prev, {
       numeroCheque: '',
       banque: '',
-      montant: prev.length === 0 ? parseFloat(balanceDue.toFixed(2)) : 0,
+      montant: prev.length === 0 ? chequeTotalToPay : 0,
       dateEcheance: new Date(),
       statut: 'enPortefeuille',
     }]);
@@ -379,27 +380,38 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     };
 
     const handleConfirmCheques = () => {
-      const hasEmptyBank = cheques.some(c => !c.banque);
-      if (hasEmptyBank) {
-        toast({ variant: 'destructive', title: 'Banque manquante', description: 'Veuillez sélectionner une banque pour chaque chèque.' });
-        return;
-      }
-      
-      const totalCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
-      if (Math.abs(totalCheques - balanceDue) > 0.001) {
-         toast({ variant: 'destructive', title: 'Montant incorrect', description: 'Le total des chèques ne correspond pas au solde restant.' });
-        return;
-      }
-      setView('payment');
-    }
+        const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
+        if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
+            toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
+            return;
+        }
+
+        const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
+        const newPayments = [...payments, newPayment];
+        setPayments(newPayments);
+        setView('payment');
+        
+        const newBalance = balanceDue - chequeTotalToPay;
+        setCurrentAmount(Math.abs(newBalance).toFixed(2));
+        
+        if (Math.abs(newBalance) < 0.01) {
+            handleFinalizeSale(newPayments, true);
+        }
+    };
     
     const handleOpenChequeView = () => {
+        const amount = parseFloat(String(currentAmount));
+        if (isNaN(amount) || amount <= 0) {
+            toast({ variant: 'destructive', title: 'Montant invalide', description: 'Veuillez saisir un montant pour le paiement par chèque.' });
+            return;
+        }
+        setChequeTotalToPay(amount);
         setView('cheque');
-        if (cheques.length === 0 && balanceDue > 0) {
+        if (cheques.length === 0) {
             setCheques([{
                 numeroCheque: '',
                 banque: '',
-                montant: parseFloat(balanceDue.toFixed(2)),
+                montant: amount,
                 dateEcheance: new Date(),
                 statut: 'enPortefeuille',
             }]);
@@ -451,7 +463,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </Button>
           </div>
           <div className="flex-1">
-            {previousPayments.length === 0 && payments.length === 0 && cheques.length === 0 ? (
+            {previousPayments.length === 0 && payments.length === 0 ? (
               <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
                 <p className="text-muted-foreground">Aucun paiement ajouté.</p>
               </div>
@@ -482,24 +494,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                               </div>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemovePayment(index)}>
                                 <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                      </div>
-                  )}
-                  {cheques.length > 0 && (
-                      <div className="space-y-2">
-                          {cheques.map((c, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <Badge variant="secondary" className="capitalize">Chèque</Badge>
-                                <span className="font-semibold">{c.montant.toFixed(2)}€</span>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
-                                  handleRemoveCheque(index);
-                                  setView('cheque');
-                              }}>
-                                <Edit className="h-4 w-4" />
                               </Button>
                             </div>
                           ))}
@@ -739,12 +733,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     <>
       <DialogHeader>
         <DialogTitle className="text-2xl font-headline">Paiement par Chèque(s)</DialogTitle>
-        <DialogDescription>Saisissez les informations pour chaque chèque. Le total doit correspondre au solde à payer.</DialogDescription>
+        <DialogDescription>Saisissez les informations pour chaque chèque. Le total doit correspondre au montant du paiement par chèque.</DialogDescription>
       </DialogHeader>
       <div className="py-4 h-[60vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <div className="text-lg">Solde à régler : <span className="font-bold text-primary">{balanceDue.toFixed(2)}€</span></div>
-          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(chequesTotal - balanceDue) > 0.001 ? 'text-destructive' : 'text-green-600')}>{chequesTotal.toFixed(2)}€</span></div>
+          <div className="text-lg">Montant du paiement : <span className="font-bold text-primary">{chequeTotalToPay.toFixed(2)}€</span></div>
+          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(cheques.reduce((s, c) => s + c.montant, 0) - chequeTotalToPay) > 0.01 ? 'text-destructive' : 'text-green-600')}>{cheques.reduce((s, c) => s + c.montant, 0).toFixed(2)}€</span></div>
         </div>
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4">
