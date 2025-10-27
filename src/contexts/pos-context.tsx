@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1141,7 +1140,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         setSales((prev) => prev.map((s) => (s.id === docIdToUpdate ? finalDoc : s)));
       } else {
-        const { ticketNumber: _, ...docDataWithoutTicketNumber } = docData; // Ensure old ticketNumber is not copied
+        const { ticketNumber: _, ...docDataWithoutTicketNumber } = docData; 
         const prefix = prefixMap[type] || 'DOC';
         let number;
   
