@@ -410,7 +410,9 @@ export const CommercialOrderForm = forwardRef<
         });
         return;
       }
-
+  
+      const currentNotes = form.getValues('notes');
+  
       if (documentType === 'invoice' || documentType === 'credit_note') {
         setCurrentSaleContext(prev => ({
           ...prev,
@@ -421,7 +423,7 @@ export const CommercialOrderForm = forwardRef<
           tax: totalTVA,
           total: totalTTC,
           documentType: documentType,
-          notes: watchNotes,
+          notes: currentNotes,
         }));
         setCheckoutOpen(true);
       } else {
@@ -433,7 +435,7 @@ export const CommercialOrderForm = forwardRef<
           status: documentType,
           payments: [],
           customerId: selectedCustomer.id,
-          notes: watchNotes,
+          notes: currentNotes,
         };
         recordCommercialDocument(doc, documentType, currentSaleId || undefined);
       }
