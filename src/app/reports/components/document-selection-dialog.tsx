@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -53,10 +52,9 @@ export function DocumentSelectionDialog({ isOpen, onClose, onDocumentSelected }:
   useEffect(() => {
     if (isOpen) {
       setSearchTerm('');
-      setHighlightedIndex(filteredSales.length > 0 ? 0 : -1);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, filteredSales.length]);
+  }, [isOpen]);
   
   useEffect(() => {
     setHighlightedIndex(filteredSales.length > 0 ? 0 : -1);
@@ -113,7 +111,7 @@ export function DocumentSelectionDialog({ isOpen, onClose, onDocumentSelected }:
             <Table>
                 <TableHeader className="sticky top-0 bg-muted/50">
                     <TableRow>
-                        <TableHead>Numéro</TableHead>
+                        <TableHead>Pièce</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead className="text-right">Total</TableHead>
@@ -137,8 +135,10 @@ export function DocumentSelectionDialog({ isOpen, onClose, onDocumentSelected }:
                                 )}
                             >
                                 <TableCell>
-                                    <Badge variant="outline" className="font-mono text-xs">{sale.documentType || 'TICKET'}</Badge>
-                                    <span className="ml-2 font-medium">{sale.ticketNumber}</span>
+                                    <div className="font-semibold flex items-center gap-2">
+                                        <Badge variant="outline">{sale.documentType || 'TICKET'}</Badge>
+                                        <span>{sale.ticketNumber}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell>{customerMap.get(sale.customerId || '') || 'N/A'}</TableCell>
                                 <TableCell><ClientFormattedDate date={sale.date} formatString="d MMM yyyy" /></TableCell>
