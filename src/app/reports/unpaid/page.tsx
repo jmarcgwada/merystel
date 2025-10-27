@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,8 @@ import {
   SlidersHorizontal,
   X,
   Calendar as CalendarIcon,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -82,44 +84,111 @@ function DunningActionDialog({
   onConfirm: (notes: string) => void;
 }) {
   const [notes, setNotes] = useState('');
-  
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
   useEffect(() => {
     if (isOpen) {
       setNotes('');
     }
   }, [isOpen]);
   
+  useEffect(() => {
+    // SpeechRecognition setup
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'fr-FR';
+
+        recognition.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          // Append final transcript to notes
+          if (finalTranscript) {
+            setNotes(prev => (prev ? prev + ' ' : '') + finalTranscript);
+          }
+        };
+        
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+        alert("Désolé, la reconnaissance vocale n'est pas prise en charge par votre navigateur.");
+        return;
+    }
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  };
+
   if (!isOpen || !sale || !actionType) return null;
 
   const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Enregistrer une relance {actionLabel}</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Ajoutez une note pour consigner les détails de votre interaction avec le client pour la facture #{sale.ticketNumber}.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-                <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
-                <Textarea
-                    id="dunning-notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={`Détails de l'appel, promesse de paiement...`}
-                    className="mt-2"
-                />
-            </div>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={onClose}>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onConfirm(notes)}>Enregistrer</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enregistrer une relance {actionLabel}</AlertDialogTitle>
+          <AlertDialogDescription>
+            Ajoutez une note pour consigner les détails de votre interaction avec le client pour la facture #{sale.ticketNumber}.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="py-4 space-y-2">
+          <Label htmlFor="dunning-notes">Notes</Label>
+          <div className="relative">
+            <Textarea
+              id="dunning-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Cliquez sur le micro pour dicter, ou tapez votre commentaire..."
+              className="mt-2 pr-12"
+              rows={4}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleRecording}
+              className={cn(
+                "absolute right-2 bottom-2 h-8 w-8 text-muted-foreground",
+                isRecording && "bg-red-500/20 text-red-600 hover:bg-red-500/30 hover:text-red-700"
+              )}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onConfirm(notes)}>Enregistrer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }
+
 
 export default function UnpaidInvoicesPage() {
   const {
@@ -159,7 +228,10 @@ export default function UnpaidInvoicesPage() {
     if (!sales) return [];
     return sales
       .filter((sale) => {
-        const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+        const totalPaid = (sale.payments || []).reduce(
+          (sum, p) => sum + p.amount,
+          0
+        );
         const amountDue = sale.total - totalPaid;
 
         if (sale.documentType !== 'invoice' || amountDue <= 0.01) {
@@ -479,8 +551,8 @@ export default function UnpaidInvoicesPage() {
                   <p>Aucune facture impayée pour le moment.</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
       </div>
       
       {isEmailDialogOpen && (
