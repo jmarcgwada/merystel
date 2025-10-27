@@ -317,6 +317,29 @@ export default function UnpaidInvoicesPage() {
     setDateRange(undefined);
   };
 
+  const DunningInfo = ({ sale }: { sale: Sale }) => {
+    const lastLog = saleDunningLogs(sale.id)[0];
+
+    return (
+      <div className="flex flex-col">
+        <Badge variant={sale.dunningLevel ? 'default' : 'outline'}>
+            Niveau {sale.dunningLevel || 0}
+        </Badge>
+        {lastLog && (
+            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                <p className="flex items-center gap-1.5 capitalize">
+                    {lastLog.actionType === 'email' && <Mail className="h-3 w-3" />}
+                    {lastLog.actionType === 'phone' && <Phone className="h-3 w-3" />}
+                    {lastLog.actionType === 'whatsapp' && <MessageSquare className="h-3 w-3" />}
+                    <span>{lastLog.actionType}</span>
+                </p>
+                <ClientFormattedDate date={lastLog.date} formatString="d MMM yy, HH:mm" />
+            </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -435,21 +458,7 @@ export default function UnpaidInvoicesPage() {
                               {amountDue.toFixed(2)}€
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={
-                                  sale.dunningLevel ? 'default' : 'outline'
-                                }
-                              >
-                                Niveau {sale.dunningLevel || 0}
-                              </Badge>
-                              {sale.lastDunningDate && (
-                                <p className="text-xs text-muted-foreground">
-                                  <ClientFormattedDate
-                                    date={sale.lastDunningDate}
-                                    formatString="d MMM yy"
-                                  />
-                                </p>
-                              )}
+                              <DunningInfo sale={sale} />
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
