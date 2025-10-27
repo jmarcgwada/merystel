@@ -288,6 +288,36 @@ export interface DunningLog {
     status: 'sent' | 'completed' | 'failed';
 }
 
+export interface Cheque {
+  id: string;
+  numeroCheque: string;
+  banque: string;
+  montant: number;
+  dateEcheance: Date | Timestamp;
+  statut: 'enPortefeuille' | 'remisEnBanque' | 'encaisse' | 'impaye' | 'annule';
+  factureId: string;
+  clientId: string;
+  scanUrl?: string;
+  notes?: string;
+  createdAt: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
+}
+
+export interface PaiementPartiel {
+  id: string;
+  chequeId: string;
+  montant: number;
+  moyenDePaiement: string;
+  datePaiement: Date | Timestamp;
+}
+
+export interface RemiseCheque {
+  id: string;
+  dateRemise: Date | Timestamp;
+  chequeIds: string[];
+  montantTotal: number;
+  createdAt: Date | Timestamp;
+}
 
 export interface MappingTemplate {
   name: string;

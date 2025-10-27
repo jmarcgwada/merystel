@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -258,6 +257,51 @@
             "status": { "type": "string", "enum": ["sent", "completed", "failed"] }
         },
         "required": ["date", "saleId", "actionType", "status"]
+    },
+    "Cheque": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Cheque",
+        "type": "object",
+        "description": "Represents a post-dated check held in portfolio.",
+        "properties": {
+            "id": { "type": "string" },
+            "numeroCheque": { "type": "string" },
+            "banque": { "type": "string" },
+            "montant": { "type": "number" },
+            "dateEcheance": { "type": "string", "format": "date-time" },
+            "statut": { "type": "string", "enum": ["enPortefeuille", "remisEnBanque", "encaisse", "impaye", "annule"] },
+            "factureId": { "type": "string" },
+            "scanUrl": { "type": "string" },
+            "notes": { "type": "string" }
+        },
+        "required": ["id", "numeroCheque", "montant", "dateEcheance", "statut", "factureId"]
+    },
+    "PaiementPartiel": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "PaiementPartiel",
+        "type": "object",
+        "description": "Represents a partial settlement of an unpaid check.",
+        "properties": {
+            "id": { "type": "string" },
+            "chequeId": { "type": "string" },
+            "montant": { "type": "number" },
+            "moyenDePaiement": { "type": "string" },
+            "datePaiement": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "chequeId", "montant", "moyenDePaiement", "datePaiement"]
+    },
+    "RemiseCheque": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "RemiseCheque",
+        "type": "object",
+        "description": "Represents a bank deposit slip for multiple checks.",
+        "properties": {
+            "id": { "type": "string" },
+            "dateRemise": { "type": "string", "format": "date-time" },
+            "chequeIds": { "type": "array", "items": { "type": "string" } },
+            "montantTotal": { "type": "number" }
+        },
+        "required": ["id", "dateRemise", "chequeIds", "montantTotal"]
     }
   },
   "auth": {
@@ -315,6 +359,18 @@
     "/companies/{companyId}/dunning/{dunningId}": {
       "schema": { "$ref": "#/entities/DunningLog" },
       "description": "Log of dunning actions for unpaid invoices."
+    },
+    "/companies/{companyId}/cheques/{chequeId}": {
+      "schema": { "$ref": "#/entities/Cheque" },
+      "description": "Portfolio of post-dated checks."
+    },
+    "/companies/{companyId}/paiementsPartiels/{paiementId}": {
+      "schema": { "$ref": "#/entities/PaiementPartiel" },
+      "description": "Partial settlements for unpaid checks."
+    },
+    "/companies/{companyId}/remisesCheques/{remiseId}": {
+      "schema": { "$ref": "#/entities/RemiseCheque" },
+      "description": "Bank deposit slips for checks."
     }
   }
 }
