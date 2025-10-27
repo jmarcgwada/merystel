@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,14 +24,19 @@ export default function PopularItemsPage() {
     const { items, categories, toggleItemFavorite, toggleFavoriteForList, isLoading: isPosLoading } = usePos();
     const { user } = useUser();
     const isCashier = user?.role === 'cashier';
+    const [isClient, setIsClient] = useState(false);
 
-    const salesCollectionRef = useMemoFirebase(() => query(collection(firestore, 'companies', 'main', 'sales')), [firestore]);
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
+
+    const salesCollectionRef = useMemoFirebase(() => isClient ? query(collection(firestore, 'companies', 'main', 'sales')) : null, [firestore, isClient]);
     const { data: sales, isLoading: isSalesLoading } = useCollection<Sale>(salesCollectionRef);
-    const isLoading = isPosLoading || isSalesLoading;
+    const isLoading = isPosLoading || isSalesLoading || !isClient;
 
     const popularItems = useMemo(() => {
-        const relevantSales = sales?.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
-        if (!relevantSales || !items) return [];
+        if (!sales || !items) return [];
+        const relevantSales = sales.filter(sale => sale.ticketNumber?.startsWith('Fact-') || sale.ticketNumber?.startsWith('Tick-'));
 
         const itemCounts: { [key: string]: { item: Item, count: number, revenue: number } } = {};
 
@@ -154,3 +160,5 @@ export default function PopularItemsPage() {
     </div>
   );
 }
+
+    

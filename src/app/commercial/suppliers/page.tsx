@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building, LayoutDashboard } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -31,6 +31,7 @@ import { EditSupplierDialog } from '@/app/management/suppliers/components/edit-s
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
+import Link from 'next/link';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -85,14 +86,16 @@ export default function SuppliersPage() {
     setEditSupplierOpen(true);
   }
 
-  const filteredSuppliers = useMemo(() => 
-    suppliers?.filter(s => 
+  const filteredSuppliers = useMemo(() => {
+    if (!isClient || !suppliers) return [];
+    return suppliers.filter(s => 
         s.name.toLowerCase().includes(filter.toLowerCase()) || 
         s.id.toLowerCase().includes(filter.toLowerCase()) ||
         (s.contactName && s.contactName.toLowerCase().includes(filter.toLowerCase())) ||
         (s.email && s.email.toLowerCase().includes(filter.toLowerCase()))
-    ) || [],
-  [suppliers, filter]);
+    ) || [];
+  },
+  [suppliers, filter, isClient]);
 
   const paginatedSuppliers = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -111,15 +114,22 @@ export default function SuppliersPage() {
         title="Gérer les fournisseurs" 
         subtitle={isClient && suppliers ? `Page ${currentPage} sur ${totalPages} (${filteredSuppliers.length} fournisseurs sur ${suppliers.length} au total)` : "Affichez et gérez votre liste de fournisseurs."}
       >
-        <Button variant="outline" size="icon" onClick={() => router.refresh()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        {!isCashier && (
-            <Button onClick={() => setAddSupplierOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un fournisseur
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.refresh()}>
+              <RefreshCw className="h-4 w-4" />
             </Button>
-        )}
+             <Button asChild variant="outline" size="icon" className="btn-back">
+                <Link href="/dashboard">
+                    <LayoutDashboard />
+                </Link>
+            </Button>
+            {!isCashier && (
+                <Button onClick={() => setAddSupplierOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un fournisseur
+                </Button>
+            )}
+        </div>
       </PageHeader>
        <div className="mt-8">
         <Card>
@@ -249,3 +259,5 @@ export default function SuppliersPage() {
     </>
   );
 }
+
+    
