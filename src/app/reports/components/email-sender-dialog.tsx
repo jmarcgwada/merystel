@@ -1,17 +1,9 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { usePos } from '@/contexts/pos-context';
 import type { Sale, Customer } from '@/lib/types';
@@ -20,12 +12,11 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
-import { X, Mail, Edit, Send, File, Upload, Trash2, Link as LinkIcon, FilePlus } from 'lucide-react';
+import { X, Mail, Edit, Send, File, Upload, Trash2, Link as LinkIcon, FilePlus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentSelectionDialog } from './document-selection-dialog';
-
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
@@ -59,6 +50,7 @@ export function EmailSenderDialog({
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDocSelectionOpen, setIsDocSelectionOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -70,7 +62,7 @@ export function EmailSenderDialog({
   }, [sale, customers]);
 
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
-  const [modalSize, setModalSize] = useState({ width: 600, height: 750 });
+  const [modalSize, setModalSize] = useState({ width: 700, height: 800 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -84,8 +76,8 @@ export function EmailSenderDialog({
                   : 'document';
   
   const initializeModalState = useCallback(() => {
-      const initialWidth = 600;
-      const initialHeight = 750;
+      const initialWidth = 700;
+      const initialHeight = 800;
       setModalSize({ width: initialWidth, height: initialHeight });
       setModalPosition({ 
           x: (window.innerWidth - initialWidth) / 2,
@@ -120,6 +112,7 @@ export function EmailSenderDialog({
   
   const handleDocumentSelected = useCallback(async (selectedSale: Sale) => {
     setIsDocSelectionOpen(false);
+    setIsGeneratingPdf(true);
     toast({ title: 'Génération du PDF en cours...'});
 
     const pdfAttachment = await generatePdfForEmail(selectedSale);
@@ -127,6 +120,7 @@ export function EmailSenderDialog({
         setAttachments(prev => [...prev, pdfAttachment]);
         toast({ title: 'Pièce jointe ajoutée !' });
     }
+    setIsGeneratingPdf(false);
   }, [generatePdfForEmail, toast]);
 
 
@@ -134,10 +128,12 @@ export function EmailSenderDialog({
     if (isOpen) {
         initializeModalState();
         if (sale) {
+            setIsGeneratingPdf(true);
             generatePdfForEmail(sale).then(pdfAttachment => {
                 if(pdfAttachment) {
                     setAttachments([pdfAttachment]);
                 }
+                setIsGeneratingPdf(false);
             });
         }
     } else {
@@ -400,64 +396,90 @@ export function EmailSenderDialog({
                 </button>
             </div>
             <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <div className="space-y-2">
-                    <Label htmlFor="email-to">Destinataire</Label>
-                    <div className="flex items-center gap-2">
-                        <Input 
-                          id="email-to" 
-                          value={emailToSend} 
-                          onChange={(e) => setEmailToSend(e.target.value)}
-                          placeholder={customer ? "Email manquant" : "Aucun client associé"}
-                        />
-                        {customer && (
-                          <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Modifier
-                          </Button>
-                        )}
-                   </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email-subject">Sujet</Label>
-                    <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
-                </div>
-                <div className="space-y-2 flex-1 flex flex-col">
-                    <Label htmlFor="email-body">Message</Label>
-                    <Textarea
-                        id="email-body"
-                        value={emailBody}
-                        onChange={(e) => setEmailBody(e.target.value)}
-                        rows={8}
-                        className="flex-1"
-                    />
-                </div>
-                 <div className="space-y-2">
-                    <Label>Pièces jointes</Label>
-                    <div className="space-y-2">
-                        {attachments.map((att, index) => (
-                           <Badge key={index} variant="secondary" className="flex justify-between items-center">
-                             <div className="flex items-center gap-2">
-                                <File className="h-4 w-4" />
-                                {att.filename}
-                             </div>
-                             <button onClick={() => removeAttachment(index)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5">
-                                 <X className="h-3 w-3" />
-                             </button>
-                           </Badge>
-                        ))}
+                <Card>
+                  <CardContent className="pt-6">
+                     <div className="space-y-2">
+                        <Label htmlFor="email-to">Destinataire</Label>
+                        <div className="flex items-center gap-2">
+                            <Input 
+                              id="email-to" 
+                              value={emailToSend} 
+                              onChange={(e) => setEmailToSend(e.target.value)}
+                              placeholder={customer ? "Email manquant" : "Aucun client associé"}
+                            />
+                            {customer && (
+                              <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifier
+                              </Button>
+                            )}
+                       </div>
                     </div>
-                    <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Joindre un fichier local
-                        </Button>
-                         <Button variant="outline" size="sm" onClick={() => setIsDocSelectionOpen(true)}>
-                            <FilePlus className="mr-2 h-4 w-4" />
-                            Joindre une pièce de l'application
-                        </Button>
+                  </CardContent>
+                </Card>
+
+                 <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Contenu de l'e-mail</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="email-subject">Sujet</Label>
+                        <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 flex-1 flex flex-col">
+                        <Label htmlFor="email-body">Message</Label>
+                        <Textarea
+                            id="email-body"
+                            value={emailBody}
+                            onChange={(e) => setEmailBody(e.target.value)}
+                            rows={8}
+                            className="min-h-[150px]"
+                        />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                 <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Pièces jointes</CardTitle>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4" /> Fichier local
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setIsDocSelectionOpen(true)} disabled={isGeneratingPdf}>
+                                {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus className="mr-2 h-4 w-4" />}
+                                Joindre une pièce
+                            </Button>
+                        </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-24 overflow-y-auto border rounded-md p-2 bg-muted/50">
+                        {attachments.length === 0 && !isGeneratingPdf && <p className="text-sm text-center text-muted-foreground p-4">Aucune pièce jointe.</p>}
+                        {isGeneratingPdf && <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Préparation du PDF...</div>}
+                        <Table>
+                          <TableBody>
+                            {attachments.map((att, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium flex items-center gap-2">
+                                    <File className="h-4 w-4 text-muted-foreground" />
+                                    {att.filename}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => removeAttachment(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                     </div>
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"/>
-                </div>
+                  </CardContent>
+                </Card>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
               <Button variant="ghost" onClick={handleCloseAndReset}>Annuler</Button>
