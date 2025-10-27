@@ -22,8 +22,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, PaymentMethod, Customer, Sale } from '@/lib/types';
-import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator, Check, UserPlus, Edit } from 'lucide-react';
+import type { Payment, PaymentMethod, Customer, Sale, Cheque } from '@/lib/types';
+import { CreditCard, Wallet, Landmark, CheckCircle, Trash2, StickyNote, Icon, User as UserIcon, XCircle, Calendar, Clock, ChevronRight, Delete, Calculator, Check, UserPlus, Edit, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +52,8 @@ const iconMap: { [key: string]: Icon } = {
   other: Landmark
 };
 
-const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire', 'Chèque'];
+const MAIN_PAYMENT_NAMES = ['Espèces', 'Carte Bancaire'];
+const CHECK_PAYMENT_NAME = 'Chèque';
 
 const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: React.ReactNode, onClick: () => void, className?: string, flex?: number }) => (
     <Button variant="outline" className={cn("text-xl h-14", className)} onClick={onClick} style={{ flex }}>
@@ -61,12 +62,13 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 )
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
-  const [view, setView] = useState<'payment' | 'advanced'>('payment');
+  const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [cheques, setCheques] = useState<Omit<Cheque, 'id' | 'factureId' | 'clientId'>[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [currentAmount, setCurrentAmount] = useState<number | string>('');
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -93,7 +95,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }, [previousPayments, previousChange]);
 
   const amountPaid = useMemo(() => payments.reduce((acc, p) => acc + p.amount, 0), [payments]);
-  const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid;
+  const chequesTotal = useMemo(() => cheques.reduce((acc, c) => acc + c.montant, 0), [cheques]);
+  const totalAmountPaid = Math.abs(amountPaidFromPrevious) + amountPaid + chequesTotal;
   const balanceDue = useMemo(() => displayTotalAmount - totalAmountPaid, [displayTotalAmount, totalAmountPaid]);
 
   const isOverpaid = useMemo(() => balanceDue < -0.009, [balanceDue]);
@@ -102,12 +105,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     paymentMethods?.filter(m => m.isActive && MAIN_PAYMENT_NAMES.includes(m.name)) || [],
     [paymentMethods]
   );
+  const checkPaymentMethod = useMemo(() => paymentMethods?.find(m => m.isActive && m.name === CHECK_PAYMENT_NAME), [paymentMethods]);
   const otherPaymentMethod = useMemo(() => 
     paymentMethods?.find(m => m.isActive && m.name === 'AUTRE'),
     [paymentMethods]
   );
   const advancedPaymentMethods = useMemo(() => 
-    paymentMethods?.filter(m => m.isActive && !MAIN_PAYMENT_NAMES.includes(m.name) && m.name !== 'AUTRE') || [],
+    paymentMethods?.filter(m => m.isActive && !MAIN_PAYMENT_NAMES.includes(m.name) && m.name !== 'AUTRE' && m.name !== CHECK_PAYMENT_NAME) || [],
     [paymentMethods]
   );
 
@@ -118,7 +122,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, 100);
   }
   
- const handleFinalizeSale = useCallback((finalPayments: Payment[], isFullyPaid: boolean) => {
+ const handleFinalizeSale = useCallback(async (finalPayments: Payment[], isFullyPaid: boolean) => {
     if (isPaid && isFullyPaid) return;
     
     const allPayments = [...previousPayments, ...finalPayments];
@@ -144,7 +148,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
     };
   
-    recordSale(saleInfo, currentSaleId ?? undefined);
+    const recordedSale = await recordSale(saleInfo, currentSaleId ?? undefined);
+
+    if (recordedSale && cheques.length > 0) {
+      for (const cheque of cheques) {
+        await addCheque({
+          ...cheque,
+          factureId: recordedSale.id,
+          clientId: selectedCustomer?.id || '',
+        });
+      }
+    }
     
     if (isFullyPaid) {
         setIsPaid(true);
@@ -154,9 +168,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             description: `Pièce de ${displayTotalAmount.toFixed(2)}€ finalisée.`,
           });
           
-          const isTableSale = currentSaleContext?.isTableSale;
-      
-          if (isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
+          if(recordedSale && cheques.length > 0) {
+            router.push(`/reports/${recordedSale.id}`);
+          }
+          else if (currentSaleContext?.isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
           } else if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
@@ -177,10 +192,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         clearOrder();
         onClose();
         if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
-          router.push('/reports?filter=' + (currentSaleContext?.documentType === 'credit_note' ? 'Avoir-' : 'Fact-'));
+          router.push('/reports?docType=' + (currentSaleContext?.documentType === 'credit_note' ? 'credit_note' : 'invoice'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque]);
 
 
   useEffect(() => {
@@ -205,6 +220,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     } else {
         setTimeout(() => {
             setPayments([]);
+            setCheques([]);
             setIsPaid(false);
             setCurrentAmount('');
             setSelectedCustomer(null);
@@ -218,6 +234,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleReset = () => {
     setPayments([]);
+    setCheques([]);
     setIsPaid(false);
     setCurrentAmount('');
     setSelectedCustomer(null);
@@ -281,12 +298,38 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(prev => {
         const newPayments = prev.filter((_, i) => i !== index);
         const newAmountPaid = newPayments.reduce((acc, p) => acc + p.amount, 0);
-        const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newAmountPaid);
+        const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newAmountPaid + chequesTotal);
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
         return newPayments;
     });
     setShowCalculator(true);
   }
+
+  const handleAddCheque = () => {
+    setCheques(prev => [...prev, {
+      numeroCheque: '',
+      banque: '',
+      montant: prev.length === 0 ? balanceDue : 0,
+      dateEcheance: new Date(),
+      statut: 'enPortefeuille',
+    }]);
+  };
+  
+  const handleRemoveCheque = (index: number) => {
+    setCheques(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const handleChequeChange = (index: number, field: keyof Omit<Cheque, 'id' | 'factureId' | 'clientId'>, value: any) => {
+    setCheques(prev => {
+      const newCheques = [...prev];
+      if (field === 'montant') {
+        newCheques[index][field] = parseFloat(value) || 0;
+      } else {
+        newCheques[index][field] = value;
+      }
+      return newCheques;
+    });
+  };
   
   const getIcon = (iconName?: string) => {
     if (iconName && iconMap[iconName]) {
@@ -330,6 +373,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const handleSaveAsPending = () => {
       handleFinalizeSale(payments, false); 
     };
+
+    const handleConfirmCheques = () => {
+      if (cheques.some(c => !c.numeroCheque || !c.banque || c.montant <= 0)) {
+        toast({ variant: 'destructive', title: 'Informations manquantes', description: 'Veuillez remplir tous les champs pour chaque chèque.' });
+        return;
+      }
+      const totalCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
+      if (Math.abs(totalCheques - balanceDue) > 0.01) {
+         toast({ variant: 'destructive', title: 'Montant incorrect', description: 'Le total des chèques ne correspond pas au solde restant.' });
+        return;
+      }
+      setView('payment');
+    }
     
     const renderCalculator = () => (
         <div className="md:col-span-1 space-y-2 rounded-lg border bg-secondary/50 p-4 flex flex-col">
@@ -376,7 +432,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             </Button>
           </div>
           <div className="flex-1">
-            {previousPayments.length === 0 && payments.length === 0 ? (
+            {previousPayments.length === 0 && payments.length === 0 && cheques.length === 0 ? (
               <div className="flex items-center justify-center h-full rounded-lg border border-dashed border-muted-foreground/30">
                 <p className="text-muted-foreground">Aucun paiement ajouté.</p>
               </div>
@@ -412,6 +468,24 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                           ))}
                       </div>
                   )}
+                  {cheques.length > 0 && (
+                      <div className="space-y-2">
+                          {cheques.map((c, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-card rounded-md shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="capitalize">Chèque</Badge>
+                                <span className="font-semibold">{c.montant.toFixed(2)}€</span>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
+                                  handleRemoveCheque(index);
+                                  setView('cheque');
+                              }}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                  )}
               </div>
             )}
           </div>
@@ -425,7 +499,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   "flex justify-between font-bold text-lg mt-2",
                   balanceDue !== 0 ? "text-primary" : "text-green-600"
               )}>
-                  <span>{balanceDue !== 0 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : 'Soldé'}</span>
+                  <span>{balanceDue > 0.009 ? (isCreditNote ? 'À rembourser' : 'Solde Restant') : 'Soldé'}</span>
                   <span>{Math.abs(balanceDue).toFixed(2)}€</span>
               </div>
           </div>
@@ -535,6 +609,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                           </Button>
                         );
                     })}
+                     {checkPaymentMethod && (
+                      <Button
+                        variant="outline"
+                        className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
+                        onClick={() => setView('cheque')}
+                        disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote)}
+                      >
+                         <StickyNote className="h-6 w-6 z-10" />
+                         <span className="text-sm whitespace-normal text-center leading-tight z-10">Chèque</span>
+                      </Button>
+                    )}
                 </div>
                 {otherPaymentMethod && (() => {
                     const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote) || 
@@ -631,6 +716,55 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 
+  const renderChequeView = () => (
+    <>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-headline">Paiement par Chèque(s)</DialogTitle>
+        <DialogDescription>Saisissez les informations pour chaque chèque. Le total doit correspondre au solde à payer.</DialogDescription>
+      </DialogHeader>
+      <div className="py-4 h-[60vh] flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-lg">Solde à régler : <span className="font-bold text-primary">{balanceDue.toFixed(2)}€</span></div>
+          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(chequesTotal - balanceDue) > 0.01 ? 'text-destructive' : 'text-green-600')}>{chequesTotal.toFixed(2)}€</span></div>
+        </div>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="space-y-4">
+            {cheques.map((cheque, index) => (
+              <Card key={index} className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-semibold">Chèque #{index + 1}</h4>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveCheque(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
+                  <div><Label>Banque</Label><Input value={cheque.banque} onChange={e => handleChequeChange(index, 'banque', e.target.value)} /></div>
+                  <div><Label>Montant (€)</Label><Input type="number" value={cheque.montant} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
+                  <div>
+                    <Label>Date d'échéance</Label>
+                    <Popover>
+                      <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{format(cheque.dateEcheance as Date, "PPP", { locale: fr })}</Button></PopoverTrigger>
+                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={cheque.dateEcheance as Date} onSelect={date => date && handleChequeChange(index, 'dateEcheance', date)} initialFocus /></PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+        <Button variant="outline" onClick={handleAddCheque} className="mt-4">
+          <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un autre chèque
+        </Button>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={() => setView('payment')}>Retour</Button>
+        <Button onClick={handleConfirmCheques}>Confirmer les chèques</Button>
+      </DialogFooter>
+    </>
+  );
+
+
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -638,12 +772,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         {!isPaid ? (
             (() => {
                 switch(view) {
-                    case 'payment':
-                        return renderPaymentView();
-                    case 'advanced':
-                        return renderAdvancedView();
-                    default:
-                        return renderPaymentView();
+                    case 'payment': return renderPaymentView();
+                    case 'advanced': return renderAdvancedView();
+                    case 'cheque': return renderChequeView();
+                    default: return renderPaymentView();
                 }
             })()
         ) : (
@@ -681,6 +813,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-
-    
