@@ -20,9 +20,10 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
-import { X, Mail, Edit, Send } from 'lucide-react';
+import { X, Mail, Edit, Send, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -59,7 +60,7 @@ export function EmailSenderDialog({
   }, [sale, customers]);
 
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
-  const [modalSize, setModalSize] = useState({ width: 600, height: 650 });
+  const [modalSize, setModalSize] = useState({ width: 600, height: 750 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -74,7 +75,7 @@ export function EmailSenderDialog({
   
   const initializeModalState = useCallback(() => {
       const initialWidth = 600;
-      const initialHeight = 650;
+      const initialHeight = 750;
       setModalSize({ width: initialWidth, height: initialHeight });
       setModalPosition({ 
           x: (window.innerWidth - initialWidth) / 2,
@@ -93,6 +94,7 @@ export function EmailSenderDialog({
       setEmailToSend(customer.email || '');
       
       const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+      const companySignature = `\n\nCordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}\n${companyInfo?.address || ''}\n${companyInfo?.phone || ''}\n${companyInfo?.email || ''}`;
 
       if (dunningMode) {
         setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
@@ -100,17 +102,15 @@ export function EmailSenderDialog({
           `Bonjour ${customer.name || 'client(e)'},\n\n` +
           `Sauf erreur de notre part, il semble que votre facture n°${sale.ticketNumber} d'un montant de ${totalDue.toFixed(2)}€, datée du ${new Date(sale.date as any).toLocaleDateString('fr-FR')}, soit toujours en attente de règlement.\n\n` +
           `Vous trouverez la facture en pièce jointe pour votre référence.\n\n` +
-          `Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.\n\n` +
-          `Nous restons à votre disposition pour toute question.\n\n` +
-          `Cordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}`
+          `Nous vous serions reconnaissants de bien vouloir procéder au paiement dans les plus brefs délais.` +
+          companySignature
         );
       } else {
         setEmailSubject(`Votre ${pieceType} #${sale.ticketNumber}`);
         setEmailBody(
           `Bonjour ${customer.name || 'client(e)'},\n\n` +
-          `Veuillez trouver ci-joint votre ${pieceType} n°${sale.ticketNumber}.\n\n` +
-          `Nous restons à votre disposition pour toute question.\n\n` +
-          `Cordialement,\nL'équipe de ${companyInfo?.name || 'votre entreprise'}`
+          `Veuillez trouver ci-joint votre ${pieceType} n°${sale.ticketNumber}.` +
+          companySignature
         );
       }
     }
@@ -128,11 +128,12 @@ export function EmailSenderDialog({
       windowWidth: printRef.current.scrollWidth,
     });
     const pdfDataString = pdf.output('datauristring');
+    const filename = `${pieceType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
     return {
       content: pdfDataString.split(',')[1],
-      filename: `${saleForPdf.documentType}-${saleForPdf.ticketNumber || 'document'}.pdf`,
+      filename: filename,
     };
-  }, [toast]);
+  }, [toast, pieceType]);
   
   const handleSendEmail = async () => {
     if (!sale || !smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
@@ -189,7 +190,6 @@ export function EmailSenderDialog({
     }
   };
   
-    // Drag and Resize handlers
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (modalRef.current) {
         setIsDragging(true);
@@ -253,6 +253,16 @@ export function EmailSenderDialog({
     setIsResizing(false);
   }, []);
 
+  const handleCloseAndReset = () => {
+    onClose();
+  };
+  
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        // Do not close on outside click
+    }
+   }, []);
+
   useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -312,7 +322,7 @@ export function EmailSenderDialog({
                 <h2 className="font-semibold leading-none tracking-tight">
                   Envoyer {pieceType} - {sale.ticketNumber}
                 </h2>
-                <button onClick={onClose} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                   <X className="h-4 w-4" />
                   <span className="sr-only">Fermer</span>
                 </button>
@@ -349,9 +359,16 @@ export function EmailSenderDialog({
                         className="flex-1"
                     />
                 </div>
+                 <div className="space-y-2">
+                    <Label>Pièce jointe</Label>
+                    <Badge variant="secondary">
+                        <File className="mr-2 h-4 w-4" />
+                        {`${pieceType}-${sale.ticketNumber || 'document'}.pdf`.replace(/ /g, '_')}
+                    </Badge>
+                </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
-              <Button variant="ghost" onClick={onClose}>Annuler</Button>
+              <Button variant="ghost" onClick={handleCloseAndReset}>Annuler</Button>
               <Button onClick={handleSendEmail} disabled={isSending}>
                 <Send className="mr-2 h-4 w-4" /> {isSending ? 'Envoi...' : 'Envoyer'}
               </Button>
