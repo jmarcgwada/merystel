@@ -77,6 +77,7 @@ const FormSchema = z.object({
   customerId: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Ajoutez au moins un article.'),
   acompte: z.coerce.number().optional(),
+  notes: z.string().optional(),
 });
 
 type CommercialOrderFormValues = z.infer<typeof FormSchema>;
@@ -200,6 +201,7 @@ export const CommercialOrderForm = forwardRef<
     defaultValues: {
       items: [],
       acompte: 0,
+      notes: '',
     },
   });
   
@@ -209,10 +211,20 @@ export const CommercialOrderForm = forwardRef<
      if (currentSaleContext?.acompte) {
         form.setValue('acompte', currentSaleContext.acompte);
     }
+    if (currentSaleContext?.notes) {
+      form.setValue('notes', currentSaleContext.notes);
+    }
   }, [order, currentSaleContext, form]);
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
+  const watchNotes = form.watch('notes');
+
+  useEffect(() => {
+    if (watchNotes !== currentSaleContext?.notes) {
+        setCurrentSaleContext(prev => ({ ...prev, notes: watchNotes }));
+    }
+  }, [watchNotes, currentSaleContext?.notes, setCurrentSaleContext]);
   
   useEffect(() => {
     if (currentSaleContext?.customerId && customers) {
@@ -408,7 +420,8 @@ export const CommercialOrderForm = forwardRef<
           subtotal: subTotalHT,
           tax: totalTVA,
           total: totalTTC,
-          documentType: documentType
+          documentType: documentType,
+          notes: watchNotes,
         }));
         setCheckoutOpen(true);
       } else {
@@ -420,6 +433,7 @@ export const CommercialOrderForm = forwardRef<
           status: documentType,
           payments: [],
           customerId: selectedCustomer.id,
+          notes: watchNotes,
         };
         recordCommercialDocument(doc, documentType, currentSaleId || undefined);
       }
@@ -739,7 +753,13 @@ export const CommercialOrderForm = forwardRef<
               <div className="mt-auto pt-2 space-y-2">
                   <Separator />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                      <div className="space-y-1">
+                      <div className="space-y-4">
+                           <div>
+                              <Label htmlFor="notes">Notes générales</Label>
+                              <Controller control={form.control} name="notes" render={({ field }) => (
+                                <Textarea id="notes" placeholder="Notes pour la facture, conditions spécifiques..." className="mt-1" {...field} />
+                              )} />
+                            </div>
                           <h4 className="font-semibold text-xs">Taux de TVA</h4>
                           <div className="grid grid-cols-4 gap-x-4 p-1 border rounded-md text-xs">
                              <div className="font-medium">Code</div>

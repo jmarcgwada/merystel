@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -182,6 +181,13 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                 </tbody>
             </table>
         </main>
+        
+        {sale.notes && (
+            <div className="mt-8 p-4 bg-gray-50 rounded-md break-inside-avoid">
+                <h3 className="font-semibold text-gray-500 text-sm mb-2">Notes</h3>
+                <p className="text-sm whitespace-pre-wrap">{sale.notes}</p>
+            </div>
+        )}
         
         {companyInfo?.communicationDoc && (
         <section className="my-8 break-inside-avoid">

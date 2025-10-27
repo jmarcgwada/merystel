@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -130,6 +128,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     }
     const duplicatedItems = order.map(item => ({ ...item, id: uuidv4() }));
     const customerId = currentSaleContext?.customerId;
+    const notes = currentSaleContext?.notes;
     const nextDocType = documentType;
     const pathSegment = typeMap[nextDocType] || `${nextDocType}s`;
     const nextPath = `/commercial/${pathSegment}`;
@@ -142,6 +141,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     setCurrentSaleContext({ 
         documentType: nextDocType,
         customerId: customerId,
+        notes: notes,
     });
     // 3. Set the order with newly identified items.
     setOrder(duplicatedItems);
