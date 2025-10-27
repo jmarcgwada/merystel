@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   History,
   Edit,
@@ -18,6 +18,9 @@ import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
+  SlidersHorizontal,
+  X,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -59,6 +62,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Dialog } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { startOfDay, endOfDay } from 'date-fns';
 
 function DunningActionDialog({
   isOpen,
@@ -134,16 +142,8 @@ export default function UnpaidInvoicesPage() {
   }>({ sale: null, actionType: null });
   
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
-
-  const unpaidInvoices = useMemo(() => {
-    if (!sales) return [];
-    return sales
-      .filter((sale) => sale.status === 'pending' && sale.documentType === 'invoice')
-      .sort(
-        (a, b) =>
-          new Date(a.date as any).getTime() - new Date(b.date as any).getTime()
-      );
-  }, [sales]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -154,6 +154,35 @@ export default function UnpaidInvoicesPage() {
     },
     [customers]
   );
+  
+  const unpaidInvoices = useMemo(() => {
+    if (!sales) return [];
+    return sales
+      .filter((sale) => {
+        const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+        const amountDue = sale.total - totalPaid;
+
+        if (sale.documentType !== 'invoice' || amountDue <= 0.01) {
+            return false;
+        }
+
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const searchMatch = !searchTerm ||
+            sale.ticketNumber?.toLowerCase().includes(lowerSearchTerm) ||
+            getCustomerName(sale.customerId).toLowerCase().includes(lowerSearchTerm);
+
+        let dateMatch = true;
+        const saleDate = new Date(sale.date as any);
+        if (dateRange?.from) dateMatch = saleDate >= startOfDay(dateRange.from);
+        if (dateRange?.to) dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
+        
+        return searchMatch && dateMatch;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.date as any).getTime() - new Date(b.date as any).getTime()
+      );
+  }, [sales, searchTerm, dateRange, getCustomerName]);
 
   const saleDunningLogs = useCallback(
     (saleId: string) => {
@@ -211,6 +240,11 @@ export default function UnpaidInvoicesPage() {
     setOpenDetails((prev) => ({ ...prev, [saleId]: !prev[saleId] }));
   };
 
+  const resetFilters = () => {
+    setSearchTerm('');
+    setDateRange(undefined);
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -233,9 +267,36 @@ export default function UnpaidInvoicesPage() {
             </Button>
           </div>
         </PageHeader>
-        <div className="mt-8">
-          <Card>
-            <CardContent className="pt-6">
+        
+        <Card className="mt-8">
+          <CardHeader>
+            <div className="flex flex-wrap gap-4 justify-between items-center">
+              <CardTitle>Liste des impayés</CardTitle>
+              <div className="flex gap-2 flex-wrap items-center">
+                  <Input 
+                      placeholder="Rechercher par n° ou client..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-9 w-auto sm:w-64"
+                  />
+                  <Popover>
+                      <PopoverTrigger asChild>
+                          <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                      </PopoverContent>
+                  </Popover>
+                  <Button variant="ghost" size="icon" onClick={resetFilters}>
+                      <X className="h-4 w-4" />
+                  </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
               <Table>
                 <TableHeader>
                   <TableRow>
