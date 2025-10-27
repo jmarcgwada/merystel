@@ -58,6 +58,51 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogClose } from '@/components/ui/dialog';
+
+function DunningActionDialog({
+  isOpen,
+  onClose,
+  sale,
+  actionType,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sale: Sale;
+  actionType: 'phone' | 'whatsapp';
+  onConfirm: (notes: string) => void;
+}) {
+  const [notes, setNotes] = useState('');
+  const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Enregistrer une relance {actionLabel}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Ajoutez une note pour consigner les détails de votre interaction avec le client pour la facture #{sale.ticketNumber}.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+                <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
+                <Textarea
+                    id="dunning-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder={`Détails de l'appel, promesse de paiement...`}
+                    className="mt-2"
+                />
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={onClose}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onConfirm(notes)}>Enregistrer</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </Dialog>
+  )
+}
 
 export default function UnpaidInvoicesPage() {
   const {
@@ -136,6 +181,7 @@ export default function UnpaidInvoicesPage() {
 
     setDunningAction(null);
   };
+
 
   const totalAmountDue = useMemo(() => {
     return unpaidInvoices.reduce((acc, sale) => {
@@ -279,11 +325,10 @@ export default function UnpaidInvoicesPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      handleDunningAction(
+                                      setDunningAction({
                                         sale,
-                                        'phone',
-                                        'Appel téléphonique effectué.'
-                                      )
+                                        actionType: 'phone',
+                                      })
                                     }
                                   >
                                     <Phone className="mr-2 h-4 w-4" />
@@ -291,11 +336,10 @@ export default function UnpaidInvoicesPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      handleDunningAction(
+                                      setDunningAction({
                                         sale,
-                                        'whatsapp',
-                                        'Message WhatsApp envoyé.'
-                                      )
+                                        actionType: 'whatsapp',
+                                      })
                                     }
                                   >
                                     <MessageSquare className="mr-2 h-4 w-4" />
@@ -335,7 +379,7 @@ export default function UnpaidInvoicesPage() {
                                                 {log.actionType}
                                               </Badge>
                                             </TableCell>
-                                            <TableCell className="text-xs">
+                                            <TableCell className="text-xs whitespace-pre-wrap">
                                               {log.notes || '-'}
                                             </TableCell>
                                           </TableRow>
@@ -374,6 +418,16 @@ export default function UnpaidInvoicesPage() {
           sale={dunningAction.sale}
           dunningMode={true}
           onSend={(notes) => handleDunningAction(dunningAction.sale, 'email', notes)}
+        />
+      )}
+      
+       {(dunningAction?.actionType === 'phone' || dunningAction?.actionType === 'whatsapp') && (
+        <DunningActionDialog
+          isOpen={true}
+          onClose={() => setDunningAction(null)}
+          sale={dunningAction.sale}
+          actionType={dunningAction.actionType}
+          onConfirm={(notes) => handleDunningAction(dunningAction.sale, dunningAction.actionType, notes)}
         />
       )}
     </>

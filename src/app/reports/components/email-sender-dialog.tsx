@@ -44,7 +44,7 @@ export function EmailSenderDialog({
   dunningMode = false,
   onSend,
 }: EmailSenderDialogProps) {
-  const { customers, companyInfo, smtpConfig, vatRates, updateSale } = usePos();
+  const { customers, companyInfo, smtpConfig, vatRates, emailModalPosition, setEmailModalPosition, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight } = usePos();
   const { toast } = useToast();
   
   const [emailSubject, setEmailSubject] = useState('');
@@ -65,8 +65,8 @@ export function EmailSenderDialog({
     return customers.find(c => c.id === sale.customerId);
   }, [sale, customers, initialCustomer]);
 
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
-  const [modalSize, setModalSize] = useState({ width: 700, height: 800 });
+  const [modalPosition, setModalPositionState] = useState(emailModalPosition);
+  const [modalSize, setModalSizeState] = useState({ width: emailModalWidth, height: emailModalHeight });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -81,14 +81,15 @@ export function EmailSenderDialog({
                   : 'document';
   
   const initializeModalState = useCallback(() => {
-      const initialWidth = 700;
-      const initialHeight = 800;
-      setModalSize({ width: initialWidth, height: initialHeight });
-      setModalPosition({ 
-          x: (window.innerWidth - initialWidth) / 2,
-          y: (window.innerHeight - initialHeight) / 2,
-      });
-  }, []);
+      const initialWidth = emailModalWidth > 400 ? emailModalWidth : window.innerWidth * 0.5;
+      const initialHeight = emailModalHeight > 400 ? emailModalHeight : window.innerHeight * 0.8;
+      setModalSizeState({ width: initialWidth, height: initialHeight });
+      
+      const pos = emailModalPosition.x === 0 && emailModalPosition.y === 0 
+        ? { x: (window.innerWidth - initialWidth) / 2, y: (window.innerHeight - initialHeight) / 2 }
+        : emailModalPosition;
+      setModalPositionState(pos);
+  }, [emailModalWidth, emailModalHeight, emailModalPosition]);
 
   useEffect(() => {
     if(isOpen) {
@@ -225,8 +226,10 @@ export function EmailSenderDialog({
         description: emailResult.message,
     });
     setIsSending(false);
-    if (emailResult.success && onSend) {
-      onSend(emailBody);
+    if (onSend) {
+      onSend(emailResult.success ? `E-mail envoyé avec succès à ${emailToSend}.` : `Échec de l'envoi : ${emailResult.message}`);
+    }
+    if (emailResult.success) {
       onClose();
     }
   };
@@ -282,7 +285,7 @@ export function EmailSenderDialog({
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        // Do not close on outside click
+        setIsVisible(false);
     }
    }, []);
 
@@ -297,7 +300,7 @@ export function EmailSenderDialog({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
-        setModalPosition({
+        setModalPositionState({
             x: e.clientX - dragStart.x,
             y: e.clientY - dragStart.y,
         });
@@ -324,17 +327,24 @@ export function EmailSenderDialog({
       if (newWidth < 400) newWidth = 400;
       if (newHeight < 300) newHeight = 300;
 
-      setModalSize({ width: newWidth, height: newHeight });
+      setModalSizeState({ width: newWidth, height: newHeight });
        if (resizeStart.direction.includes('w') || resizeStart.direction.includes('n')) {
-            setModalPosition({ x: newX, y: newY });
+            setModalPositionState({ x: newX, y: newY });
         }
     }
   }, [isDragging, isResizing, dragStart, resizeStart, modalPosition.x, modalPosition.y]);
   
   const handleMouseUp = useCallback(() => {
+    if(isDragging) {
+      setEmailModalPosition(modalPosition);
+    }
+    if(isResizing) {
+      setEmailModalWidth(modalSize.width);
+      setEmailModalHeight(modalSize.height);
+    }
     setIsDragging(false);
     setIsResizing(false);
-  }, []);
+  }, [isDragging, isResizing, modalPosition, setEmailModalPosition, modalSize, setEmailModalWidth, setEmailModalHeight]);
 
   const handleCloseAndReset = () => {
     onClose();
