@@ -29,6 +29,9 @@ import type {
   TwilioConfig,
   MappingTemplate,
   DunningLog,
+  Cheque,
+  PaiementPartiel,
+  RemiseCheque,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
@@ -66,7 +69,10 @@ export type DeletableDataKeys =
   | 'paymentMethods' 
   | 'vatRates' 
   | 'heldOrders' 
-  | 'auditLogs';
+  | 'auditLogs'
+  | 'cheques'
+  | 'remises'
+  | 'paiementsPartiels';
 
 export interface ImportReport {
   successCount: number;
@@ -195,6 +201,14 @@ export interface PosContextType {
   auditLogs: AuditLog[];
   dunningLogs: DunningLog[];
   addDunningLog: (log: Omit<DunningLog, 'id' | 'date'>) => Promise<void>;
+  cheques: Cheque[];
+  addCheque: (cheque: Omit<Cheque, 'id'|'createdAt'|'updatedAt'>) => Promise<Cheque | null>;
+  updateCheque: (cheque: Cheque) => void;
+  deleteCheque: (chequeId: string) => void;
+  paiementsPartiels: PaiementPartiel[];
+  addPaiementPartiel: (paiement: Omit<PaiementPartiel, 'id'>) => Promise<PaiementPartiel | null>;
+  remises: RemiseCheque[];
+  addRemise: (remise: Omit<RemiseCheque, 'id'|'createdAt'>) => Promise<RemiseCheque | null>;
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -398,6 +412,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   // Settings States
   const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
   const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
@@ -481,18 +498,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -522,6 +539,32 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     };
     setAuditLogs(prev => [newLog, ...prev]);
   }, [setAuditLogs]);
+
+  const addCheque = useCallback(async (cheque: Omit<Cheque, 'id' | 'createdAt' | 'updatedAt'>): Promise<Cheque | null> => {
+    const newCheque = { ...cheque, id: uuidv4(), createdAt: new Date() };
+    setCheques(prev => [...prev, newCheque]);
+    return newCheque;
+  }, [setCheques]);
+
+  const updateCheque = useCallback((cheque: Cheque) => {
+    setCheques(prev => prev.map(c => c.id === cheque.id ? { ...cheque, updatedAt: new Date() } : c));
+  }, [setCheques]);
+
+  const deleteCheque = useCallback((chequeId: string) => {
+    setCheques(prev => prev.filter(c => c.id !== chequeId));
+  }, [setCheques]);
+
+  const addPaiementPartiel = useCallback(async (paiement: Omit<PaiementPartiel, 'id'>): Promise<PaiementPartiel | null> => {
+    const newPaiement = { ...paiement, id: uuidv4() };
+    setPaiementsPartiels(prev => [...prev, newPaiement]);
+    return newPaiement;
+  }, [setPaiementsPartiels]);
+
+  const addRemise = useCallback(async (remise: Omit<RemiseCheque, 'id' | 'createdAt'>): Promise<RemiseCheque | null> => {
+    const newRemise = { ...remise, id: uuidv4(), createdAt: new Date() };
+    setRemises(prev => [...prev, newRemise]);
+    return newRemise;
+  }, [setRemises]);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -699,8 +742,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (dataToReset.vatRates) setVatRates([]);
     if (dataToReset.heldOrders) setHeldOrders([]);
     if (dataToReset.auditLogs) setAuditLogs([]);
+    if (dataToReset.cheques) setCheques([]);
+    if (dataToReset.remises) setRemises([]);
+    if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     showToast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, showToast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, showToast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -1127,7 +1173,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             finalSale = {
                 ...existingSale,
                 ...saleData,
-                date: existingSale.date, 
+                date: existingSale.date, // Preserve original date on update
                 modifiedAt: today, 
             };
         } else {
@@ -1747,7 +1793,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
@@ -1756,23 +1802,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
       promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
       vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
+      auditLogs, 
+      dunningLogs, addDunningLog,
+      cheques, addCheque, updateCheque, deleteCheque, 
+      paiementsPartiels, addPaiementPartiel, 
+      remises, addRemise,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast: showToast, 
+      isCalculatorOpen, setIsCalculatorOpen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
       setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, showDashboardStats, setShowDashboardStats,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
+      showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
+      directSaleBackgroundColor, setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
       dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, companyInfo, setCompanyInfo,
-      emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
-      isCalculatorOpen, setIsCalculatorOpen, requirePinForAdmin, setRequirePinForAdmin,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
       invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
       quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
@@ -1782,14 +1834,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate,
-      auditLogs, 
-      dunningLogs, addDunningLog,
-      selectivelyResetData,
       generateRandomSales,
       importDataFromJson,
       updateSale,
       generateSingleRecurringInvoice,
-      dashboardButtonTextColor, setDashboardButtonTextColor
   };
 
   return (
