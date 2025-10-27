@@ -12,7 +12,7 @@ import { format, startOfDay, endOfDay, isSameDay, parseISO, addMonths, addYears,
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send, Repeat, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send, Repeat, Save, Notebook } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -583,6 +583,16 @@ function SaleDetailContent() {
               </Table>
             </CardContent>
           </Card>
+           {sale.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Notebook />Notes de la facture</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground whitespace-pre-wrap">{sale.notes}</p>
+              </CardContent>
+            </Card>
+          )}
            {sale.documentType === 'invoice' && (
             <Card>
               <CardHeader>
