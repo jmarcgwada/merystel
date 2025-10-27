@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Sale, Customer, DunningLog } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Switch } from '@/components/ui/switch';
@@ -200,6 +200,7 @@ export default function UnpaidInvoicesPage() {
     addDunningLog,
   } = usePos();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -290,7 +291,7 @@ export default function UnpaidInvoicesPage() {
 
     toast({
       title: 'Relance enregistrée',
-      description: `Une relance de type "${'${actionType}'}" a été enregistrée pour la facture #${'${sale.ticketNumber}'}.`,
+      description: `Une relance de type "${actionType}" a été enregistrée pour la facture #${sale.ticketNumber}.`,
     });
 
     setDunningActionState({ sale: null, actionType: null });
@@ -345,7 +346,7 @@ export default function UnpaidInvoicesPage() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Factures Impayées"
-          subtitle={`Suivi de ${'${unpaidInvoices.length}'} factures en attente de paiement.`}
+          subtitle={`Suivi de ${unpaidInvoices.length} factures en attente de paiement.`}
         >
           <div className="flex items-center gap-2">
             <Card className="p-2 text-center">
@@ -410,7 +411,9 @@ export default function UnpaidInvoicesPage() {
                   {isLoading &&
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
-                        <TableCell colSpan={7} className="h-12" />
+                        <TableCell colSpan={7} className="h-12">
+                            <Skeleton className="h-6 w-full" />
+                        </TableCell>
                       </TableRow>
                     ))}
                   {!isLoading &&
@@ -439,7 +442,7 @@ export default function UnpaidInvoicesPage() {
                             </TableCell>
                             <TableCell>
                               <Link
-                                href={`/reports/${'${sale.id}'}?from=unpaid`}
+                                href={`/reports/${sale.id}?from=unpaid`}
                                 className="font-medium text-primary hover:underline"
                               >
                                 {sale.ticketNumber}
