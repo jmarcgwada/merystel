@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -422,10 +423,15 @@ function ReportsPageContent() {
             const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
             const docTypeMatch = activeDocTypes.includes(docType);
             const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
+            
             const generalMatch = !generalFilter || (
                 (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                (customerName && customerName.toLowerCase().includes(generalFilter.toLowerCase())) ||
+                (sale.total.toFixed(2).includes(generalFilter)) ||
+                (sale.customerId && sale.customerId.toLowerCase().includes(generalFilter.toLowerCase())) ||
                 (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(generalFilter.toLowerCase()))))
             );
+
             return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
         });
 
@@ -952,3 +958,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
