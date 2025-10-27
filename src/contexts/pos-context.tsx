@@ -348,33 +348,45 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window === 'undefined') {
-            return defaultValue;
-        }
-        try {
-            const storedValue = localStorage.getItem(key);
-            return storedValue ? JSON.parse(storedValue) : defaultValue;
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
-            return defaultValue;
-        }
-    });
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
                 console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
-    return [state, setState];
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
 }
-
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -513,6 +525,56 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [newLog, ...prev]);
   }, [setAuditLogs]);
 
+  const clearOrder = useCallback(() => {
+    setOrder([]);
+    setDynamicBgImage(null);
+    if (readOnlyOrder) setReadOnlyOrder(null);
+    setCurrentSaleId(null);
+    setCurrentSaleContext(null);
+    setSelectedTable(null);
+  }, [readOnlyOrder]);
+
+  const showNavConfirm = (url: string) => {
+    setNextUrl(url);
+    setNavConfirmOpen(true);
+  };
+  
+  const closeNavConfirm = useCallback(() => {
+    setNextUrl(null);
+    setNavConfirmOpen(false);
+  }, []);
+
+  const confirmNavigation = useCallback(async () => {
+    if (nextUrl) {
+      await clearOrder();
+      router.push(nextUrl);
+    }
+    closeNavConfirm();
+  }, [nextUrl, clearOrder, closeNavConfirm, router]);
+
+  const prevPathnameRef = useRef(pathname);
+
+    useEffect(() => {
+        const prevPath = prevPathnameRef.current;
+        const salesModes = ['/pos', '/supermarket', '/restaurant'];
+        const commercialModes = ['/commercial'];
+
+        const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
+        const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
+
+        if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
+            clearOrder();
+        }
+
+        prevPathnameRef.current = pathname;
+    }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
+
+  const resetCommercialPage = useCallback((pageType: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note') => {
+    clearOrder();
+    setCurrentSaleId(null);
+    setCurrentSaleContext({ documentType: pageType });
+  }, [clearOrder]);
+
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
     if (hasData) {
@@ -536,7 +598,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     showToast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
   }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, showToast]);
-  
+    
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
     const newItems: Item[] = [];
@@ -655,31 +717,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
 
-  // ... (the rest of the provider)
-  
-  const cycleCommercialViewLevel = () => {
-    setCommercialViewLevel(prev => (prev + 1) % 3);
-  };
 
-  const prevPathnameRef = useRef(pathname);
-
-  // ... (rest of the provider logic, unchanged)
   useEffect(() => {
-    const prevPath = prevPathnameRef.current;
-    const salesModes = ['/pos', '/supermarket', '/restaurant'];
-    const commercialModes = ['/commercial'];
+    const timer = setInterval(() => setSystemDate(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-    const isLeavingSales = salesModes.some(p => prevPath.startsWith(p)) && !salesModes.some(p => pathname.startsWith(p));
-    const isLeavingCommercial = commercialModes.some(p => prevPath.startsWith(p)) && !commercialModes.some(p => pathname.startsWith(p));
-
-    if ((isLeavingSales || isLeavingCommercial) && !currentSaleContext?.fromConversion) {
-        clearOrder();
-    }
-
-    prevPathnameRef.current = pathname;
-  }, [pathname, clearOrder, currentSaleContext?.fromConversion]);
-
-  
   const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => (a.number || 0) - (b.number || 0))], [tablesData]);
   
   const deleteAllSales = useCallback(async () => {
@@ -866,7 +909,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         if (quantity <= 0) {
           removeFromOrder(itemId);
         } else {
-          setSerialNumberItem({ item: itemToUpdate, quantity });
+          setSerialNumberItem({ item: originalItem, quantity });
         }
         return;
       }
@@ -1059,7 +1102,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       const newTable: Table = {
         ...tableData,
         id: uuidv4(),
-        number: (tablesData.length > 0 ? Math.max(...tablesData.map(t => t.number)) : 0) + 1,
+        number: (tablesData.length > 0 ? Math.max(...tablesData.map(t => t.number || 0)) : 0) + 1,
         status: 'available' as const,
         order: [],
         createdAt: new Date(),
@@ -1164,7 +1207,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 modifiedAt: today,
             };
             addAuditLog({
-                userId: user?.id,
+                userId: user?.id || 'system',
                 userName: user ? `${user.firstName} ${user.lastName}` : 'System',
                 action: 'update',
                 documentType: type,
@@ -1190,7 +1233,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 ...docData,
             };
             addAuditLog({
-                userId: user?.id,
+                userId: user?.id || 'system',
                 userName: user ? `${user.firstName} ${user.lastName}` : 'System',
                 action: 'create',
                 documentType: type,
@@ -1326,7 +1369,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
     }, [setPaymentMethods]);
 
-    const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code' | 'createdAt'|'updatedAt'>): Promise<VatRate | null> => {
+    const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code'|'createdAt'|'updatedAt'>): Promise<VatRate | null> => {
         const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
         const newVatRate = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
         setVatRates(prev => [...prev, newVatRate]);
@@ -1464,7 +1507,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const quantity = Math.floor(Math.random() * 3) + 1;
                 saleItems.push({
                     itemId: randomItem.id, id: uuidv4(), name: randomItem.name, price: randomItem.price,
-                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity, discount: 0, barcode: randomItem.barcode,
+                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity, discount: 0, barcode: randomItem.barcode!,
                 });
             }
             const total = saleItems.reduce((acc, item) => acc + item.total, 0);
@@ -1693,12 +1736,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
     
         return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers]);
+  
+  const updateSale = async (sale: Sale) => {
+      setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
+  };
 
 
-  // ... (and so on for all your crud functions)
-
-  const value = {
+  const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -1735,16 +1780,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate,
-      auditLogs, addAuditLog,
+      auditLogs, 
       dunningLogs, addDunningLog,
       selectivelyResetData,
       generateRandomSales,
       importDataFromJson,
-      dashboardButtonTextColor, setDashboardButtonTextColor,
+      updateSale,
+      generateSingleRecurringInvoice,
+      dashboardButtonTextColor, setDashboardButtonTextColor
   };
 
   return (
-    <PosContext.Provider value={value as PosContextType}>
+    <PosContext.Provider value={value}>
       {children}
     </PosContext.Provider>
   );
