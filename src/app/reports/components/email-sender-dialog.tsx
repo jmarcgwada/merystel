@@ -74,14 +74,6 @@ export function EmailSenderDialog({
   const modalRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if(isOpen) {
-        setIsVisible(true);
-    } else {
-        setIsVisible(false);
-    }
-  }, [isOpen]);
-
   const pieceType = sale?.documentType === 'invoice' ? 'facture'
                   : sale?.documentType === 'quote' ? 'devis'
                   : sale?.documentType === 'delivery_note' ? 'bon de livraison'
@@ -97,6 +89,14 @@ export function EmailSenderDialog({
           y: (window.innerHeight - initialHeight) / 2,
       });
   }, []);
+
+  useEffect(() => {
+    if(isOpen) {
+        setIsVisible(true);
+    } else {
+        setIsVisible(false);
+    }
+  }, [isOpen]);
 
   const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<Attachment | null> => {
     if (!printRef.current || !saleForPdf) {
@@ -280,6 +280,21 @@ export function EmailSenderDialog({
     });
   };
 
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        // Do not close on outside click
+    }
+   }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, handleClickOutside]);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
         setModalPosition({
@@ -309,7 +324,7 @@ export function EmailSenderDialog({
       if (newWidth < 400) newWidth = 400;
       if (newHeight < 300) newHeight = 300;
 
-      setSize({ width: newWidth, height: newHeight });
+      setModalSize({ width: newWidth, height: newHeight });
        if (resizeStart.direction.includes('w') || resizeStart.direction.includes('n')) {
             setModalPosition({ x: newX, y: newY });
         }
@@ -324,23 +339,8 @@ export function EmailSenderDialog({
   const handleCloseAndReset = () => {
     onClose();
   };
-  
-   const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        // Do not close on outside click
-    }
-   }, []);
-   
-   useEffect(() => {
-    if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isVisible, handleClickOutside]);
 
-  useEffect(() => {
+   useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
