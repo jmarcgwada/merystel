@@ -69,21 +69,24 @@ function DunningActionDialog({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  sale: Sale;
-  actionType: 'phone' | 'whatsapp';
+  sale: Sale | null;
+  actionType: 'phone' | 'whatsapp' | null;
   onConfirm: (notes: string) => void;
 }) {
   const [notes, setNotes] = useState('');
-  const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
-
+  
   useEffect(() => {
     if (isOpen) {
       setNotes('');
     }
   }, [isOpen]);
+  
+  if (!isOpen || !sale || !actionType) return null;
+
+  const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Enregistrer une relance {actionLabel}</AlertDialogTitle>
@@ -106,7 +109,7 @@ function DunningActionDialog({
                 <AlertDialogAction onClick={() => onConfirm(notes)}>Enregistrer</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
-    </Dialog>
+    </AlertDialog>
   )
 }
 
@@ -121,11 +124,15 @@ export default function UnpaidInvoicesPage() {
   } = usePos();
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [saleForEmail, setSaleForEmail] = useState<Sale | null>(null);
 
-  const [dunningAction, setDunningAction] = useState<{
-    sale: Sale;
-    actionType: 'email' | 'phone' | 'whatsapp';
-  } | null>(null);
+  const [dunningActionState, setDunningActionState] = useState<{
+    sale: Sale | null;
+    actionType: 'phone' | 'whatsapp' | null;
+  }>({ sale: null, actionType: null });
+  
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   const unpaidInvoices = useMemo(() => {
@@ -185,7 +192,8 @@ export default function UnpaidInvoicesPage() {
       description: `Une relance de type "${actionType}" a été enregistrée pour la facture #${sale.ticketNumber}.`,
     });
 
-    setDunningAction(null);
+    setDunningActionState({ sale: null, actionType: null });
+    setIsEmailDialogOpen(false);
   };
 
 
@@ -319,19 +327,17 @@ export default function UnpaidInvoicesPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                   <DropdownMenuItem
-                                    onClick={() =>
-                                      setDunningAction({
-                                        sale,
-                                        actionType: 'email',
-                                      })
-                                    }
+                                    onClick={() => {
+                                      setSaleForEmail(sale);
+                                      setIsEmailDialogOpen(true);
+                                    }}
                                   >
                                     <Mail className="mr-2 h-4 w-4" />
                                     Relance par Email
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      setDunningAction({
+                                      setDunningActionState({
                                         sale,
                                         actionType: 'phone',
                                       })
@@ -342,7 +348,7 @@ export default function UnpaidInvoicesPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      setDunningAction({
+                                      setDunningActionState({
                                         sale,
                                         actionType: 'whatsapp',
                                       })
@@ -416,26 +422,32 @@ export default function UnpaidInvoicesPage() {
           </Card>
         </div>
       </div>
-
-      {dunningAction?.actionType === 'email' && (
+      
+      {isEmailDialogOpen && (
         <EmailSenderDialog
-          isOpen={true}
-          onClose={() => setDunningAction(null)}
-          sale={dunningAction.sale}
+          isOpen={isEmailDialogOpen}
+          onClose={() => setIsEmailDialogOpen(false)}
+          sale={saleForEmail}
           dunningMode={true}
-          onSend={(notes) => handleDunningAction(dunningAction.sale, 'email', notes)}
+          onSend={(notes) => {
+            if (saleForEmail) {
+              handleDunningAction(saleForEmail, 'email', notes);
+            }
+          }}
         />
       )}
       
-       {(dunningAction?.actionType === 'phone' || dunningAction?.actionType === 'whatsapp') && (
-        <DunningActionDialog
-          isOpen={true}
-          onClose={() => setDunningAction(null)}
-          sale={dunningAction.sale}
-          actionType={dunningAction.actionType}
-          onConfirm={(notes) => handleDunningAction(dunningAction.sale, dunningAction.actionType, notes)}
-        />
-      )}
+      <DunningActionDialog
+        isOpen={!!dunningActionState.actionType}
+        onClose={() => setDunningActionState({ sale: null, actionType: null })}
+        sale={dunningActionState.sale}
+        actionType={dunningActionState.actionType}
+        onConfirm={(notes) => {
+          if (dunningActionState.sale && dunningActionState.actionType) {
+            handleDunningAction(dunningActionState.sale, dunningActionState.actionType, notes);
+          }
+        }}
+      />
     </>
   );
 }
