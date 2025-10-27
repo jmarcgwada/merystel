@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -219,6 +220,7 @@ export const CommercialOrderForm = forwardRef<
   
   const watchItems = form.watch('items');
   const watchAcompte = form.watch('acompte');
+  const watchNotes = form.watch('notes');
   
   useEffect(() => {
     if (currentSaleContext?.customerId && customers) {
