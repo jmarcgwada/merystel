@@ -68,7 +68,16 @@ export function EmailSenderDialog({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
   const modalRef = useRef<HTMLDivElement>(null);
-  
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if(isOpen) {
+        setIsVisible(true);
+    } else {
+        setIsVisible(false);
+    }
+  }, [isOpen]);
+
   const pieceType = sale?.documentType === 'invoice' ? 'facture'
                   : sale?.documentType === 'quote' ? 'devis'
                   : sale?.documentType === 'delivery_note' ? 'bon de livraison'
@@ -305,23 +314,14 @@ export function EmailSenderDialog({
   const handleCloseAndReset = () => {
     onClose();
   };
-
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    if(isOpen) {
-        setIsVisible(true);
-    } else {
-        setIsVisible(false);
-    }
-  }, [isOpen]);
   
    const handleClickOutside = useCallback((e: MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         // Do not close on outside click
     }
    }, []);
-
-  useEffect(() => {
+   
+   useEffect(() => {
     if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
     }
@@ -388,7 +388,7 @@ export function EmailSenderDialog({
                 )}
             >
                 <h2 className="font-semibold leading-none tracking-tight">
-                  Envoyer {pieceType} - {sale.ticketNumber}
+                  {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale.ticketNumber}
                 </h2>
                 <button onClick={handleCloseAndReset} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                   <X className="h-4 w-4" />
@@ -410,7 +410,7 @@ export function EmailSenderDialog({
                             {customer && (
                               <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Modifier
+                                Modifier le client
                               </Button>
                             )}
                        </div>
