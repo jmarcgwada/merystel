@@ -23,6 +23,7 @@ import {
   Calendar as CalendarIcon,
   Mic,
   MicOff,
+  Banknote,
 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -63,7 +64,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -189,6 +190,71 @@ function DunningActionDialog({
   );
 }
 
+function PartialPaymentDialog({
+  isOpen,
+  onClose,
+  sale,
+  onConfirm,
+}: {
+  isOpen: boolean,
+  onClose: () => void,
+  sale: Sale | null,
+  onConfirm: (amount: number, method: string) => void
+}) {
+  const { paymentMethods } = usePos();
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState('');
+
+  if (!isOpen || !sale) return null;
+
+  const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const amountDue = sale.total - totalPaid;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Enregistrer un règlement partiel</DialogTitle>
+          <DialogDescription>
+            Facture #{sale.ticketNumber} - Montant dû: {amountDue.toFixed(2)}€
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <div>
+            <Label htmlFor="partial-amount">Montant</Label>
+            <Input
+              id="partial-amount"
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder={amountDue.toFixed(2)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="partial-method">Moyen de paiement</Label>
+            <Select onValueChange={setMethod}>
+              <SelectTrigger id="partial-method">
+                <SelectValue placeholder="Choisir..." />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods
+                  .filter(pm => pm.name.toLowerCase() !== 'chèque')
+                  .map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button onClick={() => onConfirm(parseFloat(amount), method)} disabled={!amount || !method}>
+            Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function UnpaidInvoicesPage() {
   const {
@@ -198,6 +264,7 @@ export default function UnpaidInvoicesPage() {
     updateSale,
     dunningLogs,
     addDunningLog,
+    addPaiementPartiel,
   } = usePos();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -214,6 +281,7 @@ export default function UnpaidInvoicesPage() {
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [saleForPartialPayment, setSaleForPartialPayment] = useState<Sale | null>(null);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -296,6 +364,26 @@ export default function UnpaidInvoicesPage() {
 
     setDunningActionState({ sale: null, actionType: null });
     setIsEmailDialogOpen(false);
+  };
+
+  const handlePartialPayment = async (amount: number, method: string) => {
+    if (!saleForPartialPayment) return;
+    
+    const newPayment: Sale['payments'][0] = {
+        amount,
+        method: { name: method, type: 'direct', id: 'custom' },
+        date: new Date(),
+    };
+
+    const updatedSale = {
+        ...saleForPartialPayment,
+        payments: [...(saleForPartialPayment.payments || []), newPayment],
+    };
+
+    await updateSale(updatedSale);
+    
+    toast({ title: 'Règlement partiel enregistré.' });
+    setSaleForPartialPayment(null);
   };
 
 
@@ -472,6 +560,13 @@ export default function UnpaidInvoicesPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                   <DropdownMenuItem
+                                    onClick={() => setSaleForPartialPayment(sale)}
+                                  >
+                                    <Banknote className="mr-2 h-4 w-4" />
+                                    Enregistrer un règlement
+                                  </DropdownMenuItem>
+                                  <Separator/>
+                                  <DropdownMenuItem
                                     onClick={() => {
                                       setSaleForEmail(sale);
                                       setIsEmailDialogOpen(true);
@@ -592,6 +687,14 @@ export default function UnpaidInvoicesPage() {
           }
         }}
       />
+      <PartialPaymentDialog
+        isOpen={!!saleForPartialPayment}
+        onClose={() => setSaleForPartialPayment(null)}
+        sale={saleForPartialPayment}
+        onConfirm={handlePartialPayment}
+      />
     </>
   );
 }
+
+  

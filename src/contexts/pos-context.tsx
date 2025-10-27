@@ -1532,8 +1532,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, [sales, showToast]);
 
     const convertToInvoice = useCallback((saleId: string) => {
+        const sale = sales.find(s => s.id === saleId);
+        if (sale) {
+          addAuditLog({
+            userId: user?.id || 'system',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+            action: 'transform',
+            documentType: 'quote/delivery_note',
+            documentId: sale.id,
+            documentNumber: sale.ticketNumber,
+            details: `Transformation en facture.`
+          });
+        }
         router.push(`/commercial/invoices?fromConversion=${saleId}`);
-    }, [router]);
+    }, [router, sales, addAuditLog, user]);
     
     const generateRandomSales = useCallback(async (count: number) => {
         if (!items || !customers || !paymentMethods || !user) {
@@ -1790,7 +1802,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setCommercialViewLevel(prev => (prev + 1) % 3);
   }, [setCommercialViewLevel]);
 
-
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
@@ -1854,3 +1865,5 @@ export function usePos() {
   }
   return context;
 }
+
+  
