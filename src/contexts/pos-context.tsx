@@ -1081,7 +1081,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tables, setTablesData]);
     
     const forceFreeTable = useCallback((tableId: string) => {
-      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], lockedBy: null, verrou: false, closedAt: new Date(), closedByUserId: user?.id } : t));
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], lockedBy: undefined, verrou: false, closedAt: new Date(), closedByUserId: user?.id } : t));
       toast({ title: 'Table libérée' });
     }, [setTablesData, toast, user]);
 
@@ -1141,6 +1141,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         setSales((prev) => prev.map((s) => (s.id === docIdToUpdate ? finalDoc : s)));
       } else {
+        const { ticketNumber: _, ...docDataWithoutTicketNumber } = docData; // Ensure old ticketNumber is not copied
         const prefix = prefixMap[type] || 'DOC';
         let number;
   
@@ -1163,7 +1164,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
           documentType: type,
           userId: user?.id,
           userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
-          ...docData,
+          ...docDataWithoutTicketNumber,
         };
         addAuditLog({
             userId: user?.id, userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
@@ -1207,8 +1208,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
+    const { ticketNumber, ...restOfTemplate } = saleTemplate;
+
     const newInvoiceData: Omit<Sale, 'id' | 'date' | 'ticketNumber'> = {
-        ...saleTemplate,
+        ...restOfTemplate,
         status: 'pending',
         payments: [],
         date: new Date(),
