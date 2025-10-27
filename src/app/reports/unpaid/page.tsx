@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,6 +33,7 @@ import {
   MessageSquare,
   MoreVertical,
   Edit,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
@@ -48,12 +49,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
+import { cn } from '@/lib/utils';
 
 
 type DunningAction = {
   sale: Sale;
   actionType: 'email' | 'phone' | 'whatsapp';
 }
+
+type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
 
 export default function UnpaidInvoicesPage() {
   const { sales, customers, isLoading, updateSale } = usePos();
@@ -69,6 +74,16 @@ export default function UnpaidInvoicesPage() {
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
 
+  // State for draggable/resizable modal
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [modalSize, setModalSize] = useState({ width: 600, height: 650 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0, direction: '' as ResizeDirection });
+  const modalRef = useRef<HTMLDivElement>(null);
+
+
   const unpaidInvoices = useMemo(() => {
     if (!sales) return [];
     return sales
@@ -80,6 +95,22 @@ export default function UnpaidInvoicesPage() {
     if (!dunningAction || !customers) return null;
     return customers.find(c => c.id === dunningAction.sale.customerId);
   }, [dunningAction, customers]);
+  
+  const initializeModalState = useCallback(() => {
+      const initialWidth = 600;
+      const initialHeight = 650;
+      setModalSize({ width: initialWidth, height: initialHeight });
+      setModalPosition({ 
+          x: (window.innerWidth - initialWidth) / 2,
+          y: (window.innerHeight - initialHeight) / 2,
+      });
+  }, []);
+
+  useEffect(() => {
+    if (dunningAction) {
+        initializeModalState();
+    }
+  }, [dunningAction, initializeModalState]);
 
   useEffect(() => {
     if (dunningAction?.actionType === 'email' && customerForDunning) {
@@ -163,6 +194,97 @@ L'équipe de ${'votre entreprise'}`
     }
   };
 
+  // Drag and Resize handlers
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (modalRef.current) {
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - modalPosition.x,
+            y: e.clientY - modalPosition.y,
+        });
+    }
+  };
+
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, direction: ResizeDirection) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: modalSize.width,
+      height: modalSize.height,
+      direction: direction,
+    });
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isDragging) {
+        setModalPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y,
+        });
+    } else if(isResizing) {
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+      let newX = modalPosition.x;
+      let newY = modalPosition.y;
+
+      const dx = e.clientX - resizeStart.x;
+      const dy = e.clientY - resizeStart.y;
+      
+      if (resizeStart.direction.includes('e')) newWidth = resizeStart.width + dx;
+      if (resizeStart.direction.includes('w')) {
+          newWidth = resizeStart.width - dx;
+          newX = modalPosition.x + dx;
+      }
+      if (resizeStart.direction.includes('s')) newHeight = resizeStart.height + dy;
+      if (resizeStart.direction.includes('n')) {
+          newHeight = resizeStart.height - dy;
+          newY = modalPosition.y + dy;
+      }
+
+      if (newWidth < 400) newWidth = 400;
+      if (newHeight < 300) newHeight = 300;
+
+      setModalSize({ width: newWidth, height: newHeight });
+       if (resizeStart.direction.includes('w') || resizeStart.direction.includes('n')) {
+            setModalPosition({ x: newX, y: newY });
+        }
+    }
+  }, [isDragging, isResizing, dragStart, resizeStart, modalPosition.x, modalPosition.y]);
+  
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+  
+  const resizeHandles: ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+  const getResizeHandleClass = (dir: ResizeDirection) => {
+    switch (dir) {
+      case 'n': return 'cursor-n-resize top-0 h-2 inset-x-2';
+      case 's': return 'cursor-s-resize bottom-0 h-2 inset-x-2';
+      case 'e': return 'cursor-e-resize right-0 w-2 inset-y-2';
+      case 'w': return 'cursor-w-resize left-0 w-2 inset-y-2';
+      case 'ne': return 'cursor-ne-resize top-0 right-0 h-3 w-3';
+      case 'nw': return 'cursor-nw-resize top-0 left-0 h-3 w-3';
+      case 'se': return 'cursor-se-resize bottom-0 right-0 h-3 w-3';
+      case 'sw': return 'cursor-sw-resize bottom-0 left-0 h-3 w-3';
+    }
+  };
 
   return (
     <>
@@ -262,70 +384,102 @@ L'équipe de ${'votre entreprise'}`
           </Card>
         </div>
       </div>
-
-       <AlertDialog open={!!dunningAction} onOpenChange={(open) => !open && setDunningAction(null)}>
-        <AlertDialogContent className={dunningAction?.actionType === 'email' ? 'sm:max-w-xl' : 'sm:max-w-md'}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Enregistrer une action de relance</AlertDialogTitle>
-            <AlertDialogDescription>
-              Vous êtes sur le point d'enregistrer une relance de type "{dunningAction?.actionType}" pour la facture #{dunningAction?.sale.ticketNumber}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4 space-y-4">
-              {dunningAction?.actionType === 'email' ? (
-                  <div className="space-y-4">
-                       <div className="space-y-2">
-                           <Label htmlFor="email-to">Destinataire</Label>
-                           <div className="flex items-center gap-2">
-                                <Input 
-                                  id="email-to" 
-                                  value={emailToSend} 
-                                  onChange={(e) => setEmailToSend(e.target.value)}
-                                  placeholder={customerForDunning ? "Email manquant" : "Aucun client associé"}
+      
+      {dunningAction && (
+        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setDunningAction(null)}>
+            <div
+              ref={modalRef}
+              style={{
+                  width: `${modalSize.width}px`,
+                  height: `${modalSize.height}px`,
+                  top: `${modalPosition.y}px`,
+                  left: `${modalPosition.x}px`,
+                  position: 'fixed',
+              }}
+              className="z-50 flex flex-col rounded-lg border bg-background shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div 
+                  data-drag-handle
+                  onMouseDown={handleDragStart}
+                  className={cn(
+                      "flex items-center justify-between p-4 bg-muted/50 border-b cursor-grab",
+                      isDragging && "cursor-grabbing"
+                  )}
+              >
+                  <h2 className="font-semibold leading-none tracking-tight">
+                    Enregistrer une action de relance - {dunningAction.sale.ticketNumber}
+                  </h2>
+                  <button onClick={() => setDunningAction(null)} className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Fermer</span>
+                  </button>
+              </div>
+              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                   {dunningAction?.actionType === 'email' ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email-to">Destinataire</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                      id="email-to" 
+                                      value={emailToSend} 
+                                      onChange={(e) => setEmailToSend(e.target.value)}
+                                      placeholder={customerForDunning ? "Email manquant" : "Aucun client associé"}
+                                    />
+                                    {customerForDunning && (
+                                      <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
+                                      </Button>
+                                    )}
+                               </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email-subject">Sujet</Label>
+                                <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 h-full flex flex-col">
+                                <Label htmlFor="email-body">Message</Label>
+                                <Textarea
+                                    id="email-body"
+                                    value={emailBody}
+                                    onChange={(e) => setEmailBody(e.target.value)}
+                                    rows={8}
+                                    className="flex-1"
                                 />
-                                {customerForDunning && (
-                                  <Button variant="outline" size="sm" onClick={openEditCustomerModal}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Modifier le client
-                                  </Button>
-                                )}
-                           </div>
-                       </div>
-                       <div className="space-y-2">
-                           <Label htmlFor="email-subject">Sujet</Label>
-                           <Input id="email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
-                       </div>
-                       <div className="space-y-2">
-                           <Label htmlFor="email-body">Message</Label>
-                           <Textarea
-                                id="email-body"
-                                value={emailBody}
-                                onChange={(e) => setEmailBody(e.target.value)}
-                                rows={8}
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
+                            <Textarea
+                                id="dunning-notes"
+                                placeholder="Ex: Laissé un message vocal, email envoyé sans réponse..."
+                                value={dunningNotes}
+                                onChange={(e) => setDunningNotes(e.target.value)}
+                                className="mt-2"
                             />
-                       </div>
-                  </div>
-              ) : (
-                <div>
-                    <Label htmlFor="dunning-notes">Notes (optionnel)</Label>
-                    <Textarea
-                        id="dunning-notes"
-                        placeholder="Ex: Laissé un message vocal, email envoyé sans réponse..."
-                        value={dunningNotes}
-                        onChange={(e) => setDunningNotes(e.target.value)}
-                        className="mt-2"
-                    />
-                </div>
-              )}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setDunningAction(null); setDunningNotes(''); }}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDunningAction}>
-              {dunningAction?.actionType === 'email' ? 'Envoyer la relance' : 'Enregistrer l\'action'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                        </div>
+                    )}
+              </div>
+              <div className="flex justify-end gap-2 p-4 border-t bg-muted/50">
+                <Button variant="ghost" onClick={() => { setDunningAction(null); setDunningNotes(''); }}>Annuler</Button>
+                <Button onClick={handleDunningAction}>
+                  {dunningAction?.actionType === 'email' ? 'Envoyer la relance' : 'Enregistrer l\'action'}
+                </Button>
+              </div>
+              {resizeHandles.map(dir => (
+                <div
+                    key={dir}
+                    data-resize-handle
+                    onMouseDown={(e) => handleResizeStart(e, dir)}
+                    className={cn('absolute z-10', getResizeHandleClass(dir))}
+                />
+              ))}
+            </div>
+        </div>
+      )}
       
       <EditCustomerDialog 
         isOpen={isEditCustomerOpen}
@@ -335,3 +489,4 @@ L'équipe de ${'votre entreprise'}`
     </>
   );
 }
+
