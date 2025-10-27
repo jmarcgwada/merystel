@@ -18,6 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -36,16 +37,92 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MoreHorizontal, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
-import type { Cheque } from '@/lib/types';
+import type { Cheque, DunningLog } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfToday, endOfDay, addDays } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { EmailSenderDialog } from '@/app/reports/components/email-sender-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+const DunningActionDialog = ({
+  isOpen,
+  onClose,
+  sale,
+  actionType,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sale: Sale | null;
+  actionType: 'phone' | 'whatsapp' | null;
+  onConfirm: (notes: string) => void;
+}) => {
+  const [notes, setNotes] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNotes('');
+    }
+  }, [isOpen]);
+  
+  const toggleRecording = () => {};
+
+  if (!isOpen || !sale || !actionType) return null;
+
+  const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enregistrer une relance {actionLabel}</AlertDialogTitle>
+          <AlertDialogDescription>
+            Ajoutez une note pour consigner les détails de votre interaction avec le client pour la facture #{sale.ticketNumber}.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="py-4 space-y-2">
+          <Label htmlFor="dunning-notes">Notes</Label>
+          <div className="relative">
+            <Textarea
+              id="dunning-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Cliquez sur le micro pour dicter, ou tapez votre commentaire..."
+              className="mt-2 pr-12"
+              rows={4}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleRecording}
+              className={cn(
+                "absolute right-2 bottom-2 h-8 w-8 text-muted-foreground",
+                isRecording && "bg-red-500/20 text-red-600 hover:bg-red-500/30 hover:text-red-700"
+              )}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onConfirm(notes)}>Enregistrer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
 
 const statutLabels: Record<Cheque['statut'], string> = {
   enPortefeuille: 'En Portefeuille',
@@ -64,12 +141,16 @@ const statutColors: Record<Cheque['statut'], string> = {
 };
 
 export default function ChecksManagementPage() {
-  const { cheques, customers, deleteCheque, updateCheque, addRemise } = usePos();
+  const { cheques, customers, deleteCheque, updateCheque, addRemise, sales, dunningLogs, addDunningLog } = usePos();
   const { toast } = useToast();
   const [filterStatut, setFilterStatut] = useState<Cheque['statut'] | 'all'>('enPortefeuille');
   const [filterCustomer, setFilterCustomer] = useState('');
   const [chequeToDelete, setChequeToDelete] = useState<Cheque | null>(null);
   const [selectedChequeIds, setSelectedChequeIds] = useState<string[]>([]);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [saleForEmail, setSaleForEmail] = useState<Sale | null>(null);
+  const [dunningActionState, setDunningActionState] = useState<{ sale: Sale | null; actionType: 'phone' | 'whatsapp' | null; }>({ sale: null, actionType: null });
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   const getCustomerName = useCallback((customerId: string) => {
     return customers.find(c => c.id === customerId)?.name || 'Client inconnu';
@@ -139,6 +220,34 @@ export default function ChecksManagementPage() {
     setSelectedChequeIds([]);
   }
 
+  const handleOpenEmailDunning = (cheque: Cheque) => {
+    const sale = sales.find(s => s.id === cheque.factureId);
+    if (sale) {
+        setSaleForEmail(sale);
+        setIsEmailDialogOpen(true);
+    }
+  }
+
+  const handleDunningAction = (sale: Sale, actionType: 'phone' | 'whatsapp') => {
+    setDunningActionState({ sale, actionType });
+  };
+
+  const saleDunningLogs = useCallback(
+    (saleId: string) => {
+      return dunningLogs
+        .filter((log) => log.saleId === saleId)
+        .sort(
+          (a, b) =>
+            new Date(b.date as any).getTime() - new Date(a.date as any).getTime()
+        );
+    },
+    [dunningLogs]
+  );
+  
+  const toggleDetails = (chequeId: string) => {
+    setOpenDetails((prev) => ({ ...prev, [chequeId]: !prev[chequeId] }));
+  };
+
   return (
     <>
       <PageHeader
@@ -201,6 +310,7 @@ export default function ChecksManagementPage() {
                            disabled={filterStatut !== 'enPortefeuille'}
                        />
                    </TableHead>
+                   <TableHead className="w-12"></TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>N° Chèque / Banque</TableHead>
                   <TableHead>Montant</TableHead>
@@ -212,11 +322,14 @@ export default function ChecksManagementPage() {
               <TableBody>
                 {filteredCheques.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
+                    <TableCell colSpan={8} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
                   </TableRow>
                 ) : (
-                  filteredCheques.map(cheque => (
-                    <TableRow key={cheque.id} data-state={selectedChequeIds.includes(cheque.id) && 'selected'}>
+                  filteredCheques.map(cheque => {
+                    const sale = sales.find(s => s.id === cheque.factureId);
+                    return (
+                    <React.Fragment key={cheque.id}>
+                    <TableRow data-state={selectedChequeIds.includes(cheque.id) && 'selected'}>
                       <TableCell>
                           <Checkbox
                               checked={selectedChequeIds.includes(cheque.id)}
@@ -230,6 +343,11 @@ export default function ChecksManagementPage() {
                               disabled={cheque.statut !== 'enPortefeuille'}
                           />
                       </TableCell>
+                       <TableCell className="w-12">
+                            <Button variant="ghost" size="icon" onClick={() => toggleDetails(cheque.id)}>
+                                <ChevronDown className={`h-4 w-4 transition-transform ${openDetails[cheque.id] ? 'rotate-180' : ''}`} />
+                            </Button>
+                        </TableCell>
                       <TableCell className="font-medium">{getCustomerName(cheque.clientId)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
@@ -252,9 +370,17 @@ export default function ChecksManagementPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
+                            {cheque.statut === 'impaye' && sale && (
+                                <>
+                                 <DropdownMenuItem onSelect={() => handleOpenEmailDunning(cheque)}><Mail className="mr-2 h-4 w-4"/> Relance par Email</DropdownMenuItem>
+                                 <DropdownMenuItem onSelect={() => handleDunningAction(sale, 'phone')}><Phone className="mr-2 h-4 w-4"/> Enregistrer un Appel</DropdownMenuItem>
+                                 <DropdownMenuItem onSelect={() => handleDunningAction(sale, 'whatsapp')}><MessageSquare className="mr-2 h-4 w-4"/> Enregistrer un WhatsApp</DropdownMenuItem>
+                                 <DropdownMenuSeparator />
+                                </>
+                            )}
                             <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'remisEnBanque')} disabled={cheque.statut !== 'enPortefeuille'}>
                                 <Banknote className="mr-2 h-4 w-4"/> Marquer comme Remis en Banque
                             </DropdownMenuItem>
@@ -274,7 +400,30 @@ export default function ChecksManagementPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
+                     {openDetails[cheque.id] && (
+                        <TableRow>
+                            <TableCell colSpan={8} className="p-0">
+                                <div className="bg-secondary/50 p-4">
+                                <h4 className="font-semibold mb-2">Historique des relances</h4>
+                                {saleDunningLogs(cheque.factureId).length > 0 ? (
+                                    <ul className="space-y-1 text-xs">
+                                    {saleDunningLogs(cheque.factureId).map(log => (
+                                        <li key={log.id} className="flex items-center gap-2">
+                                        <ClientFormattedDate date={log.date} formatString="d MMM yy, HH:mm" />
+                                        <Badge variant="outline" className="capitalize">{log.actionType}</Badge>
+                                        <span className="text-muted-foreground italic">{log.notes || 'Aucune note'}</span>
+                                        </li>
+                                    ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">Aucune relance enregistrée.</p>
+                                )}
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                     )}
+                    </React.Fragment>
+                  )})
                 )}
               </TableBody>
             </Table>
@@ -295,6 +444,41 @@ export default function ChecksManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+       {isEmailDialogOpen && (
+        <EmailSenderDialog
+          isOpen={isEmailDialogOpen}
+          onClose={() => setIsEmailDialogOpen(false)}
+          sale={saleForEmail}
+          dunningMode={true}
+          onSend={(notes) => {
+            if (saleForEmail) {
+              addDunningLog({
+                saleId: saleForEmail.id,
+                actionType: 'email',
+                notes: `Email de relance envoyé. Sujet: "Rappel pour votre facture impayée #${saleForEmail.ticketNumber}"`,
+                status: 'sent',
+              });
+            }
+          }}
+        />
+      )}
+       <DunningActionDialog
+        isOpen={!!dunningActionState.actionType}
+        onClose={() => setDunningActionState({ sale: null, actionType: null })}
+        sale={dunningActionState.sale}
+        actionType={dunningActionState.actionType}
+        onConfirm={(notes) => {
+          if (dunningActionState.sale && dunningActionState.actionType) {
+            addDunningLog({
+                saleId: dunningActionState.sale.id,
+                actionType: dunningActionState.actionType,
+                notes: notes,
+                status: 'completed',
+            });
+            setDunningActionState({ sale: null, actionType: null });
+          }
+        }}
+      />
     </>
   );
 }

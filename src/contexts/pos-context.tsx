@@ -1138,9 +1138,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }, [tables, setTablesData]);
     
     const forceFreeTable = useCallback((tableId: string) => {
-      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: []} : t));
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], verrou: false, lockedBy: undefined, occupiedAt: undefined, occupiedByUserId: undefined, closedAt: new Date(), closedByUserId: user?.id } : t));
       showToast({ title: 'Table libérée' });
-    }, [setTablesData, showToast]);
+    }, [setTablesData, showToast, user]);
 
     const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt' | 'updatedAt'>) => {
       const newTable: Table = {
@@ -1866,4 +1866,4 @@ export function usePos() {
   return context;
 }
 
-  
+    
