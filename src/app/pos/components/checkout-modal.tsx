@@ -39,8 +39,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import type { Timestamp } from 'firebase/firestore';
-import { Card } from '@/components/ui/card';
-
+import { Card, CardDescription } from '@/components/ui/card';
+import { bankList } from '@/lib/banks';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -378,8 +379,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     };
 
     const handleConfirmCheques = () => {
-      if (cheques.some(c => !c.numeroCheque || !c.banque || c.montant <= 0)) {
-        toast({ variant: 'destructive', title: 'Informations manquantes', description: 'Veuillez remplir tous les champs pour chaque chèque.' });
+      const hasEmptyBank = cheques.some(c => !c.banque);
+      if (hasEmptyBank) {
+        toast({ variant: 'destructive', title: 'Banque manquante', description: 'Veuillez sélectionner une banque pour chaque chèque.' });
         return;
       }
       const totalCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
@@ -389,6 +391,19 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
       setView('payment');
     }
+    
+    const handleOpenChequeView = () => {
+        setView('cheque');
+        if (cheques.length === 0 && balanceDue > 0) {
+            setCheques([{
+                numeroCheque: '',
+                banque: '',
+                montant: balanceDue,
+                dateEcheance: new Date(),
+                statut: 'enPortefeuille',
+            }]);
+        }
+    };
     
     const renderCalculator = () => (
         <div className="md:col-span-1 space-y-2 rounded-lg border bg-secondary/50 p-4 flex flex-col">
@@ -616,7 +631,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                       <Button
                         variant="outline"
                         className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
-                        onClick={() => setView('cheque')}
+                        onClick={handleOpenChequeView}
                         disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote)}
                       >
                          <StickyNote className="h-6 w-6 z-10" />
@@ -742,7 +757,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
-                  <div><Label>Banque</Label><Input value={cheque.banque} onChange={e => handleChequeChange(index, 'banque', e.target.value)} /></div>
+                  <div>
+                    <Label>Banque</Label>
+                    <Select onValueChange={(value) => handleChequeChange(index, 'banque', value)} value={cheque.banque}>
+                      <SelectTrigger><SelectValue placeholder="Choisir une banque..." /></SelectTrigger>
+                      <SelectContent>
+                        {bankList.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div><Label>Montant (€)</Label><Input type="number" value={cheque.montant} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
                   <div>
                     <Label>Date d'échéance</Label>

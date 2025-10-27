@@ -1,0 +1,23 @@
+
+export const bankList: string[] = [
+  "BNP Paribas",
+  "Société Générale",
+  "Crédit Agricole",
+  "Crédit Mutuel",
+  "Banque Populaire",
+  "Caisse d'Epargne",
+  "La Banque Postale",
+  "LCL",
+  "HSBC",
+  "Boursorama Banque",
+  "ING",
+  "Fortuneo",
+  "Hello bank!",
+  "Monabanq",
+  "BforBank",
+  "CIC",
+  "Banque Palatine",
+  "Crédit du Nord",
+  "Crédit Coopératif",
+  "Autre",
+];
