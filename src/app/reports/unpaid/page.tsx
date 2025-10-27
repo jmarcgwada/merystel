@@ -37,7 +37,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
 import type { Sale, Customer, DunningLog } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
@@ -58,7 +58,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogClose } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 
 function DunningActionDialog({
   isOpen,
@@ -75,6 +75,12 @@ function DunningActionDialog({
 }) {
   const [notes, setNotes] = useState('');
   const actionLabel = actionType === 'phone' ? 'téléphonique' : 'WhatsApp';
+
+  useEffect(() => {
+    if (isOpen) {
+      setNotes('');
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
