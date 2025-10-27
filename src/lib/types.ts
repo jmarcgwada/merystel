@@ -195,6 +195,8 @@ export interface Sale {
     lastGeneratedDate?: Date | Timestamp;
     isActive?: boolean;
   };
+  dunningLevel?: number;
+  lastDunningDate?: Date | Timestamp;
 }
 
 export interface HeldOrder {
@@ -276,6 +278,16 @@ export interface AuditLog {
     details: string;
     richDetails?: Record<string, any>;
 }
+
+export interface DunningLog {
+    id: string;
+    date: Date | Timestamp;
+    saleId: string;
+    actionType: 'email' | 'phone' | 'whatsapp';
+    notes?: string;
+    status: 'sent' | 'completed' | 'failed';
+}
+
 
 export interface MappingTemplate {
   name: string;

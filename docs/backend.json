@@ -175,6 +175,8 @@
         "status": { "type": "string", "enum": ["paid", "pending", "quote", "delivery_note", "credit_note"] },
         "notes": { "type": "string", "description": "Notes spécifiques à cette pièce." },
         "isRecurring": { "type": "boolean", "description": "Indicates if this sale is a template for recurring invoices." },
+        "dunningLevel": { "type": "number", "description": "The current dunning level for an unpaid invoice." },
+        "lastDunningDate": { "type": "string", "format": "date-time", "description": "The date of the last dunning action." },
         "recurrence": {
             "type": "object",
             "properties": {
@@ -242,6 +244,20 @@
             "details": { "type": "string" }
         },
         "required": ["date", "userId", "userName", "action", "documentType", "documentId", "documentNumber", "details"]
+    },
+    "DunningLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "DunningLog",
+        "type": "object",
+        "description": "Represents a log entry for a dunning action.",
+        "properties": {
+            "date": { "type": "string", "format": "date-time" },
+            "saleId": { "type": "string" },
+            "actionType": { "type": "string", "enum": ["email", "phone", "whatsapp"] },
+            "notes": { "type": "string" },
+            "status": { "type": "string", "enum": ["sent", "completed", "failed"] }
+        },
+        "required": ["date", "saleId", "actionType", "status"]
     }
   },
   "auth": {
@@ -295,6 +311,10 @@
     "/companies/{companyId}/auditLogs/{logId}": {
         "schema": { "$ref": "#/entities/AuditLog" },
         "description": "Audit trail of major operations."
+    },
+    "/companies/{companyId}/dunning/{dunningId}": {
+      "schema": { "$ref": "#/entities/DunningLog" },
+      "description": "Log of dunning actions for unpaid invoices."
     }
   }
 }

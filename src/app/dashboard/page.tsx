@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity, Trash2 } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity, Trash2, Hourglass } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
@@ -375,7 +376,7 @@ export default function DashboardPage() {
               <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium" style={{ color: dashboardButtonTextColor }}>
-                        <Link href={`/reports?filterStatus=pending`} className="text-primary hover:underline">
+                        <Link href={`/reports/unpaid`} className="text-primary hover:underline">
                             Soldes Clients
                         </Link>
                     </CardTitle>
