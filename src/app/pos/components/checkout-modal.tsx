@@ -41,6 +41,8 @@ import type { Timestamp } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { bankList } from '@/lib/banks';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -78,6 +80,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [showOverpaymentAlert, setShowOverpaymentAlert] = useState(false);
   
   const isCreditNote = currentSaleContext?.documentType === 'credit_note';
@@ -324,7 +327,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       const removedAmount = prev[index].montant;
       const newCheques = prev.filter((_, i) => i !== index);
       if (newCheques.length > 0) {
-        newCheques[newCheques.length - 1].montant += removedAmount;
+        const lastChequeIndex = newCheques.length - 1;
+        newCheques[lastChequeIndex].montant += removedAmount;
       } else {
         setView('payment');
         setChequeTotalToPay(0);
@@ -340,7 +344,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           const newAmount = parseFloat(value) || 0;
           const currentTotal = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
           const maxAllowed = chequeTotalToPay - currentTotal;
-          newCheques[index][field] = Math.min(newAmount, maxAllowed);
+          newCheques[index][field] = Math.max(0, Math.min(newAmount, maxAllowed));
       } else {
           newCheques[index][field] = value;
       }
@@ -348,25 +352,24 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     });
   };
   
-  const handleConfirmCheques = () => {
-      const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
-      if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
-          toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
-          return;
-      }
-  
-      const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
-      const newPayments = [...payments, newPayment];
-      setPayments(newPayments);
-      
-      const newBalance = balanceDue - chequeTotalToPay;
+ const handleConfirmCheques = () => {
+    const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
+    if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
+        toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
+        return;
+    }
 
-      if (Math.abs(newBalance) < 0.01) {
-          handleFinalizeSale(newPayments, true);
-      } else {
-        setCurrentAmount(newBalance > 0.009 ? Math.abs(newBalance).toFixed(2) : '');
-        setView('payment');
-      }
+    const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
+    const newPayments = [...payments, newPayment];
+    
+    // Finalize sale immediately if the total is now covered
+    const newTotalPaid = amountPaid + chequeTotalToPay;
+    if (Math.abs(displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid)) < 0.01) {
+      handleFinalizeSale(newPayments, true);
+    } else {
+      setPayments(newPayments);
+      setView('payment');
+    }
   };
     
     const handleOpenChequeView = () => {
@@ -375,9 +378,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             toast({ variant: 'destructive', title: 'Montant invalide', description: 'Veuillez saisir un montant pour le paiement par chèque.' });
             return;
         }
-        setChequeTotalToPay(amount);
-        setView('cheque');
         const roundedAmount = parseFloat(amount.toFixed(2));
+        setChequeTotalToPay(roundedAmount);
+        setView('cheque');
+
         if (cheques.length === 0) {
             setCheques([{
                 numeroCheque: '',
@@ -588,10 +592,16 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             <fieldset disabled={isInvoiceMode || isCreditNote} className={cn((isInvoiceMode || isCreditNote) && "opacity-70 pointer-events-none")}>
                 <div className="rounded-lg border bg-secondary/50 p-4 space-y-3">
                   <h3 className="font-semibold text-secondary-foreground">Client</h3>
-                    <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
-                        {selectedCustomer ? selectedCustomer.name : 'Choisir un client...'}
-                        <UserIcon className="h-4 w-4 ml-2" />
-                    </Button>
+                    <div className="flex gap-2">
+                        <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
+                        <Button variant="outline" className="w-full justify-between" onClick={() => setCustomerSearchOpen(true)}>
+                            {selectedCustomer ? selectedCustomer.name : 'Choisir un client...'}
+                            <UserIcon className="h-4 w-4 ml-2" />
+                        </Button>
+                        <Button size="icon" onClick={() => setAddCustomerOpen(true)}>
+                            <UserPlus className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </fieldset>
             
@@ -641,7 +651,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         variant="outline"
                         className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
                         onClick={handleOpenChequeView}
-                        disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote) || parseFloat(String(currentAmount)) <= 0}
+                        disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote) || !currentAmount || parseFloat(String(currentAmount)) <= 0}
                       >
                          <StickyNote className="h-6 w-6 z-10" />
                          <span className="text-sm whitespace-normal text-center leading-tight z-10">Chèque</span>
