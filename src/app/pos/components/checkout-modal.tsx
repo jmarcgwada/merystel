@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -326,6 +325,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       const newCheques = prev.filter((_, i) => i !== index);
       if (newCheques.length > 0) {
         newCheques[newCheques.length - 1].montant += removedAmount;
+      } else {
+        // if no cheques left, go back to payment view and reset chequeTotalToPay
+        setView('payment');
+        setChequeTotalToPay(0);
       }
       return newCheques;
     });
@@ -396,13 +399,14 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
       const newPayments = [...payments, newPayment];
       setPayments(newPayments);
-      setView('payment');
       
       const newBalance = balanceDue - chequeTotalToPay;
-      setCurrentAmount(newBalance > 0.009 ? Math.abs(newBalance).toFixed(2) : '');
-      
+
       if (Math.abs(newBalance) < 0.01) {
           handleFinalizeSale(newPayments, true);
+      } else {
+        setCurrentAmount(newBalance > 0.009 ? Math.abs(newBalance).toFixed(2) : '');
+        setView('payment');
       }
   };
     
@@ -842,5 +846,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-```>
