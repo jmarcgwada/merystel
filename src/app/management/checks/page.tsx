@@ -409,7 +409,7 @@ export default function ChecksManagementPage() {
     if (!chequeForPartialPayment) return;
     await addPaiementPartiel({
         chequeId: chequeForPartialPayment.id,
-        montant,
+        montant: amount,
         moyenDePaiement: method,
         datePaiement: new Date()
     });
@@ -709,3 +709,5 @@ export default function ChecksManagementPage() {
     </>
   );
 }
+
+    
