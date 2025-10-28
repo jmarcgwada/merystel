@@ -52,6 +52,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { Timestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 
 const DunningActionDialog = ({
@@ -146,6 +147,7 @@ const statutColors: Record<Cheque['statut'], string> = {
 export default function ChecksManagementPage() {
   const { cheques, customers, deleteCheque, updateCheque, addRemise, sales, dunningLogs, addDunningLog } = usePos();
   const { toast } = useToast();
+  const router = useRouter();
   const [filterStatut, setFilterStatut] = useState<Cheque['statut'] | 'all'>('enPortefeuille');
   const [searchTerm, setSearchTerm] = useState('');
   const [chequeToDelete, setChequeToDelete] = useState<Cheque | null>(null);
@@ -262,7 +264,7 @@ export default function ChecksManagementPage() {
     const chequesToRemit = cheques.filter(c => selectedChequeIds.includes(c.id));
     const totalRemise = chequesToRemit.reduce((sum, c) => sum + c.montant, 0);
 
-    await addRemise({
+    const newRemise = await addRemise({
         dateRemise: new Date(),
         chequeIds: selectedChequeIds,
         montantTotal: totalRemise,
@@ -277,6 +279,9 @@ export default function ChecksManagementPage() {
         description: `${selectedChequeIds.length} chèque(s) marqué(s) comme "Remis en banque".`
     });
     setSelectedChequeIds([]);
+    if (newRemise) {
+        router.push('/management/remises');
+    }
   }
 
   const handleOpenEmailDunning = (cheque: Cheque) => {
