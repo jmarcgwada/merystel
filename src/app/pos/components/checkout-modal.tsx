@@ -326,7 +326,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       if (newCheques.length > 0) {
         newCheques[newCheques.length - 1].montant += removedAmount;
       } else {
-        // if no cheques left, go back to payment view and reset chequeTotalToPay
         setView('payment');
         setChequeTotalToPay(0);
       }
@@ -338,13 +337,57 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setCheques(prev => {
       const newCheques = [...prev];
       if (field === 'montant') {
-        newCheques[index][field] = parseFloat(value) || 0;
+          const newAmount = parseFloat(value) || 0;
+          const currentTotal = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
+          const maxAllowed = chequeTotalToPay - currentTotal;
+          newCheques[index][field] = Math.min(newAmount, maxAllowed);
       } else {
-        newCheques[index][field] = value;
+          newCheques[index][field] = value;
       }
       return newCheques;
     });
   };
+  
+  const handleConfirmCheques = () => {
+      const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
+      if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
+          toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
+          return;
+      }
+  
+      const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
+      const newPayments = [...payments, newPayment];
+      setPayments(newPayments);
+      
+      const newBalance = balanceDue - chequeTotalToPay;
+
+      if (Math.abs(newBalance) < 0.01) {
+          handleFinalizeSale(newPayments, true);
+      } else {
+        setCurrentAmount(newBalance > 0.009 ? Math.abs(newBalance).toFixed(2) : '');
+        setView('payment');
+      }
+  };
+    
+    const handleOpenChequeView = () => {
+        const amount = parseFloat(String(currentAmount));
+        if (isNaN(amount) || amount <= 0) {
+            toast({ variant: 'destructive', title: 'Montant invalide', description: 'Veuillez saisir un montant pour le paiement par chèque.' });
+            return;
+        }
+        setChequeTotalToPay(amount);
+        setView('cheque');
+        const roundedAmount = parseFloat(amount.toFixed(2));
+        if (cheques.length === 0) {
+            setCheques([{
+                numeroCheque: '',
+                banque: '',
+                montant: roundedAmount,
+                dateEcheance: new Date(),
+                statut: 'enPortefeuille',
+            }]);
+        }
+    };
   
   const getIcon = (iconName?: string) => {
     if (iconName && iconMap[iconName]) {
@@ -387,47 +430,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     
     const handleSaveAsPending = () => {
       handleFinalizeSale(payments, false); 
-    };
-
-    const handleConfirmCheques = () => {
-      const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
-      if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
-          toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
-          return;
-      }
-  
-      const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
-      const newPayments = [...payments, newPayment];
-      setPayments(newPayments);
-      
-      const newBalance = balanceDue - chequeTotalToPay;
-
-      if (Math.abs(newBalance) < 0.01) {
-          handleFinalizeSale(newPayments, true);
-      } else {
-        setCurrentAmount(newBalance > 0.009 ? Math.abs(newBalance).toFixed(2) : '');
-        setView('payment');
-      }
-  };
-    
-    const handleOpenChequeView = () => {
-        const amount = parseFloat(String(currentAmount));
-        if (isNaN(amount) || amount <= 0) {
-            toast({ variant: 'destructive', title: 'Montant invalide', description: 'Veuillez saisir un montant pour le paiement par chèque.' });
-            return;
-        }
-        setChequeTotalToPay(amount);
-        setView('cheque');
-        const roundedAmount = parseFloat(amount.toFixed(2));
-        if (cheques.length === 0) {
-            setCheques([{
-                numeroCheque: '',
-                banque: '',
-                montant: roundedAmount,
-                dateEcheance: new Date(),
-                statut: 'enPortefeuille',
-            }]);
-        }
     };
     
     const renderCalculator = () => (
@@ -750,7 +752,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       <div className="py-4 h-[60vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <div className="text-lg">Montant du paiement : <span className="font-bold text-primary">{chequeTotalToPay.toFixed(2)}€</span></div>
-          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(cheques.reduce((acc, c) => acc + c.montant, 0) - chequeTotalToPay) > 0.01 ? 'text-destructive' : 'text-green-600')}>{cheques.reduce((acc, c) => acc + c.montant, 0).toFixed(2)}€</span></div>
+          <div className="text-lg">Total Chèques : <span className={cn("font-bold", Math.abs(cheques.reduce((sum, c) => sum + c.montant, 0) - chequeTotalToPay) > 0.01 ? 'text-destructive' : 'text-green-600')}>{cheques.reduce((sum, c) => sum + c.montant, 0).toFixed(2)}€</span></div>
         </div>
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4">
@@ -825,7 +827,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         )}
       </DialogContent>
     </Dialog>
-    <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
+    <AddCustomerDialog isOpen={isAddCustomerOpen} onClose={() => setAddCustomerOpen(false)} onCustomerAdded={onCustomerSelected} />
     <AlertDialog open={showOverpaymentAlert} onOpenChange={setShowOverpaymentAlert}>
         <AlertDialogContent>
             <AlertDialogHeader>
