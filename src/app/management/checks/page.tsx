@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff, ArrowUpDown } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff, ArrowUpDown, Library } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
 import type { Cheque, DunningLog, Sale } from '@/lib/types';
@@ -325,7 +325,13 @@ export default function ChecksManagementPage() {
                     Créer bordereau de remise ({selectedChequeIds.length})
                 </Button>
             )}
-            <Button asChild variant="outline">
+             <Button asChild variant="outline">
+                <Link href="/management/remises">
+                    <Library className="mr-2 h-4 w-4" />
+                    Voir les bordereaux
+                </Link>
+            </Button>
+            <Button asChild variant="outline" className="btn-back">
                 <Link href="/management/items">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Retour à la gestion
