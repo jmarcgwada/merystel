@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
 import type { Cheque, DunningLog, Sale } from '@/lib/types';
@@ -51,6 +51,8 @@ import { EmailSenderDialog } from '@/app/reports/components/email-sender-dialog'
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import type { Timestamp } from 'firebase/firestore';
+
 
 const DunningActionDialog = ({
   isOpen,
@@ -152,12 +154,29 @@ export default function ChecksManagementPage() {
   const [saleForEmail, setSaleForEmail] = useState<Sale | null>(null);
   const [dunningActionState, setDunningActionState] = useState<{ sale: Sale | null; actionType: 'phone' | 'whatsapp' | null; }>({ sale: null, actionType: null });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'dateEcheance', direction: 'asc' });
+
 
   const getCustomerName = useCallback((customerId: string) => {
     return customers.find(c => c.id === customerId)?.name || 'Client inconnu';
   }, [customers]);
 
-  const filteredCheques = useMemo(() => {
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  };
+
+  const sortedCheques = useMemo(() => {
     let tempCheques = [...cheques];
 
     if (filterStatut !== 'all') {
@@ -168,12 +187,45 @@ export default function ChecksManagementPage() {
         tempCheques = tempCheques.filter(c => getCustomerName(c.clientId).toLowerCase().includes(lowerCaseFilter));
     }
     
-    return tempCheques.sort((a,b) => new Date(a.dateEcheance as any).getTime() - new Date(b.dateEcheance as any).getTime());
-  }, [cheques, filterStatut, filterCustomer, getCustomerName]);
+    if (sortConfig !== null) {
+      tempCheques.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortConfig.key) {
+            case 'client':
+                aValue = getCustomerName(a.clientId);
+                bValue = getCustomerName(b.clientId);
+                break;
+            case 'numeroPiece':
+                aValue = sales.find(s => s.id === a.factureId)?.ticketNumber || '';
+                bValue = sales.find(s => s.id === b.factureId)?.ticketNumber || '';
+                break;
+            case 'dateEcheance':
+                aValue = new Date(a.dateEcheance as any).getTime();
+                bValue = new Date(b.dateEcheance as any).getTime();
+                break;
+            default:
+                aValue = a[sortConfig.key as keyof Cheque];
+                bValue = b[sortConfig.key as keyof Cheque];
+                break;
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return tempCheques;
+  }, [cheques, filterStatut, filterCustomer, getCustomerName, sortConfig, sales]);
   
   const totalAmount = useMemo(() => {
-      return filteredCheques.reduce((sum, cheque) => sum + cheque.montant, 0);
-  }, [filteredCheques]);
+      return sortedCheques.reduce((sum, cheque) => sum + cheque.montant, 0);
+  }, [sortedCheques]);
 
   const handleUpdateStatus = (cheque: Cheque, newStatus: Cheque['statut']) => {
     updateCheque({ ...cheque, statut: newStatus });
@@ -189,7 +241,7 @@ export default function ChecksManagementPage() {
   
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-        const portefeuilleIds = filteredCheques
+        const portefeuilleIds = sortedCheques
             .filter(c => c.statut === 'enPortefeuille')
             .map(c => c.id);
         setSelectedChequeIds(portefeuilleIds);
@@ -253,7 +305,7 @@ export default function ChecksManagementPage() {
     <>
       <PageHeader
         title="Gestion du Portefeuille de Chèques"
-        subtitle={`Suivi de ${filteredCheques.length} chèque(s) pour un total de ${totalAmount.toFixed(2)}€`}
+        subtitle={`Suivi de ${sortedCheques.length} chèque(s) pour un total de ${totalAmount.toFixed(2)}€`}
       >
         <div className="flex items-center gap-2">
             {selectedChequeIds.length > 0 && (
@@ -306,27 +358,28 @@ export default function ChecksManagementPage() {
                 <TableRow>
                    <TableHead className="w-12">
                        <Checkbox
-                           checked={selectedChequeIds.length > 0 && selectedChequeIds.length === filteredCheques.filter(c => c.statut === 'enPortefeuille').length}
+                           checked={selectedChequeIds.length > 0 && selectedChequeIds.length === sortedCheques.filter(c => c.statut === 'enPortefeuille').length}
                            onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
                            disabled={filterStatut !== 'enPortefeuille'}
                        />
                    </TableHead>
                    <TableHead className="w-12"></TableHead>
-                  <TableHead>Client</TableHead>
+                  <TableHead><Button variant="ghost" onClick={() => requestSort('client')}>Client {getSortIcon('client')}</Button></TableHead>
+                  <TableHead><Button variant="ghost" onClick={() => requestSort('numeroPiece')}>N° Pièce {getSortIcon('numeroPiece')}</Button></TableHead>
                   <TableHead>N° Chèque / Banque</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Date d'échéance</TableHead>
+                  <TableHead><Button variant="ghost" onClick={() => requestSort('montant')}>Montant {getSortIcon('montant')}</Button></TableHead>
+                  <TableHead><Button variant="ghost" onClick={() => requestSort('dateEcheance')}>Date d'échéance {getSortIcon('dateEcheance')}</Button></TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCheques.length === 0 ? (
+                {sortedCheques.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
+                    <TableCell colSpan={9} className="text-center h-24">Aucun chèque trouvé pour ces filtres.</TableCell>
                   </TableRow>
                 ) : (
-                  filteredCheques.map(cheque => {
+                  sortedCheques.map(cheque => {
                     const sale = sales.find(s => s.id === cheque.factureId);
                     return (
                     <React.Fragment key={cheque.id}>
@@ -350,6 +403,11 @@ export default function ChecksManagementPage() {
                             </Button>
                         </TableCell>
                       <TableCell className="font-medium">{getCustomerName(cheque.clientId)}</TableCell>
+                      <TableCell>
+                        <Link href={`/reports/${cheque.factureId}`} className="text-primary hover:underline">
+                            {sale?.ticketNumber || 'N/A'}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                             <span>{cheque.numeroCheque}</span>
@@ -403,7 +461,7 @@ export default function ChecksManagementPage() {
                     </TableRow>
                      {openDetails[cheque.id] && (
                         <TableRow>
-                            <TableCell colSpan={8} className="p-0">
+                            <TableCell colSpan={9} className="p-0">
                                 <div className="bg-secondary/50 p-4">
                                 <h4 className="font-semibold mb-2">Historique des relances</h4>
                                 {saleDunningLogs(cheque.factureId).length > 0 ? (
@@ -483,3 +541,4 @@ export default function ChecksManagementPage() {
     </>
   );
 }
+
