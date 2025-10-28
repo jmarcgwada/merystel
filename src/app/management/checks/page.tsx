@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ import {
 import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
-import type { Cheque, DunningLog } from '@/lib/types';
+import type { Cheque, DunningLog, Sale } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EmailSenderDialog } from '@/app/reports/components/email-sender-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const DunningActionDialog = ({
   isOpen,
