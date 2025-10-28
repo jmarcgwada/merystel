@@ -178,7 +178,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             description: `Pièce de ${displayTotalAmount.toFixed(2)}€ finalisée.`,
           });
           
-          if(docType === 'invoice' || docType === 'credit_note') {
+          if(docType === 'invoice' || docType === 'credit_note' || docType === 'quote' || docType === 'delivery_note') {
             resetCommercialPage(docType);
           }
           else if (currentSaleContext?.isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
@@ -357,6 +357,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleConfirmCheques = () => {
     const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
+    // Use a small tolerance for floating point comparison
     if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
         toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
         return;
@@ -789,25 +790,23 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
-                  <div>
-                    <Label>Banque</Label>
-                    <Select onValueChange={(value) => handleChequeChange(index, 'banque', value)} value={cheque.banque}>
-                      <SelectTrigger><SelectValue placeholder="Choisir une banque..." /></SelectTrigger>
-                      <SelectContent>
-                        {bankList.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Montant (€)</Label><Input type="number" value={cheque.montant} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
-                  <div>
-                    <Label>Date d'échéance</Label>
-                    <Popover>
-                      <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{format(cheque.dateEcheance as Date, "PPP", { locale: fr })}</Button></PopoverTrigger>
-                      <PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={cheque.dateEcheance as Date} onSelect={date => date && handleChequeChange(index, 'dateEcheance', date)} initialFocus /></PopoverContent>
-                    </Popover>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-1"><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
+                    <div className="space-y-1">
+                        <Label>Banque</Label>
+                        <Select onValueChange={(value) => handleChequeChange(index, 'banque', value)} value={cheque.banque}>
+                          <SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger>
+                          <SelectContent><ScrollArea className="h-60">{bankList.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}</ScrollArea></SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" value={cheque.montant || ''} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
+                    <div className="space-y-1">
+                        <Label>Date d'échéance</Label>
+                        <Popover>
+                          <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{format(cheque.dateEcheance as Date, "PPP", { locale: fr })}</Button></PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={cheque.dateEcheance as Date} onSelect={date => date && handleChequeChange(index, 'dateEcheance', date)} initialFocus /></PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
               </Card>
             ))}
@@ -873,3 +872,4 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
