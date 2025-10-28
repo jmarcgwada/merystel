@@ -37,10 +37,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff, ArrowUpDown, Library } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Banknote, Landmark, CircleAlert, CheckCircle, Trash2, FileText, Check, Mail, Phone, MessageSquare, XCircle, ChevronDown, ChevronRight, Mic, MicOff, ArrowUpDown, Library, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import { usePos } from '@/contexts/pos-context';
-import type { Cheque, DunningLog, Sale } from '@/lib/types';
+import type { Cheque, DunningLog, Sale, PaiementPartiel } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent as DialogContentComponent, DialogHeader as DialogHeaderComponent, DialogTitle as DialogTitleComponent, DialogDescription as DialogDescriptionComponent, DialogFooter as DialogFooterComponent } from '@/components/ui/dialog';
 
 
 const DunningActionDialog = ({
@@ -127,6 +128,91 @@ const DunningActionDialog = ({
   );
 };
 
+const PartialPaymentDialog = ({
+  isOpen,
+  onClose,
+  cheque,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  cheque: Cheque | null;
+  onConfirm: (amount: number, method: string) => void;
+}) => {
+  const { paymentMethods, paiementsPartiels } = usePos();
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState('');
+
+  const totalPaid = useMemo(() => {
+    if (!cheque) return 0;
+    return paiementsPartiels
+      .filter(p => p.chequeId === cheque.id)
+      .reduce((sum, p) => sum + p.montant, 0);
+  }, [paiementsPartiels, cheque]);
+
+  if (!isOpen || !cheque) return null;
+
+  const amountDue = cheque.montant - totalPaid;
+
+  const handleConfirmClick = () => {
+    const paymentAmount = parseFloat(amount);
+    if (!amount || !method || isNaN(paymentAmount) || paymentAmount <= 0) {
+      alert("Veuillez saisir un montant valide et choisir un moyen de paiement.");
+      return;
+    }
+    if (paymentAmount > amountDue) {
+      alert("Le montant du règlement ne peut pas dépasser le solde restant du chèque.");
+      return;
+    }
+    onConfirm(paymentAmount, method);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContentComponent>
+        <DialogHeaderComponent>
+          <DialogTitleComponent>Enregistrer un Règlement</DialogTitleComponent>
+          <DialogDescriptionComponent>
+            Chèque n°{cheque.numeroCheque} - Montant dû: {amountDue.toFixed(2)}€
+          </DialogDescriptionComponent>
+        </DialogHeaderComponent>
+        <div className="py-4 space-y-4">
+          <div>
+            <Label htmlFor="partial-amount">Montant</Label>
+            <Input
+              id="partial-amount"
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder={amountDue.toFixed(2)}
+              max={amountDue}
+            />
+          </div>
+          <div>
+            <Label htmlFor="partial-method">Moyen de paiement</Label>
+            <Select onValueChange={setMethod} value={method}>
+              <SelectTrigger id="partial-method">
+                <SelectValue placeholder="Choisir..." />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods
+                  .filter(pm => pm.name.toLowerCase() !== 'chèque')
+                  .map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooterComponent>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleConfirmClick} disabled={!amount || !method}>
+            Enregistrer
+          </Button>
+        </DialogFooterComponent>
+      </DialogContentComponent>
+    </Dialog>
+  );
+};
+
 
 const statutLabels: Record<Cheque['statut'], string> = {
   enPortefeuille: 'En Portefeuille',
@@ -145,7 +231,7 @@ const statutColors: Record<Cheque['statut'], string> = {
 };
 
 export default function ChecksManagementPage() {
-  const { cheques, customers, deleteCheque, updateCheque, addRemise, sales, dunningLogs, addDunningLog } = usePos();
+  const { cheques, customers, deleteCheque, updateCheque, addRemise, sales, dunningLogs, addDunningLog, paiementsPartiels, addPaiementPartiel } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   const [filterStatut, setFilterStatut] = useState<Cheque['statut'] | 'all'>('enPortefeuille');
@@ -157,6 +243,7 @@ export default function ChecksManagementPage() {
   const [dunningActionState, setDunningActionState] = useState<{ sale: Sale | null; actionType: 'phone' | 'whatsapp' | null; }>({ sale: null, actionType: null });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'dateEcheance', direction: 'asc' });
+  const [chequeForPartialPayment, setChequeForPartialPayment] = useState<Cheque | null>(null);
 
 
   const getCustomerName = useCallback((customerId: string) => {
@@ -308,6 +395,28 @@ export default function ChecksManagementPage() {
     [dunningLogs]
   );
   
+  const chequePaiementsPartiels = useCallback((chequeId: string) => {
+    return paiementsPartiels.filter(p => p.chequeId === chequeId);
+  }, [paiementsPartiels]);
+
+  const getChequeBalance = useCallback((cheque: Cheque) => {
+    const payments = chequePaiementsPartiels(cheque.id);
+    const totalPaid = payments.reduce((sum, p) => sum + p.montant, 0);
+    return cheque.montant - totalPaid;
+  }, [chequePaiementsPartiels]);
+
+  const handlePartialPaymentConfirm = async (amount: number, method: string) => {
+    if (!chequeForPartialPayment) return;
+    await addPaiementPartiel({
+        chequeId: chequeForPartialPayment.id,
+        montant,
+        moyenDePaiement: method,
+        datePaiement: new Date()
+    });
+    setChequeForPartialPayment(null);
+    toast({ title: 'Règlement enregistré' });
+  };
+  
   const toggleDetails = (chequeId: string) => {
     setOpenDetails((prev) => ({ ...prev, [chequeId]: !prev[chequeId] }));
   };
@@ -398,6 +507,8 @@ export default function ChecksManagementPage() {
                 ) : (
                   sortedCheques.map(cheque => {
                     const sale = sales.find(s => s.id === cheque.factureId);
+                    const balance = getChequeBalance(cheque);
+                    const isPartiallyPaid = balance > 0 && balance < cheque.montant;
                     return (
                     <React.Fragment key={cheque.id}>
                     <TableRow data-state={selectedChequeIds.includes(cheque.id) && 'selected'}>
@@ -431,7 +542,16 @@ export default function ChecksManagementPage() {
                             <span className="text-xs text-muted-foreground">{cheque.banque}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-bold">{cheque.montant.toFixed(2)}€</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col text-right">
+                          <span className="font-bold">{cheque.montant.toFixed(2)}€</span>
+                          {isPartiallyPaid && (
+                            <Badge variant="outline" className="mt-1 ml-auto font-normal text-amber-600 border-amber-400">
+                                Restant: {balance.toFixed(2)}€
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                            <ClientFormattedDate date={cheque.dateEcheance} formatString="d MMMM yyyy" />
@@ -449,6 +569,10 @@ export default function ChecksManagementPage() {
                             <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
+                             <DropdownMenuItem onSelect={() => setChequeForPartialPayment(cheque)} disabled={cheque.statut === 'encaisse' || cheque.statut === 'annule'}>
+                                <WalletCards className="mr-2 h-4 w-4"/> Enregistrer un règlement
+                             </DropdownMenuItem>
+                             <DropdownMenuSeparator />
                             {cheque.statut === 'impaye' && sale && (
                                 <>
                                  <DropdownMenuItem onSelect={() => handleOpenEmailDunning(cheque)}><Mail className="mr-2 h-4 w-4"/> Relance par Email</DropdownMenuItem>
@@ -469,6 +593,7 @@ export default function ChecksManagementPage() {
                             <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'annule')} className="text-destructive">
                                 <XCircle className="mr-2 h-4 w-4"/> Marquer comme Annulé
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator/>
                             <DropdownMenuItem onSelect={() => setChequeToDelete(cheque)} className="text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4"/> Supprimer
                             </DropdownMenuItem>
@@ -479,21 +604,41 @@ export default function ChecksManagementPage() {
                      {openDetails[cheque.id] && (
                         <TableRow>
                             <TableCell colSpan={9} className="p-0">
-                                <div className="bg-secondary/50 p-4">
-                                <h4 className="font-semibold mb-2">Historique des relances</h4>
-                                {saleDunningLogs(cheque.factureId).length > 0 ? (
-                                    <ul className="space-y-1 text-xs">
-                                    {saleDunningLogs(cheque.factureId).map(log => (
-                                        <li key={log.id} className="flex items-center gap-2">
-                                        <ClientFormattedDate date={log.date} formatString="d MMM yy, HH:mm" />
-                                        <Badge variant="outline" className="capitalize">{log.actionType}</Badge>
-                                        <span className="text-muted-foreground italic">{log.notes || 'Aucune note'}</span>
-                                        </li>
-                                    ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-xs text-muted-foreground">Aucune relance enregistrée.</p>
-                                )}
+                                <div className="bg-secondary/50 p-4 grid grid-cols-2 gap-8">
+                                  <div>
+                                    <h4 className="font-semibold mb-2">Historique des relances</h4>
+                                    {saleDunningLogs(cheque.factureId).length > 0 ? (
+                                        <ul className="space-y-1 text-xs">
+                                        {saleDunningLogs(cheque.factureId).map(log => (
+                                            <li key={log.id} className="flex items-center gap-2">
+                                            <ClientFormattedDate date={log.date} formatString="d MMM yy, HH:mm" />
+                                            <Badge variant="outline" className="capitalize">{log.actionType}</Badge>
+                                            <span className="text-muted-foreground italic">{log.notes || 'Aucune note'}</span>
+                                            </li>
+                                        ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">Aucune relance enregistrée.</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                     <h4 className="font-semibold mb-2">Historique des règlements partiels</h4>
+                                      {chequePaiementsPartiels(cheque.id).length > 0 ? (
+                                        <ul className="space-y-1 text-xs">
+                                        {chequePaiementsPartiels(cheque.id).map(p => (
+                                            <li key={p.id} className="flex justify-between">
+                                              <span className="flex items-center gap-2">
+                                                <ClientFormattedDate date={p.datePaiement} formatString="d MMM yy, HH:mm" />
+                                                <Badge variant="outline">{p.moyenDePaiement}</Badge>
+                                              </span>
+                                              <span className="font-semibold">{p.montant.toFixed(2)}€</span>
+                                            </li>
+                                        ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">Aucun règlement partiel enregistré.</p>
+                                    )}
+                                  </div>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -554,6 +699,12 @@ export default function ChecksManagementPage() {
             setDunningActionState({ sale: null, actionType: null });
           }
         }}
+      />
+      <PartialPaymentDialog
+        isOpen={!!chequeForPartialPayment}
+        onClose={() => setChequeForPartialPayment(null)}
+        cheque={chequeForPartialPayment}
+        onConfirm={handlePartialPaymentConfirm}
       />
     </>
   );

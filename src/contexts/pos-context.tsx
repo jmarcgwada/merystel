@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -408,13 +407,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { toast: shadcnToast } = useShadcnToast();
+  const pageTypeToResetRef = useRef<string | null>(null);
 
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => { setIsHydrated(true); }, []);
 
 
   // Settings States
-  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
@@ -516,7 +516,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = userLoading || !isHydrated;
   
-  const showToast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
+  const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       shadcnToast({
         ...props,
@@ -640,8 +640,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     ];
     setPaymentMethods(defaultPaymentMethods);
     
-    showToast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, showToast]);
+    toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
+  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
@@ -650,7 +650,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     const defaultVatId = vatRates.find(v => v.rate === 20)?.id || vatRates[0]?.id;
     
     if (!defaultVatId) {
-        showToast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Veuillez configurer un taux de TVA avant d\'importer.' });
         return;
     }
 
@@ -684,8 +684,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     setCategories(prev => [...prev, ...newCategories]);
     setItems(prev => [...prev, ...newItems]);
-    showToast({ title: 'Données de démo importées !' });
-  }, [vatRates, showToast, setCategories, setItems]);
+    toast({ title: 'Données de démo importées !' });
+  }, [vatRates, toast, setCategories, setItems]);
 
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
@@ -695,8 +695,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date(),
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
-    showToast({ title: 'Clients de démo importés !' });
-  }, [setCustomers, showToast]);
+    toast({ title: 'Clients de démo importés !' });
+  }, [setCustomers, toast]);
     
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
@@ -706,8 +706,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date(),
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
-    showToast({ title: 'Fournisseurs de démo importés !' });
-  }, [setSuppliers, showToast]);
+    toast({ title: 'Fournisseurs de démo importés !' });
+  }, [setSuppliers, toast]);
 
   const resetAllData = useCallback(async () => {
     setItems([]);
@@ -721,9 +721,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setVatRates([]);
     setAuditLogs([]);
     setDunningLogs([]);
+    setCheques([]);
+    setRemises([]);
+    setPaiementsPartiels([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
-    showToast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
+    toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
     setTimeout(() => {
       seedInitialData();
       importDemoData();
@@ -731,10 +734,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, showToast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
-    showToast({ title: 'Suppression en cours...' });
+    toast({ title: 'Suppression en cours...' });
     if (dataToReset.items) setItems([]);
     if (dataToReset.categories) setCategories([]);
     if (dataToReset.customers) setCustomers([]);
@@ -748,8 +751,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (dataToReset.cheques) setCheques([]);
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
-    showToast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, showToast]);
+    toast({ title: 'Données sélectionnées supprimées !' });
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -774,8 +777,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
-    showToast({ title: 'Ventes supprimées' });
-  }, [setSales, showToast]);
+    toast({ title: 'Ventes supprimées' });
+  }, [setSales, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -808,13 +811,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
-            showToast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
-            showToast({ variant: 'destructive', title: 'Erreur d\'importation' });
+            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, showToast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
   
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -857,8 +860,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    showToast({ title: item.name + ' ajouté/mis à jour dans la commande' });
-  }, [showToast]);
+    toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
+  }, [toast]);
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -867,18 +870,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       if (!itemToAdd) return;
       
       if (itemToAdd.isDisabled) {
-          showToast({ variant: 'destructive', title: 'Article désactivé', description: "Cet article ne peut pas être vendu." });
+          toast({ variant: 'destructive', title: 'Article désactivé', description: "Cet article ne peut pas être vendu." });
           return;
       }
       if (itemToAdd.manageStock && (itemToAdd.stock || 0) <= 0) {
-        showToast({ variant: 'destructive', title: 'Rupture de stock', description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock." });
+        toast({ variant: 'destructive', title: 'Rupture de stock', description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock." });
         return;
       }
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
-        showToast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
+        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
     }
 
@@ -931,9 +934,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    showToast({ title: itemToAdd.name + ' ajouté à la commande' });
+    toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, showToast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -993,8 +996,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         item.id === itemId ? { ...item, note } : item
       )
     );
-    showToast({ title: 'Note ajoutée à l\'article.' });
-  }, [showToast]);
+    toast({ title: 'Note ajoutée à l\'article.' });
+  }, [toast]);
 
    const updateItemPrice = useCallback((itemId: string, newPriceTTC: number) => {
         setOrder(currentOrder =>
@@ -1083,8 +1086,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         };
         setHeldOrders(prev => [...(prev || []), newHeldOrder]);
         clearOrder();
-        showToast({ title: 'Commande mise en attente' });
-    }, [order, orderTotal, orderTax, setHeldOrders, clearOrder, showToast]);
+        toast({ title: 'Commande mise en attente' });
+    }, [order, orderTotal, orderTax, setHeldOrders, clearOrder, toast]);
 
     const recallOrder = useCallback((orderId: string) => {
         const orderToRecall = heldOrders?.find(o => o.id === orderId);
@@ -1097,14 +1100,14 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 tableName: orderToRecall.tableName,
             });
             setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
-            showToast({ title: 'Commande rappelée' });
+            toast({ title: 'Commande rappelée' });
         }
-    }, [heldOrders, setHeldOrders, showToast]);
+    }, [heldOrders, setHeldOrders, toast]);
 
     const deleteHeldOrder = useCallback((orderId: string) => {
         setHeldOrders(prev => prev?.filter(o => o.id !== orderId) || null);
-        showToast({ title: 'Ticket en attente supprimé' });
-    }, [setHeldOrders, showToast]);
+        toast({ title: 'Ticket en attente supprimé' });
+    }, [setHeldOrders, toast]);
 
     const setSelectedTableById = useCallback((tableId: string | null) => {
       if (!tableId) {
@@ -1120,16 +1123,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       }
     }, [tables, cameFromRestaurant, clearOrder, router]);
 
-    const updateTableOrder = useCallback((tableId: string, order: OrderItem[]) => {
-      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order, status: order.length > 0 ? 'occupied' : 'available'} : t));
+    const updateTableOrder = useCallback((tableId: string, orderData: OrderItem[]) => {
+      setTablesData(prev => prev.map(t => t.id === tableId ? {...t, order: orderData, status: orderData.length > 0 ? 'occupied' : 'available'} : t));
     }, [setTablesData]);
 
     const saveTableOrderAndExit = useCallback((tableId: string, orderData: OrderItem[]) => {
       updateTableOrder(tableId, orderData);
       router.push('/restaurant');
-      showToast({ title: 'Table sauvegardée' });
+      toast({ title: 'Table sauvegardée' });
       clearOrder();
-    }, [updateTableOrder, router, clearOrder, showToast]);
+    }, [updateTableOrder, router, clearOrder, toast]);
 
     const promoteTableToTicket = useCallback((tableId: string, orderData: OrderItem[]) => {
       const table = tables.find(t => t.id === tableId);
@@ -1142,8 +1145,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     const forceFreeTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.map(t => t.id === tableId ? {...t, status: 'available', order: [], verrou: false, lockedBy: undefined, occupiedAt: undefined, occupiedByUserId: undefined, closedAt: new Date(), closedByUserId: user?.id } : t));
-      showToast({ title: 'Table libérée' });
-    }, [setTablesData, showToast, user]);
+      toast({ title: 'Table libérée' });
+    }, [setTablesData, toast, user]);
 
     const addTable = useCallback((tableData: Omit<Table, 'id' | 'status' | 'order' | 'number' | 'createdAt' | 'updatedAt'>) => {
       const newTable: Table = {
@@ -1295,41 +1298,45 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setSales(prev => [finalDoc, ...prev]);
         }
         
-        showToast({ title: `${prefixMap[type]} ${finalDoc.status === 'paid' ? 'facturé' : 'enregistré'}` });
-        clearOrder();
+        const docLabel = prefixMap[type] || "Document";
+        toast({ title: `${docLabel} ${finalDoc.status === 'paid' ? 'facturé(e)' : 'enregistré(e)'}` });
+        
+        if (pageTypeToResetRef.current === type) {
+          clearOrder();
+        }
 
         const reportPath = type === 'quote' ? '/reports?docType=quote'
                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, showToast, router, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            showToast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
             throw new Error('Email already in use.');
         }
         const newUser = { ...userData, id: uuidv4(), companyId: 'main', createdAt: new Date() };
         setUsers(prev => [...prev, newUser]);
-        showToast({ title: 'Utilisateur créé' });
+        toast({ title: 'Utilisateur créé' });
         return newUser;
-    }, [showToast, setUsers, users]);
+    }, [toast, setUsers, users]);
     
     const updateUser = useCallback((userData: User) => {
         setUsers(prev => prev.map(u => u.id === userData.id ? {...userData, updatedAt: new Date()} : u));
-        showToast({ title: 'Utilisateur mis à jour' });
-    }, [setUsers, showToast]);
+        toast({ title: 'Utilisateur mis à jour' });
+    }, [setUsers, toast]);
 
     const deleteUser = useCallback((id: string) => {
         setUsers(prev => prev.filter(u => u.id !== id));
-        showToast({ title: 'Utilisateur supprimé' });
-    }, [setUsers, showToast]);
+        toast({ title: 'Utilisateur supprimé' });
+    }, [setUsers, toast]);
 
-    const sendPasswordResetEmailForUser = useCallback(() => { showToast({ title: 'Fonctionnalité désactivée' }) }, [showToast]);
+    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
     const findUserByEmail = useCallback((email: string) => users.find(u => u.email.toLowerCase() === email.toLowerCase()), [users]);
     const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
     const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
-    const forceSignOutUser = useCallback(() => { showToast({ title: 'Fonctionnalité désactivée' }) }, [showToast]);
+    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
 
     const addCategory = useCallback(async (category: Omit<Category, 'id'|'createdAt'|'updatedAt'>) => {
         const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
@@ -1503,15 +1510,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         });
         return true;
       } else {
-        showToast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
+        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
         return false;
       }
-    }, [sales, showToast]);
+    }, [sales, toast]);
 
     const loadSaleForConversion = useCallback((saleId: string) => {
       const saleToConvert = sales.find(s => s.id === saleId);
       if (!saleToConvert) {
-          showToast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
           return;
       }
   
@@ -1532,7 +1539,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         modifiedAt: undefined,
         originalSaleId: saleToConvert.id,
       });
-  }, [sales, showToast]);
+  }, [sales, toast]);
 
     const convertToInvoice = useCallback((saleId: string) => {
         const sale = sales.find(s => s.id === saleId);
@@ -1541,7 +1548,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             userId: user?.id || 'system',
             userName: user ? `${user.firstName} ${user.lastName}` : 'System',
             action: 'transform',
-            documentType: 'quote/delivery_note',
+            documentType: sale.documentType || 'unknown',
             documentId: sale.id,
             documentNumber: sale.ticketNumber,
             details: `Transformation en facture.`
@@ -1552,7 +1559,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     const generateRandomSales = useCallback(async (count: number) => {
         if (!items || !customers || !paymentMethods || !user) {
-            showToast({ variant: 'destructive', title: 'Données manquantes', description: 'Clients, articles ou méthodes de paiement manquants.' });
+            toast({ variant: 'destructive', title: 'Données manquantes', description: 'Clients, articles ou méthodes de paiement manquants.' });
             return;
         }
 
@@ -1590,8 +1597,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             newSales.push(newSale);
         }
         setSales(prev => [...prev, ...newSales]);
-        showToast({ title: `${count} ventes aléatoires générées !` });
-    }, [items, customers, paymentMethods, user, setSales, showToast]);
+        toast({ title: `${count} ventes aléatoires générées !` });
+    }, [items, customers, paymentMethods, user, setSales, toast]);
     
      const addMappingTemplate = useCallback((template: MappingTemplate) => {
         setMappingTemplates(prev => {
@@ -1603,13 +1610,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             }
             return [...prev, template];
         });
-        showToast({ title: 'Modèle de mappage sauvegardé !' });
-    }, [setMappingTemplates, showToast]);
+        toast({ title: 'Modèle de mappage sauvegardé !' });
+    }, [setMappingTemplates, toast]);
 
     const deleteMappingTemplate = useCallback((templateName: string) => {
         setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
-        showToast({ title: 'Modèle supprimé.' });
-    }, [setMappingTemplates, showToast]);
+        toast({ title: 'Modèle supprimé.' });
+    }, [setMappingTemplates, toast]);
     
     const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
         const saleToRecur = sales.find(s => s.id === saleId);
@@ -1826,7 +1833,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       remises, addRemise,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
-      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast: showToast, 
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
