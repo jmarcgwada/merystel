@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -18,7 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer } from '@/lib/types';
+import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer, Cheque } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
@@ -69,32 +70,49 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
     return <>{formattedDate}</>;
 }
 
-const PaymentsList = ({ payments, title }: { payments: Payment[], title: string }) => (
-    <div>
-        <h3 className="text-sm font-semibold text-muted-foreground mb-2">{title}</h3>
-        {payments && payments.length > 0 ? (
-            <div className="space-y-2">
-                {payments.map((p, index) => (
-                    <div key={index} className="flex justify-between items-center text-sm">
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary">{p.method.name}</Badge>
-                            {p.chequesCount && p.chequesCount > 1 && (
-                                <Badge variant="outline">{p.chequesCount} chèques</Badge>
-                            )}
+const PaymentsList = ({ payments, title, saleId }: { payments: Payment[], title: string, saleId: string }) => {
+    const { cheques } = usePos();
+    const saleCheques = useMemo(() => cheques.filter(c => c.factureId === saleId), [cheques, saleId]);
+
+    return (
+        <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">{title}</h3>
+            {payments && payments.length > 0 ? (
+                <div className="space-y-2">
+                    {payments.map((p, index) => (
+                        <div key={index}>
+                          <div className="flex justify-between items-center text-sm">
+                              <div className="flex items-center gap-2">
+                                  <Badge variant="secondary">{p.method.name}</Badge>
+                                  {p.chequesCount && p.chequesCount > 1 && (
+                                      <Badge variant="outline">{p.chequesCount} chèques</Badge>
+                                  )}
+                              </div>
+                              <span className="font-medium">{p.amount.toFixed(2)}€</span>
+                          </div>
+                          {p.method.name === 'Chèque' && saleCheques.length > 0 && (
+                            <div className="pl-4 mt-1 space-y-1">
+                              {saleCheques.map(cheque => (
+                                <div key={cheque.id} className="flex justify-between text-xs text-muted-foreground">
+                                  <span>Chèque n°{cheque.numeroCheque}</span>
+                                  <span>{cheque.montant.toFixed(2)}€</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <span className="font-medium">{p.amount.toFixed(2)}€</span>
+                    ))}
+                    <div className="flex justify-between items-center text-sm font-bold pt-2 border-t">
+                        <span>Total</span>
+                        <span>{payments.reduce((acc, p) => acc + p.amount, 0).toFixed(2)}€</span>
                     </div>
-                ))}
-                <div className="flex justify-between items-center text-sm font-bold pt-2 border-t">
-                    <span>Total</span>
-                    <span>{payments.reduce((acc, p) => acc + p.amount, 0).toFixed(2)}€</span>
                 </div>
-            </div>
-        ) : (
-            <p className="text-sm text-muted-foreground">Aucun paiement.</p>
-        )}
-    </div>
-);
+            ) : (
+                <p className="text-sm text-muted-foreground">Aucun paiement.</p>
+            )}
+        </div>
+    );
+};
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
 
@@ -668,10 +686,10 @@ function SaleDetailContent() {
             </CardContent>
             <CardFooter className="flex flex-col items-start gap-4">
                  {sale.originalPayments && sale.originalPayments.length > 0 && (
-                    <PaymentsList payments={sale.originalPayments} title="Paiements Originaux" />
+                    <PaymentsList payments={sale.originalPayments} title="Paiements Originaux" saleId={sale.id} />
                  )}
                  {sale.originalPayments && <Separator />}
-                 <PaymentsList payments={sale.payments || []} title={`${sale.originalPayments ? "Paiements de la Modification" : "Paiements"}`} />
+                 <PaymentsList payments={sale.payments || []} title={`${sale.originalPayments ? "Paiements de la Modification" : "Paiements"}`} saleId={sale.id} />
 
                  {sale.change && sale.change > 0 && (
                   <div className="w-full flex justify-between items-center text-sm text-amber-600 pt-2 border-t">
