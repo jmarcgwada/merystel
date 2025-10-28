@@ -944,7 +944,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateQuantity = useCallback(
-    (itemId: OrderItem['id'], quantity: number) => {
+    (itemId: string, quantity: number) => {
       const itemToUpdate = order.find((item) => item.id === itemId);
       if (!itemToUpdate) return;
       
