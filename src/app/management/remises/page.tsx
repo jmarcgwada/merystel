@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RemisesPage() {
-  const { remises, cheques, isLoading } = usePos();
+  const { remises, cheques, sales, customers, isLoading } = usePos();
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   const toggleDetails = (remiseId: string) => {
@@ -47,6 +47,11 @@ export default function RemisesPage() {
     if (!remises) return [];
     return [...remises].sort((a, b) => new Date(b.dateRemise as any).getTime() - new Date(a.dateRemise as any).getTime());
   }, [remises]);
+
+  const getCustomerName = useCallback((customerId?: string) => {
+    if (!customerId || !customers) return 'N/A';
+    return customers.find(c => c.id === customerId)?.name || 'Client inconnu';
+  }, [customers]);
 
   return (
     <>
@@ -110,15 +115,30 @@ export default function RemisesPage() {
                                 <div className="bg-secondary/50 p-4">
                                 <h4 className="font-semibold mb-2 ml-4">Détail des chèques remis</h4>
                                 <Table>
-                                  <TableHeader><TableRow><TableHead>Numéro Chèque</TableHead><TableHead>Banque</TableHead><TableHead className="text-right">Montant</TableHead></TableRow></TableHeader>
+                                  <TableHeader><TableRow>
+                                    <TableHead>N° Pièce</TableHead>
+                                    <TableHead>Client</TableHead>
+                                    <TableHead>Numéro Chèque</TableHead>
+                                    <TableHead>Banque</TableHead>
+                                    <TableHead className="text-right">Montant</TableHead>
+                                  </TableRow></TableHeader>
                                   <TableBody>
-                                    {relatedCheques.map(cheque => (
-                                      <TableRow key={cheque.id}>
-                                        <TableCell>{cheque.numeroCheque}</TableCell>
-                                        <TableCell>{cheque.banque}</TableCell>
-                                        <TableCell className="text-right">{cheque.montant.toFixed(2)}€</TableCell>
-                                      </TableRow>
-                                    ))}
+                                    {relatedCheques.map(cheque => {
+                                      const sale = sales.find(s => s.id === cheque.factureId);
+                                      return (
+                                        <TableRow key={cheque.id}>
+                                          <TableCell>
+                                            <Link href={`/reports/${sale?.id}?from=remises`} className="text-primary hover:underline">
+                                              {sale?.ticketNumber}
+                                            </Link>
+                                          </TableCell>
+                                          <TableCell>{getCustomerName(cheque.clientId)}</TableCell>
+                                          <TableCell>{cheque.numeroCheque}</TableCell>
+                                          <TableCell>{cheque.banque}</TableCell>
+                                          <TableCell className="text-right">{cheque.montant.toFixed(2)}€</TableCell>
+                                        </TableRow>
+                                      )
+                                    })}
                                   </TableBody>
                                 </Table>
                                 </div>
@@ -136,4 +156,3 @@ export default function RemisesPage() {
     </>
   );
 }
-
