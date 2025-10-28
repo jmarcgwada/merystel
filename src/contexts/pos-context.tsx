@@ -32,6 +32,7 @@ import type {
   Cheque,
   PaiementPartiel,
   RemiseCheque,
+  Payment
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
@@ -578,20 +579,24 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             };
             
             const totalPaid = updatedSale.payments.reduce((acc, p) => acc + p.amount, 0);
-            if (totalPaid >= sale.total) {
+            if (totalPaid >= sale.total - 0.01) { // Tolérance pour les erreurs de virgule flottante
                 updatedSale.status = 'paid';
             }
 
             setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
 
             const totalSettlements = paiementsPartiels.filter(p => p.chequeId === cheque.id).reduce((sum, p) => sum + p.montant, 0) + newPaiement.montant;
-            if (totalSettlements >= cheque.montant) {
-                updateCheque({ ...cheque, statut: 'encaisse' });
-                // If the check was fully replaced, we might remove the original check payment from the sale
-                const checkPaymentIndex = updatedSale.payments.findIndex(p => p.method.name.toLowerCase() === 'chèque' && p.amount === cheque.montant);
-                if (checkPaymentIndex > -1) {
-                    updatedSale.payments.splice(checkPaymentIndex, 1);
-                    setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
+            if (totalSettlements >= cheque.montant - 0.01) {
+                // If it was a full exchange on the same day, remove the original check payment
+                if (isSameDay(new Date(sale.date as any), new Date(newPaiement.datePaiement))) {
+                    const checkPaymentIndex = updatedSale.payments.findIndex(p => p.method.name.toLowerCase() === 'chèque' && Math.abs(p.amount - cheque.montant) < 0.01);
+                    if (checkPaymentIndex > -1) {
+                        updatedSale.payments.splice(checkPaymentIndex, 1);
+                        setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
+                    }
+                     updateCheque({ ...cheque, statut: 'annule' });
+                } else {
+                    updateCheque({ ...cheque, statut: 'encaisse' });
                 }
             }
         }
