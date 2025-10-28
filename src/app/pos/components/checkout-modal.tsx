@@ -131,7 +131,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
   
  const handleFinalizeSale = useCallback(async (finalPayments: Payment[], isFullyPaid: boolean) => {
-    if (isPaid && isFullyPaid) return;
+    if (isPaid) return;
+    
+    const docType = currentSaleContext?.documentType;
     
     const allPayments = [...previousPayments, ...finalPayments];
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -151,7 +153,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       ...(currentSaleContext?.originalSaleId && { originalSaleId: currentSaleContext.originalSaleId }),
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
       ...(currentSaleContext?.tableName && {tableName: currentSaleContext.tableName}),
-      documentType: currentSaleContext?.documentType || 'ticket',
+      documentType: docType || 'ticket',
       userId: user?.id,
       userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
     };
@@ -176,15 +178,13 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             description: `Pièce de ${displayTotalAmount.toFixed(2)}€ finalisée.`,
           });
           
-          if(recordedSale && cheques.length > 0) {
-            router.push(`/reports/${recordedSale.id}`);
+          if(docType === 'invoice' || docType === 'credit_note') {
+            resetCommercialPage(docType);
           }
           else if (currentSaleContext?.isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
-          } else if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
-              resetCommercialPage(currentSaleContext.documentType);
-          } else if (currentSaleContext?.documentType === 'supplier_order') {
+          } else if (docType === 'supplier_order') {
              resetCommercialPage('supplier_order');
           } else {
             clearOrder();
@@ -199,8 +199,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         })
         clearOrder();
         onClose();
-        if (currentSaleContext?.documentType === 'invoice' || currentSaleContext?.documentType === 'credit_note') {
-          router.push('/reports?docType=' + (currentSaleContext?.documentType === 'credit_note' ? 'credit_note' : 'invoice'));
+        if (docType === 'invoice' || docType === 'credit_note') {
+          router.push('/reports?docType=' + (docType === 'credit_note' ? 'credit_note' : 'invoice'));
         }
     }
   }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque]);
@@ -327,10 +327,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setCheques(prev => {
       const removedAmount = prev[index].montant;
       const newCheques = prev.filter((_, i) => i !== index);
+      // Redistribute the amount of the removed cheque to the last one in the list
       if (newCheques.length > 0) {
         const lastChequeIndex = newCheques.length - 1;
         newCheques[lastChequeIndex].montant += removedAmount;
       } else {
+        // If no cheques are left, go back to main payment view
         setView('payment');
         setChequeTotalToPay(0);
       }
@@ -343,9 +345,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       const newCheques = [...prev];
       if (field === 'montant') {
           const newAmount = parseFloat(value) || 0;
-          const currentTotal = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
-          const maxAllowed = chequeTotalToPay - currentTotal;
-          newCheques[index][field] = Math.max(0, Math.min(newAmount, maxAllowed));
+          const currentTotalForOthers = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
+          const maxAllowedForThisCheque = chequeTotalToPay - currentTotalForOthers;
+          newCheques[index][field] = Math.max(0, Math.min(newAmount, maxAllowedForThisCheque));
       } else {
           newCheques[index][field] = value;
       }
@@ -367,13 +369,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setView('payment');
     
     const newTotalPaid = amountPaid + chequeTotalToPay;
-    if (Math.abs(displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid)) < 0.01) {
+    const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid);
+    
+    if (Math.abs(newBalance) < 0.01) {
       if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
       autoFinalizeTimer.current = setTimeout(() => {
           handleFinalizeSale(newPayments, true);
       }, 1000);
     } else {
-        setCurrentAmount((displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid)).toFixed(2));
+        setCurrentAmount(newBalance.toFixed(2));
     }
   };
     
@@ -395,6 +399,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 dateEcheance: new Date(),
                 statut: 'enPortefeuille',
             }]);
+        } else {
+            const currentTotal = cheques.reduce((sum, c) => sum + c.montant, 0);
+            if (Math.abs(currentTotal - roundedAmount) > 0.01) {
+                 cheques[cheques.length -1].montant += roundedAmount - currentTotal;
+                 setCheques([...cheques]);
+            }
         }
     };
   
