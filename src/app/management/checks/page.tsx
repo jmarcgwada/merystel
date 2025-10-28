@@ -147,7 +147,7 @@ export default function ChecksManagementPage() {
   const { cheques, customers, deleteCheque, updateCheque, addRemise, sales, dunningLogs, addDunningLog } = usePos();
   const { toast } = useToast();
   const [filterStatut, setFilterStatut] = useState<Cheque['statut'] | 'all'>('enPortefeuille');
-  const [filterCustomer, setFilterCustomer] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [chequeToDelete, setChequeToDelete] = useState<Cheque | null>(null);
   const [selectedChequeIds, setSelectedChequeIds] = useState<string[]>([]);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -182,9 +182,15 @@ export default function ChecksManagementPage() {
     if (filterStatut !== 'all') {
       tempCheques = tempCheques.filter(c => c.statut === filterStatut);
     }
-    if (filterCustomer) {
-        const lowerCaseFilter = filterCustomer.toLowerCase();
-        tempCheques = tempCheques.filter(c => getCustomerName(c.clientId).toLowerCase().includes(lowerCaseFilter));
+    
+    if (searchTerm) {
+        const lowerCaseFilter = searchTerm.toLowerCase();
+        tempCheques = tempCheques.filter(c => {
+          const sale = sales.find(s => s.id === c.factureId);
+          return getCustomerName(c.clientId).toLowerCase().includes(lowerCaseFilter) ||
+                 (sale?.ticketNumber && sale.ticketNumber.toLowerCase().includes(lowerCaseFilter)) ||
+                 (c.banque && c.banque.toLowerCase().includes(lowerCaseFilter));
+        });
     }
     
     if (sortConfig !== null) {
@@ -221,7 +227,7 @@ export default function ChecksManagementPage() {
     }
 
     return tempCheques;
-  }, [cheques, filterStatut, filterCustomer, getCustomerName, sortConfig, sales]);
+  }, [cheques, filterStatut, searchTerm, getCustomerName, sortConfig, sales]);
   
   const totalAmount = useMemo(() => {
       return sortedCheques.reduce((sum, cheque) => sum + cheque.montant, 0);
@@ -330,9 +336,9 @@ export default function ChecksManagementPage() {
                 <CardTitle>Portefeuille de chèques</CardTitle>
                 <div className="flex items-center gap-4">
                     <Input 
-                        placeholder="Filtrer par client..."
-                        value={filterCustomer}
-                        onChange={e => setFilterCustomer(e.target.value)}
+                        placeholder="Filtrer par client, n° pièce ou banque..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
                         className="w-64"
                     />
                     <Select value={filterStatut} onValueChange={(v) => {
@@ -541,4 +547,3 @@ export default function ChecksManagementPage() {
     </>
   );
 }
-
