@@ -54,6 +54,7 @@ import { cn } from '@/lib/utils';
 import type { Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent as DialogContentComponent, DialogHeader as DialogHeaderComponent, DialogTitle as DialogTitleComponent, DialogDescription as DialogDescriptionComponent, DialogFooter as DialogFooterComponent } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const DunningActionDialog = ({
@@ -337,7 +338,7 @@ export default function ChecksManagementPage() {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
         const portefeuilleIds = sortedCheques
-            .filter(c => c.statut === 'enPortefeuille')
+            .filter(c => c.statut === 'enPortefeuille' && !chequePaiementsPartiels(c.id).length)
             .map(c => c.id);
         setSelectedChequeIds(portefeuilleIds);
     } else {
@@ -484,7 +485,7 @@ export default function ChecksManagementPage() {
                 <TableRow>
                    <TableHead className="w-12">
                        <Checkbox
-                           checked={selectedChequeIds.length > 0 && selectedChequeIds.length === sortedCheques.filter(c => c.statut === 'enPortefeuille').length}
+                           checked={selectedChequeIds.length > 0 && selectedChequeIds.length === sortedCheques.filter(c => c.statut === 'enPortefeuille' && !chequePaiementsPartiels(c.id).length).length}
                            onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
                            disabled={filterStatut !== 'enPortefeuille'}
                        />
@@ -508,22 +509,42 @@ export default function ChecksManagementPage() {
                   sortedCheques.map(cheque => {
                     const sale = sales.find(s => s.id === cheque.factureId);
                     const balance = getChequeBalance(cheque);
-                    const isPartiallyPaid = balance > 0 && balance < cheque.montant;
+                    const hasPartialPayments = balance < cheque.montant;
+                    const isSelectableForRemise = cheque.statut === 'enPortefeuille' && !hasPartialPayments;
+
                     return (
                     <React.Fragment key={cheque.id}>
                     <TableRow data-state={selectedChequeIds.includes(cheque.id) && 'selected'}>
                       <TableCell>
-                          <Checkbox
-                              checked={selectedChequeIds.includes(cheque.id)}
-                              onCheckedChange={(checked) => {
-                                  setSelectedChequeIds(prev => 
-                                      checked 
-                                      ? [...prev, cheque.id] 
-                                      : prev.filter(id => id !== cheque.id)
-                                  )
-                              }}
-                              disabled={cheque.statut !== 'enPortefeuille'}
-                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span tabIndex={isSelectableForRemise ? undefined : 0}>
+                                    <Checkbox
+                                        checked={selectedChequeIds.includes(cheque.id)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedChequeIds(prev => 
+                                                checked 
+                                                ? [...prev, cheque.id] 
+                                                : prev.filter(id => id !== cheque.id)
+                                            )
+                                        }}
+                                        disabled={!isSelectableForRemise}
+                                    />
+                                  </span>
+                                </TooltipTrigger>
+                                {!isSelectableForRemise && (
+                                  <TooltipContent>
+                                    <p>
+                                        {hasPartialPayments
+                                          ? "Ne peut être remis, des règlements partiels existent."
+                                          : "Seuls les chèques 'En Portefeuille' peuvent être remis."
+                                        }
+                                    </p>
+                                  </TooltipContent>
+                                )}
+                            </Tooltip>
+                          </TooltipProvider>
                       </TableCell>
                        <TableCell className="w-12">
                             <Button variant="ghost" size="icon" onClick={() => toggleDetails(cheque.id)}>
@@ -545,7 +566,7 @@ export default function ChecksManagementPage() {
                       <TableCell>
                         <div className="flex flex-col text-right">
                           <span className="font-bold">{cheque.montant.toFixed(2)}€</span>
-                          {isPartiallyPaid && (
+                          {hasPartialPayments && (
                             <Badge variant="outline" className="mt-1 ml-auto font-normal text-amber-600 border-amber-400">
                                 Restant: {balance.toFixed(2)}€
                             </Badge>
@@ -569,7 +590,7 @@ export default function ChecksManagementPage() {
                             <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                             <DropdownMenuItem onSelect={() => setChequeForPartialPayment(cheque)} disabled={cheque.statut === 'encaisse' || cheque.statut === 'annule'}>
+                             <DropdownMenuItem onSelect={() => setChequeForPartialPayment(cheque)} disabled={cheque.statut === 'encaisse' || cheque.statut === 'annule' || balance <= 0}>
                                 <WalletCards className="mr-2 h-4 w-4"/> Enregistrer un règlement
                              </DropdownMenuItem>
                              <DropdownMenuSeparator />
@@ -581,7 +602,7 @@ export default function ChecksManagementPage() {
                                  <DropdownMenuSeparator />
                                 </>
                             )}
-                            <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'remisEnBanque')} disabled={cheque.statut !== 'enPortefeuille'}>
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'remisEnBanque')} disabled={cheque.statut !== 'enPortefeuille' || hasPartialPayments}>
                                 <Banknote className="mr-2 h-4 w-4"/> Marquer comme Remis en Banque
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleUpdateStatus(cheque, 'encaisse')} disabled={cheque.statut !== 'remisEnBanque'}>
@@ -709,5 +730,3 @@ export default function ChecksManagementPage() {
     </>
   );
 }
-
-    
