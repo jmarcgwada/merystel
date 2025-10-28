@@ -54,7 +54,7 @@ export default function ManagementSideNav() {
       // Render a placeholder or skeleton while waiting for client-side mount
       return (
           <div className="p-4 space-y-2">
-              {Array.from({ length: 9 }).map((_, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                   <Skeleton key={i} className="h-9 w-full" />
               ))}
           </div>
@@ -95,5 +95,3 @@ export default function ManagementSideNav() {
     </nav>
   );
 }
-
-    
