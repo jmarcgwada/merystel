@@ -479,7 +479,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [lastReportsUrl, setLastReportsUrl] = usePersistentState<string | null>('state.lastReportsUrl', '/reports');
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
-  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -560,8 +560,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addPaiementPartiel = useCallback(async (paiement: Omit<PaiementPartiel, 'id'>): Promise<PaiementPartiel | null> => {
     const newPaiement = { ...paiement, id: uuidv4() };
     setPaiementsPartiels(prev => [...prev, newPaiement]);
-
-    // Add this payment to the main sale document for reporting
+    
     const cheque = cheques.find(c => c.id === paiement.chequeId);
     if(cheque) {
         const sale = sales.find(s => s.id === cheque.factureId);
@@ -582,7 +581,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
 
     return newPaiement;
-  }, [setPaiementsPartiels, cheques, sales, setSales, paymentMethods]);
+  }, [cheques, sales, paymentMethods, setPaiementsPartiels, setSales]);
 
   const addRemise = useCallback(async (remise: Omit<RemiseCheque, 'id' | 'createdAt'>): Promise<RemiseCheque | null> => {
     const newRemise = { ...remise, id: uuidv4(), createdAt: new Date() };
@@ -638,6 +637,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     clearOrder();
     setCurrentSaleId(null);
     setCurrentSaleContext({ documentType: pageType });
+    pageTypeToResetRef.current = pageType;
   }, [clearOrder]);
 
   const seedInitialData = useCallback(() => {
@@ -1595,7 +1595,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 const quantity = Math.floor(Math.random() * 3) + 1;
                 saleItems.push({
                     itemId: randomItem.id, id: uuidv4(), name: randomItem.name, price: randomItem.price,
-                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity, discount: 0, barcode: randomItem.barcode!,
+                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity,
+                    discount: 0, barcode: randomItem.barcode!,
                 });
             }
             const total = saleItems.reduce((acc, item) => acc + item.total, 0);
@@ -1903,3 +1904,4 @@ export function usePos() {
   return context;
 }
 
+    
