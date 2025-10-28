@@ -178,14 +178,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             description: `Pièce de ${displayTotalAmount.toFixed(2)}€ finalisée.`,
           });
           
-          if(docType === 'invoice' || docType === 'credit_note' || docType === 'quote' || docType === 'delivery_note') {
+          if(docType === 'invoice' || docType === 'credit_note' || docType === 'quote' || docType === 'delivery_note' || docType === 'supplier_order') {
             resetCommercialPage(docType);
           }
           else if (currentSaleContext?.isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
               router.push('/restaurant');
-          } else if (docType === 'supplier_order') {
-             resetCommercialPage('supplier_order');
           } else {
             clearOrder();
           }
@@ -314,10 +312,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
 
   const handleAddCheque = () => {
+    const remainingAmount = chequeTotalToPay - cheques.reduce((sum, c) => sum + c.montant, 0);
     setCheques(prev => [...prev, {
       numeroCheque: '',
       banque: '',
-      montant: 0,
+      montant: remainingAmount > 0 ? remainingAmount : 0,
       dateEcheance: new Date(),
       statut: 'enPortefeuille',
     }]);
@@ -325,16 +324,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleRemoveCheque = (index: number) => {
     setCheques(prev => {
-      const removedAmount = prev[index].montant;
+      const removedCheque = prev[index];
       const newCheques = prev.filter((_, i) => i !== index);
-      // Redistribute the amount of the removed cheque to the last one in the list
+      // Redistribute the amount of the removed cheque to the last one in the list, if it exists
       if (newCheques.length > 0) {
         const lastChequeIndex = newCheques.length - 1;
-        newCheques[lastChequeIndex].montant += removedAmount;
-      } else {
-        // If no cheques are left, go back to main payment view
-        setView('payment');
-        setChequeTotalToPay(0);
+        newCheques[lastChequeIndex].montant += removedCheque.montant;
       }
       return newCheques;
     });
@@ -343,13 +338,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const handleChequeChange = (index: number, field: keyof Omit<Cheque, 'id' | 'factureId' | 'clientId'>, value: any) => {
     setCheques(prev => {
       const newCheques = [...prev];
+      const currentCheque = newCheques[index];
+      
       if (field === 'montant') {
           const newAmount = parseFloat(value) || 0;
           const currentTotalForOthers = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
           const maxAllowedForThisCheque = chequeTotalToPay - currentTotalForOthers;
-          newCheques[index][field] = Math.max(0, Math.min(newAmount, maxAllowedForThisCheque));
+          
+          currentCheque[field] = Math.max(0, Math.min(newAmount, maxAllowedForThisCheque));
+
       } else {
-          newCheques[index][field] = value;
+          currentCheque[field] = value;
       }
       return newCheques;
     });
@@ -357,7 +356,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   
   const handleConfirmCheques = () => {
     const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
-    // Use a small tolerance for floating point comparison
+    
     if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
         toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
         return;
@@ -791,7 +790,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-1"><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
+                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" value={cheque.montant || ''} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
                     <div className="space-y-1">
                         <Label>Banque</Label>
                         <Select onValueChange={(value) => handleChequeChange(index, 'banque', value)} value={cheque.banque}>
@@ -799,7 +798,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                           <SelectContent><ScrollArea className="h-60">{bankList.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}</ScrollArea></SelectContent>
                         </Select>
                     </div>
-                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" value={cheque.montant || ''} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
+                    <div className="space-y-1"><Label>Numéro</Label><Input value={cheque.numeroCheque} onChange={e => handleChequeChange(index, 'numeroCheque', e.target.value)} /></div>
                     <div className="space-y-1">
                         <Label>Date d'échéance</Label>
                         <Popover>
