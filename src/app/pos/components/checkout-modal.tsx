@@ -68,7 +68,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 )
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
-  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque } = usePos();
+  const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque, updateSale } = usePos();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -201,7 +201,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?docType=' + (docType === 'credit_note' ? 'credit_note' : 'invoice'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque, updateSale]);
 
 
   useEffect(() => {
@@ -312,47 +312,53 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
 
   const handleAddCheque = () => {
-    const remainingAmount = chequeTotalToPay - cheques.reduce((sum, c) => sum + c.montant, 0);
-    const lastBank = cheques.length > 0 ? cheques[cheques.length - 1].banque : '';
-    setCheques(prev => [...prev, {
-      numeroCheque: '',
-      banque: lastBank,
-      montant: parseFloat(remainingAmount.toFixed(2)) > 0 ? parseFloat(remainingAmount.toFixed(2)) : 0,
-      dateEcheance: new Date(),
-      statut: 'enPortefeuille',
-    }]);
+    setCheques(prev => {
+        const remainingAmount = chequeTotalToPay - prev.reduce((sum, c) => sum + c.montant, 0);
+        const lastBank = prev.length > 0 ? prev[prev.length - 1].banque : '';
+        const newCheque = {
+            numeroCheque: '',
+            banque: lastBank,
+            montant: parseFloat(remainingAmount.toFixed(2)) > 0 ? parseFloat(remainingAmount.toFixed(2)) : 0,
+            dateEcheance: new Date(),
+            statut: 'enPortefeuille' as const,
+        };
+        return [...prev, newCheque];
+    });
   };
   
   const handleRemoveCheque = (index: number) => {
-    setCheques(prev => {
-      const removedCheque = prev[index];
-      const newCheques = prev.filter((_, i) => i !== index);
-      // Redistribute the amount of the removed cheque to the last one in the list, if it exists
-      if (newCheques.length > 0) {
-        const lastChequeIndex = newCheques.length - 1;
-        newCheques[lastChequeIndex].montant = parseFloat((newCheques[lastChequeIndex].montant + removedCheque.montant).toFixed(2));
-      }
-      return newCheques;
-    });
+      setCheques(prev => {
+        const newCheques = prev.filter((_, i) => i !== index);
+        const newTotal = newCheques.reduce((sum, c) => sum + c.montant, 0);
+        
+        if (newCheques.length > 0) {
+            const remainingToDistribute = chequeTotalToPay - newTotal;
+            // Distribute the remaining amount among other cheques, for simplicity, add to the last one.
+            const lastChequeIndex = newCheques.length - 1;
+            newCheques[lastChequeIndex].montant = parseFloat((newCheques[lastChequeIndex].montant + remainingToDistribute).toFixed(2));
+        }
+        
+        return newCheques;
+      });
   };
   
   const handleChequeChange = (index: number, field: keyof Omit<Cheque, 'id' | 'factureId' | 'clientId'>, value: any) => {
-    setCheques(prev => {
-      const newCheques = [...prev];
-      const currentCheque = newCheques[index];
-      
-      if (field === 'montant') {
-          const newAmount = parseFloat(value) || 0;
-          const currentTotalForOthers = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
-          const maxAllowedForThisCheque = chequeTotalToPay - currentTotalForOthers;
-          
-          currentCheque[field] = parseFloat(Math.max(0, Math.min(newAmount, maxAllowedForThisCheque)).toFixed(2));
-
-      } else {
-          currentCheque[field] = value;
-      }
-      return newCheques;
-    });
+      setCheques(prev => {
+        const newCheques = [...prev];
+        const currentCheque = { ...newCheques[index] };
+        
+        if (field === 'montant') {
+            const newAmount = parseFloat(value) || 0;
+            const currentTotalForOthers = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
+            const maxAllowedForThisCheque = chequeTotalToPay - currentTotalForOthers;
+            currentCheque[field] = parseFloat(Math.max(0, Math.min(newAmount, maxAllowedForThisCheque)).toFixed(2));
+        } else {
+            currentCheque[field] = value;
+        }
+        
+        newCheques[index] = currentCheque;
+        return newCheques;
+      });
   };
   
   const handleConfirmCheques = () => {
@@ -363,7 +369,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         return;
     }
 
-    const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
+    const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any, chequesCount: cheques.length };
     const newPayments = [...payments, newPayment];
     
     setPayments(newPayments);
@@ -872,4 +878,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-

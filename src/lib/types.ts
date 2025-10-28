@@ -153,6 +153,7 @@ export interface Payment {
   method: PaymentMethod;
   amount: number;
   date: Date | Timestamp;
+  chequesCount?: number;
 }
 
 export interface VatBreakdown {

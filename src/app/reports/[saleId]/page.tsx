@@ -76,7 +76,12 @@ const PaymentsList = ({ payments, title }: { payments: Payment[], title: string 
             <div className="space-y-2">
                 {payments.map((p, index) => (
                     <div key={index} className="flex justify-between items-center text-sm">
-                        <Badge variant="secondary">{p.method.name}</Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{p.method.name}</Badge>
+                            {p.chequesCount && p.chequesCount > 1 && (
+                                <Badge variant="outline">{p.chequesCount} chèques</Badge>
+                            )}
+                        </div>
                         <span className="font-medium">{p.amount.toFixed(2)}€</span>
                     </div>
                 ))}
