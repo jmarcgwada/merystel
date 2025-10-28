@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -29,7 +30,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Image from 'next/image';
@@ -352,7 +353,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     });
   };
   
- const handleConfirmCheques = () => {
+  const handleConfirmCheques = () => {
     const totalOfCheques = cheques.reduce((sum, c) => sum + c.montant, 0);
     if (Math.abs(totalOfCheques - chequeTotalToPay) > 0.01) {
         toast({ variant: 'destructive', title: 'Montant incorrect', description: `Le total des chèques (${totalOfCheques.toFixed(2)}€) doit correspondre au montant du paiement par chèque (${chequeTotalToPay.toFixed(2)}€).` });
@@ -362,13 +363,17 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newPayment: Payment = { method: checkPaymentMethod!, amount: chequeTotalToPay, date: paymentDate as any };
     const newPayments = [...payments, newPayment];
     
-    // Finalize sale immediately if the total is now covered
+    setPayments(newPayments);
+    setView('payment');
+    
     const newTotalPaid = amountPaid + chequeTotalToPay;
     if (Math.abs(displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid)) < 0.01) {
-      handleFinalizeSale(newPayments, true);
+      if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
+      autoFinalizeTimer.current = setTimeout(() => {
+          handleFinalizeSale(newPayments, true);
+      }, 1000);
     } else {
-      setPayments(newPayments);
-      setView('payment');
+        setCurrentAmount((displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid)).toFixed(2));
     }
   };
     
