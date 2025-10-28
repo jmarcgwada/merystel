@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History, Landmark } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History, Landmark, Library } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,7 @@ export default function ManagementSideNav() {
       vatRates,
       sales,
       cheques,
+      remises,
   } = usePos();
   
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function ManagementSideNav() {
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
     { href: '/management/payment-methods', label: 'Paiements', icon: CreditCard, count: paymentMethods?.length || 0 },
     { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
+    { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
     { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
