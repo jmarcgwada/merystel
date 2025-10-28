@@ -313,10 +313,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const handleAddCheque = () => {
     const remainingAmount = chequeTotalToPay - cheques.reduce((sum, c) => sum + c.montant, 0);
+    const lastBank = cheques.length > 0 ? cheques[cheques.length - 1].banque : '';
     setCheques(prev => [...prev, {
       numeroCheque: '',
-      banque: '',
-      montant: remainingAmount > 0 ? remainingAmount : 0,
+      banque: lastBank,
+      montant: parseFloat(remainingAmount.toFixed(2)) > 0 ? parseFloat(remainingAmount.toFixed(2)) : 0,
       dateEcheance: new Date(),
       statut: 'enPortefeuille',
     }]);
@@ -329,7 +330,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       // Redistribute the amount of the removed cheque to the last one in the list, if it exists
       if (newCheques.length > 0) {
         const lastChequeIndex = newCheques.length - 1;
-        newCheques[lastChequeIndex].montant += removedCheque.montant;
+        newCheques[lastChequeIndex].montant = parseFloat((newCheques[lastChequeIndex].montant + removedCheque.montant).toFixed(2));
       }
       return newCheques;
     });
@@ -345,7 +346,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           const currentTotalForOthers = newCheques.reduce((sum, c, i) => i === index ? sum : sum + c.montant, 0);
           const maxAllowedForThisCheque = chequeTotalToPay - currentTotalForOthers;
           
-          currentCheque[field] = Math.max(0, Math.min(newAmount, maxAllowedForThisCheque));
+          currentCheque[field] = parseFloat(Math.max(0, Math.min(newAmount, maxAllowedForThisCheque)).toFixed(2));
 
       } else {
           currentCheque[field] = value;
@@ -368,8 +369,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(newPayments);
     setView('payment');
     
-    const newTotalPaid = amountPaid + chequeTotalToPay;
-    const newBalance = displayTotalAmount - (Math.abs(amountPaidFromPrevious) + newTotalPaid);
+    const newTotalPaid = totalAmountPaid + chequeTotalToPay;
+    const newBalance = displayTotalAmount - newTotalPaid;
     
     if (Math.abs(newBalance) < 0.01) {
       if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
@@ -402,7 +403,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         } else {
             const currentTotal = cheques.reduce((sum, c) => sum + c.montant, 0);
             if (Math.abs(currentTotal - roundedAmount) > 0.01) {
-                 cheques[cheques.length -1].montant += roundedAmount - currentTotal;
+                 cheques[cheques.length -1].montant = parseFloat((cheques[cheques.length -1].montant + (roundedAmount - currentTotal)).toFixed(2));
                  setCheques([...cheques]);
             }
         }
@@ -790,7 +791,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" value={cheque.montant || ''} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
+                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" value={cheque.montant} onChange={e => handleChequeChange(index, 'montant', e.target.value)} /></div>
                     <div className="space-y-1">
                         <Label>Banque</Label>
                         <Select onValueChange={(value) => handleChequeChange(index, 'banque', value)} value={cheque.banque}>
