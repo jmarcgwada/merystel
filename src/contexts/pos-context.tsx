@@ -543,7 +543,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [newLog, ...prev]);
   }, [setAuditLogs]);
 
-  const addCheque = useCallback(async (cheque: Omit<Cheque, 'id' | 'createdAt' | 'updatedAt'>): Promise<Cheque | null> => {
+  const addCheque = useCallback(async (cheque: Omit<Cheque, 'id'|'createdAt'|'updatedAt'>): Promise<Cheque | null> => {
     const newCheque = { ...cheque, id: uuidv4(), createdAt: new Date() };
     setCheques(prev => [...prev, newCheque]);
     return newCheque;
@@ -560,8 +560,29 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addPaiementPartiel = useCallback(async (paiement: Omit<PaiementPartiel, 'id'>): Promise<PaiementPartiel | null> => {
     const newPaiement = { ...paiement, id: uuidv4() };
     setPaiementsPartiels(prev => [...prev, newPaiement]);
+
+    // Add this payment to the main sale document for reporting
+    const cheque = cheques.find(c => c.id === paiement.chequeId);
+    if(cheque) {
+        const sale = sales.find(s => s.id === cheque.factureId);
+        const paymentMethod = paymentMethods.find(pm => pm.name === paiement.moyenDePaiement);
+        if(sale && paymentMethod) {
+            const salePayment: Payment = {
+                method: paymentMethod,
+                amount: paiement.montant,
+                date: newPaiement.datePaiement,
+            };
+            const updatedSale: Sale = {
+                ...sale,
+                payments: [...(sale.payments || []), salePayment],
+                modifiedAt: new Date(),
+            };
+            setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
+        }
+    }
+
     return newPaiement;
-  }, [setPaiementsPartiels]);
+  }, [setPaiementsPartiels, cheques, sales, setSales, paymentMethods]);
 
   const addRemise = useCallback(async (remise: Omit<RemiseCheque, 'id' | 'createdAt'>): Promise<RemiseCheque | null> => {
     const newRemise = { ...remise, id: uuidv4(), createdAt: new Date() };
@@ -1214,6 +1235,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
         }
 
+        // Handle invoice conversion: update original doc status
         if (currentSaleContext?.originalSaleId) {
           setSales(currentSales =>
             currentSales.map(s =>
@@ -1880,3 +1902,4 @@ export function usePos() {
   }
   return context;
 }
+
