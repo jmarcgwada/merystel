@@ -67,7 +67,8 @@ const completeSaleFields: string[] = [
     'ignore', 
     'pieceName',
     'ticketNumber', 
-    'date', 
+    'saleDate', 
+    'saleTime',
     'customerCode', 
     'customerName', 
     'customerEmail',
@@ -122,6 +123,8 @@ const fieldLabels: Record<string, string> = {
   pieceName: 'Nom de la pièce *',
   ticketNumber: 'Numéro de pièce *',
   date: 'Date (JJ/MM/AAAA HH:mm) *',
+  saleDate: 'Date de la pièce (JJ/MM/AAAA) *',
+  saleTime: 'Heure de la pièce (HH:mm)',
   customerCode: 'Code Client',
   customerName: 'Nom du Client',
   itemBarcode: "Code-barres de l'article *",
@@ -153,7 +156,7 @@ const requiredFieldsMap: Record<string, string[]> = {
     articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
-    ventes_completes: ['pieceName', 'ticketNumber', 'date', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
+    ventes_completes: ['pieceName', 'ticketNumber', 'saleDate', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
 };
 
 type MappingMode = 'column' | 'fixed';
@@ -915,4 +918,3 @@ export default function ImportDataPage() {
     </>
   );
 }
-

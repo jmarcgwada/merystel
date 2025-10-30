@@ -73,7 +73,8 @@ export type DeletableDataKeys =
   | 'auditLogs'
   | 'cheques'
   | 'remises'
-  | 'paiementsPartiels';
+  | 'paiementsPartiels'
+  | 'dunningLogs';
 
 export interface ImportReport {
   successCount: number;
@@ -561,50 +562,47 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const addPaiementPartiel = useCallback(async (paiement: Omit<PaiementPartiel, 'id'>): Promise<PaiementPartiel | null> => {
     const newPaiement = { ...paiement, id: uuidv4() };
     setPaiementsPartiels(prev => [...prev, newPaiement]);
-    
+
     const cheque = cheques.find(c => c.id === paiement.chequeId);
-    if(cheque) {
-        const sale = sales.find(s => s.id === cheque.factureId);
-        const paymentMethod = paymentMethods.find(pm => pm.name === paiement.moyenDePaiement);
-        if(sale && paymentMethod) {
-            const salePayment: Payment = {
-                method: paymentMethod,
-                amount: paiement.montant,
-                date: newPaiement.datePaiement,
-            };
-            const updatedSale: Sale = {
-                ...sale,
-                payments: [...(sale.payments || []), salePayment],
-                modifiedAt: new Date(),
-            };
-            
-            const totalPaid = updatedSale.payments.reduce((acc, p) => acc + p.amount, 0);
-            if (totalPaid >= sale.total - 0.01) { // Tolérance pour les erreurs de virgule flottante
-                updatedSale.status = 'paid';
-            }
+    if (!cheque) return newPaiement;
 
-            setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
+    const sale = sales.find(s => s.id === cheque.factureId);
+    const paymentMethod = paymentMethods.find(pm => pm.name === paiement.moyenDePaiement);
+    
+    if (sale && paymentMethod) {
+        const salePayment: Payment = {
+            method: paymentMethod,
+            amount: paiement.montant,
+            date: newPaiement.datePaiement,
+        };
+        const updatedSale: Sale = { ...sale, payments: [...(sale.payments || []), salePayment], modifiedAt: new Date() };
+        
+        const totalPaid = updatedSale.payments.reduce((acc, p) => acc + p.amount, 0);
+        if (totalPaid >= sale.total - 0.01) {
+            updatedSale.status = 'paid';
+        }
+        setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
 
-            const totalSettlements = paiementsPartiels.filter(p => p.chequeId === cheque.id).reduce((sum, p) => sum + p.montant, 0) + newPaiement.montant;
-            if (totalSettlements >= cheque.montant - 0.01) {
-                // If it was a full exchange on the same day, remove the original check payment
-                if (isSameDay(new Date(sale.date as any), new Date(newPaiement.datePaiement))) {
-                    const checkPaymentIndex = updatedSale.payments.findIndex(p => p.method.name.toLowerCase() === 'chèque' && Math.abs(p.amount - cheque.montant) < 0.01);
-                    if (checkPaymentIndex > -1) {
-                        updatedSale.payments.splice(checkPaymentIndex, 1);
-                        setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
-                    }
-                     updateCheque({ ...cheque, statut: 'annule' });
+        const allPaiementsForCheque = [...paiementsPartiels, newPaiement];
+        const totalSettlements = allPaiementsForCheque.filter(p => p.chequeId === cheque.id).reduce((sum, p) => sum + p.montant, 0);
+        
+        if (totalSettlements >= cheque.montant - 0.01) {
+            if (isSameDay(new Date(sale.date as any), new Date(newPaiement.datePaiement))) {
+                const checkPaymentIndex = updatedSale.payments.findIndex(p => p.method.name.toLowerCase() === 'chèque' && Math.abs(p.amount - cheque.montant) < 0.01);
+                if (checkPaymentIndex > -1) {
+                    updatedSale.payments.splice(checkPaymentIndex, 1);
+                    setSales(prevSales => prevSales.map(s => s.id === updatedSale.id ? updatedSale : s));
+                    updateCheque({ ...cheque, statut: 'annule' });
                 } else {
                     updateCheque({ ...cheque, statut: 'encaisse' });
                 }
+            } else {
+                 updateCheque({ ...cheque, statut: 'encaisse' });
             }
         }
     }
-
     return newPaiement;
 }, [cheques, sales, paymentMethods, paiementsPartiels, setPaiementsPartiels, setSales, updateCheque]);
-
 
   const addRemise = useCallback(async (remise: Omit<RemiseCheque, 'id' | 'createdAt'>): Promise<RemiseCheque | null> => {
     const newRemise = { ...remise, id: uuidv4(), createdAt: new Date() };
@@ -795,8 +793,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (dataToReset.cheques) setCheques([]);
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
+    if (dataToReset.dunningLogs) setDunningLogs([]);
     toast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -821,8 +820,13 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   
   const deleteAllSales = useCallback(async () => {
     setSales([]);
-    toast({ title: 'Ventes supprimées' });
-  }, [setSales, toast]);
+    setAuditLogs([]);
+    setDunningLogs([]);
+    setCheques([]);
+    setRemises([]);
+    setPaiementsPartiels([]);
+    toast({ title: 'Ventes et données liées supprimées' });
+  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -1646,23 +1650,35 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         toast({ title: `${count} ventes aléatoires générées !` });
     }, [items, customers, paymentMethods, user, setSales, toast]);
     
-     const addMappingTemplate = useCallback((template: MappingTemplate) => {
-        setMappingTemplates(prev => {
-            const existingIndex = prev.findIndex(t => t.name === template.name);
-            if (existingIndex > -1) {
-                const newTemplates = [...prev];
-                newTemplates[existingIndex] = template;
-                return newTemplates;
-            }
-            return [...prev, template];
-        });
-        toast({ title: 'Modèle de mappage sauvegardé !' });
-    }, [setMappingTemplates, toast]);
+    const updateSale = async (sale: Sale) => {
+      setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
+    };
+    
+    const cycleCommercialViewLevel = useCallback(() => {
+      setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
 
-    const deleteMappingTemplate = useCallback((templateName: string) => {
-        setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
-        toast({ title: 'Modèle supprimé.' });
-    }, [setMappingTemplates, toast]);
+  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    setCompanyInfo(info);
+  }, [setCompanyInfo]);
+  
+  const addMappingTemplate = useCallback((template: MappingTemplate) => {
+      setMappingTemplates(prev => {
+          const existingIndex = prev.findIndex(t => t.name === template.name);
+          if (existingIndex > -1) {
+              const newTemplates = [...prev];
+              newTemplates[existingIndex] = template;
+              return newTemplates;
+          }
+          return [...prev, template];
+      });
+      toast({ title: 'Modèle de mappage sauvegardé !' });
+  }, [setMappingTemplates, toast]);
+
+  const deleteMappingTemplate = useCallback((templateName: string) => {
+      setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+      toast({ title: 'Modèle supprimé.' });
+  }, [setMappingTemplates, toast]);
     
     const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
         const saleToRecur = sales.find(s => s.id === saleId);
@@ -1742,6 +1758,25 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         addError(0, `La pièce #${finalTicketNumber} existe déjà.`); continue;
                     }
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    
+                    const dateFormatsToTry = ['dd/MM/yyyy HH:mm', 'dd/MM/yy HH:mm', 'dd/MM/yyyy', 'dd/MM/yy'];
+                    let saleDate: Date | null = null;
+                    const dateString = firstRow.saleDate;
+                    const timeString = firstRow.saleTime || '00:00';
+
+                    for (const fmt of dateFormatsToTry) {
+                        const fullDateTimeString = fmt.includes('HH:mm') ? `${dateString}` : `${dateString} ${timeString}`;
+                        const parsedDate = parse(fullDateTimeString, fmt.includes('HH:mm') ? fmt : `${fmt} HH:mm`, new Date());
+                        if (isValid(parsedDate)) {
+                            saleDate = parsedDate;
+                            break;
+                        }
+                    }
+
+                    if (!saleDate) {
+                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA ou JJ/MM/AA, avec ou sans HH:mm`);
+                        continue;
+                    }
 
                     let saleEntry = salesMap.get(finalTicketNumber);
                     if (!saleEntry) {
@@ -1763,7 +1798,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         saleEntry = {
                             sale: {
                                 ticketNumber: finalTicketNumber,
-                                date: parse(firstRow.date, 'dd/MM/yyyy HH:mm', new Date()),
+                                date: saleDate,
                                 items: [],
                                 subtotal: 0, tax: 0, total: 0,
                                 payments: [],
@@ -1848,18 +1883,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers]);
-  
-  const updateSale = async (sale: Sale) => {
-      setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
-  };
-    
-  const cycleCommercialViewLevel = useCallback(() => {
-      setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
-
-  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
-    setCompanyInfo(info);
-  }, [setCompanyInfo]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1903,13 +1926,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       commercialViewLevel, cycleCommercialViewLevel,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
-      itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates, addMappingTemplate, deleteMappingTemplate,
+      itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
+      deleteMappingTemplate,
       generateRandomSales,
       importDataFromJson,
       updateSale,
       generateSingleRecurringInvoice,
       companyInfo,
-      setCompanyInfo: setCompanyInfoCallback
+      setCompanyInfo: setCompanyInfoCallback,
+      addMappingTemplate,
   };
 
   return (
@@ -1926,5 +1951,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
