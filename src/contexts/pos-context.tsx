@@ -1813,7 +1813,16 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         salesMap.set(finalTicketNumber, saleEntry);
                     }
 
-                    for(const row of rows) {
+                    for(let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row.itemBarcode) {
+                            if (saleEntry.sale.items.length > 0 && row.itemName) {
+                                saleEntry.sale.items[saleEntry.sale.items.length - 1].note =
+                                    (saleEntry.sale.items[saleEntry.sale.items.length - 1].note || '') + '\n' + row.itemName;
+                            }
+                            continue;
+                        }
+                        
                         let item = items.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
                             let category = categories.find(c => c.name === row.itemCategory);
