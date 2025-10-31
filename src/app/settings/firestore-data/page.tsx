@@ -64,7 +64,8 @@ export default function FirestoreDataPage() {
       generateRandomSales,
       customers,
       items,
-      paymentMethods
+      paymentMethods,
+      deleteAllSales,
   } = usePos();
   
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
@@ -473,7 +474,27 @@ export default function FirestoreDataPage() {
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive">
                                     <Trash2 className="mr-2"/>
-                                    Réinitialiser l'application
+                                    Supprimer TOUTES les ventes
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    Cette action est irréversible. Toutes vos pièces de vente (factures, devis, tickets, etc.) et les données associées (logs, chèques...) seront supprimées. Le reste des données (articles, clients, etc.) sera conservé.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={deleteAllSales} className="bg-destructive hover:bg-destructive/90">Supprimer les ventes</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Trash2 className="mr-2"/>
+                                    Réinitialiser TOUTE l'application
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>

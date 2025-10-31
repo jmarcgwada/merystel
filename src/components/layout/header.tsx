@@ -211,7 +211,6 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
-            <StorageIndicator />
             <Button
                 variant="outline"
                 size="icon"
