@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -34,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader as ReportDialogHeader, DialogTitle as ReportDialogTitle, DialogDescription as ReportDialogDescription, DialogContent as ReportDialogContent } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
@@ -294,6 +294,7 @@ export default function ImportDataPage() {
   
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isFormatSectionOpen, setIsFormatSectionOpen] = useState(true);
 
   const [sortConfig, setSortConfig] = useState<{ key: number; direction: 'asc' | 'desc' } | null>(null);
 
@@ -523,89 +524,100 @@ export default function ImportDataPage() {
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
         <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="file">Étape 1: Fichier & Format</TabsTrigger>
+            <TabsTrigger value="file">Étape 1: Fichier &amp; Format</TabsTrigger>
             <TabsTrigger value="mapping" disabled={!fileContent}>Étape 2: Mappage</TabsTrigger>
-            <TabsTrigger value="json" disabled={!jsonData}>Étape 3: JSON & Import</TabsTrigger>
+            <TabsTrigger value="json" disabled={!jsonData}>Étape 3: JSON &amp; Import</TabsTrigger>
         </TabsList>
         <TabsContent value="file">
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-1">
-                <Card>
-                    <CardHeader>
-                    <CardTitle>Sélection & Format</CardTitle>
-                    <CardDescription>
-                        Choisissez le type de données et le format du fichier à importer.
-                    </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="data-type">Type de données</Label>
-                        <Select value={dataType} onValueChange={setDataType}>
-                        <SelectTrigger id="data-type">
-                            <SelectValue placeholder="Sélectionner..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ventes_completes">Ventes complètes (création auto)</SelectItem>
-                            <SelectItem value="clients">Clients</SelectItem>
-                            <SelectItem value="articles">Articles</SelectItem>
-                            <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
-                            <SelectItem value="ventes">Pièces de Vente (standard)</SelectItem>
-                        </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="separator">Séparateur</Label>
-                        <Select value={separator} onValueChange={setSeparator}>
-                            <SelectTrigger id="separator">
-                                <SelectValue placeholder="Sélectionner un séparateur..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value=",">Virgule (,)</SelectItem>
-                                <SelectItem value=";">Point-virgule (;)</SelectItem>
-                                <SelectItem value="|">Barre verticale (|)</SelectItem>
-                                <SelectItem value="\t">Tabulation</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                        id="has-header"
-                        checked={hasHeader}
-                        onCheckedChange={(checked) => setHasHeader(checked as boolean)}
-                        />
-                        <label
-                        htmlFor="has-header"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                        La première ligne est un en-tête
-                        </label>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                <span>{fileName || 'Choisir un fichier'}</span>
-                            </Button>
-                            {fileName && (
-                                <Button variant="ghost" size="icon" onClick={clearFile}>
-                                    <X className="h-4 w-4" />
+                <Collapsible open={isFormatSectionOpen} onOpenChange={setIsFormatSectionOpen} asChild>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between cursor-pointer">
+                            <div className="space-y-1.5">
+                                <CardTitle>Sélection &amp; Format</CardTitle>
+                                <CardDescription>
+                                    Choisissez le type de données et le format.
+                                </CardDescription>
+                            </div>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <ChevronDown className={cn("h-4 w-4 transition-transform", !isFormatSectionOpen && "-rotate-90")} />
                                 </Button>
-                            )}
-                        </div>
-                        <input 
-                            ref={fileInputRef}
-                            type="file"
-                            className="hidden"
-                            accept=".csv,.txt"
-                            onChange={handleFileChange}
-                        />
-                    </div>
-                    </CardContent>
-                </Card>
+                            </CollapsibleTrigger>
+                        </CardHeader>
+                        <CollapsibleContent>
+                            <CardContent className="space-y-6 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="data-type">Type de données</Label>
+                                    <Select value={dataType} onValueChange={setDataType}>
+                                    <SelectTrigger id="data-type">
+                                        <SelectValue placeholder="Sélectionner..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ventes_completes">Ventes complètes (création auto)</SelectItem>
+                                        <SelectItem value="clients">Clients</SelectItem>
+                                        <SelectItem value="articles">Articles</SelectItem>
+                                        <SelectItem value="fournisseurs">Fournisseurs</SelectItem>
+                                        <SelectItem value="ventes">Pièces de Vente (standard)</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="separator">Séparateur</Label>
+                                    <Select value={separator} onValueChange={setSeparator}>
+                                        <SelectTrigger id="separator">
+                                            <SelectValue placeholder="Sélectionner un séparateur..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value=",">Virgule (,)</SelectItem>
+                                            <SelectItem value=";">Point-virgule (;)</SelectItem>
+                                            <SelectItem value="|">Barre verticale (|)</SelectItem>
+                                            <SelectItem value="\t">Tabulation</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                    id="has-header"
+                                    checked={hasHeader}
+                                    onCheckedChange={(checked) => setHasHeader(checked as boolean)}
+                                    />
+                                    <label
+                                    htmlFor="has-header"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                    La première ligne est un en-tête
+                                    </label>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="file-upload">Fichier (.csv, .txt)</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            <span>{fileName || 'Choisir un fichier'}</span>
+                                        </Button>
+                                        {fileName && (
+                                            <Button variant="ghost" size="icon" onClick={clearFile}>
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <input 
+                                        ref={fileInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept=".csv,.txt"
+                                        onChange={handleFileChange}
+                                    />
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
                 </div>
                 <div className="lg:col-span-2">
                     <Card>
@@ -840,7 +852,7 @@ export default function ImportDataPage() {
          <TabsContent value="json">
             <Card className="mt-4">
                 <CardHeader>
-                    <CardTitle>Étape 3: JSON & Importation</CardTitle>
+                    <CardTitle>Étape 3: JSON &amp; Importation</CardTitle>
                     <CardDescription>
                         Voici les données formatées en JSON. Vérifiez-les avant d'importer.
                     </CardDescription>
