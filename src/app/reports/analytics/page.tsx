@@ -105,6 +105,7 @@ export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
     const [isFiltersOpen, setFiltersOpen] = useState(false);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(true);
     const [isTopSectionsOpen, setIsTopSectionsOpen] = useState(false);
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
@@ -475,13 +476,23 @@ export default function AnalyticsPage() {
         </div>
       </PageHeader>
       <div className="mt-8 space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.revenue.toFixed(2)}€</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.uniqueSales}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
-        </div>
-
+        <Collapsible open={isSummaryOpen} onOpenChange={setIsSummaryOpen} className="mb-4">
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                    Résumé de la sélection
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.revenue.toFixed(2)}€</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.uniqueSales}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
+                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+        
         <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
           <Card>
             <CardHeader>
@@ -521,7 +532,7 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CollapsibleContent asChild>
-              <CardContent className="flex flex-wrap items-center gap-4">
+              <CardContent className="flex flex-wrap items-center gap-4 pt-0">
                  <Input 
                     ref={generalFilterRef}
                     placeholder="Recherche générale..." 
@@ -838,3 +849,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
