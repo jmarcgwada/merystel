@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Customer } from '@/lib/types';
 import { AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddCustomerDialogProps {
   isOpen: boolean;
@@ -47,8 +47,7 @@ export function AddCustomerDialog({ isOpen, onClose, onCustomerAdded }: AddCusto
 
 
     const generateRandomId = () => {
-        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-        return `C${randomPart}`;
+        return uuidv4();
     };
 
     useEffect(() => {
