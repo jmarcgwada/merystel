@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -305,7 +306,10 @@ function CustomersPageContent() {
                             </Tooltip>
                           </TooltipProvider>
                            <div className="flex items-center gap-1 shrink-0">
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => {
+                                if (e.ctrlKey || e.shiftKey) { setCurrentPage(1); }
+                                else { setCurrentPage(p => Math.max(1, p - 1)); }
+                            }} disabled={currentPage === 1}>
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                              <Popover>
@@ -332,7 +336,10 @@ function CustomersPageContent() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => {
+                                if (e.ctrlKey || e.shiftKey) { setCurrentPage(totalPages); }
+                                else { setCurrentPage(p => Math.min(totalPages, p + 1)); }
+                            }} disabled={currentPage === totalPages || totalPages === 0}>
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </div>

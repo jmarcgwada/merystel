@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -28,6 +29,8 @@ import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from './components/add-supplier-dialog';
 import { EditSupplierDialog } from './components/edit-supplier-dialog';
 import Link from 'next/link';
+
+const ITEMS_PER_PAGE = 15;
 
 const DetailItem = ({ icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => {
     if (!value) return null;
@@ -132,13 +135,19 @@ export default function SuppliersPage() {
                     className="max-w-sm"
                   />
                   <div className="flex items-center gap-2">
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                     <Button variant="outline" size="icon" onClick={(e) => {
+                        if (e.ctrlKey || e.shiftKey) { setCurrentPage(1); } 
+                        else { setCurrentPage(p => Math.max(1, p - 1)); }
+                     }} disabled={currentPage === 1}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm font-medium">
                         Page {currentPage} / {totalPages || 1}
                     </span>
-                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
+                     <Button variant="outline" size="icon" onClick={(e) => {
+                        if (e.ctrlKey || e.shiftKey) { setCurrentPage(totalPages); }
+                        else { setCurrentPage(p => Math.min(totalPages, p + 1)); }
+                     }} disabled={currentPage === totalPages || totalPages === 0}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
