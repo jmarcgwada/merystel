@@ -91,6 +91,7 @@ function CustomersPageContent() {
   
   const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
   const [customerForEmail, setCustomerForEmail] = useState<Customer | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -232,6 +233,29 @@ function CustomersPageContent() {
     return sortConfig.direction === 'asc' ? '▲' : '▼';
   }
 
+  const handleMouseDown = (action: () => void) => {
+    const timer = setTimeout(() => {
+        action();
+        setLongPressTimer(null); // Prevent click
+    }, 700); // 700ms for long press
+    setLongPressTimer(timer);
+  };
+
+  const handleMouseUp = (clickAction: () => void) => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+        clickAction();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+    }
+  };
+
 
   return (
     <>
@@ -306,10 +330,15 @@ function CustomersPageContent() {
                             </Tooltip>
                           </TooltipProvider>
                            <div className="flex items-center gap-1 shrink-0">
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => {
-                                if (e.ctrlKey || e.shiftKey) { setCurrentPage(1); }
-                                else { setCurrentPage(p => Math.max(1, p - 1)); }
-                            }} disabled={currentPage === 1}>
+                            <Button 
+                              variant="outline" size="icon" className="h-9 w-9" 
+                              onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                              onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
+                              onMouseLeave={handleMouseLeave}
+                              onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
+                              onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                              disabled={currentPage === 1}
+                            >
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                              <Popover>
@@ -336,10 +365,15 @@ function CustomersPageContent() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => {
-                                if (e.ctrlKey || e.shiftKey) { setCurrentPage(totalPages); }
-                                else { setCurrentPage(p => Math.min(totalPages, p + 1)); }
-                            }} disabled={currentPage === totalPages || totalPages === 0}>
+                            <Button 
+                              variant="outline" size="icon" className="h-9 w-9" 
+                              onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                              onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                              onMouseLeave={handleMouseLeave}
+                              onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                              onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                              disabled={currentPage === totalPages || totalPages === 0}
+                            >
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </div>
@@ -490,3 +524,4 @@ export default function CustomersPage() {
         </Suspense>
     )
 }
+
