@@ -869,7 +869,6 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
   
-  
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -1030,7 +1029,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         )
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items, setSerialNumberItem]
+    [order, removeFromOrder, enableSerialNumber, items]
   );
   
   const updateQuantityFromKeypad = useCallback(
@@ -1759,30 +1758,27 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     if (existingSaleNumbers.has(finalTicketNumber)) {
                         addError(0, `La pièce #${finalTicketNumber} existe déjà.`); continue;
                     }
-                    report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    
                     
                     let saleDate: Date | null = null;
                     const dateString = firstRow.saleDate;
                     const timeString = firstRow.saleTime || '00:00';
                     const fullDateTimeString = `${dateString} ${timeString}`;
+                    const formatString = 'dd/MM/yyyy HH:mm';
+                    const parsed = parse(fullDateTimeString, formatString, new Date());
                     
-                    const formatStrings = ['dd/MM/yyyy HH:mm', 'dd/MM/yy HH:mm'];
-                    
-                    for (const fmt of formatStrings) {
-                      const parsed = parse(fullDateTimeString, fmt, new Date());
-                      if (isValid(parsed)) {
+                    if (isValid(parsed)) {
                         saleDate = parsed;
-                        break;
-                      }
                     }
 
                     if (!saleDate) {
-                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA HH:mm ou JJ/MM/AA HH:mm`);
+                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA HH:mm.`);
                         continue;
                     }
 
                     let saleEntry = salesMap.get(finalTicketNumber);
                     if (!saleEntry) {
+                        report.newSalesCount = (report.newSalesCount || 0) + 1;
                         let customer: Customer | null = null;
                         if(firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
                         if (!customer && firstRow.customerName) {
