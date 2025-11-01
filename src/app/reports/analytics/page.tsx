@@ -460,393 +460,394 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Reporting avancé"
-        subtitle="Analysez chaque ligne de vente pour des informations détaillées."
-      >
-        <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
-            <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
-            <Button asChild variant="outline" size="icon" className="btn-back">
-                <Link href="/dashboard">
-                    <LayoutDashboard />
-                </Link>
-            </Button>
-        </div>
-      </PageHeader>
-      <div className="mt-8 space-y-4">
-        <Collapsible open={isSummaryOpen} onOpenChange={setIsSummaryOpen} className="mb-4">
-            <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
-                    Résumé de la sélection
-                </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.revenue.toFixed(2)}€</div></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.uniqueSales}</div></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
-                </div>
-            </CollapsibleContent>
-        </Collapsible>
-        
-        <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CollapsibleTrigger asChild>
+    <>
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Reporting avancé"
+          subtitle="Analysez chaque ligne de vente pour des informations détaillées."
+        >
+          <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+              <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
+              <Button asChild variant="outline" size="icon" className="btn-back">
+                  <Link href="/dashboard">
+                      <LayoutDashboard />
+                  </Link>
+              </Button>
+          </div>
+        </PageHeader>
+        <div className="mt-8 space-y-4">
+          <Collapsible open={isSummaryOpen} onOpenChange={setIsSummaryOpen} className="mb-4">
+              <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
-                    Filtres
+                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                      Résumé de la sélection
                   </Button>
-                </CollapsibleTrigger>
-                <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-[220px] justify-between">
-                        <span>Types de pièce</span>
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {Object.entries(documentTypes).map(([type, { label }]) => (
-                        <DropdownMenuCheckboxItem
-                          key={type}
-                          checked={filterDocTypes[type]}
-                          onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                        >
-                          {label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button variant="ghost" size="sm" onClick={resetFilters}>
-                    <X className="mr-2 h-4 w-4" />Réinitialiser
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CollapsibleContent asChild>
-              <CardContent className="flex flex-wrap items-center gap-4 pt-0">
-                 <Input 
-                    ref={generalFilterRef}
-                    placeholder="Recherche générale..." 
-                    value={generalFilter} 
-                    onChange={(e) => setGeneralFilter(e.target.value)} 
-                    className="max-w-xs"
-                    onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })}
-                />
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
-                  </PopoverContent>
-                </Popover>
-                 <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}>
-                    <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Filtrer par catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Toutes les catégories</SelectItem>
-                        {categories.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs" />
-                <Input
-                    ref={itemFilterRef}
-                    placeholder="Filtrer par article/réf..." 
-                    value={filterItem} 
-                    onChange={(e) => setFilterItem(e.target.value)} 
-                    className="max-w-xs"
-                    onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}
-                />
-                <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs" />
-                <div className="grid gap-2 w-48">
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="top-n-articles-slider">Top Articles</Label>
-                        <span className="text-sm font-bold text-primary">{topArticles}</span>
-                    </div>
-                    <Slider 
-                        id="top-n-articles-slider" 
-                        value={[topArticles]} 
-                        onValueChange={(value) => setTopArticles(value[0])}
-                        min={1} 
-                        max={100} 
-                        step={1} 
-                    />
-                </div>
-                 <div className="grid gap-2 w-48">
-                     <div className="flex justify-between items-center">
-                        <Label htmlFor="top-n-clients-slider">Top Clients</Label>
-                        <span className="text-sm font-bold text-primary">{topClients}</span>
-                    </div>
-                     <Slider 
-                        id="top-n-clients-slider" 
-                        value={[topClients]} 
-                        onValueChange={(value) => setTopClients(value[0])}
-                        min={1} 
-                        max={100} 
-                        step={1} 
-                    />
-                </div>
-                 <div className="grid gap-2 w-48">
-                     <div className="flex justify-between items-center">
-                        <Label htmlFor="top-n-categories-slider">Top Catégories</Label>
-                        <span className="text-sm font-bold text-primary">{topCategoriesCount}</span>
-                    </div>
-                     <Slider 
-                        id="top-n-categories-slider" 
-                        value={[topCategoriesCount]} 
-                        onValueChange={(value) => setTopCategoriesCount(value[0])}
-                        min={1} 
-                        max={100} 
-                        step={1} 
-                    />
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-        
-        <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen}>
-            <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                    <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
-                    Sections "Top"
-                </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="grid lg:grid-cols-3 gap-4 pt-2">
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Top {topArticles} Articles</CardTitle>
-                            {selectedTopItems.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
-                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                                </Button>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10"></TableHead>
-                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}>
-                                    <TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell>
-                                    <TableCell>{i.name}</TableCell>
-                                    <TableCell className="text-right">{i.quantity}</TableCell>
-                                    <TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell>
-                                </TableRow>)}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Top {topClients} Clients</CardTitle>
-                            {selectedTopCustomers.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
-                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                                </Button>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10"></TableHead>
-                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}>
-                                    <TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)} /></TableCell>
-                                    <TableCell>{c.name}</TableCell>
-                                    <TableCell className="text-right">{c.visits}</TableCell>
-                                    <TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell>
-                                    <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
-                                </TableRow>)}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
-                            {selectedTopCategories.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
-                                    <X className="mr-2 h-4 w-4" /> Effacer la sélection
-                                </Button>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-10"></TableHead>
-                                    <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCategories')}>Catégorie {getSortIcon('name', 'topCategories')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topCategories')}>Quantité {getSortIcon('quantity', 'topCategories')}</Button></TableHead>
-                                    <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCategories')}>Revenu {getSortIcon('revenue', 'topCategories')}</Button></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sortedTopCategories.map((c, index) => <TableRow key={`${c.name}-${index}`}>
-                                    <TableCell><Checkbox checked={selectedTopCategories.includes(c.name)} onCheckedChange={(checked) => handleTopCategorySelect(c.name, !!checked)}/></TableCell>
-                                    <TableCell>{c.name}</TableCell>
-                                    <TableCell className="text-right">{c.quantity}</TableCell>
-                                    <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
-                                </TableRow>)}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </CollapsibleContent>
-        </Collapsible>
-        
-        <Card>
-            <CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Chiffre d'Affaires</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.revenue.toFixed(2)}€</div></CardContent></Card>
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.uniqueSales}</div></CardContent></Card>
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
+                      <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
+                  </div>
+              </CollapsibleContent>
+          </Collapsible>
+          
+          <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                        Détail des Lignes de Vente ({filteredItems.length})
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Columns className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {salesLinesColumns.map(column => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        checked={visibleColumns[column.id] ?? true}
-                                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                    >
-                                        {column.label}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                    Page {currentPage} / {totalPages || 1}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                        <span>{itemsPerPageState}</span>
-                                    </div>
-                                    <Slider
-                                        id="items-per-page-slider"
-                                        value={[itemsPerPageState]}
-                                        onValueChange={(value) => setItemsPerPageState(value[0])}
-                                        onValueCommit={(value) => setItemsPerPage(value[0])}
-                                        min={10}
-                                        max={Math.max(100, filteredItems.length)}
-                                        step={10}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-                    </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                      Filtres
+                    </Button>
+                  </CollapsibleTrigger>
+                  <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-[220px] justify-between">
+                          <span>Types de pièce</span>
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {Object.entries(documentTypes).map(([type, { label }]) => (
+                          <DropdownMenuCheckboxItem
+                            key={type}
+                            checked={filterDocTypes[type]}
+                            onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                          >
+                            {label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button variant="ghost" size="sm" onClick={resetFilters}>
+                      <X className="mr-2 h-4 w-4" />Réinitialiser
+                    </Button>
+                  </div>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-[600px]">
-                    <Table>
-                        <TableHeader><TableRow>
-                            {visibleColumns.saleDate && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.details && <TableHead>Détails</TableHead>}
-                            {visibleColumns.categoryName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('categoryName', 'salesLines')}>Catégorie {getSortIcon('categoryName', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.barcode && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('barcode', 'salesLines')}>Référence {getSortIcon('barcode', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.quantity && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>}
-                            {visibleColumns.total && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('total', 'salesLines')}>Total Ligne {getSortIcon('total', 'salesLines')}</Button></TableHead>}
-                        </TableRow></TableHeader>
-                        <TableBody>
-                            {sortedAndPaginatedSalesLines.map((item, index) => (
-                                <TableRow key={item.id + index}>
-                                    {visibleColumns.saleDate && <TableCell className="text-xs"><ClientFormattedDate date={item.saleDate} formatString="dd/MM/yy HH:mm" /></TableCell>}
-                                    {visibleColumns.ticketNumber && <TableCell>
-                                        <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
-                                            <Badge variant="secondary">{item.ticketNumber}</Badge>
-                                        </Link>
-                                    </TableCell>}
-                                    {visibleColumns.name && <TableCell>
-                                        <div className="font-medium">{item.name}</div>
-                                    </TableCell>}
-                                    {visibleColumns.details && (
-                                        <TableCell className="text-xs text-muted-foreground max-w-xs">
-                                            {item.selectedVariants && item.selectedVariants.length > 0 && (
-                                                <div className="capitalize">
-                                                    {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
-                                                </div>
-                                            )}
-                                            {item.note && (
-                                                <div className="text-amber-600 mt-1 flex items-start gap-1.5">
-                                                    <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
-                                                    <span>{item.note}</span>
-                                                </div>
-                                            )}
-                                            {item.serialNumbers && item.serialNumbers.length > 0 && (
-                                                <div className="mt-1">
-                                                    <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                    )}
-                                    {visibleColumns.categoryName && <TableCell><Badge variant="outline">{item.categoryName}</Badge></TableCell>}
-                                    {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
-                                    {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
-                                    {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
-                                    {visibleColumns.quantity && <TableCell className="text-right">{item.quantity}</TableCell>}
-                                    {visibleColumns.total && <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
+              </CardHeader>
+              <CollapsibleContent asChild>
+                <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                   <Input 
+                      ref={generalFilterRef}
+                      placeholder="Recherche générale..." 
+                      value={generalFilter} 
+                      onChange={(e) => setGeneralFilter(e.target.value)} 
+                      className="max-w-xs h-9"
+                      onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })}
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                  </Popover>
+                   <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}>
+                      <SelectTrigger className="w-[200px] h-9">
+                          <SelectValue placeholder="Filtrer par catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">Toutes les catégories</SelectItem>
+                          {categories.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+                  <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs h-9" />
+                  <Input
+                      ref={itemFilterRef}
+                      placeholder="Filtrer par article/réf..." 
+                      value={filterItem} 
+                      onChange={(e) => setFilterItem(e.target.value)} 
+                      className="max-w-xs h-9"
+                      onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}
+                  />
+                  <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs h-9" />
+                  <div className="grid gap-2 w-48">
+                      <div className="flex justify-between items-center">
+                          <Label htmlFor="top-n-articles-slider">Top Articles</Label>
+                          <span className="text-sm font-bold text-primary">{topArticles}</span>
+                      </div>
+                      <Slider 
+                          id="top-n-articles-slider" 
+                          value={[topArticles]} 
+                          onValueChange={(value) => setTopArticles(value[0])}
+                          min={1} 
+                          max={100} 
+                          step={1} 
+                      />
+                  </div>
+                   <div className="grid gap-2 w-48">
+                       <div className="flex justify-between items-center">
+                          <Label htmlFor="top-n-clients-slider">Top Clients</Label>
+                          <span className="text-sm font-bold text-primary">{topClients}</span>
+                      </div>
+                       <Slider 
+                          id="top-n-clients-slider" 
+                          value={[topClients]} 
+                          onValueChange={(value) => setTopClients(value[0])}
+                          min={1} 
+                          max={100} 
+                          step={1} 
+                      />
+                  </div>
+                   <div className="grid gap-2 w-48">
+                       <div className="flex justify-between items-center">
+                          <Label htmlFor="top-n-categories-slider">Top Catégories</Label>
+                          <span className="text-sm font-bold text-primary">{topCategoriesCount}</span>
+                      </div>
+                       <Slider 
+                          id="top-n-categories-slider" 
+                          value={[topCategoriesCount]} 
+                          onValueChange={(value) => setTopCategoriesCount(value[0])}
+                          min={1} 
+                          max={100} 
+                          step={1} 
+                      />
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+          
+          <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen}>
+              <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
+                      Sections "Top"
+                  </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid lg:grid-cols-3 gap-4 pt-2">
+                  <Card className="lg:col-span-1">
+                      <CardHeader>
+                          <div className="flex items-center justify-between">
+                              <CardTitle>Top {topArticles} Articles</CardTitle>
+                              {selectedTopItems.length > 0 && (
+                                  <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
+                                      <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                  </Button>
+                              )}
+                          </div>
+                      </CardHeader>
+                      <CardContent>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead className="w-10"></TableHead>
+                                      <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topItems')}>Article {getSortIcon('name', 'topItems')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topItems')}>Quantité {getSortIcon('quantity', 'topItems')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topItems')}>Revenu {getSortIcon('revenue', 'topItems')}</Button></TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {sortedTopItems.map((i, index) => <TableRow key={`${i.name}-${index}`}>
+                                      <TableCell><Checkbox checked={selectedTopItems.includes(i.name)} onCheckedChange={(checked) => handleTopItemSelect(i.name, !!checked)} /></TableCell>
+                                      <TableCell>{i.name}</TableCell>
+                                      <TableCell className="text-right">{i.quantity}</TableCell>
+                                      <TableCell className="text-right font-bold">{i.revenue.toFixed(2)}€</TableCell>
+                                  </TableRow>)}
+                              </TableBody>
+                          </Table>
+                      </CardContent>
+                  </Card>
+                  <Card className="lg:col-span-1">
+                      <CardHeader>
+                          <div className="flex items-center justify-between">
+                              <CardTitle>Top {topClients} Clients</CardTitle>
+                              {selectedTopCustomers.length > 0 && (
+                                  <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
+                                      <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                  </Button>
+                              )}
+                          </div>
+                      </CardHeader>
+                      <CardContent>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead className="w-10"></TableHead>
+                                      <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCustomers')}>Client {getSortIcon('name', 'topCustomers')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('visits', 'topCustomers')}>Visites {getSortIcon('visits', 'topCustomers')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('basketTotal', 'topCustomers')}>Panier Moyen {getSortIcon('basketTotal', 'topCustomers')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCustomers')}>Revenu {getSortIcon('revenue', 'topCustomers')}</Button></TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {sortedTopCustomers.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                      <TableCell><Checkbox checked={selectedTopCustomers.includes(c.name)} onCheckedChange={(checked) => handleTopCustomerSelect(c.name, !!checked)} /></TableCell>
+                                      <TableCell>{c.name}</TableCell>
+                                      <TableCell className="text-right">{c.visits}</TableCell>
+                                      <TableCell className="text-right">{c.basketTotal.toFixed(2)}€</TableCell>
+                                      <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                                  </TableRow>)}
+                              </TableBody>
+                          </Table>
+                      </CardContent>
+                  </Card>
+                  <Card className="lg:col-span-1">
+                      <CardHeader>
+                          <div className="flex items-center justify-between">
+                              <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
+                              {selectedTopCategories.length > 0 && (
+                                  <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
+                                      <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                  </Button>
+                              )}
+                          </div>
+                      </CardHeader>
+                      <CardContent>
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead className="w-10"></TableHead>
+                                      <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'topCategories')}>Catégorie {getSortIcon('name', 'topCategories')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'topCategories')}>Quantité {getSortIcon('quantity', 'topCategories')}</Button></TableHead>
+                                      <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('revenue', 'topCategories')}>Revenu {getSortIcon('revenue', 'topCategories')}</Button></TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {sortedTopCategories.map((c, index) => <TableRow key={`${c.name}-${index}`}>
+                                      <TableCell><Checkbox checked={selectedTopCategories.includes(c.name)} onCheckedChange={(checked) => handleTopCategorySelect(c.name, !!checked)}/></TableCell>
+                                      <TableCell>{c.name}</TableCell>
+                                      <TableCell className="text-right">{c.quantity}</TableCell>
+                                      <TableCell className="text-right font-bold">{c.revenue.toFixed(2)}€</TableCell>
+                                  </TableRow>)}
+                              </TableBody>
+                          </Table>
+                      </CardContent>
+                  </Card>
+                </div>
+              </CollapsibleContent>
+          </Collapsible>
+          
+          <Card>
+              <CardHeader>
+                  <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                          Détail des Lignes de Vente ({filteredItems.length})
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                      <Columns className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                  <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {salesLinesColumns.map(column => (
+                                      <DropdownMenuCheckboxItem
+                                          key={column.id}
+                                          checked={visibleColumns[column.id] ?? true}
+                                          onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                      >
+                                          {column.label}
+                                      </DropdownMenuCheckboxItem>
+                                  ))}
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                      Page {currentPage} / {totalPages || 1}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2">
+                                  <div className="space-y-2">
+                                      <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                      <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                          <span>{itemsPerPageState}</span>
+                                      </div>
+                                      <Slider
+                                          id="items-per-page-slider"
+                                          value={[itemsPerPageState]}
+                                          onValueChange={(value) => setItemsPerPageState(value[0])}
+                                          onValueCommit={(value) => setItemsPerPage(value[0])}
+                                          min={10}
+                                          max={Math.max(100, filteredItems.length)}
+                                          step={10}
+                                      />
+                                  </div>
+                              </PopoverContent>
+                          </Popover>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                      </div>
+                  </div>
+              </CardHeader>
+              <CardContent>
+                  <ScrollArea className="h-[600px]">
+                      <Table>
+                          <TableHeader><TableRow>
+                              {visibleColumns.saleDate && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('saleDate', 'salesLines')}>Date {getSortIcon('saleDate', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.ticketNumber && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber', 'salesLines')}>Pièce {getSortIcon('ticketNumber', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.name && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('name', 'salesLines')}>Désignation {getSortIcon('name', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.details && <TableHead>Détails</TableHead>}
+                              {visibleColumns.categoryName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('categoryName', 'salesLines')}>Catégorie {getSortIcon('categoryName', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.barcode && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('barcode', 'salesLines')}>Référence {getSortIcon('barcode', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.customerName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName', 'salesLines')}>Client {getSortIcon('customerName', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.userName && <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName', 'salesLines')}>Vendeur {getSortIcon('userName', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.quantity && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('quantity', 'salesLines')}>Qté {getSortIcon('quantity', 'salesLines')}</Button></TableHead>}
+                              {visibleColumns.total && <TableHead className="text-right"><Button variant="ghost" className="px-0" onClick={() => requestSort('total', 'salesLines')}>Total Ligne {getSortIcon('total', 'salesLines')}</Button></TableHead>}
+                          </TableRow></TableHeader>
+                          <TableBody>
+                              {sortedAndPaginatedSalesLines.map((item, index) => (
+                                  <TableRow key={item.id + index}>
+                                      {visibleColumns.saleDate && <TableCell className="text-xs"><ClientFormattedDate date={item.saleDate} formatString="dd/MM/yy HH:mm" /></TableCell>}
+                                      {visibleColumns.ticketNumber && <TableCell>
+                                          <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
+                                              <Badge variant="secondary">{item.ticketNumber}</Badge>
+                                          </Link>
+                                      </TableCell>}
+                                      {visibleColumns.name && <TableCell>
+                                          <div className="font-medium">{item.name}</div>
+                                      </TableCell>}
+                                      {visibleColumns.details && (
+                                          <TableCell className="text-xs text-muted-foreground max-w-xs">
+                                              {item.selectedVariants && item.selectedVariants.length > 0 && (
+                                                  <div className="capitalize">
+                                                      {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
+                                                  </div>
+                                              )}
+                                              {item.note && (
+                                                  <div className="text-amber-600 mt-1 flex items-start gap-1.5">
+                                                      <Pencil className="h-3 w-3 mt-0.5 shrink-0"/>
+                                                      <span>{item.note}</span>
+                                                  </div>
+                                              )}
+                                              {item.serialNumbers && item.serialNumbers.length > 0 && (
+                                                  <div className="mt-1">
+                                                      <span className="font-semibold">N/S:</span> {item.serialNumbers.filter(sn => sn).join(', ')}
+                                                  </div>
+                                              )}
+                                          </TableCell>
+                                      )}
+                                      {visibleColumns.categoryName && <TableCell><Badge variant="outline">{item.categoryName}</Badge></TableCell>}
+                                      {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
+                                      {visibleColumns.customerName && <TableCell>{item.customerName}</TableCell>}
+                                      {visibleColumns.userName && <TableCell>{item.userName}</TableCell>}
+                                      {visibleColumns.quantity && <TableCell className="text-right">{item.quantity}</TableCell>}
+                                      {visibleColumns.total && <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>}
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </ScrollArea>
+              </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
-
