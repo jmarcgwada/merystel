@@ -11,9 +11,9 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check, Settings, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,6 +29,8 @@ import { useKeyboard } from '@/contexts/keyboard-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { SaleDetailModal } from '../components/sale-detail-modal';
+
 
 type SalesLinesSortKey = 'saleDate' | 'ticketNumber' | 'name' | 'barcode' | 'customerName' | 'userName' | 'quantity' | 'total' | 'categoryName';
 type TopItemsSortKey = 'name' | 'quantity' | 'revenue';
@@ -77,7 +79,7 @@ const documentTypes = {
 };
 
 
-export default function AnalyticsPage() {
+function AnalyticsPageContent() {
     const { 
         sales: allSales, 
         customers, 
@@ -130,7 +132,8 @@ export default function AnalyticsPage() {
     const [selectedTopCustomers, setSelectedTopCustomers] = useState<string[]>([]);
     const [selectedTopCategories, setSelectedTopCategories] = useState<string[]>([]);
     const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
-
+    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     
     useEffect(() => {
         setIsClient(true);
@@ -446,18 +449,25 @@ export default function AnalyticsPage() {
             isSelected ? [...prev, categoryName] : prev.filter(name => name !== categoryName)
         );
     };
-
+    
+    const openSaleDetailModal = (saleId: string) => {
+        const sale = allSales.find(s => s.id === saleId);
+        if (sale) {
+            setSelectedSale(sale);
+            setIsDetailModalOpen(true);
+        }
+    };
   
-  if (!isClient || isLoading) {
-      return (
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <PageHeader title="Reporting avancé" subtitle="Chargement des données..."/>
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Skeleton className="h-96 w-full" />
+    if (!isClient || isLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                <PageHeader title="Reporting avancé" subtitle="Chargement des données..."/>
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <Skeleton className="h-96 w-full" />
+                </div>
             </div>
-        </div>
-      )
-  }
+        )
+    }
 
   return (
     <>
@@ -477,7 +487,7 @@ export default function AnalyticsPage() {
           </div>
         </PageHeader>
         <div className="mt-8 space-y-4">
-          <Collapsible open={isSummaryOpen} onOpenChange={setIsSummaryOpen} className="mb-4">
+          <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
               <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
                       <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
@@ -500,14 +510,15 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />
+                      <SlidersHorizontal className="h-4 w-4 mr-2" />
                       Filtres
+                      <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                     </Button>
                   </CollapsibleTrigger>
                   <div className="flex items-center gap-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-[220px] justify-between">
+                        <Button variant="outline" className="w-auto sm:w-[220px] justify-between">
                           <span>Types de pièce</span>
                           <ChevronDown className="h-4 w-4" />
                         </Button>
@@ -619,22 +630,22 @@ export default function AnalyticsPage() {
             </Card>
           </Collapsible>
           
-          <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen}>
-              <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                      <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
-                      Sections "Top"
-                  </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                  <div className="grid lg:grid-cols-3 gap-4 pt-2">
-                      <Card>
+           <Collapsible open={isTopSectionsOpen} onOpenChange={setIsTopSectionsOpen} className="mb-4">
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                        <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isTopSectionsOpen && "-rotate-90")} />
+                        Sections "Top"
+                    </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <div className="grid lg:grid-cols-3 gap-4 pt-2">
+                        <Card>
                           <CardHeader>
                               <div className="flex items-center justify-between">
                                   <CardTitle>Top {topArticles} Articles</CardTitle>
                                   {selectedTopItems.length > 0 && (
                                       <Button variant="ghost" size="sm" onClick={() => setSelectedTopItems([])}>
-                                          <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                          <X className="mr-2 h-4 w-4" /> Effacer
                                       </Button>
                                   )}
                               </div>
@@ -664,7 +675,7 @@ export default function AnalyticsPage() {
                                   <CardTitle>Top {topClients} Clients</CardTitle>
                                   {selectedTopCustomers.length > 0 && (
                                       <Button variant="ghost" size="sm" onClick={() => setSelectedTopCustomers([])}>
-                                          <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                          <X className="mr-2 h-4 w-4" /> Effacer
                                       </Button>
                                   )}
                               </div>
@@ -696,7 +707,7 @@ export default function AnalyticsPage() {
                                   <CardTitle>Top {topCategoriesCount} Catégories</CardTitle>
                                   {selectedTopCategories.length > 0 && (
                                       <Button variant="ghost" size="sm" onClick={() => setSelectedTopCategories([])}>
-                                          <X className="mr-2 h-4 w-4" /> Effacer la sélection
+                                          <X className="mr-2 h-4 w-4" /> Effacer
                                       </Button>
                                   )}
                               </div>
@@ -720,9 +731,9 @@ export default function AnalyticsPage() {
                               </Table>
                           </CardContent>
                       </Card>
-                  </div>
-              </CollapsibleContent>
-          </Collapsible>
+                    </div>
+                </CollapsibleContent>
+           </Collapsible>
           
           <Card>
               <CardHeader>
@@ -842,6 +853,19 @@ export default function AnalyticsPage() {
           </Card>
         </div>
       </div>
+       <SaleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        sale={selectedSale}
+      />
     </>
   );
+}
+
+export default function AnalyticsPage() {
+    return (
+        <Suspense>
+            <AnalyticsPageContent />
+        </Suspense>
+    )
 }
