@@ -1761,24 +1761,23 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                     }
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                     
-                    const dateFormatsToTry = ['dd/MM/yyyy HH:mm', 'dd/MM/yy HH:mm', 'dd/MM/yyyy', 'dd/MM/yy'];
                     let saleDate: Date | null = null;
                     const dateString = firstRow.saleDate;
                     const timeString = firstRow.saleTime || '00:00';
-
-                    for (const fmt of dateFormatsToTry) {
-                        const fullDateTimeString = fmt.includes('HH:mm') ? `${dateString}` : `${dateString} ${timeString}`;
-                        const formatString = fmt.includes('HH:mm') ? fmt : `${fmt} HH:mm`;
-                        const parsedDate = parse(fullDateTimeString, formatString, new Date());
-
-                        if (isValid(parsedDate)) {
-                            saleDate = parsedDate;
-                            break;
-                        }
+                    const fullDateTimeString = `${dateString} ${timeString}`;
+                    
+                    const formatStrings = ['dd/MM/yyyy HH:mm', 'dd/MM/yy HH:mm'];
+                    
+                    for (const fmt of formatStrings) {
+                      const parsed = parse(fullDateTimeString, fmt, new Date());
+                      if (isValid(parsed)) {
+                        saleDate = parsed;
+                        break;
+                      }
                     }
 
                     if (!saleDate) {
-                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA ou JJ/MM/AA, avec ou sans HH:mm`);
+                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA HH:mm ou JJ/MM/AA HH:mm`);
                         continue;
                     }
 
@@ -1821,8 +1820,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         const row = rows[i];
                         if (!row.itemBarcode) {
                             if (saleEntry.sale.items.length > 0 && row.itemName) {
-                                saleEntry.sale.items[saleEntry.sale.items.length - 1].note =
-                                    (saleEntry.sale.items[saleEntry.sale.items.length - 1].note || '') + '\n' + row.itemName;
+                                const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
+                                lastItem.note = ((lastItem.note || '') + '\n' + row.itemName).trim();
                             }
                             continue;
                         }
