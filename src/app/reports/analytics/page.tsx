@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, User, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check, Settings, HelpCircle } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check, Settings, HelpCircle, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -811,9 +811,9 @@ function AnalyticsPageContent() {
                                   <TableRow key={item.id + index}>
                                       {visibleColumns.saleDate && <TableCell className="text-xs"><ClientFormattedDate date={item.saleDate} formatString="dd/MM/yy HH:mm" /></TableCell>}
                                       {visibleColumns.ticketNumber && <TableCell>
-                                          <Link href={`/reports/${item.saleId}?from=analytics&${currentFilterParams}`} className="text-blue-600 hover:underline">
+                                          <button onClick={() => openSaleDetailModal(item.saleId)} className="text-blue-600 hover:underline">
                                               <Badge variant="secondary">{item.ticketNumber}</Badge>
-                                          </Link>
+                                          </button>
                                       </TableCell>}
                                       {visibleColumns.name && <TableCell>
                                           <div className="font-medium">{item.name}</div>
