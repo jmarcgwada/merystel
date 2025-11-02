@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
 import {
   Tooltip,
@@ -8,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Skeleton } from '../ui/skeleton';
 
 const LOCAL_STORAGE_QUOTA = 5 * 1024 * 1024; // 5 MB in bytes
 
@@ -67,7 +69,7 @@ export function StorageIndicator() {
   const hue = 120 - (usage.percentage * 1.2);
 
   if (!isClient) {
-    return <div className="w-24 h-2 bg-muted rounded-full" />; // Skeleton loader
+    return <Skeleton className="w-24 h-2 rounded-full" />; // Skeleton loader
   }
 
   return (

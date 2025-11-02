@@ -1,6 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -12,7 +14,6 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
-import { Suspense } from 'react';
 
 function AppLoading() {
   return (
@@ -69,14 +70,14 @@ export default function RootLayout({
           <Suspense fallback={<AppLoading/>}>
             <CompanyInfoGuard>
               <NavigationGuard />
-              <div className="antialiased flex flex-col h-screen overflow-hidden">
+                <div className="antialiased flex flex-col h-screen overflow-hidden">
                   <Header />
                   <main className="flex-1 overflow-auto">{children}</main>
                   <Toaster />
                   <NavigationConfirmationDialog />
                   <ExternalLinkModal />
                   <CalculatorModal />
-              </div>
+                </div>
             </CompanyInfoGuard>
           </Suspense>
         </Providers>
