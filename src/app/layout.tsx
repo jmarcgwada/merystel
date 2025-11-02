@@ -51,7 +51,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
             {showHeader && <Header />}
             <main className="flex-1 overflow-auto">{children}</main>
             <Toaster />
-            <NavigationGuard />
+            <NavigationConfirmationDialog />
             <VirtualKeyboard />
             <ExternalLinkModal />
             <CalculatorModal />
@@ -93,6 +93,7 @@ export default function RootLayout({
         <Providers>
           <React.Suspense fallback={<AppLoading/>}>
             <CompanyInfoGuard>
+              <NavigationGuard />
               <AppContent>{children}</AppContent>
             </CompanyInfoGuard>
           </React.Suspense>
