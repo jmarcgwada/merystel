@@ -26,8 +26,8 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
-import { AddSupplierDialog } from './components/add-supplier-dialog';
-import { EditSupplierDialog } from './components/edit-supplier-dialog';
+import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
+import { EditSupplierDialog } from '@/app/management/suppliers/components/edit-supplier-dialog';
 import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 
@@ -162,15 +162,15 @@ export default function SuppliersPage() {
                   <TableBody>
                       {isLoading ? (
                         <>
-                          {Array.from({ length: 5 }).map(() => (
-                              <TableRow key={uuidv4()}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                              <TableRow key={i}>
                                   <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
                               </TableRow>
                           ))}
                         </>
                       ) : paginatedSuppliers.length > 0 ? (
-                        paginatedSuppliers.map(supplier => (
-                          <React.Fragment key={supplier.id}>
+                        paginatedSuppliers.map((supplier, index) => (
+                          <React.Fragment key={`${supplier.id}-${index}`}>
                               <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => toggleCollapsible(supplier.id)}>
                                   <TableCell className="w-[50px]">
                                       <Button variant="ghost" size="icon">

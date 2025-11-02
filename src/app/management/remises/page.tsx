@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -25,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, ChevronDown, ChevronRight, Library } from 'lucide-react';
 import Link from 'next/link';
-import { usePos } from '@/contexts/pos-context';
+import { usePos } from '@/contexts/pos--context';
 import type { Cheque, RemiseCheque } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
@@ -95,10 +96,10 @@ export default function RemisesPage() {
                     <TableCell colSpan={4} className="text-center h-24">Aucun bordereau de remise trouvé.</TableCell>
                   </TableRow>
                 ) : (
-                  sortedRemises.map(remise => {
+                  sortedRemises.map((remise, index) => {
                     const relatedCheques = getChequesForRemise(remise);
                     return (
-                    <React.Fragment key={remise.id}>
+                    <React.Fragment key={`${remise.id}-${index}`}>
                     <TableRow>
                        <TableCell className="w-12">
                             <Button variant="ghost" size="icon" onClick={() => toggleDetails(remise.id)}>

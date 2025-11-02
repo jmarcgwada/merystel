@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen, ArrowUpDown } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
-import { usePos } from '@/contexts/pos-context';
+import { usePos } from '@/contexts/pos--context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -418,8 +418,8 @@ function CustomersPageContent() {
                           ))}
                         </>
                       ) : paginatedCustomers.length > 0 ? (
-                        paginatedCustomers.map(customer => (
-                          <React.Fragment key={customer.id}>
+                        paginatedCustomers.map((customer, index) => (
+                          <React.Fragment key={`${customer.id}-${index}`}>
                               <TableRow className={cn("hover:bg-muted/50", customer.isDisabled && "bg-muted/50 text-muted-foreground", selectedCustomerIds.includes(customer.id) && "bg-blue-50 dark:bg-blue-900/30")}>
                                   <TableCell>
                                       <Checkbox
@@ -524,4 +524,3 @@ export default function CustomersPage() {
         </Suspense>
     )
 }
-
