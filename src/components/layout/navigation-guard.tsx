@@ -1,15 +1,16 @@
+
 'use client';
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { usePos } from '@/contexts/pos-context';
+import { usePos } from '@/contexts/pos--context';
 
 export function NavigationGuard() {
-  const pathname = usePathname();
   const { order, showNavConfirm } = usePos();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (order.length === 0) {
+    if (!order || order.length === 0) {
       return;
     }
 
@@ -18,7 +19,7 @@ export function NavigationGuard() {
 
     const handlePopState = (event: PopStateEvent) => {
       // If there's an order, prevent going back and show confirmation.
-      if (order.length > 0) {
+      if (order && order.length > 0) {
         history.go(1); // Go forward to cancel the back action.
         showNavConfirm(pathname); // Show the confirmation dialog.
       }
@@ -30,7 +31,7 @@ export function NavigationGuard() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname, order.length, showNavConfirm]);
+  }, [pathname, order, showNavConfirm]);
 
   return null; // This component doesn't render anything visible.
 }
