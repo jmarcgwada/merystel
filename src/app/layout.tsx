@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -59,6 +58,18 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
 }
 
+function Providers({ children }: { children: React.ReactNode }) {
+    return (
+        <FirebaseClientProvider>
+          <PosProvider>
+            <KeyboardProvider>
+                {children}
+            </KeyboardProvider>
+          </PosProvider>
+        </FirebaseClientProvider>
+    )
+}
+
 
 export default function RootLayout({
   children,
@@ -78,17 +89,13 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body">
-        <FirebaseClientProvider>
-          <PosProvider>
-            <KeyboardProvider>
-                <React.Suspense fallback={<AppLoading/>}>
-                  <CompanyInfoGuard>
-                    <AppContent>{children}</AppContent>
-                  </CompanyInfoGuard>
-                </React.Suspense>
-            </KeyboardProvider>
-          </PosProvider>
-        </FirebaseClientProvider>
+        <Providers>
+          <React.Suspense fallback={<AppLoading/>}>
+            <CompanyInfoGuard>
+              <AppContent>{children}</AppContent>
+            </CompanyInfoGuard>
+          </React.Suspense>
+        </Providers>
       </body>
     </html>
   );
