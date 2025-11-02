@@ -14,6 +14,7 @@ import { PosProvider, usePos } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
+import { usePathname } from 'next/navigation';
 
 function AppLoading() {
   return (
