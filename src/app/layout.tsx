@@ -42,7 +42,6 @@ function AppLoading() {
 function AppContent({ children }: { children: React.ReactNode }) {
     const { commercialViewLevel, isKeypadOpen } = usePos();
     
-    // This is a simplified check. A more robust solution might involve a layout-specific context.
     const path = usePathname();
     const isCommercialPage = path.startsWith('/commercial');
 
