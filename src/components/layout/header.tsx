@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
+import { LogOut, ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { User as UserIcon } from 'lucide-react';
-import { useKeyboard } from '@/components/keyboard-context';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 import { StorageIndicator } from './storage-indicator';
@@ -45,10 +44,9 @@ const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) =>
 );
 
 export default function Header() {
-  const pathname = usePathname();
-  const { 
-    showNavConfirm, 
-    order, 
+  const {
+    order,
+    showNavConfirm,
     handleSignOut,
     isForcedMode,
     setIsForcedMode: setGlobalForcedMode,
@@ -61,9 +59,8 @@ export default function Header() {
     companyInfo,
     setIsCalculatorOpen,
   } = usePos();
-
   const router = useRouter();
-  const { toggleKeyboard, isKeyboardVisibleInHeader } = useKeyboard();
+  const pathname = usePathname();
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   
@@ -75,10 +72,9 @@ export default function Header() {
   const { commercialViewLevel } = usePos();
   
   const showHeader = useMemo(() => {
-    if (!isClient) return false;
     const isCommercialPage = pathname.startsWith('/commercial');
     return !isCommercialPage || commercialViewLevel < 2;
-  }, [isClient, pathname, commercialViewLevel]);
+  }, [pathname, commercialViewLevel]);
 
 
   const salesModeLink = useMemo(() => {
@@ -145,6 +141,18 @@ export default function Header() {
 
   const isUserInForcedMode = isForcedMode;
 
+  if (!isClient) {
+      return (
+          <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
+              <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
+                  <Skeleton className="h-8 w-1/3" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-8 w-1/4" />
+              </div>
+          </header>
+      );
+  }
+
   if (!showHeader) {
     return null;
   }
@@ -177,7 +185,7 @@ export default function Header() {
                 Zenith POS
               </span>
             </Link>
-             {isClient && companyInfo?.name && (
+             {companyInfo?.name && (
                 <>
                     <Separator orientation="vertical" className="h-6" />
                     <Link href="/settings/company?from=/dashboard" onClick={(e) => handleNavClick(e, '/settings/company?from=/dashboard')}>
@@ -187,7 +195,7 @@ export default function Header() {
                     </Link>
                 </>
             )}
-             {isClient && !companyInfo?.name && (
+             {!companyInfo?.name && (
                  <>
                     <Separator orientation="vertical" className="h-6" />
                     <Skeleton className="h-5 w-32" />
@@ -232,15 +240,6 @@ export default function Header() {
             >
                 <Calculator className="h-4 w-4" />
             </Button>
-            {!isPosLoading && isKeyboardVisibleInHeader && (
-                <Button 
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleKeyboard}
-                >
-                    <KeyboardIcon className="h-4 w-4" />
-                </Button>
-            )}
             {!isPosLoading && externalLinkModalEnabled && (
                 <Button 
                   variant="outline"
@@ -283,7 +282,7 @@ export default function Header() {
                     </>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  <DropdownMenuItem onClick={() => handleSignOut()}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Déconnexion</span>
                   </DropdownMenuItem>

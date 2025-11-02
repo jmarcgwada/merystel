@@ -13,6 +13,9 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
+import { VirtualKeyboard } from '@/components/virtual-keyboard';
+import { usePathname } from 'next/navigation';
+import { usePos } from '@/contexts/pos-context';
 
 function AppLoading() {
   return (
@@ -46,6 +49,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <NavigationConfirmationDialog />
             <ExternalLinkModal />
             <CalculatorModal />
+            <VirtualKeyboard />
         </div>
     );
 }
