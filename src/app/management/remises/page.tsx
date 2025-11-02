@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -26,7 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, ChevronDown, ChevronRight, Library } from 'lucide-react';
 import Link from 'next/link';
-import { usePos } from '@/contexts/pos--context';
+import { usePos } from '@/contexts/pos-context';
 import type { Cheque, RemiseCheque } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';

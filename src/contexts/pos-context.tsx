@@ -365,45 +365,33 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
-    const [state, setState] = useState(defaultValue);
-    const [isHydrated, setIsHydrated] = useState(false);
-
-    useEffect(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const storedValue = localStorage.getItem(key);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            } catch (error) {
+                console.error(`Error reading localStorage key “${key}”:`, error);
+                return defaultValue;
             }
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
         }
-        setIsHydrated(true);
-    }, [key]);
+        return defaultValue;
+    });
 
     useEffect(() => {
-        if (isHydrated) {
+        if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error("Error setting localStorage key " + key + ":", error);
+                console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state, isHydrated]);
+    }, [key, state]);
 
-    const rehydrate = useCallback(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
-            }
-        } catch (error) {
-            console.error("Error re-reading localStorage key " + key + ":", error);
-        }
-    }, [key]);
-
-    return [state, setState, rehydrate];
+    return [state, setState];
 }
+
 
 function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -417,10 +405,10 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
 
 
   // Settings States
-  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
   const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
@@ -1951,11 +1939,7 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
       addMappingTemplate,
   };
 
-  return (
-    <PosContext.Provider value={value}>
-        {children}
-    </PosContext.Provider>
-  );
+  return <PosContext.Provider value={value}>{children}</PosContext.Provider>;
 }
 
 export function PosProvider({ children }: { children: React.ReactNode }) {

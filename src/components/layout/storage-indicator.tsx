@@ -23,12 +23,7 @@ function formatBytes(bytes: number, decimals = 2) {
 
 export function StorageIndicator() {
   const [usage, setUsage] = useState({ percentage: 0, totalSize: 0 });
-  const [isClient, setIsClient] = useState(false);
   
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const calculateStorage = useCallback(() => {
     if (typeof window === 'undefined') return;
 
@@ -45,10 +40,9 @@ export function StorageIndicator() {
     
     const newPercentage = Math.round((total / LOCAL_STORAGE_QUOTA) * 100);
     
-    // Use functional update to prevent unnecessary re-renders
     setUsage(prevUsage => {
       if (prevUsage.totalSize === total) {
-        return prevUsage; // No change, return the same state
+        return prevUsage;
       }
       return {
         totalSize: total,
@@ -58,16 +52,12 @@ export function StorageIndicator() {
   }, []);
 
   useEffect(() => {
-    if (isClient) {
-      calculateStorage(); // Initial calculation
-      const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
-      return () => clearInterval(interval); // Cleanup on unmount
-    }
-  }, [isClient, calculateStorage]);
+    calculateStorage(); // Initial calculation
+    const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [calculateStorage]);
 
 
-  // Calculate color based on usage percentage
-  // Green (hsl(120, 70%, 50%)) to Yellow (hsl(48, 96%, 57%)) to Red (hsl(0, 84%, 60%))
   const hue = 120 - (usage.percentage * 1.2);
 
   return (
@@ -95,4 +85,3 @@ export function StorageIndicator() {
     </TooltipProvider>
   );
 }
-

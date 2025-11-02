@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils"
 
 import { usePos } from '@/contexts/pos-context';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { LogOut, ExternalLink, Keyboard as KeyboardIcon, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
 import {
@@ -59,7 +59,8 @@ export default function Header() {
     user,
     setCurrentSaleContext,
     companyInfo,
-    setIsCalculatorOpen
+    setIsCalculatorOpen,
+    commercialViewLevel
   } = usePos();
 
   const router = useRouter();
@@ -136,6 +137,13 @@ export default function Header() {
 
   const isUserInForcedMode = isForcedMode;
 
+  const isCommercialPage = pathname.startsWith('/commercial');
+  const showHeader = !isCommercialPage || commercialViewLevel < 2;
+
+  if (!showHeader) {
+    return null;
+  }
+
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
@@ -211,6 +219,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
+            <StorageIndicator />
             <Button
                 variant="outline"
                 size="icon"

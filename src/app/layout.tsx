@@ -10,11 +10,10 @@ import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
-import { PosProvider, usePos } from '@/contexts/pos-context';
+import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
-import { usePathname } from 'next/navigation';
 
 function AppLoading() {
   return (
@@ -40,16 +39,9 @@ function AppLoading() {
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
-    const { commercialViewLevel, isKeypadOpen } = usePos();
-    
-    const path = usePathname();
-    const isCommercialPage = path.startsWith('/commercial');
-
-    const showHeader = !isCommercialPage || commercialViewLevel < 2;
-
     return (
         <div className="antialiased flex flex-col h-screen overflow-hidden">
-            {showHeader && <Header />}
+            <Header />
             <main className="flex-1 overflow-auto">{children}</main>
             <Toaster />
             <NavigationConfirmationDialog />
@@ -57,16 +49,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <ExternalLinkModal />
             <CalculatorModal />
         </div>
-    );
-}
-
-const Providers = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <FirebaseClientProvider>
-          <PosProvider>
-            {children}
-          </PosProvider>
-        </FirebaseClientProvider>
     );
 }
 
@@ -88,14 +70,16 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body">
-        <Providers>
-          <React.Suspense fallback={<AppLoading/>}>
-            <CompanyInfoGuard>
-              <NavigationGuard />
-              <AppContent>{children}</AppContent>
-            </CompanyInfoGuard>
-          </React.Suspense>
-        </Providers>
+        <FirebaseClientProvider>
+          <PosProvider>
+              <React.Suspense fallback={<AppLoading/>}>
+                <CompanyInfoGuard>
+                  <NavigationGuard />
+                  <AppContent>{children}</AppContent>
+                </CompanyInfoGuard>
+              </React.Suspense>
+          </PosProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
