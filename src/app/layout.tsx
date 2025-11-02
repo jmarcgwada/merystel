@@ -37,19 +37,6 @@ function AppLoading() {
   );
 }
 
-function AppContent({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="antialiased flex flex-col h-screen overflow-hidden">
-            <Header />
-            <main className="flex-1 overflow-auto">{children}</main>
-            <Toaster />
-            <NavigationConfirmationDialog />
-            <ExternalLinkModal />
-            <CalculatorModal />
-        </div>
-    );
-}
-
 function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
@@ -82,7 +69,14 @@ export default function RootLayout({
           <Suspense fallback={<AppLoading/>}>
             <CompanyInfoGuard>
               <NavigationGuard />
-              <AppContent>{children}</AppContent>
+              <div className="antialiased flex flex-col h-screen overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-auto">{children}</main>
+                  <Toaster />
+                  <NavigationConfirmationDialog />
+                  <ExternalLinkModal />
+                  <CalculatorModal />
+              </div>
             </CompanyInfoGuard>
           </Suspense>
         </Providers>

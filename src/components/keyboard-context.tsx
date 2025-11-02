@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext } from 'react';
 
 // Define the shape of the dummy context to avoid errors
 interface DummyKeyboardContextType {

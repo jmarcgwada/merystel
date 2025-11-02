@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -79,7 +78,6 @@ export function StorageIndicator() {
             <Progress
               value={usage.percentage}
               className="h-2"
-              indicatorClassName="transition-all duration-500"
               indicatorStyle={{
                 background: `linear-gradient(90deg, hsl(120, 70%, 50%), hsl(${hue < 0 ? 0 : hue}, 70%, 50%))`
               }}

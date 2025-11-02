@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -68,14 +67,16 @@ export default function Header() {
   
   const { commercialViewLevel } = usePos();
 
-  const showHeader = useMemo(() => {
-    const isCommercialPage = pathname.startsWith('/commercial');
-    return !isCommercialPage || commercialViewLevel < 2;
-  }, [pathname, commercialViewLevel]);
-  
-  useEffect(() => {
+   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const showHeader = useMemo(() => {
+    if (!isClient) return false; // Don't render on server or before client mount
+    const isCommercialPage = pathname.startsWith('/commercial');
+    return !isCommercialPage || commercialViewLevel < 2;
+  }, [pathname, commercialViewLevel, isClient]);
+  
 
   const salesModeLink = useMemo(() => {
     if (!isClient) return '#';
@@ -145,10 +146,6 @@ export default function Header() {
     return null;
   }
   
-  if (!isClient) {
-      return null;
-  }
-
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
