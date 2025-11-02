@@ -364,8 +364,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// The rest of the file remains unchanged...
-// ... (omitting for brevity, no changes were made to the rest of the file logic, only the importDemoCustomers function)
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -1899,134 +1897,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers]);
 
-    // This is the memoized value that will be passed to the context provider
-    const value = useMemo(() => {
-        // Correctly define removeFromOrder here
-        const removeFromOrder = (itemId: OrderItem['id']) => {
-            setOrder((currentOrder) =>
-                currentOrder.filter((item) => item.id !== itemId)
-            );
-        };
-        
-        // Correctly define updateQuantity here, ensuring it has `removeFromOrder` in its scope
-        const updateQuantity = (itemId: string, quantity: number) => {
-            const itemToUpdate = order.find((item) => item.id === itemId);
-            if (!itemToUpdate) return;
-            
-            const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
-            if(!originalItem) return;
-    
-            if (originalItem.requiresSerialNumber && enableSerialNumber) {
-                if (quantity <= 0) {
-                    removeFromOrder(itemId);
-                } else {
-                    setSerialNumberItem({ item: originalItem, quantity });
-                }
-                return;
-            }
-            
-            if (quantity <= 0) {
-                removeFromOrder(itemId);
-                return;
-            }
-            setOrder((currentOrder) =>
-                currentOrder.map((item) =>
-                    item.id === itemId
-                        ? {
-                            ...item,
-                            quantity,
-                            total: item.price * quantity - (item.discount || 0),
-                        }
-                        : item
-                )
-            );
-        };
-
-        const cycleCommercialViewLevel = () => {
-          setCommercialViewLevel(prev => (prev + 1) % 3);
-        };
-
-        const setCompanyInfoCallback = (info: CompanyInfo) => {
-          setCompanyInfo(info);
-        };
-
-        const addMappingTemplate = (template: MappingTemplate) => {
-            setMappingTemplates(prev => {
-                const existingIndex = prev.findIndex(t => t.name === template.name);
-                if (existingIndex > -1) {
-                    const newTemplates = [...prev];
-                    newTemplates[existingIndex] = template;
-                    return newTemplates;
-                }
-                return [...prev, template];
-            });
-            toast({ title: 'Modèle de mappage sauvegardé !' });
-        };
-      
-        const deleteMappingTemplate = (templateName: string) => {
-            setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
-            toast({ title: 'Modèle supprimé.' });
-        };
-
-        const updateSaleCallback = async (sale: Sale) => {
-          setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
-        };
-        
-        return {
-            order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-            addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
-            clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-            variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-            sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-            items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-            getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-            tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-            promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-            vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-            auditLogs, 
-            dunningLogs, addDunningLog,
-            cheques, addCheque, updateCheque, deleteCheque, 
-            paiementsPartiels, addPaiementPartiel, 
-            remises, addRemise,
-            isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-            seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
-            cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-            isCalculatorOpen, setIsCalculatorOpen,
-            enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-            showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-            itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-            setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-            setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-            externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
-            showDashboardStats, setShowDashboardStats,
-            enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-            enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
-            directSaleBackgroundColor, setDirectSaleBackgroundColor,
-            restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-            dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-            setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-            dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-            invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-            quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-            deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-            supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-            creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-            commercialViewLevel, cycleCommercialViewLevel,
-            smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-            lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
-            itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
-            deleteMappingTemplate,
-            generateRandomSales,
-            importDataFromJson,
-            updateSale: updateSaleCallback,
-            generateSingleRecurringInvoice,
-            companyInfo,
-            setCompanyInfo: setCompanyInfoCallback,
-            addMappingTemplate,
-        };
-    }, [
+    const value: PosContextType = {
         order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-        addToOrder, addSerializedItemToOrder,
+        addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
         clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
         variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
         sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
@@ -2063,24 +1936,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
         supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
         creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-        commercialViewLevel, 
+        commercialViewLevel, cycleCommercialViewLevel,
         smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
         lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
         itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
+        deleteMappingTemplate,
         generateRandomSales,
         importDataFromJson,
+        updateSale,
         generateSingleRecurringInvoice,
         companyInfo,
-        setCompanyInfoCallback,
+        setCompanyInfo: setCompanyInfoCallback,
         addMappingTemplate,
-        deleteMappingTemplate,
-        setCommercialViewLevel,
-        updateItemQuantityInOrder,
-        updateItemPrice,
-        updateOrderItem,
-        applyDiscount
-    ]);
-
+    };
 
   return (
     <PosContext.Provider value={value}>
@@ -2096,3 +1964,5 @@ export function usePos() {
   }
   return context;
 }
+
+    

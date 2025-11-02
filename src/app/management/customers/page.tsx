@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -359,7 +358,7 @@ function CustomersPageContent() {
                                             onValueChange={(value) => setItemsPerPageState(value[0])}
                                             onValueCommit={(value) => setItemsPerPage(value[0])}
                                             min={5}
-                                            max={Math.max(100, filteredCustomers.length)}
+                                            max={100}
                                             step={5}
                                         />
                                     </div>
@@ -524,3 +523,5 @@ export default function CustomersPage() {
         </Suspense>
     )
 }
+
+    
