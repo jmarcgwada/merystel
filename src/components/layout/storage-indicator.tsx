@@ -23,6 +23,11 @@ function formatBytes(bytes: number, decimals = 2) {
 
 export function StorageIndicator() {
   const [usage, setUsage] = useState({ percentage: 0, totalSize: 0 });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const calculateStorage = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -52,13 +57,19 @@ export function StorageIndicator() {
   }, []);
 
   useEffect(() => {
-    calculateStorage(); // Initial calculation
-    const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, [calculateStorage]);
+    if (isClient) {
+      calculateStorage(); // Initial calculation
+      const interval = setInterval(calculateStorage, 5000); // Recalculate every 5 seconds
+      return () => clearInterval(interval); // Cleanup on unmount
+    }
+  }, [isClient, calculateStorage]);
 
 
   const hue = 120 - (usage.percentage * 1.2);
+
+  if (!isClient) {
+    return <div className="w-24 h-2 bg-muted rounded-full" />; // Skeleton loader
+  }
 
   return (
     <TooltipProvider>

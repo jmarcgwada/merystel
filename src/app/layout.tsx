@@ -14,6 +14,9 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
+import { usePathname } from 'next/navigation';
+import { usePos } from '@/contexts/pos-context';
+
 
 function AppLoading() {
   return (
@@ -72,12 +75,12 @@ export default function RootLayout({
       <body className="font-body">
         <FirebaseClientProvider>
           <PosProvider>
-              <React.Suspense fallback={<AppLoading/>}>
-                <CompanyInfoGuard>
-                  <NavigationGuard />
-                  <AppContent>{children}</AppContent>
-                </CompanyInfoGuard>
-              </React.Suspense>
+            <React.Suspense fallback={<AppLoading/>}>
+              <CompanyInfoGuard>
+                <NavigationGuard />
+                <AppContent>{children}</AppContent>
+              </CompanyInfoGuard>
+            </React.Suspense>
           </PosProvider>
         </FirebaseClientProvider>
       </body>

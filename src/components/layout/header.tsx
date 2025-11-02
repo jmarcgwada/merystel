@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { User as UserIcon } from 'lucide-react';
-import { useKeyboard } from '@/contexts/keyboard-context';
+import { useKeyboard } from '@/components/keyboard-context';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 import { StorageIndicator } from './storage-indicator';
@@ -72,6 +72,13 @@ export default function Header() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const showHeader = useMemo(() => {
+    if (!isClient) return false; // Don't render header on server
+    const isCommercialPage = pathname.startsWith('/commercial');
+    return !isCommercialPage || commercialViewLevel < 2;
+  }, [isClient, pathname, commercialViewLevel]);
+
 
   const salesModeLink = useMemo(() => {
     if (!isClient) return '#'; // Return a placeholder for SSR
@@ -136,9 +143,6 @@ export default function Header() {
   };
 
   const isUserInForcedMode = isForcedMode;
-
-  const isCommercialPage = pathname.startsWith('/commercial');
-  const showHeader = !isCommercialPage || commercialViewLevel < 2;
 
   if (!showHeader) {
     return null;
