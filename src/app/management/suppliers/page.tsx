@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building, LayoutDashboard } from 'lucide-react';
-import { usePos } from '@/contexts/pos-context';
+import { usePos } from '@/contexts/pos--context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from './components/add-supplier-dialog';
 import { EditSupplierDialog } from './components/edit-supplier-dialog';
+import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 
 const ITEMS_PER_PAGE = 15;
@@ -50,7 +51,7 @@ export default function SuppliersPage() {
   const { user } = useUser();
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
   const [isEditSupplierOpen, setEditSupplierOpen] = useState(false);
-  const { suppliers, deleteSupplier, isLoading, itemsPerPage } = usePos();
+  const { suppliers, deleteSupplier, isLoading } = usePos();
   
   const isCashier = user?.role === 'cashier';
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
@@ -88,11 +89,11 @@ export default function SuppliersPage() {
   [suppliers, filter]);
 
   const paginatedSuppliers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredSuppliers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredSuppliers, currentPage, itemsPerPage]);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSuppliers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredSuppliers, currentPage]);
   
-  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
 
   const toggleCollapsible = (id: string) => {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));
@@ -135,19 +136,13 @@ export default function SuppliersPage() {
                     className="max-w-sm"
                   />
                   <div className="flex items-center gap-2">
-                     <Button variant="outline" size="icon" onClick={(e) => {
-                        if (e.ctrlKey || e.shiftKey) { setCurrentPage(1); } 
-                        else { setCurrentPage(p => Math.max(1, p - 1)); }
-                     }} disabled={currentPage === 1}>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm font-medium">
                         Page {currentPage} / {totalPages || 1}
                     </span>
-                     <Button variant="outline" size="icon" onClick={(e) => {
-                        if (e.ctrlKey || e.shiftKey) { setCurrentPage(totalPages); }
-                        else { setCurrentPage(p => Math.min(totalPages, p + 1)); }
-                     }} disabled={currentPage === totalPages || totalPages === 0}>
+                     <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -167,8 +162,8 @@ export default function SuppliersPage() {
                   <TableBody>
                       {isLoading ? (
                         <>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                              <TableRow key={i}>
+                          {Array.from({ length: 5 }).map(() => (
+                              <TableRow key={uuidv4()}>
                                   <TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell>
                               </TableRow>
                           ))}
@@ -255,3 +250,4 @@ export default function SuppliersPage() {
     </>
   );
 }
+

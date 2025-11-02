@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck } from 'lucide-react';
-import { usePos } from '@/contexts/pos-context';
+import { usePos } from '@/contexts/pos--context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -36,6 +36,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { v4 as uuidv4 } from 'uuid';
 
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId' | 'vatId';
@@ -415,7 +416,7 @@ function ItemsPageContent() {
                                                 onValueChange={(value) => setItemsPerPageState(value[0])}
                                                 onValueCommit={(value) => setItemsPerPage(value[0])}
                                                 min={5}
-                                                max={Math.max(100, sortedAndFilteredItems.length)}
+                                                max={100}
                                                 step={5}
                                             />
                                         </div>
@@ -544,8 +545,8 @@ function ItemsPageContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(isLoading || !isClient) && Array.from({length: 10}).map((_, i) => (
-                    <TableRow key={i}>
+                  {(isLoading || !isClient) && Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={uuidv4()}>
                       <TableCell><Skeleton className="h-4 w-4"/></TableCell>
                       {Object.values(visibleColumns).filter(v => v).map((isVisible, index) => isVisible ? <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell> : null)}
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
@@ -645,4 +646,5 @@ export default function ItemsPage() {
 }
 
     
+
 
