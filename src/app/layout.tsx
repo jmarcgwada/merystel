@@ -52,7 +52,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <main className="flex-1 overflow-auto">{children}</main>
             <Toaster />
             <NavigationGuard />
-            <NavigationConfirmationDialog />
             <VirtualKeyboard />
             <ExternalLinkModal />
             <CalculatorModal />
