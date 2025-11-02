@@ -28,9 +28,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { User as UserIcon } from 'lucide-react';
-import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 import { StorageIndicator } from './storage-indicator';
+
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
     <Button
@@ -65,17 +65,17 @@ export default function Header() {
   const [pin, setPin] = useState('');
   
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const { commercialViewLevel } = usePos();
   
+  const { commercialViewLevel } = usePos();
+
   const showHeader = useMemo(() => {
     const isCommercialPage = pathname.startsWith('/commercial');
     return !isCommercialPage || commercialViewLevel < 2;
   }, [pathname, commercialViewLevel]);
-
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const salesModeLink = useMemo(() => {
     if (!isClient) return '#';
@@ -141,20 +141,12 @@ export default function Header() {
 
   const isUserInForcedMode = isForcedMode;
 
-  if (!isClient) {
-      return (
-          <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
-              <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-                  <Skeleton className="h-8 w-1/3" />
-                  <div className="flex-1" />
-                  <Skeleton className="h-8 w-1/4" />
-              </div>
-          </header>
-      );
-  }
-
   if (!showHeader) {
     return null;
+  }
+  
+  if (!isClient) {
+      return null;
   }
 
   return (
@@ -195,40 +187,24 @@ export default function Header() {
                     </Link>
                 </>
             )}
-             {!companyInfo?.name && (
-                 <>
-                    <Separator orientation="vertical" className="h-6" />
-                    <Skeleton className="h-5 w-32" />
-                 </>
-            )}
           </div>
           
           <nav className="hidden md:flex items-center gap-2">
-            {!isClient ? (
-                <>
-                    <Button variant="ghost" disabled><FileText />Commercial</Button>
-                    <Button variant="ghost" disabled><ShoppingCart />Caisse</Button>
-                    <Button variant="ghost" disabled><Blocks />Gestion</Button>
-                </>
-            ) : (
-                <>
-                    <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
-                        <Link href="/commercial/invoices" onClick={handleCommercialClick}>
-                            <FileText />Commercial
-                        </Link>
-                    </Button>
-                    <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
-                        <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}>
-                            <ShoppingCart />Caisse
-                        </Link>
-                    </Button>
-                    <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
-                        <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}>
-                            <Blocks />Gestion
-                        </Link>
-                    </Button>
-                </>
-            )}
+            <Button asChild variant={pathname.startsWith('/commercial') ? 'default' : 'ghost'}>
+                <Link href="/commercial/invoices" onClick={handleCommercialClick}>
+                    <FileText />Commercial
+                </Link>
+            </Button>
+            <Button asChild variant={pathname.startsWith('/pos') || pathname.startsWith('/restaurant') || pathname.startsWith('/supermarket') ? 'default' : 'ghost'}>
+                <Link href={salesModeLink} onClick={e => handleNavClick(e, salesModeLink)}>
+                    <ShoppingCart />Caisse
+                </Link>
+            </Button>
+            <Button asChild variant={pathname.startsWith('/management') ? 'default' : 'ghost'}>
+                <Link href="/management/items" onClick={e => handleNavClick(e, '/management/items')}>
+                    <Blocks />Gestion
+                </Link>
+            </Button>
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
@@ -240,7 +216,7 @@ export default function Header() {
             >
                 <Calculator className="h-4 w-4" />
             </Button>
-            {!isPosLoading && externalLinkModalEnabled && (
+            {externalLinkModalEnabled && (
                 <Button 
                   variant="outline"
                   size="icon"

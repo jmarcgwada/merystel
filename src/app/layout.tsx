@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -13,30 +12,29 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
-import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 
 function AppLoading() {
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex h-screen w-screen items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-         <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-10 w-10 text-primary animate-pulse"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-10 w-10 animate-pulse text-primary"
+        >
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
         <p className="text-muted-foreground">Chargement de l'application...</p>
         <Skeleton className="h-4 w-48" />
       </div>
     </div>
-  )
+  );
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
