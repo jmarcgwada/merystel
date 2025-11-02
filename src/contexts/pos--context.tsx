@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -364,8 +363,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// The rest of the file remains unchanged...
-// ... (omitting for brevity, no changes were made to the rest of the file logic, only the importDemoCustomers function)
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -1360,7 +1357,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, toast, router, addAuditLog, clearOrder]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {

@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { usePos } from '@/contexts/pos--context';
+import { usePos } from '@/contexts/pos-context';
 
 export function NavigationGuard() {
   const { order, showNavConfirm } = usePos();

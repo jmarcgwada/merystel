@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck } from 'lucide-react';
-import { usePos } from '@/contexts/pos--context';
+import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -552,10 +552,10 @@ function ItemsPageContent() {
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))}
-                  {isClient && !isLoading && paginatedItems && paginatedItems.map(item => {
+                  {isClient && !isLoading && paginatedItems && paginatedItems.map((item, index) => {
                     const vatInfo = vatRates.find(v => v.id === item.vatId);
                     return (
-                        <TableRow key={item.id} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground", selectedItemIds.includes(item.id) && "bg-blue-50 dark:bg-blue-900/30")}>
+                        <TableRow key={`${item.id}-${index}`} className={cn(item.isDisabled && "bg-muted/50 text-muted-foreground", selectedItemIds.includes(item.id) && "bg-blue-50 dark:bg-blue-900/30")}>
                         <TableCell>
                             <Checkbox
                             checked={selectedItemIds.includes(item.id)}

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen, ArrowUpDown } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
-import { usePos } from '@/contexts/pos--context';
+import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -523,5 +524,3 @@ export default function CustomersPage() {
         </Suspense>
     )
 }
-
-    
