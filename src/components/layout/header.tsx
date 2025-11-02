@@ -60,7 +60,6 @@ export default function Header() {
     setCurrentSaleContext,
     companyInfo,
     setIsCalculatorOpen,
-    commercialViewLevel
   } = usePos();
 
   const router = useRouter();
@@ -72,16 +71,18 @@ export default function Header() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const { commercialViewLevel } = usePos();
   
   const showHeader = useMemo(() => {
-    if (!isClient) return false; // Don't render header on server
+    if (!isClient) return false;
     const isCommercialPage = pathname.startsWith('/commercial');
     return !isCommercialPage || commercialViewLevel < 2;
   }, [isClient, pathname, commercialViewLevel]);
 
 
   const salesModeLink = useMemo(() => {
-    if (!isClient) return '#'; // Return a placeholder for SSR
+    if (!isClient) return '#';
     switch (defaultSalesMode) {
         case 'supermarket': return '/supermarket';
         case 'restaurant': return '/restaurant';

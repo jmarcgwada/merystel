@@ -45,7 +45,7 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
 import isEqual from 'lodash.isequal';
-import { KeyboardProvider } from './keyboard-context';
+import { KeyboardProvider } from '@/components/keyboard-context';
 
 
 const SHARED_COMPANY_ID = 'main';
@@ -365,7 +365,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
 
@@ -391,18 +391,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
         }
     }, [key, state, isHydrated]);
 
-    const rehydrate = useCallback(() => {
-        try {
-            const storedValue = localStorage.getItem(key);
-            if (storedValue) {
-                setState(JSON.parse(storedValue));
-            }
-        } catch (error) {
-            console.error("Error re-reading localStorage key " + key + ":", error);
-        }
-    }, [key]);
-
-    return [state, setState, rehydrate];
+    return [state, setState];
 }
 
 function PosProviderInternal({ children }: { children: React.ReactNode }) {
@@ -1955,14 +1944,14 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
 }
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
-    return (
-        <KeyboardProvider>
-            <PosProviderInternal>
-                {children}
-            </PosProviderInternal>
-        </KeyboardProvider>
-    )
+  // PosProvider no longer wraps KeyboardProvider. It's now at the root.
+  return (
+    <PosProviderInternal>
+      {children}
+    </PosProviderInternal>
+  );
 }
+
 
 export function usePos() {
   const context = useContext(PosContext);

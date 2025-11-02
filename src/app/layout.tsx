@@ -6,7 +6,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
 import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
-import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
@@ -14,9 +13,6 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
-import { usePathname } from 'next/navigation';
-import { usePos } from '@/contexts/pos-context';
-import { KeyboardProvider } from '@/contexts/keyboard-context';
 
 function AppLoading() {
   return (
@@ -48,7 +44,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <main className="flex-1 overflow-auto">{children}</main>
             <Toaster />
             <NavigationConfirmationDialog />
-            <VirtualKeyboard />
             <ExternalLinkModal />
             <CalculatorModal />
         </div>

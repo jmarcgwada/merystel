@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface TargetInput {
     value: string;
@@ -33,21 +34,47 @@ interface KeyboardContextType {
 
 const KeyboardContext = createContext<KeyboardContextType | undefined>(undefined);
 
+// A "dummy" context value for when the provider is not available.
+const dummyKeyboardContext: KeyboardContextType = {
+    isOpen: false,
+    showKeyboard: () => {},
+    hideKeyboard: () => {},
+    toggleKeyboard: () => {},
+    isCaps: false,
+    toggleCaps: () => {},
+    inputValue: "",
+    setInputValue: () => {},
+    targetInput: null,
+    setTargetInput: () => {},
+    isKeyboardVisibleInHeader: false,
+    pressKey: () => {},
+    pressSpace: () => {},
+    pressBackspace: () => {},
+    pressEnter: () => {},
+    clearInput: () => {},
+};
+
+
 export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isCaps, setIsCaps] = useState(false);
     const [inputValue, setInputValue] = useState("");
     const [activeInput, setActiveInput] = useState<TargetInput | null>(null);
 
+    const pathname = usePathname();
+    const isSalesMode = useMemo(() => 
+        pathname.startsWith('/pos') || pathname.startsWith('/supermarket') || pathname.startsWith('/restaurant'),
+    [pathname]);
+
     const clearInput = useCallback(() => {
         setInputValue('');
     }, []);
 
     const showKeyboard = useCallback(() => {
-        if (activeInput?.name) {
+        if (isSalesMode && activeInput?.name) {
             setIsOpen(true);
         }
-    }, [activeInput]);
+    }, [activeInput, isSalesMode]);
 
     const hideKeyboard = useCallback((clearTarget = true) => {
         setIsOpen(false);
@@ -58,17 +85,25 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     }, [clearInput]);
     
     const toggleKeyboard = useCallback(() => {
+        if (!isSalesMode) return;
         if (isOpen) {
             hideKeyboard();
         } else {
             showKeyboard();
         }
-    }, [isOpen, showKeyboard, hideKeyboard]);
+    }, [isOpen, showKeyboard, hideKeyboard, isSalesMode]);
 
     const setTargetInput = useCallback((target: TargetInput) => {
+        if (!isSalesMode) return;
         setActiveInput(target);
         setInputValue(target.value);
-    }, []);
+    }, [isSalesMode]);
+    
+    useEffect(() => {
+        if (!isSalesMode && isOpen) {
+            hideKeyboard();
+        }
+    }, [isSalesMode, isOpen, hideKeyboard]);
     
     const toggleCaps = useCallback(() => setIsCaps(prev => !prev), []);
 
@@ -104,11 +139,11 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     }, [activeInput]);
 
     const isKeyboardVisibleInHeader = useMemo(() => {
-        return !!activeInput?.name;
-    }, [activeInput]);
+        return isSalesMode && !!activeInput?.name;
+    }, [activeInput, isSalesMode]);
 
     const value = useMemo(() => ({
-        isOpen,
+        isOpen: isSalesMode && isOpen,
         showKeyboard,
         hideKeyboard,
         toggleKeyboard,
@@ -127,7 +162,7 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
     }), [
         isOpen, showKeyboard, hideKeyboard, toggleKeyboard, isCaps, toggleCaps, 
         inputValue, activeInput, setTargetInput, isKeyboardVisibleInHeader,
-        pressKey, pressSpace, pressBackspace, pressEnter, clearInput
+        pressKey, pressSpace, pressBackspace, pressEnter, clearInput, isSalesMode
     ]);
 
     return (
@@ -140,7 +175,8 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
 export function useKeyboard() {
     const context = useContext(KeyboardContext);
     if (context === undefined) {
-        throw new Error('useKeyboard doit être utilisé dans un KeyboardProvider');
+        // Return a dummy context to prevent crashes when provider is not in the tree
+        return dummyKeyboardContext;
     }
     return context;
 }
