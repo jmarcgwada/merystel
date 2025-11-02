@@ -45,6 +45,7 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
 import isEqual from 'lodash.isequal';
+import { KeyboardProvider } from './keyboard-context';
 
 
 const SHARED_COMPANY_ID = 'main';
@@ -404,7 +405,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export function PosProvider({ children }: { children: React.ReactNode }) {
+function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -416,10 +417,10 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
 
   // Settings States
-  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
   const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
@@ -481,7 +482,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [lastReportsUrl, setLastReportsUrl] = usePersistentState<string | null>('state.lastReportsUrl', '/reports');
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
-  const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -503,18 +504,18 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
-  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -1952,9 +1953,19 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PosContext.Provider value={value}>
-      {children}
+        {children}
     </PosContext.Provider>
   );
+}
+
+export function PosProvider({ children }: { children: React.ReactNode }) {
+    return (
+        <KeyboardProvider>
+            <PosProviderInternal>
+                {children}
+            </PosProviderInternal>
+        </KeyboardProvider>
+    )
 }
 
 export function usePos() {

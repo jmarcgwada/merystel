@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -325,13 +324,23 @@ function AnalyticsPageContent() {
             cust.basketTotal = cust.visits > 0 ? cust.revenue / cust.visits : 0;
         });
 
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
+        let summaryTitle = "Total";
+        const uniqueTypes = [...new Set(activeDocTypes)].filter(Boolean);
+
+        if (uniqueTypes.length === 1) {
+            const type = uniqueTypes[0];
+            if (type === 'in') summaryTitle = "Revenu Total";
+            else if (type === 'out') summaryTitle = "Total Dépensé";
+        }
+
         return {
-            stats: { revenue, totalSold, uniqueSales, averageBasket },
+            stats: { revenue, totalSold, uniqueSales, averageBasket, summaryTitle },
             topItems: Object.values(itemStats),
             topCustomers: Object.values(customerStats),
             topCategories: Object.values(categoryStats),
         };
-    }, [filteredItems]);
+    }, [filteredItems, filterDocTypes]);
 
 
     const sortedAndPaginatedSalesLines = useMemo(() => {

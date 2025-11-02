@@ -6,7 +6,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
 import { NavigationConfirmationDialog } from '@/components/layout/navigation-confirmation-dialog';
-import { KeyboardProvider } from '@/contexts/keyboard-context';
 import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +13,6 @@ import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 import { PosProvider, usePos } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
-import { usePathname } from 'next/navigation';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
 
 function AppLoading() {
@@ -41,10 +39,13 @@ function AppLoading() {
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const { commercialViewLevel } = usePos();
-    const isCommercialPage = pathname.startsWith('/commercial');
-    const showHeader = !isCommercialPage || commercialViewLevel < 1;
+    const { commercialViewLevel, isKeypadOpen } = usePos();
+    
+    // This is a simplified check. A more robust solution might involve a layout-specific context.
+    const path = usePathname();
+    const isCommercialPage = path.startsWith('/commercial');
+
+    const showHeader = !isCommercialPage || commercialViewLevel < 2;
 
     return (
         <div className="antialiased flex flex-col h-screen overflow-hidden">
@@ -59,18 +60,15 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
 }
 
-function Providers({ children }: { children: React.ReactNode }) {
+const Providers = ({ children }: { children: React.ReactNode }) => {
     return (
         <FirebaseClientProvider>
           <PosProvider>
-            <KeyboardProvider>
-                {children}
-            </KeyboardProvider>
+            {children}
           </PosProvider>
         </FirebaseClientProvider>
-    )
+    );
 }
-
 
 export default function RootLayout({
   children,
