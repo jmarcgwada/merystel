@@ -365,33 +365,45 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue ? JSON.parse(storedValue) : defaultValue;
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
-                return defaultValue;
-            }
-        }
-        return defaultValue;
-    });
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key “${key}”:`, error);
+                console.error("Error setting localStorage key " + key + ":", error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
-    return [state, setState];
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
 }
-
 
 function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
