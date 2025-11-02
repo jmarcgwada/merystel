@@ -363,29 +363,32 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// This hook is now safe for SSR because it reads from localStorage ONLY on the client-side after hydration.
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState(() => {
-        if (typeof window === 'undefined') {
-            return defaultValue;
-        }
-        try {
-            const storedValue = localStorage.getItem(key);
-            return storedValue ? JSON.parse(storedValue) : defaultValue;
-        } catch (error) {
-            console.error("Error reading localStorage key " + key + ":", error);
-            return defaultValue;
-        }
-    });
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        setIsHydrated(true);
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error(`Error reading localStorage key “${key}”:`, error);
+        }
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error("Error setting localStorage key " + key + ":", error);
+                console.error(`Error setting localStorage key “${key}”:`, error);
             }
         }
-    }, [key, state]);
+    }, [key, state, isHydrated]);
 
     return [state, setState];
 }
@@ -397,29 +400,14 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { toast: shadcnToast } = useShadcnToast();
   const pageTypeToResetRef = useRef<string | null>(null);
 
-  const [isHydrated, setIsHydrated] = useState(false);
-  useEffect(() => { setIsHydrated(true); }, []);
-
-  // Use the custom hook for all persistent states
-  // This part is extensive, so I will only show a few examples for brevity
+  // Settings States
   const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
-
-  // Settings states
+  const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
+  const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
+  const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -440,9 +428,6 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const [externalLinkTitle, setExternalLinkTitle] = usePersistentState('settings.externalLinkTitle', '');
   const [externalLinkModalWidth, setExternalLinkModalWidth] = usePersistentState('settings.externalLinkModalWidth', 80);
   const [externalLinkModalHeight, setExternalLinkModalHeight] = usePersistentState('settings.externalLinkModalHeight', 90);
-  const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
-  const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
-  const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
   const [showDashboardStats, setShowDashboardStats] = usePersistentState('settings.showDashboardStats', true);
   const [enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter] = usePersistentState('settings.enableRestaurantCategoryFilter', true);
   const [enableSerialNumber, setEnableSerialNumber] = usePersistentState('settings.enableSerialNumber', true);
@@ -503,6 +488,19 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+
   const isLoading = userLoading || !isHydrated;
   
   const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {

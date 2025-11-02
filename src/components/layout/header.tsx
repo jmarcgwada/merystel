@@ -71,13 +71,6 @@ export default function Header() {
     setIsClient(true);
   }, []);
   
-  const showHeader = useMemo(() => {
-    if (!isClient) return false; // Don't render on server or before client mount
-    const isCommercialPage = pathname.startsWith('/commercial');
-    return !isCommercialPage || commercialViewLevel < 2;
-  }, [pathname, commercialViewLevel, isClient]);
-  
-
   const salesModeLink = useMemo(() => {
     if (!isClient) return '#';
     switch (defaultSalesMode) {
@@ -142,10 +135,9 @@ export default function Header() {
 
   const isUserInForcedMode = isForcedMode;
 
-  if (!showHeader) {
-    return null;
-  }
-  
+  const showHeader = !pathname.startsWith('/login') && !pathname.startsWith('/about');
+  if (!showHeader) return null;
+
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm no-print">
