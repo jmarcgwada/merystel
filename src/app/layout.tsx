@@ -13,9 +13,8 @@ import { PosProvider } from '@/contexts/pos-context';
 import { NavigationGuard } from '@/components/layout/navigation-guard';
 import { CompanyInfoGuard } from '@/components/layout/company-info-guard';
 import { CalculatorModal } from '@/components/shared/calculator-modal';
-import { VirtualKeyboard } from '@/components/virtual-keyboard';
 import { usePathname } from 'next/navigation';
-import { usePos } from '@/contexts/pos-context';
+import { Suspense } from 'react';
 
 function AppLoading() {
   return (
@@ -49,9 +48,18 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <NavigationConfirmationDialog />
             <ExternalLinkModal />
             <CalculatorModal />
-            <VirtualKeyboard />
         </div>
     );
+}
+
+function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseClientProvider>
+      <PosProvider>
+        {children}
+      </PosProvider>
+    </FirebaseClientProvider>
+  );
 }
 
 export default function RootLayout({
@@ -72,16 +80,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body">
-        <FirebaseClientProvider>
-          <PosProvider>
-              <React.Suspense fallback={<AppLoading/>}>
-                <CompanyInfoGuard>
-                  <NavigationGuard />
-                  <AppContent>{children}</AppContent>
-                </CompanyInfoGuard>
-              </React.Suspense>
-          </PosProvider>
-        </FirebaseClientProvider>
+        <Providers>
+          <Suspense fallback={<AppLoading/>}>
+            <CompanyInfoGuard>
+              <NavigationGuard />
+              <AppContent>{children}</AppContent>
+            </CompanyInfoGuard>
+          </Suspense>
+        </Providers>
       </body>
     </html>
   );

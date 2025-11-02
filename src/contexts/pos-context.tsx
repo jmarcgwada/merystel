@@ -45,7 +45,6 @@ import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
 import isEqual from 'lodash.isequal';
-import { useKeyboard } from '@/components/keyboard-context'; // Import useKeyboard here
 
 
 const SHARED_COMPANY_ID = 'main';
@@ -1945,9 +1944,9 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
 
 export function PosProvider({ children }: { children: React.ReactNode }) {
   return (
-    <PosProviderInternal>
-      {children}
-    </PosProviderInternal>
+      <PosProviderInternal>
+        {children}
+      </PosProviderInternal>
   );
 }
 

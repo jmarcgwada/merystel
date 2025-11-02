@@ -1,30 +1,21 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { createContext, useContext, useMemo } from 'react';
 
-interface TargetInput {
-    value: string;
-    name: string;
-    ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
-}
-
-interface KeyboardContextType {
+// Define the shape of the dummy context to avoid errors
+interface DummyKeyboardContextType {
     isOpen: boolean;
     showKeyboard: () => void;
     hideKeyboard: (clearTarget?: boolean) => void;
     toggleKeyboard: () => void;
-    
     isCaps: boolean;
     toggleCaps: () => void;
-
     inputValue: string;
     setInputValue: React.Dispatch<React.SetStateAction<string>>;
-    targetInput: TargetInput | null;
-    setTargetInput: (target: TargetInput) => void;
+    targetInput: null;
+    setTargetInput: (target: any) => void;
     isKeyboardVisibleInHeader: boolean;
-
     pressKey: (key: string) => void;
     pressSpace: () => void;
     pressBackspace: () => void;
@@ -32,10 +23,8 @@ interface KeyboardContextType {
     clearInput: () => void;
 }
 
-const KeyboardContext = createContext<KeyboardContextType | undefined>(undefined);
-
-// A "dummy" context value for when the provider is not available.
-const dummyKeyboardContext: KeyboardContextType = {
+// Create a "dummy" context value that does nothing.
+const dummyKeyboardContext: DummyKeyboardContextType = {
     isOpen: false,
     showKeyboard: () => {},
     hideKeyboard: () => {},
@@ -54,129 +43,13 @@ const dummyKeyboardContext: KeyboardContextType = {
     clearInput: () => {},
 };
 
+// Create the context with a default dummy value
+const KeyboardContext = createContext<DummyKeyboardContextType>(dummyKeyboardContext);
 
-export function KeyboardProvider({ children }: { children: React.ReactNode }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [isCaps, setIsCaps] = useState(false);
-    const [inputValue, setInputValue] = useState("");
-    const [activeInput, setActiveInput] = useState<TargetInput | null>(null);
-
-    const pathname = usePathname();
-    const isSalesMode = useMemo(() => 
-        pathname.startsWith('/pos') || pathname.startsWith('/supermarket') || pathname.startsWith('/restaurant'),
-    [pathname]);
-
-    const clearInput = useCallback(() => {
-        setInputValue('');
-    }, []);
-
-    const showKeyboard = useCallback(() => {
-        if (isSalesMode && activeInput?.name) {
-            setIsOpen(true);
-        }
-    }, [activeInput, isSalesMode]);
-
-    const hideKeyboard = useCallback((clearTarget = true) => {
-        setIsOpen(false);
-        if (clearTarget) {
-            clearInput();
-            setActiveInput(null);
-        }
-    }, [clearInput]);
-    
-    const toggleKeyboard = useCallback(() => {
-        if (!isSalesMode) return;
-        if (isOpen) {
-            hideKeyboard();
-        } else {
-            showKeyboard();
-        }
-    }, [isOpen, showKeyboard, hideKeyboard, isSalesMode]);
-
-    const setTargetInput = useCallback((target: TargetInput) => {
-        if (!isSalesMode) return;
-        setActiveInput(target);
-        setInputValue(target.value);
-    }, [isSalesMode]);
-    
-    useEffect(() => {
-        if (!isSalesMode && isOpen) {
-            hideKeyboard();
-        }
-    }, [isSalesMode, isOpen, hideKeyboard]);
-    
-    const toggleCaps = useCallback(() => setIsCaps(prev => !prev), []);
-
-    const pressKey = useCallback((key: string) => {
-        if (/^[a-zA-Z]$/.test(key)) {
-            const char = isCaps ? key.toUpperCase() : key.toLowerCase();
-            setInputValue(prev => prev + char);
-        } else {
-             setInputValue(prev => prev + key);
-        }
-    }, [isCaps]);
-
-    const pressSpace = useCallback(() => {
-        setInputValue(prev => prev + ' ');
-    }, []);
-
-    const pressBackspace = useCallback(() => {
-        setInputValue(prev => prev.slice(0, -1));
-    }, []);
-
-    const pressEnter = useCallback(() => {
-        if (activeInput?.ref.current) {
-            const enterEvent = new KeyboardEvent('keydown', {
-                key: 'Enter',
-                code: 'Enter',
-                keyCode: 13,
-                which: 13,
-                bubbles: true,
-                cancelable: true,
-            });
-            activeInput.ref.current.dispatchEvent(enterEvent);
-        }
-    }, [activeInput]);
-
-    const isKeyboardVisibleInHeader = useMemo(() => {
-        return isSalesMode && !!activeInput?.name;
-    }, [activeInput, isSalesMode]);
-
-    const value = useMemo(() => ({
-        isOpen: isSalesMode && isOpen,
-        showKeyboard,
-        hideKeyboard,
-        toggleKeyboard,
-        isCaps,
-        toggleCaps,
-        inputValue,
-        setInputValue,
-        targetInput: activeInput,
-        setTargetInput,
-        isKeyboardVisibleInHeader,
-        pressKey,
-        pressSpace,
-        pressBackspace,
-        pressEnter,
-        clearInput,
-    }), [
-        isOpen, showKeyboard, hideKeyboard, toggleKeyboard, isCaps, toggleCaps, 
-        inputValue, activeInput, setTargetInput, isKeyboardVisibleInHeader,
-        pressKey, pressSpace, pressBackspace, pressEnter, clearInput, isSalesMode
-    ]);
-
-    return (
-        <KeyboardContext.Provider value={value}>
-            {children}
-        </KeyboardContext.Provider>
-    );
-}
+// The provider is now gone as it's not needed for a disabled feature.
+// We keep the file and the hook to avoid breaking imports elsewhere.
 
 export function useKeyboard() {
-    const context = useContext(KeyboardContext);
-    if (context === undefined) {
-        // Return a dummy context to prevent crashes when provider is not in the tree
-        return dummyKeyboardContext;
-    }
-    return context;
+    // This hook will now always return the dummy context, effectively disabling it.
+    return useContext(KeyboardContext);
 }
