@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -325,9 +326,9 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{todaysSalesData.total.toFixed(2)}€</div>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                     {formattedDate ? formattedDate : <Skeleton className="h-4 w-24" />}
-                    </p>
+                    </div>
                 </CardContent>
              </Card>
               <Card style={buttonStyle} className="group h-full transition-all hover:shadow-md">
