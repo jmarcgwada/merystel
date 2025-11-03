@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -390,6 +389,13 @@ function ReportsPageContent() {
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
+        
+        const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(term => term);
+
+        if (generalFilter.trim() === '*') {
+            return allSales;
+        }
+
         const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
 
         let filteredSales = allSales.filter(sale => {
@@ -415,12 +421,12 @@ function ReportsPageContent() {
             const docTypeMatch = activeDocTypes.includes(docType);
             const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
             
-            const generalMatch = !generalFilter || (
-                (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (customerName && customerName.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (sale.total.toFixed(2).includes(generalFilter)) ||
-                (sale.customerId && sale.customerId.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(generalFilter.toLowerCase()))))
+             const generalMatch = searchTerms.length === 0 || searchTerms.every(term => 
+                (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(term)) ||
+                (customerName && customerName.toLowerCase().includes(term)) ||
+                (sale.total.toFixed(2).includes(term)) ||
+                (sale.customerId && sale.customerId.toLowerCase().includes(term)) ||
+                (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(term))))
             );
 
             return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
@@ -999,4 +1005,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
