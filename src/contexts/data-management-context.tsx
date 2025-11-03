@@ -133,7 +133,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
-  const { toast: shadcnToast } = useShadcnToast();
+  const { toast: shadcnToast, update: updateToast } = useShadcnToast();
   const pageTypeToResetRef = useRef<string | null>(null);
 
   const [isHydrated, setIsHydrated] = useState(false);
@@ -1419,10 +1419,10 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
       const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
       const BATCH_SIZE = 50;
-      const toastId = toast({
+      const { id: toastId } = toast({
           title: 'Importation...',
           description: `Préparation de ${jsonData.length} lignes.`
-      }).id;
+      });
 
       const addError = (line: number, message: string) => {
           report.errorCount++;
@@ -1451,115 +1451,188 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                   itemBarcodes.add(row.barcode);
               }
           } else if (dataType === 'fournisseurs') {
-              const supplierIds = new Set(suppliers.map(s => s.id));
-              for (const [index, row] of chunk.entries()) {
-                  if (!row.id || !row.name) { addError(i + index, "L'ID et le nom du fournisseur sont requis."); continue; }
-                  if (supplierIds.has(row.id)) { addError(i + index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue; }
-                  await addSupplier(row);
-                  report.successCount++;
-                  supplierIds.add(row.id);
-              }
-          } else if (dataType === 'ventes_completes') {
-              const groupedRows: Record<string, any[]> = {};
-              chunk.forEach(row => {
-                  const ticketNum = row.ticketNumber;
-                  if (!ticketNum) return;
-                  if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
-                  groupedRows[ticketNum].push(row);
-              });
-              const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-              
-              for (const ticketNumber in groupedRows) {
-                  const rows = groupedRows[ticketNumber];
-                  const firstRow = rows[0];
-                  try {
-                      if (existingSaleNumbers.has(ticketNumber)) { addError(i, `La pièce #${ticketNumber} existe déjà.`); continue; }
-                      let saleDate: Date | null = null;
-                      const dateString = firstRow.saleDate, timeString = firstRow.saleTime || '00:00', fullDateTimeString = `${dateString} ${timeString}`;
-                      let parsed;
-                      if (dateString.includes('/')) parsed = parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date());
-                      else if (dateString.includes('-')) parsed = parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                      else parsed = new Date('invalid');
-                      if (isValid(parsed)) saleDate = parsed;
-                      if (!saleDate) { addError(i, `Format de date invalide pour la pièce #${ticketNumber}.`); continue; }
-                      report.newSalesCount = (report.newSalesCount || 0) + 1;
-                      let customer: Customer | null = null;
-                      if (firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
-                      if (!customer && firstRow.customerName) {
-                          customer = await addCustomer({ id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`, name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone, address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity });
-                          if (customer) report.newCustomersCount = (report.newCustomersCount || 0) + 1;
-                      }
-                      const saleEntry: { sale: Omit<Sale, 'id'>, paymentTotals: Record<string, number> } = {
-                          sale: {
-                              ticketNumber: ticketNumber, date: saleDate, items: [], subtotal: 0, tax: 0, total: 0, payments: [], status: 'paid',
-                              customerId: customer?.id, documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
-                              userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
-                          }, paymentTotals: {}
-                      };
-                      
-                      const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                      paymentFields.forEach(pm => {
-                        if(firstRow[pm]) saleEntry.paymentTotals[pm] = (saleEntry.paymentTotals[pm] || 0) + firstRow[pm];
-                      });
+             const supplierIds = new Set(suppliers.map(s => s.id));
+             for (const [index, row] of chunk.entries()) {
+                if (!row.id || !row.name) {
+                    addError(index, "L'ID et le nom du fournisseur sont requis."); continue;
+                }
+                if (supplierIds.has(row.id)) {
+                    addError(index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue;
+                }
+                await addSupplier(row);
+                report.successCount++;
+                supplierIds.add(row.id);
+             }
+        } else if (dataType === 'ventes_completes') {
+            const groupedRows: Record<string, any[]> = {};
+            chunk.forEach(row => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) return;
+                if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
+                groupedRows[ticketNum].push(row);
+            });
+            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+            const salesMap = new Map<string, { sale: Omit<Sale, 'id'>, paymentTotals: Record<string, number> }>();
 
-                      for (let j = 0; j < rows.length; j++) {
-                          const row = rows[j];
-                          if (!row.itemBarcode) {
-                              if (saleEntry.sale.items.length > 0 && row.itemName) {
-                                  const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
-                                  lastItem.note = ((lastItem.note || '') + '\n' + row.itemName).trim();
-                              } continue;
-                          }
-                          let item = items.find(i => i.barcode === row.itemBarcode);
-                          if (!item && row.itemName) {
-                              let category = categories.find(c => c.name === row.itemCategory);
-                              if (!category) category = await addCategory({ name: row.itemCategory || 'Importé' });
-                              let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
-                              if (!vat) vat = vatRates[0];
-                              item = await addItem({ name: row.itemName, barcode: row.itemBarcode, price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100), purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '' });
-                              if (item) report.newItemsCount = (report.newItemsCount || 0) + 1;
-                          }
-                          if (item) {
-                              const vatInfo = vatRates.find(v => v.id === item!.vatId);
-                              const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
-                              const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
-                              const total = priceTTC * row.quantity - discountAmount;
-                              saleEntry.sale.items.push({
-                                  id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId, quantity: row.quantity,
-                                  total: total, discount: discountAmount, discountPercent: row.discountPercentage, barcode: item.barcode!
-                              });
-                          }
-                      }
-                      const total = saleEntry.sale.items.reduce((sum, i) => sum + i.total, 0);
-                      saleEntry.sale.total = total;
-                      const totalTax = saleEntry.sale.items.reduce((sum, i) => {
-                          const vat = vatRates.find(v => v.id === i.vatId);
-                          return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
-                      }, 0);
-                      saleEntry.sale.tax = totalTax;
-                      saleEntry.sale.subtotal = total - totalTax;
-                      const paymentMapping: Record<string, string> = { paymentCash: 'Espèces', paymentCard: 'Carte Bancaire', paymentCheck: 'Chèque', paymentOther: 'AUTRE' };
-                      Object.entries(saleEntry.paymentTotals).forEach(([key, amount]) => {
-                          const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
-                          if (method && amount > 0) saleEntry.sale.payments.push({ method, amount, date: saleEntry.sale.date });
-                      });
-                      await recordSale(saleEntry.sale);
-                      report.successCount++;
-                  } catch (e: any) { addError(i, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
-              }
-          }
+            for (const ticketNumber in groupedRows) {
+                const rows = groupedRows[ticketNumber];
+                const firstRow = rows[0];
+                try {
+                    const finalTicketNumber = firstRow.ticketNumber;
+                    if (existingSaleNumbers.has(finalTicketNumber)) {
+                        addError(i, `La pièce #${finalTicketNumber} existe déjà.`); continue;
+                    }
+                    
+                    
+                    let saleDate: Date | null = null;
+                    const dateString = firstRow.saleDate;
+                    const timeString = firstRow.saleTime || '00:00';
+                    const fullDateTimeString = `${dateString} ${timeString}`;
+                    
+                    let parsed;
+                    if (dateString.includes('/')) {
+                        parsed = parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date());
+                    } else if (dateString.includes('-')) {
+                        parsed = parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+                    } else {
+                        parsed = new Date('invalid');
+                    }
 
-          toast.update(toastId, {
-              description: `Traitement... ${Math.min(i + BATCH_SIZE, jsonData.length)} / ${jsonData.length} lignes.`
-          });
-          await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread
+                    if (isValid(parsed)) {
+                        saleDate = parsed;
+                    }
+
+                    if (!saleDate) {
+                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA ou YYYY-MM-DD.`);
+                        continue;
+                    }
+
+                    let saleEntry = salesMap.get(finalTicketNumber);
+                    if (!saleEntry) {
+                        report.newSalesCount = (report.newSalesCount || 0) + 1;
+                        let customer: Customer | null = null;
+                        if(firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
+                        if (!customer && firstRow.customerName) {
+                            customer = await addCustomer({
+                                id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                                name: firstRow.customerName,
+                                email: firstRow.customerEmail,
+                                phone: firstRow.customerPhone,
+                                address: firstRow.customerAddress,
+                                postalCode: firstRow.customerPostalCode,
+                                city: firstRow.customerCity
+                            });
+                            if(customer) report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                        }
+
+                        saleEntry = {
+                            sale: {
+                                ticketNumber: finalTicketNumber,
+                                date: saleDate,
+                                items: [],
+                                subtotal: 0, tax: 0, total: 0,
+                                payments: [],
+                                status: 'paid',
+                                customerId: customer?.id,
+                                documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                                userId: user?.id,
+                                userName: firstRow.sellerName || user?.firstName || 'Import',
+                            },
+                            paymentTotals: {}
+                        };
+                        salesMap.set(finalTicketNumber, saleEntry);
+                    }
+
+                    for(let j = 0; j < rows.length; j++) {
+                        const row = rows[j];
+                        if (!row.itemBarcode) {
+                            if (saleEntry.sale.items.length > 0 && row.itemName) {
+                                const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
+                                lastItem.note = ((lastItem.note || '') + '\n' + row.itemName).trim();
+                            }
+                            continue;
+                        }
+                        
+                        let item = items.find(i => i.barcode === row.itemBarcode);
+                        if (!item && row.itemName) {
+                            let category = categories.find(c => c.name === row.itemCategory);
+                            if (!category) {
+                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                            }
+                            let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                            if (!vat) vat = vatRates[0];
+                             
+                            item = await addItem({
+                                name: row.itemName,
+                                barcode: row.itemBarcode,
+                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                                purchasePrice: row.itemPurchasePrice,
+                                categoryId: category?.id,
+                                vatId: vat?.id || '',
+                            });
+                            if(item) report.newItemsCount = (report.newItemsCount || 0) + 1;
+                        }
+
+                        if (item) {
+                            const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                            const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                            const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                            const total = priceTTC * row.quantity - discountAmount;
+                            saleEntry.sale.items.push({
+                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
+                                quantity: row.quantity, total, discount: discountAmount,
+                                discountPercent: row.discountPercentage, barcode: item.barcode!,
+                            });
+                        }
+                    }
+                    
+                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
+                    if (firstRow) {
+                        paymentFields.forEach(pm => {
+                            if(firstRow[pm]) {
+                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + firstRow[pm];
+                            }
+                        });
+                    }
+
+                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
+            }
+
+            for (const { sale, paymentTotals } of salesMap.values()) {
+                const total = sale.items.reduce((sum, i) => sum + i.total, 0);
+                sale.total = total;
+                const totalTax = sale.items.reduce((sum, i) => {
+                    const vat = vatRates.find(v => v.id === i.vatId);
+                    return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+                }, 0);
+                sale.tax = totalTax;
+                sale.subtotal = total - totalTax;
+
+                const paymentMapping: Record<string, string> = {
+                  paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
+                  paymentCheck: 'Chèque', paymentOther: 'AUTRE'
+                };
+                
+                Object.entries(paymentTotals).forEach(([key, amount]) => {
+                  const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
+                  if(method && amount > 0) sale.payments.push({ method, amount, date: sale.date });
+                });
+                
+                await recordSale(sale);
+            }
+        }
+    
+        updateToast(toastId, {
+            description: `Traitement... ${Math.min(i + BATCH_SIZE, jsonData.length)} / ${jsonData.length} lignes.`
+        });
+        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread
       }
       
-      toast.dismiss(toastId);
+      toast({id: toastId}).dismiss();
       return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, updateToast]);
 
-  const value: PosContextType = {
+  const value: InternalPosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
