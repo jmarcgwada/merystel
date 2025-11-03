@@ -14,7 +14,7 @@ export function CompanyInfoGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       if (!companyInfo?.name && pathname !== '/settings/company') {
-        router.push('/settings/company');
+        router.push('/settings/company?from=' + pathname);
       }
     }
   }, [isLoading, companyInfo, pathname, router]);
