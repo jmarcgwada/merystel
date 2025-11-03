@@ -800,7 +800,63 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
 
-  // #region Order Management
+
+  useEffect(() => {
+    const timer = setInterval(() => setSystemDate(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const tables = useMemo(() => [TAKEAWAY_TABLE, ...tablesData.sort((a, b) => (a.number || 0) - (b.number || 0))], [tablesData]);
+  
+  const deleteAllSales = useCallback(async () => {
+    setSales([]);
+    setAuditLogs([]);
+    setDunningLogs([]);
+    setCheques([]);
+    setRemises([]);
+    setPaiementsPartiels([]);
+    toast({ title: 'Ventes et données liées supprimées' });
+  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
+  
+  const exportConfiguration = useCallback(() => {
+    const config = {
+        items,
+        categories,
+        customers,
+        suppliers,
+        tables: tablesData,
+        paymentMethods,
+        vatRates,
+        companyInfo,
+        users,
+        mappingTemplates
+    };
+    return JSON.stringify(config, null, 2);
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates]);
+
+  const importConfiguration = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const config = JSON.parse(event.target?.result as string);
+            if (config.items) setItems(config.items);
+            if (config.categories) setCategories(config.categories);
+            if (config.customers) setCustomers(config.customers);
+            if (config.suppliers) setSuppliers(config.suppliers);
+            if (config.tables) setTablesData(config.tables);
+            if (config.paymentMethods) setPaymentMethods(config.paymentMethods);
+            if (config.vatRates) setVatRates(config.vatRates);
+            if (config.companyInfo) setCompanyInfo(config.companyInfo);
+            if (config.users) setUsers(config.users);
+            if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
+            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur d\'importation' });
+        }
+    };
+    reader.readAsText(file);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
+  
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -1827,9 +1883,7 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers]);
 
-    // This block has to be after all dependent `useCallback` definitions
-    const value: PosContextType = useMemo(
-    () => ({
+  const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -1880,60 +1934,8 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
       companyInfo,
       setCompanyInfo,
       addMappingTemplate,
-    }),
-    [
-        order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-        addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
-        clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-        variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-        sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-        items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-        getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-        tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-        promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-        vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-        auditLogs, 
-        dunningLogs, addDunningLog,
-        cheques, addCheque, updateCheque, deleteCheque, 
-        paiementsPartiels, addPaiementPartiel, 
-        remises, addRemise,
-        isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-        seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
-        cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-        isCalculatorOpen, setIsCalculatorOpen,
-        enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-        showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-        itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-        setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-        setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-        externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
-        showDashboardStats, setShowDashboardStats,
-        enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-        enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
-        directSaleBackgroundColor, setDirectSaleBackgroundColor,
-        restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-        dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-        setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-        dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-        invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-        quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-        deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-        supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-        creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-        commercialViewLevel, cycleCommercialViewLevel,
-        smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-        lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
-        itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
-        deleteMappingTemplate,
-        generateRandomSales,
-        importDataFromJson,
-        updateSale,
-        generateSingleRecurringInvoice,
-        companyInfo,
-        setCompanyInfo,
-        addMappingTemplate,
-    ]
-  );
+  };
+
   return (
     <PosContext.Provider value={value}>
       {children}
