@@ -741,10 +741,9 @@ export default function ImportDataPage() {
                                 <Accordion type="single" collapsible className="w-auto">
                                     <AccordionItem value="help" className="border-b-0">
                                     <AccordionTrigger className="p-0 hover:no-underline">
-                                        <div className="flex items-center gap-2 text-sm text-primary">
-                                        <HelpCircle className="h-4 w-4" />
-                                        Aide
-                                        </div>
+                                        <Link href="/help/import-ventes-completes" className="flex items-center gap-2 text-sm text-primary">
+                                            <HelpCircle className="h-4 w-4" /> Aide
+                                        </Link>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                         <Card className="mt-2">
