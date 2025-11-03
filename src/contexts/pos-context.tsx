@@ -398,6 +398,8 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState];
 }
 
+// All business logic and data management has been moved into this internal provider
+// This ensures that the main PosProvider is just a wrapper and doesn't trigger re-renders
 function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
@@ -788,17 +790,15 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, toast]);
   
   useEffect(() => {
-    if(!isLoading) {
-        const isSeeded = localStorage.getItem('data.seeded');
-        if (!isSeeded) {
-          seedInitialData();
-          importDemoData();
-          importDemoCustomers();
-          importDemoSuppliers();
-          localStorage.setItem('data.seeded', 'true');
-        }
+    const isSeeded = localStorage.getItem('data.seeded');
+    if (!isSeeded) {
+      seedInitialData();
+      importDemoData();
+      importDemoCustomers();
+      importDemoSuppliers();
+      localStorage.setItem('data.seeded', 'true');
     }
-  }, [isLoading, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
+  }, [seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
 
 
   useEffect(() => {

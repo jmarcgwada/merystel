@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -85,8 +84,13 @@ export default function DashboardPage() {
     
     useEffect(() => {
         setIsMounted(true);
-        setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
     }, []);
+    
+    useEffect(() => {
+      if(isMounted) {
+        setFormattedDate(format(new Date(), "eeee, d MMMM", { locale: fr }));
+      }
+    }, [isMounted]);
     
     const todayDateString = format(new Date(), 'yyyy-MM-dd');
     

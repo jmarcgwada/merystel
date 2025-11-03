@@ -13,9 +13,14 @@ interface ClientFormattedDateProps {
 
 export const ClientFormattedDate = ({ date, formatString }: ClientFormattedDateProps) => {
   const [formatted, setFormatted] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!date) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || !date) {
         setFormatted('');
         return;
     };
@@ -32,7 +37,11 @@ export const ClientFormattedDate = ({ date, formatString }: ClientFormattedDateP
     if (!isNaN(jsDate.getTime())) {
       setFormatted(format(jsDate, formatString, { locale: fr }));
     }
-  }, [date, formatString]);
+  }, [date, formatString, isClient]);
+
+  if (!isClient) {
+    return null; // Render nothing on the server to prevent mismatch
+  }
 
   return <>{formatted}</>;
 };
