@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -329,7 +329,7 @@ function ReportsPageContent() {
         }
         return { backgroundColor: hexToRgba(color, opacity) };
     };
-
+    
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
         const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
         if (!typeInfo) return;
@@ -433,7 +433,7 @@ function ReportsPageContent() {
                 
                 if (!currentTerm) return true;
 
-                const saleText = [
+                const searchableText = [
                     sale.ticketNumber,
                     customerName,
                     sale.total.toFixed(2),
@@ -441,12 +441,14 @@ function ReportsPageContent() {
                     ...sale.items.map(item => item.name)
                 ].join(' ').toLowerCase();
 
+                let match = false;
                 if (isStartsWith) {
-                    return (sale.ticketNumber && sale.ticketNumber.toLowerCase().startsWith(currentTerm)) ||
+                    match = (sale.ticketNumber && sale.ticketNumber.toLowerCase().startsWith(currentTerm)) ||
                            (customerName && customerName.toLowerCase().startsWith(currentTerm));
+                } else {
+                    match = searchableText.includes(currentTerm);
                 }
                 
-                const match = saleText.includes(currentTerm);
                 return isNegation ? !match : match;
             });
 
@@ -771,7 +773,26 @@ function ReportsPageContent() {
                                                 <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                             </Button>
                                         </CollapsibleTrigger>
-                                        <Input ref={generalFilterRef} placeholder="Recherche générale... (^, !, /)" value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" />
+                                        <div className="relative">
+                                            <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" />
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                                        <HelpCircle className="h-4 w-4" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent>
+                                                    <div className="space-y-4 text-sm">
+                                                        <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                                        <p><code className="font-mono bg-muted p-1 rounded">texte</code>: Contient le texte.</p>
+                                                        <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
+                                                        <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
+                                                        <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
+                                                        <p><code className="font-mono bg-muted p-1 rounded">*</code>: Ignore tous les filtres et affiche tout.</p>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
@@ -1026,5 +1047,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
