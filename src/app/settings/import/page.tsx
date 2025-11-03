@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -84,6 +85,7 @@ const completeSaleFields: string[] = [
     'unitPriceHT',
     'itemPurchasePrice',
     'vatCode',
+    'discountPercentage',
     'paymentCash',
     'paymentCard',
     'paymentCheck',
@@ -422,7 +424,7 @@ export default function ImportDataPage() {
           const mode = mappingModes[fieldName as string] || 'column';
           if (mode === 'fixed') {
               let value = fixedValues[fieldName as string] || '';
-              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+              if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice', 'discountPercentage'].includes(fieldName as string)) {
                   value = parseFloat(value.replace(',', '.')) as any || 0;
               } else if (['isDisabled'].includes(fieldName as string)) {
                   value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase()) as any;
@@ -432,7 +434,7 @@ export default function ImportDataPage() {
               const columnIndex = mappings[fieldName as string];
               if (columnIndex !== null && columnIndex !== undefined && columnIndex < row.length) {
                   let value: any = row[columnIndex] ? row[columnIndex].trim() : '';
-                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice'].includes(fieldName as string)) {
+                  if (['price', 'purchasePrice', 'marginPercentage', 'stock', 'lowStockThreshold', 'unitPriceHT', 'quantity', 'totalLineHT', 'vatCode', 'vatAmount', 'discountAmount', 'totalTTC', 'paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther', 'itemPurchasePrice', 'discountPercentage'].includes(fieldName as string)) {
                       value = parseFloat(value.replace(',', '.')) || 0;
                   } else if (['isDisabled'].includes(fieldName as string)) {
                       value = ['true', 'oui', '1', 'yes'].includes(value.toLowerCase());

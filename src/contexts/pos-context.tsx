@@ -359,7 +359,7 @@ export interface PosContextType {
   addMappingTemplate: (template: MappingTemplate) => void;
   deleteMappingTemplate: (templateName: string) => void;
   companyInfo: CompanyInfo | null;
-  setCompanyInfo: React.Dispatch<React.SetStateAction<CompanyInfo | null>>;
+  setCompanyInfo: (info: CompanyInfo) => void;
 }
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
@@ -412,10 +412,10 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const pageTypeToResetRef = useRef<string | null>(null);
 
   // Settings States
-  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
   const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
   const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
@@ -1847,12 +1847,22 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
                         }
 
                         if (item) {
-                             const vatInfo = vatRates.find(v => v.id === item!.vatId);
-                             const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
-                             saleEntry.sale.items.push({
-                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC,
-                                vatId: item.vatId, quantity: row.quantity, total: priceTTC * row.quantity,
-                                discount: 0, barcode: item.barcode!,
+                            const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                            const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                            const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                            const total = priceTTC * row.quantity - discountAmount;
+
+                            saleEntry.sale.items.push({
+                                id: uuidv4(),
+                                itemId: item.id,
+                                name: item.name,
+                                price: priceTTC,
+                                vatId: item.vatId,
+                                quantity: row.quantity,
+                                total: total,
+                                discount: discountAmount,
+                                discountPercent: row.discountPercentage,
+                                barcode: item.barcode!,
                             });
                         }
                     }
@@ -1963,5 +1973,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
