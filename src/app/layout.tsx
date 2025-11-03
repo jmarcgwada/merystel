@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
@@ -17,11 +17,16 @@ import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = usePos();
+  const [isClient, setIsClient] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient || isLoading) {
     return <AppLoading />;
   }
-  
+
   return (
     <div className="antialiased flex flex-col h-screen overflow-hidden">
       <Header />
@@ -33,7 +38,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
 
 function Providers({ children }: { children: React.ReactNode }) {
   return (
