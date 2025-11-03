@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -46,7 +47,7 @@ import { Slider } from '@/components/ui/slider';
 import { SaleDetailModal } from './components/sale-detail-modal';
 
 
-type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax' | 'totalDiscount';
 
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in', path: '/pos' },
@@ -81,6 +82,7 @@ const columnsConfig = [
     { id: 'details', label: 'Détails' },
     { id: 'subtotal', label: 'Total HT' },
     { id: 'tax', label: 'Total TVA' },
+    { id: 'totalDiscount', label: 'Total Remise' },
     { id: 'total', label: 'Total TTC' },
     { id: 'payment', label: 'Paiement' },
 ];
@@ -253,7 +255,7 @@ function ReportsPageContent() {
              setVisibleColumns({
                 type: true, ticketNumber: true, date: true, userName: true, origin: false,
                 customerName: true, itemCount: false, details: false, subtotal: false,
-                tax: false, total: true, payment: true,
+                tax: false, totalDiscount: true, total: true, payment: true,
             });
         }
         setIsClient(true);
@@ -436,6 +438,10 @@ function ReportsPageContent() {
                     case 'ticketNumber': aValue = a.ticketNumber || ''; bValue = b.ticketNumber || ''; break;
                     case 'subtotal': aValue = a.subtotal || 0; bValue = b.subtotal || 0; break;
                     case 'tax': aValue = a.tax || 0; bValue = b.tax || 0; break;
+                    case 'totalDiscount':
+                        aValue = a.items.reduce((sum, item) => sum + (item.discount || 0), 0);
+                        bValue = b.items.reduce((sum, item) => sum + (item.discount || 0), 0);
+                        break;
                     default: aValue = a[sortConfig.key as keyof Sale] as number || 0; bValue = b[sortConfig.key as keyof Sale] as number || 0; break;
                 }
                 if (aValue instanceof Date && bValue instanceof Date) {
@@ -885,6 +891,7 @@ function ReportsPageContent() {
                                         {visibleColumns.details && <TableHead>Détails</TableHead>}
                                         {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
                                         {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
+                                        {visibleColumns.totalDiscount && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('totalDiscount')} className="justify-end w-full">Total Remise {getSortIcon('totalDiscount')}</Button></TableHead>}
                                         {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
                                         {visibleColumns.payment && <TableHead>Paiement</TableHead>}
                                         <TableHead className="w-[150px] text-right">Actions</TableHead>
@@ -905,6 +912,7 @@ function ReportsPageContent() {
                                         
                                         const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
                                         const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
+                                        const totalDiscount = sale.items.reduce((sum, item) => sum + (item.discount || 0), 0);
 
                                         return (
                                             <TableRow 
@@ -947,6 +955,7 @@ function ReportsPageContent() {
                                                 )}
                                                 {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                                {visibleColumns.totalDiscount && <TableCell className="text-right font-medium text-destructive">{totalDiscount > 0 ? `-${totalDiscount.toFixed(2)}€` : '-'}</TableCell>}
                                                 {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                                 <TableCell className="text-right">
@@ -990,3 +999,4 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
