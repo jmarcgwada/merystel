@@ -26,7 +26,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useKeyboard } from '@/contexts/keyboard-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -235,7 +234,6 @@ function ReportsPageContent() {
   const [selectedSaleForModal, setSelectedSaleForModal] = useState<Sale | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  const { setTargetInput, inputValue, targetInput } = useKeyboard();
   const generalFilterRef = useRef<HTMLInputElement>(null);
   const customerNameFilterRef = useRef<HTMLInputElement>(null);
   const sellerNameFilterRef = useRef<HTMLInputElement>(null);
@@ -243,7 +241,7 @@ function ReportsPageContent() {
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
+    useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
     
@@ -355,15 +353,6 @@ function ReportsPageContent() {
         });
         setFilterDocTypes(newFilterDocTypes);
     };
-
-    useEffect(() => {
-        if (inputValue && targetInput) {
-            if (targetInput.name === 'reports-general-filter') setGeneralFilter(inputValue);
-            if (targetInput.name === 'reports-customer-filter') setFilterCustomerName(inputValue);
-            if (targetInput.name === 'reports-seller-filter') setFilterSellerName(inputValue);
-            if (targetInput.name === 'reports-origin-filter') setFilterOrigin(inputValue);
-        }
-    }, [inputValue, targetInput]);
 
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
@@ -749,7 +738,7 @@ function ReportsPageContent() {
                                                 <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                             </Button>
                                         </CollapsibleTrigger>
-                                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })}/>
+                                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" />
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
@@ -797,9 +786,9 @@ function ReportsPageContent() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                                     </Popover>
-                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
-                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" onFocus={() => setTargetInput({ value: filterOrigin, name: 'reports-origin-filter', ref: originFilterRef })}/>
+                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" />
+                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" />
+                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" />
                                     <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
                                     <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
                                 </CardContent>
@@ -928,6 +917,7 @@ function ReportsPageContent() {
                                                 : 'hover:bg-muted/50'
                                             )}
                                             style={getRowStyle(sale)}
+                                            onClick={() => handleOpenDetailModal(sale)}
                                             >
                                                 {visibleColumns.type && <TableCell>
                                                     <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
@@ -971,9 +961,6 @@ function ReportsPageContent() {
                                                         )}
                                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
                                                             <Pencil className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleOpenDetailModal(sale);}}>
-                                                            <Eye className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>

@@ -16,14 +16,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import Image from 'next/image';
 import type { Item } from '@/lib/types';
 import { Card } from '@/components/ui/card';
-import { useKeyboard } from '@/contexts/keyboard-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const MAX_INITIAL_ITEMS = 100;
 
 export default function SupermarketPage() {
   const { items, addToOrder, heldOrders, order, showItemImagesInGrid, isKeypadOpen } = usePos();
-  const { setTargetInput, inputValue, targetInput, isOpen: isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
   const [isHeldOpen, setHeldOpen] = useState(false);
@@ -36,18 +34,6 @@ export default function SupermarketPage() {
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
-
-  useEffect(() => {
-    if (targetInput?.name === 'supermarket-search') {
-      setSearchTerm(inputValue);
-    }
-  }, [inputValue, targetInput]);
-  
-  useEffect(() => {
-    if (!isKeyboardOpen && targetInput?.name === 'supermarket-search') {
-      // Don't clear search term when keyboard closes
-    }
-  }, [isKeyboardOpen, targetInput]);
 
   const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
     if (!items) {
@@ -127,11 +113,7 @@ export default function SupermarketPage() {
   };
 
   const handleSearchFocus = () => {
-    setTargetInput({
-      value: searchTerm,
-      name: 'supermarket-search',
-      ref: searchInputRef,
-    });
+    // This function is now empty as we removed the virtual keyboard logic.
   };
 
   useEffect(() => {
