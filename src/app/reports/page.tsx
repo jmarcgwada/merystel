@@ -389,12 +389,9 @@ function ReportsPageContent() {
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
+        if (generalFilter.trim() === '*') return allSales;
         
         const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(term => term);
-
-        if (generalFilter.trim() === '*') {
-            return allSales;
-        }
 
         const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
 
@@ -421,13 +418,37 @@ function ReportsPageContent() {
             const docTypeMatch = activeDocTypes.includes(docType);
             const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
             
-             const generalMatch = searchTerms.length === 0 || searchTerms.every(term => 
-                (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(term)) ||
-                (customerName && customerName.toLowerCase().includes(term)) ||
-                (sale.total.toFixed(2).includes(term)) ||
-                (sale.customerId && sale.customerId.toLowerCase().includes(term)) ||
-                (Array.isArray(sale.items) && sale.items.some(item => (item.name.toLowerCase().includes(term))))
-            );
+            const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+                let currentTerm = term;
+                let isNegation = false;
+                let isStartsWith = false;
+
+                if (currentTerm.startsWith('!')) {
+                    isNegation = true;
+                    currentTerm = currentTerm.substring(1);
+                } else if (currentTerm.startsWith('^')) {
+                    isStartsWith = true;
+                    currentTerm = currentTerm.substring(1);
+                }
+                
+                if (!currentTerm) return true;
+
+                const saleText = [
+                    sale.ticketNumber,
+                    customerName,
+                    sale.total.toFixed(2),
+                    sale.customerId,
+                    ...sale.items.map(item => item.name)
+                ].join(' ').toLowerCase();
+
+                if (isStartsWith) {
+                    return (sale.ticketNumber && sale.ticketNumber.toLowerCase().startsWith(currentTerm)) ||
+                           (customerName && customerName.toLowerCase().startsWith(currentTerm));
+                }
+                
+                const match = saleText.includes(currentTerm);
+                return isNegation ? !match : match;
+            });
 
             return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
         });
@@ -750,7 +771,7 @@ function ReportsPageContent() {
                                                 <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                             </Button>
                                         </CollapsibleTrigger>
-                                        <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" />
+                                        <Input ref={generalFilterRef} placeholder="Recherche générale... (^, !, /)" value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" />
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9" disabled={isDocTypeFilterLocked}>
@@ -1005,3 +1026,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
