@@ -364,42 +364,46 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState<T>(defaultValue);
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
-        setIsHydrated(true);
-    }, []);
-
-    useEffect(() => {
-        if (isHydrated) {
-            try {
-                const storedValue = localStorage.getItem(key);
-                if (storedValue !== null) {
-                    setState(JSON.parse(storedValue));
-                }
-            } catch (error) {
-                console.error(`Error reading localStorage key “${key}”:`, error);
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
             }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
         }
-    }, [isHydrated, key]);
+        setIsHydrated(true);
+    }, [key]);
 
     useEffect(() => {
         if (isHydrated) {
             try {
                 localStorage.setItem(key, JSON.stringify(state));
             } catch (error) {
-                console.error(`Error setting localStorage key “${key}”:`, error);
+                console.error("Error setting localStorage key " + key + ":", error);
             }
         }
     }, [key, state, isHydrated]);
 
-    return [state, setState];
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
 }
 
-// All business logic and data management has been moved into this internal provider
-// This ensures that the main PosProvider is just a wrapper and doesn't trigger re-renders
 function PosProviderInternal({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
@@ -1801,6 +1805,14 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
                             },
                             paymentTotals: {}
                         };
+                        
+                        // Payment logic is now only applied for the first row
+                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
+                            if (firstRow[pm]) {
+                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + firstRow[pm];
+                            }
+                        });
+
                         salesMap.set(finalTicketNumber, saleEntry);
                     }
 
@@ -1844,14 +1856,6 @@ function PosProviderInternal({ children }: { children: React.ReactNode }) {
                             });
                         }
                     }
-                    
-                    rows.forEach(row => {
-                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
-                            if (row[pm]) {
-                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + row[pm];
-                            }
-                        });
-                    });
 
                 } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
@@ -1959,3 +1963,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
