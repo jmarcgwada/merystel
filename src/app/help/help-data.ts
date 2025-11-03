@@ -208,14 +208,24 @@ C'est l'étape la plus importante. Vous devez faire correspondre chaque champ de
     *   **Création de Catégorie (si nécessaire) :** Si vous avez mappé le champ \`itemCategory\` et que la catégorie n'existe pas, elle sera créée automatiquement.
     *   **Ajout à la Vente :** L'article (existant ou nouvellement créé) est ajouté à la pièce en cours de construction avec la quantité, le prix et la TVA correspondants.
 
-5.  **Gestion des Paiements :** Les montants que vous avez mappés dans les colonnes de paiement (ex: \`paymentCash\`, \`paymentCard\`) sont additionnés pour reconstituer le règlement de la pièce.
+5.  **Gestion des Paiements :**
+    *   **Mappage :** Vous pouvez mapper plusieurs colonnes de votre fichier à des types de paiement (ex: \`paymentCash\`, \`paymentCard\`, \`paymentCheck\`, \`paymentOther\`).
+    *   **Agrégation :** Pour une même pièce, le système additionne toutes les valeurs trouvées dans ces colonnes, même si elles sont sur des lignes différentes.
+    *   **Création :** Pour chaque méthode de paiement ayant un total non nul, un objet de paiement est créé et associé à la facture. Cela permet de reconstituer des multi-paiements (ex: une partie en espèces, une partie en carte).
 
-6.  **Finalisation :** Une fois toutes les lignes traitées, la pièce de vente est finalisée (calcul des totaux, ajout des paiements) et enregistrée dans votre historique.
+6.  **Finalisation et Statut :**
+    *   Une fois toutes les lignes traitées, le total de la pièce est calculé.
+    *   Le total des paiements agrégés est comparé au total de la pièce.
+    *   Si le paiement est complet, le statut est mis à **"Payée"** (\`paid\`).
+    *   Sinon, le statut est mis à **"En attente"** (\`pending\`), vous permettant de suivre les impayés.
+    *   La pièce est enfin enregistrée dans votre historique.
 
 Ce processus vous permet d'importer un historique de ventes complexe sans avoir à créer manuellement chaque client, article ou catégorie au préalable.`
       }
     ],
   },
 ];
+
+    
 
     
