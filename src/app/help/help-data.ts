@@ -210,8 +210,8 @@ C'est l'étape la plus importante. Vous devez faire correspondre chaque champ de
 
 5.  **Gestion des Paiements :**
     *   **Mappage :** Vous pouvez mapper plusieurs colonnes de votre fichier à des types de paiement (ex: \`paymentCash\`, \`paymentCard\`, \`paymentCheck\`, \`paymentOther\`).
-    *   **Agrégation :** Pour une même pièce, le système additionne toutes les valeurs trouvées dans ces colonnes, même si elles sont sur des lignes différentes.
-    *   **Création :** Pour chaque méthode de paiement ayant un total non nul, un objet de paiement est créé et associé à la facture. Cela permet de reconstituer des multi-paiements (ex: une partie en espèces, une partie en carte).
+    *   **Agrégation Totale :** Pour une même pièce de vente, le système examine **l'ensemble des lignes** de cette pièce et **additionne toutes les valeurs** trouvées dans les colonnes de paiement mappées. Par exemple, si une ligne contient une valeur pour le paiement en espèces et une autre ligne (de la même facture) contient une valeur pour le paiement par carte, les deux montants seront pris en compte.
+    *   **Création des Paiements :** Pour chaque méthode de paiement ayant un total non nul pour la pièce, un objet de paiement unique est créé et associé à la facture finale. Cela permet de reconstituer fidèlement les multi-paiements.
 
 6.  **Finalisation et Statut :**
     *   Une fois toutes les lignes traitées, le total de la pièce est calculé.
@@ -225,6 +225,8 @@ Ce processus vous permet d'importer un historique de ventes complexe sans avoir 
     ],
   },
 ];
+
+    
 
     
 
