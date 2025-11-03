@@ -150,7 +150,7 @@ Cette section contient les réglages fonctionnels de l'application.
 - **Description dans la commande :** Choisissez si et comment les descriptions d'articles sont affichées dans le ticket de commande.
         `,
       },
-       {
+      {
         slug: "settings-firestore",
         title: "Données Firestore (Admin)",
         content: `
@@ -167,8 +167,53 @@ Cette section, réservée aux administrateurs et protégée par un code PIN, per
       {
         slug: "import-data-advanced",
         title: "Importation de Données (Avancé)",
-        content: "L'outil d'importation est une fonctionnalité puissante pour remplir rapidement votre base de données. Il se déroule en 3 étapes : Fichier, Mappage, et JSON/Import.\\n\\n**Étape 1 : Fichier & Format**\\n1. **Type de données :** Choisissez ce que vous importez (Clients, Articles, Ventes, etc.).\\n2. **Séparateur :** Indiquez le caractère qui sépare les colonnes dans votre fichier (point-virgule, virgule...).\\n3. **En-tête :** Cochez si la première ligne de votre fichier contient les noms des colonnes.\\n4. **Fichier :** Sélectionnez votre fichier CSV ou texte. Une prévisualisation s'affiche, vous permettant de vérifier que les données sont correctement lues et triables.\\n\\n**Étape 2 : Mappage**\\nC'est l'étape la plus importante. Vous devez faire correspondre chaque champ de l'application (ex: \\\"Nom du client\\\") à une colonne de votre fichier.\\n- Les champs marqués d'un astérisque (*) sont **obligatoires**.\\n- Vous pouvez sauvegarder vos configurations de mappage comme **modèles** pour les réutiliser.\\n- **Mode \\\"Valeur Fixe\\\" :** Au lieu de mapper une colonne, vous pouvez assigner une valeur fixe à un champ pour toutes les lignes importées.\\n\\n**Étape 3 : JSON & Import**\\n- Une prévisualisation des données formatées en JSON est affichée.\\n- Vous pouvez limiter le nombre de lignes à importer, utile pour les tests.\\n- Le bouton **\\\"Importer les Données\\\"** lance le processus. Un rapport s'affichera à la fin.\\n\\n**Règles pour \\\"Ventes Complètes\\\"**\\nCe type d'import est le plus complexe et puissant. Il peut créer des ventes, mais aussi des clients et des articles à la volée.\\n\\n**Code de Référence pour l'Importation des Ventes Complètes :**\\n```javascript\\n// Logique utilisée dans la fonction importDataFromJson du fichier pos-context.tsx\\ncase 'ventes_completes':\\n    // ... (Initialisation des variables) ...\\n\\n    // Regroupement des lignes par numéro de pièce\\n    for (const row of limitedJsonData) {\\n        const ticketNum = row.ticketNumber;\\n        if (!ticketNum) continue;\\n        if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];\\n        groupedRows[ticketNum].push(row);\\n    }\\n\\n    for (const ticketNumber in groupedRows) {\\n        const rows = groupedRows[ticketNumber];\\n        const firstRow = rows[0];\\n\\n        try {\\n            // Détermination du type de document\\n            const docName = firstRow.pieceName?.toLowerCase() || '';\\n            const documentType = docName.includes('facture') ? 'invoice'\\n                            : docName.includes('devis') ? 'quote'\\n                            // ... autres types\\n                            : 'ticket';\\n\\n            // Vérification de l'unicité du numéro de pièce\\n            if (existingSaleNumbers.has(finalTicketNumber)) continue;\\n\\n            // Gestion des lignes de notes (sans code-barres)\\n            if (!row.itemBarcode) { /* ... */ }\\n\\n            // Création ou recherche du client\\n            if (!customer && row.customerCode && row.customerName) { /* ... */ }\\n\\n            // Création ou recherche de l'article\\n            if (!item && row.itemBarcode && row.itemName) { /* ... */ }\\n\\n            // Création de l'entrée de vente si elle n'existe pas\\n            if (!saleEntry) {\\n                // ... (création de l'objet 'sale' avec date, client, vendeur, etc.) ...\\n            }\\n\\n            // Ajout de la ligne d'article à la vente\\n            saleEntry.sale.items.push(orderItem);\\n\\n            // Traitement des paiements\\n            processPayment(saleEntry, row);\\n\\n            salesMap.set(finalTicketNumber, saleEntry);\\n\\n        } catch (e) {\\n            // Gestion des erreurs\\n        }\\n    }\\n\\n    // Finalisation et enregistrement des ventes\\n    for (const { sale, paymentTotals } of salesMap.values()) {\\n        // ... (calcul des totaux, ajout des paiements) ...\\n        setSales(prev => [sale, ...prev]);\\n        successCount++;\\n    }\\n    break;\\n```",
+        content: `L'outil d'importation est une fonctionnalité puissante pour remplir rapidement votre base de données. Il se déroule en 3 étapes : Fichier, Mappage, et JSON/Import.
+
+**Étape 1 : Fichier & Format**
+1.  **Type de données :** Choisissez ce que vous importez (Clients, Articles, Ventes, etc.).
+2.  **Séparateur :** Indiquez le caractère qui sépare les colonnes dans votre fichier (point-virgule, virgule...).
+3.  **En-tête :** Cochez si la première ligne de votre fichier contient les noms des colonnes.
+4.  **Fichier :** Sélectionnez votre fichier CSV ou texte. Une prévisualisation s'affiche, vous permettant de vérifier que les données sont correctement lues et triables.
+
+**Étape 2 : Mappage**
+C'est l'étape la plus importante. Vous devez faire correspondre chaque champ de l'application (ex: "Nom du client") à une colonne de votre fichier.
+- Les champs marqués d'un astérisque (*) sont **obligatoires**.
+- Vous pouvez sauvegarder vos configurations de mappage comme **modèles** pour les réutiliser.
+- **Mode "Valeur Fixe" :** Au lieu de mapper une colonne, vous pouvez assigner une valeur fixe à un champ pour toutes les lignes importées.
+
+**Étape 3 : JSON & Import**
+- Une prévisualisation des données formatées en JSON est affichée.
+- Vous pouvez limiter le nombre de lignes à importer, utile pour les tests.
+- Le bouton **"Importer les Données"** lance le processus. Un rapport s'affichera à la fin.
+`
       },
+      {
+        slug: "import-ventes-completes",
+        title: "Importation Avancée : Ventes Complètes",
+        content: `Ce mode d'importation est le plus puissant car il peut **créer des clients et des articles à la volée** si ceux-ci n'existent pas déjà dans votre base de données, vous permettant de reconstituer un historique de ventes complet.
+
+**Logique de Fonctionnement :**
+
+1.  **Groupement par Pièce :** L'outil regroupe d'abord toutes les lignes de votre fichier qui partagent le même **Numéro de pièce** (\`ticketNumber\`). Chaque groupe formera une seule pièce de vente.
+
+2.  **Vérification des Doublons :** Le système vérifie si un numéro de pièce existe déjà dans votre base de données. Si c'est le cas, toute la pièce est ignorée pour éviter les doublons.
+
+3.  **Création du Client (si nécessaire) :**
+    *   Pour chaque nouvelle pièce, le système cherche un client existant en utilisant le \`customerCode\` que vous avez mappé.
+    *   Si aucun client n'est trouvé et que vous avez fourni un \`customerName\`, un **nouveau client est automatiquement créé**. Les autres informations mappées (email, adresse, etc.) seront également ajoutées.
+
+4.  **Traitement des Lignes de la Pièce :** Pour chaque ligne d'un même groupe de pièce :
+    *   **Gestion des Notes :** Si une ligne ne contient pas de code-barres (\`itemBarcode\`), sa désignation (\`itemName\`) est considérée comme une **note** et est ajoutée à l'article de la ligne précédente.
+    *   **Création de l'Article (si nécessaire) :** Si un \`itemBarcode\` est présent, le système cherche un article correspondant. S'il n'en trouve pas et qu'un \`itemName\` est fourni, un **nouvel article est automatiquement créé**.
+    *   **Création de Catégorie (si nécessaire) :** Si vous avez mappé le champ \`itemCategory\` et que la catégorie n'existe pas, elle sera créée automatiquement.
+    *   **Ajout à la Vente :** L'article (existant ou nouvellement créé) est ajouté à la pièce en cours de construction avec la quantité, le prix et la TVA correspondants.
+
+5.  **Gestion des Paiements :** Les montants que vous avez mappés dans les colonnes de paiement (ex: \`paymentCash\`, \`paymentCard\`) sont additionnés pour reconstituer le règlement de la pièce.
+
+6.  **Finalisation :** Une fois toutes les lignes traitées, la pièce de vente est finalisée (calcul des totaux, ajout des paiements) et enregistrée dans votre historique.
+
+Ce processus vous permet d'importer un historique de ventes complexe sans avoir à créer manuellement chaque client, article ou catégorie au préalable.`
+      }
     ],
   },
 ];
