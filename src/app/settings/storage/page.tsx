@@ -10,6 +10,7 @@ import { ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 interface StorageInfo {
   key: string;
@@ -137,6 +138,7 @@ export default function StoragePage() {
   }, []);
 
   const usagePercentage = (totalSize / LOCAL_STORAGE_QUOTA) * 100;
+  const hue = 120 - (usagePercentage * 1.2);
 
   return (
     <>
@@ -167,10 +169,19 @@ export default function StoragePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Progress value={usagePercentage} />
+                <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Stockage local</Label>
+                    <span className="text-xs font-bold text-primary">{usagePercentage.toFixed(2)}%</span>
+                </div>
+              <Progress
+                value={usagePercentage}
+                className="h-2"
+                indicatorStyle={{
+                    background: `linear-gradient(90deg, hsl(120, 70%, 50%), hsl(${hue < 0 ? 0 : hue}, 70%, 50%))`
+                }}
+               />
               <div className="flex justify-between text-sm font-medium">
                 <span>{formatBytes(totalSize)} / {formatBytes(LOCAL_STORAGE_QUOTA)}</span>
-                <span className="text-primary">{usagePercentage.toFixed(2)}%</span>
               </div>
             </div>
             {usagePercentage > 90 && (
@@ -201,7 +212,7 @@ export default function StoragePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {storageData.map(({ key, size, itemCount }) => (
+                {storageData.filter(item => totalSize > 0 && (item.size / totalSize) * 100 >= 0.1).map(({ key, size, itemCount }) => (
                   <TableRow key={key}>
                     <TableCell className="font-medium">{keyToFrench[key] || key}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatBytes(size)}</TableCell>
