@@ -408,30 +408,30 @@ function PaymentsReportPageContent() {
             setIsDetailModalOpen(true);
         }
     };
-  
-  if (!isClient || isPosLoading) {
-      return (
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <PageHeader title="Rapport des Paiements" subtitle="Chargement des données..."/>
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Skeleton className="h-96 w-full" />
+    
+    if (!isClient || isPosLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                <PageHeader title="Rapport des Paiements" subtitle="Chargement des données..."/>
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <Skeleton className="h-96 w-full" />
+                </div>
             </div>
-        </div>
-      )
-  }
+        )
+    }
 
-  const pageTitle = (
-    <div className="flex items-center gap-4">
-        <span>Liste des Paiements</span>
-        <span className="text-base font-normal text-muted-foreground">({filteredAndSortedPayments.length} / {allPayments.length})</span>
-    </div>
-  );
+    const pageTitle = (
+        <div className="flex items-center gap-4">
+            <span>Liste des Paiements</span>
+            <span className="text-base font-normal text-muted-foreground">({filteredAndSortedPayments.length} / {allPayments.length})</span>
+        </div>
+      );
 
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
-          title={pageTitle}
+          title="Rapport des Paiements"
           subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
@@ -512,8 +512,7 @@ function PaymentsReportPageContent() {
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent>
-                                        <div className="space-y-4 text-sm">
-                                            <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                        <div className="space-y-2 text-sm">
                                             <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
                                             <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
                                             <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
@@ -571,34 +570,39 @@ function PaymentsReportPageContent() {
           </Collapsible>
           
           <Card>
-              <CardHeader><div className="flex items-center justify-end"><div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                  <Popover>
-                      <PopoverTrigger asChild>
-                          <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                              Page {currentPage} / {totalPages || 1}
-                          </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-48 p-2">
-                          <div className="space-y-2">
-                              <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                              <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                  <span>{itemsPerPageState}</span>
-                              </div>
-                              <Slider
-                                  id="items-per-page-slider"
-                                  value={[itemsPerPageState]}
-                                  onValueChange={(value) => setItemsPerPageState(value[0])}
-                                  onValueCommit={(value) => setItemsPerPage(value[0])}
-                                  min={10}
-                                  max={100}
-                                  step={10}
-                              />
-                          </div>
-                      </PopoverContent>
-                  </Popover>
-                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
-              </div></div></CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle>{pageTitle}</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                    Page {currentPage} / {totalPages || 1}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                        <span>{itemsPerPageState}</span>
+                                    </div>
+                                    <Slider
+                                        id="items-per-page-slider"
+                                        value={[itemsPerPageState]}
+                                        onValueChange={(value) => setItemsPerPageState(value[0])}
+                                        onValueCommit={(value) => setItemsPerPage(value[0])}
+                                        min={10}
+                                        max={100}
+                                        step={10}
+                                    />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                    </div>
+                </div>
+              </CardHeader>
               <CardContent className="pt-0">
                   <Table>
                       <TableHeader><TableRow>
@@ -619,11 +623,11 @@ function PaymentsReportPageContent() {
                                   <TableRow key={`${payment.saleId}-${index}`} style={getRowStyle(payment)}>
                                       <TableCell className="font-medium text-xs"><ClientFormattedDate date={payment.date} saleDate={payment.saleDate} /></TableCell>
                                       <TableCell>
-                                          <Link href={`/reports/${payment.saleId}?from=payments`}>
+                                          <button onClick={() => openSaleDetailModal(payment.saleId)} className="text-blue-600 hover:underline">
                                               <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground">
                                                 {payment.saleTicketNumber}
                                               </Badge>
-                                          </Link>
+                                          </button>
                                       </TableCell>
                                       <TableCell><Badge variant="outline" className="capitalize">{payment.method.name}</Badge></TableCell>
                                       <TableCell>{customerName}</TableCell>
