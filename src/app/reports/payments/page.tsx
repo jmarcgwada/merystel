@@ -432,7 +432,7 @@ function PaymentsReportPageContent() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title={pageTitle}
-          subtitle={`Page ${currentPage} sur ${totalPages}`}
+          subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
               <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
