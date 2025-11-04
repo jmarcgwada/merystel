@@ -67,7 +67,8 @@ import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 function DunningActionDialog({
   isOpen,
@@ -297,7 +298,7 @@ export default function UnpaidInvoicesPage() {
   const [saleForPartialPayment, setSaleForPartialPayment] = useState<Sale | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isFiltersOpen, setFiltersOpen] = useState(false);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -524,9 +525,9 @@ export default function UnpaidInvoicesPage() {
         
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center">
                     <CardTitle className="flex items-center gap-4">
-                        Liste des impayés
+                       Liste des impayés
                         <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
                     </CardTitle>
                     <div className="flex items-center gap-1">
@@ -557,7 +558,7 @@ export default function UnpaidInvoicesPage() {
                       </Popover>
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
-                </div>
+                  </div>
               </CardHeader>
               <CardContent className="pt-0">
                   <Table>
@@ -633,9 +634,7 @@ export default function UnpaidInvoicesPage() {
                                 <TableCell className="text-right">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
+                                      <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent>
                                       <DropdownMenuItem
