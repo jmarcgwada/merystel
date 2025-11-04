@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check, Settings, HelpCircle, SlidersHorizontal } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowLeft, ArrowRight, LayoutDashboard, Calendar as CalendarIcon, DollarSign, ShoppingBag, ChevronDown, Scale, X, ArrowUpDown, Columns, Pencil, Check, Settings, HelpCircle, SlidersHorizontal, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -118,8 +118,10 @@ function AnalyticsPageContent() {
     const [filterDocTypes, setFilterDocTypes] = useState<Record<string, boolean>>({
         ticket: true,
         invoice: true,
-        credit_note: false,
+        quote: false,
+        delivery_note: false,
         supplier_order: false,
+        credit_note: false,
     });
     
     const [salesLinesSortConfig, setSalesLinesSortConfig] = useState<{ key: SalesLinesSortKey, direction: 'asc' | 'desc' }>({ key: 'saleDate', direction: 'desc' });
@@ -206,9 +208,9 @@ function AnalyticsPageContent() {
 
         setFilterDocTypes(prev => {
             const newState = { ...prev, [typeKey]: checked };
-            if (checked && typeInfo.type) {
+            if (checked && typeInfo.type !== 'neutral') {
                 for (const key in documentTypes) {
-                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                    if (documentTypes[key as keyof typeof documentTypes].type !== 'neutral' && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
                         newState[key] = false;
                     }
                 }
@@ -429,19 +431,6 @@ function AnalyticsPageContent() {
         setDateRange({ from: startOfDay(today), to: endOfDay(today) });
     };
 
-    const currentFilterParams = useMemo(() => {
-      const params = new URLSearchParams();
-      if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd'));
-      if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd'));
-      if (filterCustomer) params.set('customer', filterCustomer);
-      if (filterItem) params.set('item', filterItem);
-      if (filterSeller) params.set('seller', filterSeller);
-      if (filterCategory !== 'all') params.set('category', filterCategory);
-      const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
-      if(activeDocTypes.length > 0) params.set('docTypes', activeDocTypes.join(','));
-      return params.toString();
-    }, [dateRange, filterCustomer, filterItem, filterSeller, filterDocTypes, filterCategory]);
-
     const handleTopItemSelect = (itemName: string, isSelected: boolean) => {
         setSelectedTopItems(prev => 
             isSelected ? [...prev, itemName] : prev.filter(name => name !== itemName)
@@ -516,37 +505,58 @@ function AnalyticsPageContent() {
           
           <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                      <SlidersHorizontal className="h-4 w-4 mr-2" />
-                      Filtres
-                      <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
-                    </Button>
-                  </CollapsibleTrigger>
+              <CardHeader className="p-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-4">
+                      <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="justify-start px-2 text-lg font-semibold -ml-2">
+                              <SlidersHorizontal className="mr-2 h-4 w-4" />
+                              Filtres
+                              <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                          </Button>
+                      </CollapsibleTrigger>
+                      <div className="relative">
+                          <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                <HelpCircle className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent>
+                              <div className="space-y-4 text-sm">
+                                <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                      </div>
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9">
+                                  <span>Types de pièce</span>
+                                  <ChevronDown className="h-4 w-4" />
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                              <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {Object.entries(documentTypes).map(([type, { label }]) => (
+                                  <DropdownMenuCheckboxItem
+                                      key={type}
+                                      checked={filterDocTypes[type]}
+                                      onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                  >
+                                      {label}
+                                  </DropdownMenuCheckboxItem>
+                              ))}
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-auto sm:w-[220px] justify-between">
-                          <span>Types de pièce</span>
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {Object.entries(documentTypes).map(([type, { label }]) => (
-                          <DropdownMenuCheckboxItem
-                            key={type}
-                            checked={filterDocTypes[type]}
-                            onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
-                          >
-                            {label}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                     <Button variant="ghost" size="sm" onClick={resetFilters}>
                       <X className="mr-2 h-4 w-4" />Réinitialiser
                     </Button>
@@ -555,14 +565,6 @@ function AnalyticsPageContent() {
               </CardHeader>
               <CollapsibleContent asChild>
                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                   <Input 
-                      ref={generalFilterRef}
-                      placeholder="Recherche générale..." 
-                      value={generalFilter} 
-                      onChange={(e) => setGeneralFilter(e.target.value)} 
-                      className="max-w-xs h-9"
-                      onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })}
-                  />
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
@@ -752,7 +754,7 @@ function AnalyticsPageContent() {
                           Détail des Lignes de Vente ({filteredItems.length})
                           <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <Columns className="h-4 w-4" />
                                   </Button>
                               </DropdownMenuTrigger>
