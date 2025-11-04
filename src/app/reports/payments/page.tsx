@@ -420,12 +420,19 @@ function PaymentsReportPageContent() {
       )
   }
 
+  const pageTitle = (
+    <div className="flex items-center gap-4">
+        <span>Liste des Paiements</span>
+        <span className="text-base font-normal text-muted-foreground">({filteredAndSortedPayments.length} / {allPayments.length})</span>
+    </div>
+  );
+
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
-          title="Rapport des Paiements"
-          subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedPayments.length} paiements sur ${allPayments.length} au total)`}
+          title={pageTitle}
+          subtitle={`Page ${currentPage} sur ${totalPages}`}
         >
           <div className="flex items-center gap-2">
               <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>

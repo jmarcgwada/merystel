@@ -465,8 +465,13 @@ export default function UnpaidInvoicesPage() {
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
-          title="Factures Impayées"
-          subtitle={`Suivi de ${unpaidInvoices.length} factures en attente de paiement.`}
+            title={
+                <div className="flex items-center gap-4">
+                    <span>Liste des impayés</span>
+                    <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
+                </div>
+            }
+          subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
             <Card className="p-2 text-center">
@@ -487,7 +492,7 @@ export default function UnpaidInvoicesPage() {
         <Card className="mt-8">
           <CardHeader>
             <div className="flex flex-wrap gap-4 justify-between items-center">
-              <CardTitle>Liste des impayés</CardTitle>
+              <CardTitle>Suivi des factures non réglées</CardTitle>
               <div className="flex gap-2 flex-wrap items-center">
                   <Input 
                       placeholder="Rechercher par n° ou client..."
