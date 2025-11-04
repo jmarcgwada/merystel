@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -313,7 +314,8 @@ function AnalyticsPageContent() {
         
         const itemStats = filteredItems.reduce((acc, item) => {
             if(!acc[item.itemId]) {
-                acc[item.itemId] = { name: item.name, quantity: 0, revenue: 0 };
+                const catalogItem = allItems.find(i => i.id === item.itemId);
+                acc[item.itemId] = { name: catalogItem?.name || item.name, quantity: 0, revenue: 0 };
             }
             acc[item.itemId].quantity += item.quantity;
             acc[item.itemId].revenue += item.total;
@@ -365,7 +367,7 @@ function AnalyticsPageContent() {
             topCustomers: Object.values(customerStats),
             topCategories: Object.values(categoryStats),
         };
-    }, [filteredItems, filterDocTypes]);
+    }, [filteredItems, filterDocTypes, allItems]);
 
 
     const sortedAndPaginatedSalesLines = useMemo(() => {
@@ -560,10 +562,10 @@ function AnalyticsPageContent() {
                                   <h4 className="font-semibold">Syntaxe de recherche</h4>
                                   {[
                                       { syntax: "texte", explanation: "Contient le texte" },
-                                      { syntax: "/", explanation: "Sépare les termes (ET)" },
-                                      { syntax: "!", explanation: "Ne contient pas" },
-                                      { syntax: "^", explanation: "Commence par" },
-                                      { syntax: "*", explanation: "Ignore les filtres" }
+                                      { syntax: "/", explanation: "Sépare les termes (ET logique)" },
+                                      { syntax: "!", explanation: "Ne contient pas le texte" },
+                                      { syntax: "^", explanation: "Commence par le texte" },
+                                      { syntax: "*", explanation: "Ignore tous les filtres" }
                                   ].map(({ syntax, explanation }) => (
                                       <div key={syntax} className="flex items-center justify-between">
                                           <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
@@ -597,9 +599,7 @@ function AnalyticsPageContent() {
                       </DropdownMenu>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={resetFilters}>
-                      <X className="mr-2 h-4 w-4" />Réinitialiser
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={resetFilters}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                   </div>
                 </div>
               </CardHeader>
