@@ -72,6 +72,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import { Slider } from '@/components/ui/slider';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 
 function DunningActionDialog({
@@ -281,7 +282,6 @@ export default function UnpaidInvoicesPage() {
     updateSale,
     dunningLogs,
     addDunningLog,
-    addPaiementPartiel,
     itemsPerPage,
     setItemsPerPage
   } = usePos();
@@ -303,6 +303,7 @@ export default function UnpaidInvoicesPage() {
   const [saleForPartialPayment, setSaleForPartialPayment] = useState<Sale | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -465,13 +466,8 @@ export default function UnpaidInvoicesPage() {
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
-            title={
-                <div className="flex items-center gap-4">
-                    <span>Liste des impayés</span>
-                    <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
-                </div>
-            }
-          subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
+            title="Factures Impayées"
+            subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
             <Card className="p-2 text-center">
@@ -489,242 +485,269 @@ export default function UnpaidInvoicesPage() {
           </div>
         </PageHeader>
         
-        <Card className="mt-8">
-          <CardHeader>
-            <div className="flex flex-wrap gap-4 justify-between items-center">
-              <CardTitle>Suivi des factures non réglées</CardTitle>
-              <div className="flex gap-2 flex-wrap items-center">
-                  <Input 
-                      placeholder="Rechercher par n° ou client..."
-                      value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                      className="h-9 w-auto sm:w-64"
-                  />
-                  <Popover>
-                      <PopoverTrigger asChild>
-                          <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                          </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                          <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
-                      </PopoverContent>
-                  </Popover>
-                  <Button variant="ghost" size="icon" onClick={resetFilters}>
-                      <X className="h-4 w-4" />
-                  </Button>
-                  <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                      <Popover>
-                          <PopoverTrigger asChild>
-                              <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                  Page {currentPage} / {totalPages || 1}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-48 p-2">
-                              <div className="space-y-2">
-                                  <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                  <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                      <span>{itemsPerPageState}</span>
-                                  </div>
-                                  <Slider
-                                      id="items-per-page-slider"
-                                      value={[itemsPerPageState]}
-                                      onValueChange={(value) => setItemsPerPageState(value[0])}
-                                      onValueCommit={(value) => setItemsPerPage(value[0])}
-                                      min={5}
-                                      max={50}
-                                      step={5}
-                                  />
-                              </div>
-                          </PopoverContent>
-                      </Popover>
-                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
-                  </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>N° Facture</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Date d'échéance</TableHead>
-                    <TableHead>Montant Dû</TableHead>
-                    <TableHead>Niveau de Relance</TableHead>
-                    <TableHead className="w-[100px] text-right">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading &&
-                    Array.from({ length: itemsPerPage }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={7} className="h-12">
-                            <Skeleton className="h-6 w-full" />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  {!isLoading &&
-                    paginatedInvoices.map((sale) => {
-                      const totalPaid = (sale.payments || []).reduce(
-                        (sum, p) => sum + p.amount,
-                        0
-                      );
-                      const amountDue = sale.total - totalPaid;
-                      const logs = saleDunningLogs(sale.id);
-                      return (
-                        <React.Fragment key={sale.id}>
-                          <TableRow>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => toggleDetails(sale.id)}
-                              >
-                                {openDetails[sale.id] ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell>
-                              <Link
-                                href={`/reports/${sale.id}?from=unpaid`}
-                                className="font-medium text-primary hover:underline"
-                              >
-                                {sale.ticketNumber}
-                              </Link>
-                            </TableCell>
-                            <TableCell>
-                              {getCustomerName(sale.customerId)}
-                            </TableCell>
-                            <TableCell>
-                              <ClientFormattedDate
-                                date={sale.date}
-                                formatString="d MMMM yyyy"
-                              />
-                            </TableCell>
-                            <TableCell className="font-semibold text-destructive">
-                              {amountDue.toFixed(2)}€
-                            </TableCell>
-                            <TableCell>
-                              <DunningInfo sale={sale} />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
+        <div className="mt-8 space-y-4">
+             <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+                <Card>
+                    <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                    Filtres
+                                    <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                                </Button>
+                            </CollapsibleTrigger>
+                             <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="sm" onClick={resetFilters}>
+                                    <X className="mr-2 h-4 w-4" />Réinitialiser
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CollapsibleContent>
+                        <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                           <Input 
+                              placeholder="Rechercher par n° ou client..."
+                              value={searchTerm}
+                              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                              className="h-9 w-auto sm:w-64"
+                          />
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                                   </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem
-                                    onClick={() => setSaleForPartialPayment(sale)}
-                                  >
-                                    <Banknote className="mr-2 h-4 w-4" />
-                                    Enregistrer un règlement
-                                  </DropdownMenuItem>
-                                  <Separator/>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSaleForEmail(sale);
-                                      setIsEmailDialogOpen(true);
-                                    }}
-                                  >
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Relance par Email
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      setDunningActionState({
-                                        sale,
-                                        actionType: 'phone',
-                                      })
-                                    }
-                                  >
-                                    <Phone className="mr-2 h-4 w-4" />
-                                    Enregistrer un Appel
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      setDunningActionState({
-                                        sale,
-                                        actionType: 'whatsapp',
-                                      })
-                                    }
-                                  >
-                                    <MessageSquare className="mr-2 h-4 w-4" />
-                                    Enregistrer un WhatsApp
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                              </PopoverContent>
+                          </Popover>
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
+        
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="flex items-center gap-4">
+                        Liste des impayés
+                        <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-1">
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                      Page {currentPage} / {totalPages || 1}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2">
+                                  <div className="space-y-2">
+                                      <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                      <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                          <span>{itemsPerPageState}</span>
+                                      </div>
+                                      <Slider
+                                          id="items-per-page-slider"
+                                          value={[itemsPerPageState]}
+                                          onValueChange={(value) => setItemsPerPageState(value[0])}
+                                          onValueCommit={(value) => setItemsPerPage(value[0])}
+                                          min={5}
+                                          max={50}
+                                          step={5}
+                                      />
+                                  </div>
+                              </PopoverContent>
+                          </Popover>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>N° Facture</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Date d'échéance</TableHead>
+                        <TableHead>Montant Dû</TableHead>
+                        <TableHead>Niveau de Relance</TableHead>
+                        <TableHead className="w-[100px] text-right">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading &&
+                        Array.from({ length: itemsPerPage }).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell colSpan={7} className="h-12">
+                                <Skeleton className="h-6 w-full" />
                             </TableCell>
                           </TableRow>
-                          {openDetails[sale.id] && (
-                            <TableRow>
-                              <TableCell colSpan={7} className="p-0">
-                                <div className="bg-muted/50 p-4">
-                                  {logs.length > 0 ? (
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Date</TableHead>
-                                          <TableHead>Type</TableHead>
-                                          <TableHead>Note</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {logs.map((log) => (
-                                          <TableRow key={log.id}>
-                                            <TableCell className="text-xs">
-                                              <ClientFormattedDate
-                                                date={log.date}
-                                                formatString="d MMM yy, HH:mm"
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                              >
-                                                {log.actionType}
-                                              </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-xs whitespace-pre-wrap">
-                                              {log.notes || '-'}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  ) : (
-                                    <p className="text-center text-sm text-muted-foreground py-4">
-                                      Aucune action de relance enregistrée pour
-                                      cette facture.
-                                    </p>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                </TableBody>
-              </Table>
-              {!isLoading && unpaidInvoices.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Aucune facture impayée pour le moment.</p>
-                </div>
-              )}
-          </CardContent>
-        </Card>
+                        ))}
+                      {!isLoading &&
+                        paginatedInvoices.map((sale) => {
+                          const totalPaid = (sale.payments || []).reduce(
+                            (sum, p) => sum + p.amount,
+                            0
+                          );
+                          const amountDue = sale.total - totalPaid;
+                          const logs = saleDunningLogs(sale.id);
+                          return (
+                            <React.Fragment key={sale.id}>
+                              <TableRow>
+                                <TableCell>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => toggleDetails(sale.id)}
+                                  >
+                                    {openDetails[sale.id] ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TableCell>
+                                <TableCell>
+                                  <Link
+                                    href={`/reports/${sale.id}?from=unpaid`}
+                                    className="font-medium text-primary hover:underline"
+                                  >
+                                    {sale.ticketNumber}
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  {getCustomerName(sale.customerId)}
+                                </TableCell>
+                                <TableCell>
+                                  <ClientFormattedDate
+                                    date={sale.date}
+                                    formatString="d MMMM yyyy"
+                                  />
+                                </TableCell>
+                                <TableCell className="font-semibold text-destructive">
+                                  {amountDue.toFixed(2)}€
+                                </TableCell>
+                                <TableCell>
+                                  <DunningInfo sale={sale} />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                      <DropdownMenuItem
+                                        onClick={() => setSaleForPartialPayment(sale)}
+                                      >
+                                        <Banknote className="mr-2 h-4 w-4" />
+                                        Enregistrer un règlement
+                                      </DropdownMenuItem>
+                                      <Separator/>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSaleForEmail(sale);
+                                          setIsEmailDialogOpen(true);
+                                        }}
+                                      >
+                                        <Mail className="mr-2 h-4 w-4" />
+                                        Relance par Email
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setDunningActionState({
+                                            sale,
+                                            actionType: 'phone',
+                                          })
+                                        }
+                                      >
+                                        <Phone className="mr-2 h-4 w-4" />
+                                        Enregistrer un Appel
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setDunningActionState({
+                                            sale,
+                                            actionType: 'whatsapp',
+                                          })
+                                        }
+                                      >
+                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                        Enregistrer un WhatsApp
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                              {openDetails[sale.id] && (
+                                <TableRow>
+                                  <TableCell colSpan={7} className="p-0">
+                                    <div className="bg-muted/50 p-4">
+                                      {logs.length > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Date</TableHead>
+                                              <TableHead>Type</TableHead>
+                                              <TableHead>Note</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {logs.map((log) => (
+                                              <TableRow key={log.id}>
+                                                <TableCell className="text-xs">
+                                                  <ClientFormattedDate
+                                                    date={log.date}
+                                                    formatString="d MMM yy, HH:mm"
+                                                  />
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                  >
+                                                    {log.actionType}
+                                                  </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-xs whitespace-pre-wrap">
+                                                  {log.notes || '-'}
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <p className="text-center text-sm text-muted-foreground py-4">
+                                          Aucune action de relance enregistrée pour
+                                          cette facture.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                  {!isLoading && unpaidInvoices.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p>Aucune facture impayée pour le moment.</p>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
+        </div>
       </div>
       
       {isEmailDialogOpen && (
