@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building, LayoutDashboard } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, ChevronDown, ChevronRight, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, Globe, Building, LayoutDashboard, HelpCircle } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -28,8 +28,8 @@ import { Input } from '@/components/ui/input';
 import { useUser } from '@/firebase/auth/use-user';
 import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
 import { EditSupplierDialog } from '@/app/management/suppliers/components/edit-supplier-dialog';
-import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -79,14 +79,39 @@ export default function SuppliersPage() {
     setEditSupplierOpen(true);
   }
 
-  const filteredSuppliers = useMemo(() => 
-    suppliers?.filter(s => 
-        s.name.toLowerCase().includes(filter.toLowerCase()) || 
-        s.id.toLowerCase().includes(filter.toLowerCase()) ||
-        (s.contactName && s.contactName.toLowerCase().includes(filter.toLowerCase())) ||
-        (s.email && s.email.toLowerCase().includes(filter.toLowerCase()))
-    ) || [],
-  [suppliers, filter]);
+  const filteredSuppliers = useMemo(() => {
+    if (!isClient || !suppliers) return [];
+    if (filter.trim() === '*') return suppliers;
+
+    const searchTerms = filter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
+
+    return suppliers.filter(s => {
+      return searchTerms.length === 0 || searchTerms.every(term => {
+          let currentTerm = term;
+          let isNegation = false;
+          let isStartsWith = false;
+
+          if (currentTerm.startsWith('!')) {
+              isNegation = true;
+              currentTerm = currentTerm.substring(1);
+          } else if (currentTerm.startsWith('^')) {
+              isStartsWith = true;
+              currentTerm = currentTerm.substring(1);
+          }
+          if (!currentTerm) return true;
+
+          const searchableText = [s.name, s.id, s.contactName, s.email, s.phone, s.city, s.postalCode].filter(Boolean).join(' ').toLowerCase();
+          
+          let match;
+          if (isStartsWith) {
+              match = (s.name && s.name.toLowerCase().startsWith(currentTerm)) || (s.id && s.id.toLowerCase().startsWith(currentTerm));
+          } else {
+              match = searchableText.includes(currentTerm);
+          }
+          return isNegation ? !match : match;
+      });
+    });
+  }, [suppliers, filter, isClient]);
 
   const paginatedSuppliers = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -109,7 +134,7 @@ export default function SuppliersPage() {
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button asChild size="icon" className="btn-back">
+             <Button asChild variant="outline" size="icon" className="btn-back">
                 <Link href="/dashboard">
                     <LayoutDashboard />
                 </Link>
@@ -126,15 +151,33 @@ export default function SuppliersPage() {
         <Card>
           <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
-                  <Input 
-                    placeholder="Rechercher par nom, code, contact ou email..."
-                    value={filter}
-                    onChange={(e) => {
-                      setFilter(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="max-w-sm"
-                  />
+                  <div className="relative max-w-sm">
+                    <Input 
+                      placeholder="Rechercher par nom, code, contact ou email..."
+                      value={filter}
+                      onChange={(e) => {
+                        setFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="pr-8"
+                    />
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                <HelpCircle className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                            <div className="space-y-4 text-sm">
+                                <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
+                                <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                  </div>
                   <div className="flex items-center gap-2">
                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                         <ArrowLeft className="h-4 w-4" />
@@ -250,4 +293,3 @@ export default function SuppliersPage() {
     </>
   );
 }
-

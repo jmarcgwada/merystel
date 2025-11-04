@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale, HelpCircle, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useKeyboard } from '@/contexts/keyboard-context';
+import { useKeyboard } from '@/components/keyboard-context';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -218,6 +219,7 @@ function PaymentsReportPageContent() {
 
     const filteredAndSortedPayments = useMemo(() => {
         if (!allPayments) return [];
+        if (generalFilter.trim() === '*') return allPayments;
 
         const activeDocTypes = Object.entries(filterDocTypes)
           .filter(([, isActive]) => isActive)
@@ -243,29 +245,35 @@ function PaymentsReportPageContent() {
             const saleJsDate = toJsDate(payment.saleDate);
 
             let dateMatch = true;
-            if (dateRange?.from) {
-                dateMatch = paymentJsDate >= startOfDay(dateRange.from);
-            }
-            if (dateRange?.to) {
-                dateMatch = dateMatch && paymentJsDate <= endOfDay(dateRange.to);
-            }
+            if (dateRange?.from) dateMatch = paymentJsDate >= startOfDay(dateRange.from);
+            if (dateRange?.to) dateMatch = dateMatch && paymentJsDate <= endOfDay(dateRange.to);
             
             let paymentTypeMatch = true;
-            if (filterPaymentType === 'deferred') {
-                paymentTypeMatch = !isSameDay(paymentJsDate, saleJsDate);
-            } else if (filterPaymentType === 'immediate') {
-                paymentTypeMatch = isSameDay(paymentJsDate, saleJsDate);
-            }
+            if (filterPaymentType === 'deferred') paymentTypeMatch = !isSameDay(paymentJsDate, saleJsDate);
+            else if (filterPaymentType === 'immediate') paymentTypeMatch = isSameDay(paymentJsDate, saleJsDate);
             
             const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
             const docTypeMatch = activeDocTypes.includes(docType);
 
-            const generalMatch = !generalFilter || (
-                (payment.saleTicketNumber && payment.saleTicketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (customerName && customerName.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (sellerName && sellerName.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (payment.method.name.toLowerCase().includes(generalFilter.toLowerCase()))
-            );
+            const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
+            const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+                let currentTerm = term;
+                let isNegation = false;
+                let isStartsWith = false;
+
+                if (currentTerm.startsWith('!')) {
+                    isNegation = true;
+                    currentTerm = currentTerm.substring(1);
+                } else if (currentTerm.startsWith('^')) {
+                    isStartsWith = true;
+                    currentTerm = currentTerm.substring(1);
+                }
+                if (!currentTerm) return true;
+
+                const searchableText = [payment.saleTicketNumber, customerName, sellerName, payment.method.name].filter(Boolean).join(' ').toLowerCase();
+                let match = isStartsWith ? searchableText.startsWith(currentTerm) : searchableText.includes(currentTerm);
+                return isNegation ? !match : match;
+            });
 
             return customerMatch && methodMatch && dateMatch && sellerMatch && generalMatch && paymentTypeMatch && docTypeMatch;
         });
@@ -380,8 +388,8 @@ function PaymentsReportPageContent() {
         setFilterDocTypes({
             ticket: true,
             invoice: true,
-            credit_note: true,
-            supplier_order: true,
+            credit_note: false,
+            supplier_order: false,
         });
         setDateRange(undefined);
         setFilterSellerName('');
@@ -483,7 +491,9 @@ function PaymentsReportPageContent() {
                     <div className="flex items-center justify-between">
                       <CollapsibleTrigger asChild>
                           <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
-                              <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isFiltersOpen && "-rotate-90")} />Filtres
+                              <SlidersHorizontal className="h-4 w-4 mr-2" />
+                              Filtres
+                              <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                           </Button>
                       </CollapsibleTrigger>
                       <div className="flex items-center gap-2">
@@ -514,7 +524,25 @@ function PaymentsReportPageContent() {
                   </CardHeader>
                   <CollapsibleContent asChild>
                       <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                          <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'reports-general-filter', ref: generalFilterRef })} />
+                          <div className="relative">
+                            <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-sm h-9 pr-8" />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                        <HelpCircle className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <div className="space-y-4 text-sm">
+                                        <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                        <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
+                                        <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
+                                        <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
+                                        <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                          </div>
                           <Popover>
                               <PopoverTrigger asChild disabled={isDateFilterLocked}>
                                   <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
@@ -525,8 +553,8 @@ function PaymentsReportPageContent() {
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                           </Popover>
-                          <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterCustomerName, name: 'reports-customer-filter', ref: customerNameFilterRef })}/>
-                          <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterSellerName, name: 'reports-seller-filter', ref: sellerNameFilterRef })}/>
+                          <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
+                          <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
                           <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
                           <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
                       </CardContent>

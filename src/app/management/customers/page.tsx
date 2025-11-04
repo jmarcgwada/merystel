@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'reac
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, RefreshCw, ChevronDown, ChevronRight, Building, Mail, Phone, Notebook, Banknote, MapPin, ArrowLeft, ArrowRight, Fingerprint, LayoutDashboard, SlidersHorizontal, X, FilePen, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { AddCustomerDialog } from './components/add-customer-dialog';
 import { EditCustomerDialog } from './components/edit-customer-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -142,20 +142,44 @@ function CustomersPageContent() {
 
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
+    if (filter.trim() === '*') return customers;
     
     let filtered = customers.filter(c => {
         if (!c) return false;
-        const lowerFilter = filter.toLowerCase();
 
-        const nameMatch = c.name && c.name.toLowerCase().includes(lowerFilter);
-        const idMatch = c.id && c.id.toLowerCase().includes(lowerFilter);
         const postalCodeMatch = !filterPostalCode || (c.postalCode && c.postalCode.toLowerCase().includes(filterPostalCode.toLowerCase()));
         const phoneMatch = !filterPhone || (c.phone && c.phone.includes(filterPhone)) || (c.phone2 && c.phone2.includes(filterPhone));
         const addressMatch = !filterAddress || (c.address && c.address.toLowerCase().includes(filterAddress.toLowerCase()));
         const emailMatch = !filterEmail || (c.email && c.email.toLowerCase().includes(filterEmail.toLowerCase()));
         const disabledMatch = filterIsDisabled === 'all' || (c.isDisabled ? 'yes' : 'no') === filterIsDisabled;
         
-        return (nameMatch || idMatch) && postalCodeMatch && phoneMatch && addressMatch && emailMatch && disabledMatch;
+        const searchTerms = filter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
+        const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+            let currentTerm = term;
+            let isNegation = false;
+            let isStartsWith = false;
+
+            if (currentTerm.startsWith('!')) {
+                isNegation = true;
+                currentTerm = currentTerm.substring(1);
+            } else if (currentTerm.startsWith('^')) {
+                isStartsWith = true;
+                currentTerm = currentTerm.substring(1);
+            }
+            if (!currentTerm) return true;
+
+            const searchableText = [c.name, c.id, c.email, c.phone, c.phone2, c.city, c.postalCode].filter(Boolean).join(' ').toLowerCase();
+            
+            let match;
+            if(isStartsWith) {
+                match = (c.name && c.name.toLowerCase().startsWith(currentTerm)) || (c.id && c.id.toLowerCase().startsWith(currentTerm));
+            } else {
+                match = searchableText.includes(currentTerm);
+            }
+            return isNegation ? !match : match;
+        });
+
+        return generalMatch && postalCodeMatch && phoneMatch && addressMatch && emailMatch && disabledMatch;
     });
 
     if (sortConfig !== null) {
@@ -163,12 +187,8 @@ function CustomersPageContent() {
         let aValue = a[sortConfig.key] || '';
         let bValue = b[sortConfig.key] || '';
         
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
@@ -298,15 +318,33 @@ function CustomersPageContent() {
                           </Button>
                       </CollapsibleTrigger>
                       <div className="flex items-center gap-2 flex-1 justify-end">
-                           <Input 
-                              placeholder="Rechercher par nom ou code..."
-                              value={filter}
-                              onChange={(e) => {
-                                setFilter(e.target.value);
-                                setCurrentPage(1);
-                              }}
-                              className="max-w-xs h-9"
-                          />
+                            <div className="relative">
+                               <Input 
+                                  placeholder="Recherche générale..."
+                                  value={filter}
+                                  onChange={(e) => {
+                                    setFilter(e.target.value);
+                                    setCurrentPage(1);
+                                  }}
+                                  className="max-w-xs h-9 pr-8"
+                                />
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                            <HelpCircle className="h-4 w-4" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                        <div className="space-y-4 text-sm">
+                                            <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                            <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
+                                            <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
+                                            <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
+                                            <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout, ignore les autres filtres.</p>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                            <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
                               <SelectTrigger className="w-[180px] h-9">
                                   <SelectValue placeholder="Statut du client" />
