@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -85,7 +84,7 @@ function AnalyticsPageContent() {
         sales: allSales, 
         customers, 
         users, 
-        items,
+        items: allItems,
         categories,
         isLoading, 
         itemsPerPage,
@@ -221,11 +220,11 @@ function AnalyticsPageContent() {
     };
 
     const flattenedItems = useMemo(() => {
-        if (!allSales || !items || !categories) return [];
+        if (!allSales || !allItems || !categories) return [];
         return allSales
             .flatMap(sale => 
                 sale.items.map(item => {
-                    const fullItem = items.find(i => i.id === item.itemId);
+                    const fullItem = allItems.find(i => i.id === item.itemId);
                     return {
                         ...item,
                         saleId: sale.id,
@@ -241,7 +240,7 @@ function AnalyticsPageContent() {
                     }
                 })
             );
-    }, [allSales, getCustomerName, getUserName, items, categories]);
+    }, [allSales, getCustomerName, getUserName, allItems, categories]);
 
 
     const filteredItems = useMemo(() => {
@@ -306,19 +305,33 @@ function AnalyticsPageContent() {
     }, [flattenedItems, filterCustomer, filterItem, filterSeller, dateRange, filterDocTypes, generalFilter, filterCategory, selectedTopItems, selectedTopCustomers, selectedTopCategories]);
     
 
-    const { stats, topItems, topCustomers, topCategories } = useMemo(() => {
+    const { stats, topItems, topCustomers, topCategories, paymentMethodSummary } = useMemo(() => {
         const revenue = filteredItems.reduce((acc, item) => acc + item.total, 0);
         const totalSold = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
         const uniqueSales = new Set(filteredItems.map(item => item.saleId)).size;
         const averageBasket = uniqueSales > 0 ? revenue / uniqueSales : 0;
+
+       const paymentSummary = allSales
+            ?.filter(sale => filteredItems.some(item => item.saleId === sale.id))
+            .flatMap(sale => sale.payments || [])
+            .reduce((acc, p) => {
+                const name = p.method.name;
+                if (!acc[name]) {
+                    acc[name] = { count: 0, total: 0 };
+                }
+                acc[name].count += 1;
+                acc[name].total += p.amount;
+                return acc;
+            }, {} as Record<string, { count: number; total: number }>);
         
         const itemStats = filteredItems.reduce((acc, item) => {
-            if(!acc[item.itemId]) {
-                const catalogItem = items.find(i => i.id === item.itemId);
-                acc[item.itemId] = { name: catalogItem?.name || item.name, quantity: 0, revenue: 0 };
+            const catalogItem = allItems.find(i => i.id === item.itemId);
+            const itemName = catalogItem?.name || item.name;
+            if(!acc[itemName]) {
+                acc[itemName] = { name: itemName, quantity: 0, revenue: 0 };
             }
-            acc[item.itemId].quantity += item.quantity;
-            acc[item.itemId].revenue += item.total;
+            acc[itemName].quantity += item.quantity;
+            acc[itemName].revenue += item.total;
             return acc;
         }, {} as Record<string, {name: string, quantity: number, revenue: number}>);
 
@@ -366,8 +379,9 @@ function AnalyticsPageContent() {
             topItems: Object.values(itemStats),
             topCustomers: Object.values(customerStats),
             topCategories: Object.values(categoryStats),
+            paymentMethodSummary: paymentSummary || {},
         };
-    }, [filteredItems, filterDocTypes, items]);
+    }, [filteredItems, filterDocTypes, allItems, allSales]);
 
 
     const sortedAndPaginatedSalesLines = useMemo(() => {
@@ -511,6 +525,12 @@ function AnalyticsPageContent() {
         >
           <div className="flex items-center gap-2">
               <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+              <Button asChild variant="secondary">
+                  <Link href="/reports">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Rapport Simple
+                  </Link>
+              </Button>
               <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
               <Button asChild variant="outline" size="icon" className="btn-back">
                   <Link href="/dashboard">
@@ -629,22 +649,16 @@ function AnalyticsPageContent() {
                     <PopoverTrigger asChild>
                       <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFilterParam && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                         {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                   </Popover>
+                  <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs h-9" />
+                  <Input ref={itemFilterRef} placeholder="Filtrer par article/réf..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}/>
+                  <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs h-9" />
                    <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}><SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrer par catégorie" /></SelectTrigger><SelectContent><SelectItem value="all">Toutes les catégories</SelectItem>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
-                  <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs h-9" />
-                  <Input
-                      ref={itemFilterRef}
-                      placeholder="Filtrer par article/réf..." 
-                      value={filterItem} 
-                      onChange={(e) => setFilterItem(e.target.value)} 
-                      className="max-w-xs h-9"
-                      onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}
-                  />
-                  <Input placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs h-9" />
                   <div className="grid gap-2 w-48">
                       <div className="flex justify-between items-center">
                           <Label htmlFor="top-n-articles-slider">Top Articles</Label>
