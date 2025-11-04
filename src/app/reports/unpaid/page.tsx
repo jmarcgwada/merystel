@@ -59,12 +59,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EmailSenderDialog } from '../components/email-sender-dialog';
 import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -486,8 +480,8 @@ export default function UnpaidInvoicesPage() {
         </PageHeader>
         
         <div className="mt-8 space-y-4">
-             <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
-                <Card>
+            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+                <Card className="mb-4">
                     <CardHeader className="p-4">
                         <div className="flex items-center justify-between">
                             <CollapsibleTrigger asChild>
@@ -535,35 +529,33 @@ export default function UnpaidInvoicesPage() {
                         Liste des impayés
                         <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
                     </CardTitle>
-                    <div className="flex items-center gap-2">
-                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                      Page {currentPage} / {totalPages || 1}
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48 p-2">
-                                  <div className="space-y-2">
-                                      <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                      <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                          <span>{itemsPerPageState}</span>
-                                      </div>
-                                      <Slider
-                                          id="items-per-page-slider"
-                                          value={[itemsPerPageState]}
-                                          onValueChange={(value) => setItemsPerPageState(value[0])}
-                                          onValueCommit={(value) => setItemsPerPage(value[0])}
-                                          min={5}
-                                          max={50}
-                                          step={5}
-                                      />
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                  Page {currentPage} / {totalPages || 1}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-2">
+                              <div className="space-y-2">
+                                  <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                  <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                      <span>{itemsPerPageState}</span>
                                   </div>
-                              </PopoverContent>
-                          </Popover>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
-                      </div>
+                                  <Slider
+                                      id="items-per-page-slider"
+                                      value={[itemsPerPageState]}
+                                      onValueChange={(value) => setItemsPerPageState(value[0])}
+                                      onValueCommit={(value) => setItemsPerPage(value[0])}
+                                      min={5}
+                                      max={50}
+                                      step={5}
+                                  />
+                              </div>
+                          </PopoverContent>
+                      </Popover>
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                 </div>
               </CardHeader>
