@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,7 +10,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -85,6 +84,18 @@ const columnsConfig = [
     { id: 'total', label: 'Total TTC' },
     { id: 'payment', label: 'Paiement' },
 ];
+
+const PinKey = ({ value, onClick, 'data-key': dataKey, className }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string }) => (
+    <Button
+        type="button"
+        variant="outline"
+        className={cn("h-14 w-14 text-2xl font-bold", className)}
+        onClick={() => onClick(value)}
+        data-key={dataKey}
+    >
+        {value}
+    </Button>
+);
 
 
 const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | undefined, showIcon?: boolean }) => {
@@ -276,28 +287,55 @@ function ReportsPageContent() {
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        setItemsPerPageState(itemsPerPage);
-    }, [itemsPerPage]);
-    
-    useEffect(() => {
-        const storedColumns = localStorage.getItem('reportsVisibleColumns');
-        if (storedColumns) {
-            setVisibleColumns(JSON.parse(storedColumns));
-        } else {
-             setVisibleColumns({
-                type: true, ticketNumber: true, date: true, userName: true, origin: false,
-                customerName: true, itemCount: false, details: false, subtotal: false,
-                tax: false, totalDiscount: true, margin: true, total: true, payment: true,
-            });
-        }
-        setIsClient(true);
-    }, []);
+  const [isPinDialogOpen, setPinDialogOpen] = useState(false);
+  const [pin, setPin] = useState('');
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  const generateDynamicPin = useCallback(() => {
+    const now = new Date();
+    const month = (now.getMonth() + 1);
+    const day = now.getDate();
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const difference = Math.abs(day - month).toString();
+    return `${monthStr}${dayStr}${difference}`;
+  }, []);
+
+  const handlePinSubmit = useCallback((e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (pin === generateDynamicPin()) {
+        handleColumnVisibilityChange('margin', true);
+        setPinDialogOpen(false);
+    } else {
+        toast({ variant: 'destructive', title: 'Code PIN incorrect' });
+    }
+    setPin('');
+  }, [pin, generateDynamicPin, toast]);
 
     useEffect(() => {
-      const fullUrl = `${pathname}?${searchParams.toString()}`;
-      setLastReportsUrl(fullUrl);
+        if (isClient) {
+            const storedColumns = localStorage.getItem('reportsVisibleColumns');
+            if (storedColumns) {
+                setVisibleColumns(JSON.parse(storedColumns));
+            } else {
+                 setVisibleColumns({
+                    type: true, ticketNumber: true, date: true, userName: true, origin: false,
+                    customerName: true, itemCount: false, details: false, subtotal: false,
+                    tax: false, totalDiscount: true, margin: false, total: true, payment: true,
+                });
+            }
+        }
+        setIsClient(true);
+    }, [isClient]);
+
+    useEffect(() => {
+        const fullUrl = `${pathname}?${searchParams.toString()}`;
+        setLastReportsUrl(fullUrl);
     }, [pathname, searchParams, setLastReportsUrl]);
+
+    useEffect(() => {
+      setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
     
     useEffect(() => {
         const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -334,6 +372,47 @@ function ReportsPageContent() {
         setVisibleColumns(newVisibility);
         localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
     };
+
+    const handleMarginToggle = (checked: boolean) => {
+        if (checked) {
+            setPinDialogOpen(true);
+        } else {
+            handleColumnVisibilityChange('margin', false);
+        }
+    };
+    
+    const handlePinKeyPress = (key: string) => {
+      if (pin.length < 6) {
+        setPin(prev => prev + key);
+      }
+    };
+    
+    const handlePinBackspace = () => {
+      setPin(prev => prev.slice(0, -1));
+    };
+    
+    const triggerVisualFeedback = useCallback((key: string) => {
+      setActiveKey(key);
+      setTimeout(() => setActiveKey(null), 150);
+    }, []);
+
+    useEffect(() => {
+      if (isPinDialogOpen) {
+          if (pin.length === 6) {
+            handlePinSubmit();
+          }
+          const handleKeyDown = (event: KeyboardEvent) => {
+              const { key } = event;
+              triggerVisualFeedback(key);
+              if (key >= '0' && key <= '9') handlePinKeyPress(key);
+              else if (key === 'Backspace') handlePinBackspace();
+              else if (key === 'Enter') handlePinSubmit();
+          };
+          window.addEventListener('keydown', handleKeyDown);
+          return () => window.removeEventListener('keydown', handleKeyDown);
+      }
+    }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
+
 
     useEffect(() => {
         if (docTypeFilterParam) {
@@ -551,7 +630,9 @@ function ReportsPageContent() {
         const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const totalPurchases = supplierOrders.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
-        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance };
+        const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
+
+        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin };
     }, [filteredAndSortedSales]);
 
     const requestSort = (key: SortKey) => {
@@ -773,6 +854,36 @@ function ReportsPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+       <AlertDialog open={isPinDialogOpen} onOpenChange={setPinDialogOpen}>
+          <AlertDialogContent className="sm:max-w-sm">
+            <form onSubmit={handlePinSubmit}>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Accès sécurisé</AlertDialogTitle>
+                    <AlertDialogDescription>Veuillez entrer le code PIN dynamique pour afficher cette colonne.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="flex justify-center items-center h-12 bg-muted rounded-md border"><p className="text-3xl font-mono tracking-[0.5em]">{pin.padEnd(6, '•').substring(0, 6)}</p></div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} />
+                        <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
+                        <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace"><Delete className="h-6 w-6"/></Button>
+                        <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
+                    </div>
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel type="button" onClick={() => { setPin(''); setPinDialogOpen(false); }}>Annuler</AlertDialogCancel>
+                    <AlertDialogAction type="submit">Valider</AlertDialogAction>
+                </AlertDialogFooter>
+            </form>
+          </AlertDialogContent>
+        </AlertDialog>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
                 title="Rapports des pièces"
@@ -820,6 +931,15 @@ function ReportsPageContent() {
                                 </CardHeader>
                                 <CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent>
                             </Card>
+                            {visibleColumns.margin && (
+                                <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Marge Brute Réalisée</CardTitle>
+                                        <DollarSign className="h-4 w-4 text-emerald-600" />
+                                    </CardHeader>
+                                    <CardContent><div className="text-2xl font-bold text-emerald-600">{summaryStats.totalMargin.toFixed(2)}€</div></CardContent>
+                                </Card>
+                            )}
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
@@ -929,15 +1049,26 @@ function ReportsPageContent() {
                                         <DropdownMenuContent>
                                             <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            {columnsConfig.map(column => (
+                                            {columnsConfig.map(column => {
+                                                const isMarginColumn = column.id === 'margin';
+                                                return (
                                                 <DropdownMenuCheckboxItem
                                                     key={column.id}
                                                     checked={visibleColumns[column.id] ?? false}
-                                                    onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                                    onCheckedChange={(checked) => {
+                                                        if (isMarginColumn) {
+                                                            handleMarginToggle(checked);
+                                                        } else {
+                                                            handleColumnVisibilityChange(column.id, checked)
+                                                        }
+                                                    }}
+                                                    disabled={isMarginColumn && visibleColumns.margin}
                                                 >
+                                                    {isMarginColumn && <Lock className="mr-2 h-3 w-3" />}
                                                     {column.label}
                                                 </DropdownMenuCheckboxItem>
-                                            ))}
+                                                )
+                                            })}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </CardTitle>
