@@ -97,9 +97,9 @@ export default function DashboardPage() {
     
     const salesModeLink = useMemo(() => {
         const modeMap = {
-            pos: { href: '/pos', icon: ShoppingCart, title: 'Mode Caisse', description: 'Accéder au point de vente.' },
-            supermarket: { href: '/supermarket', icon: ScanLine, title: 'Mode Supermarché', description: 'Interface rapide pour scanner les articles.' },
-            restaurant: { href: '/restaurant', icon: Utensils, title: 'Mode Restaurant', description: 'Gérer les tables et les commandes.' },
+            pos: { href: '/pos', icon: ShoppingCart, title: 'Point de Vente', description: 'Accéder au point de vente standard.' },
+            supermarket: { href: '/supermarket', icon: ScanLine, title: 'Supermarché', description: 'Interface rapide pour scanner les articles.' },
+            restaurant: { href: '/restaurant', icon: Utensils, title: 'Restaurant', description: 'Gérer les tables et les commandes.' },
         };
         return modeMap[defaultSalesMode];
     }, [defaultSalesMode]);
@@ -452,8 +452,8 @@ export default function DashboardPage() {
                                   <div className="flex items-start justify-between">
                                       <div>
                                           <salesModeLink.icon className="h-8 w-8 text-primary mb-2" />
-                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>{salesModeLink.title}</h3>
-                                          <p className="text-sm text-muted-foreground mt-1">{salesModeLink.description}</p>
+                                          <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Mode Caisse</h3>
+                                           <p className="text-sm text-muted-foreground mt-1">Actif : <span className="font-semibold">{salesModeLink.title}</span></p>
                                       </div>
                                       <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
                                   </div>
