@@ -63,16 +63,17 @@ const keyToFrench: { [key: string]: string } = {
     'settings.enableSerialNumber': 'Paramètre : Activer numéros de série',
     'settings.defaultSalesMode': 'Paramètre : Mode de vente par défaut',
     'settings.isForcedMode': 'Paramètre : Activer mode forcé',
+    'settings.requirePinForAdmin': 'Paramètre : Exiger PIN admin',
     'settings.directSaleBgColor': 'Paramètre : Couleur fond vente directe',
     'settings.restaurantModeBgColor': 'Paramètre : Couleur fond mode restaurant',
     'settings.directSaleBgOpacity': 'Paramètre : Opacité fond vente directe',
     'settings.restaurantModeBgOpacity': 'Paramètre : Opacité fond mode restaurant',
-    'data.seeded': 'Indicateur : Données initiales créées',
     'settings.dashboardBgType': 'Paramètre : Type de fond du tableau de bord',
     'settings.dashboardBackgroundColor': 'Paramètre : Couleur de fond du tableau de bord',
     'settings.dashboardBackgroundImage': 'Paramètre : Image de fond du tableau de bord',
     'settings.dashboardBgOpacity': 'Paramètre : Opacité du fond du tableau de bord',
     'settings.dashboardButtonBackgroundColor': 'Paramètre : Couleur de fond des boutons',
+    'settings.dashboardButtonTextColor': 'Paramètre : Couleur du texte des boutons',
     'settings.dashboardButtonOpacity': 'Paramètre : Opacité du fond des boutons',
     'settings.dashboardButtonShowBorder': 'Paramètre : Afficher la bordure des boutons',
     'settings.dashboardButtonBorderColor': 'Paramètre : Couleur de la bordure des boutons',
@@ -87,7 +88,6 @@ const keyToFrench: { [key: string]: string } = {
     'settings.creditNoteBgColor': 'Paramètre : Couleur fond Avoirs',
     'settings.creditNoteBgOpacity': 'Paramètre : Opacité fond Avoirs',
     'settings.commercialViewLevel': 'Paramètre : Niveau de vue commercial',
-    'settings.requirePinForAdmin': 'Paramètre : Exiger PIN admin',
     'settings.smtpConfig': 'Paramètre : Configuration SMTP',
     'settings.ftpConfig': 'Paramètre : Configuration FTP',
     'settings.twilioConfig': 'Paramètre : Configuration Twilio',
@@ -197,6 +197,7 @@ export default function StoragePage() {
                   <TableHead>Nom du fichier de données</TableHead>
                   <TableHead className="text-right">Taille</TableHead>
                   <TableHead className="text-right">Éléments</TableHead>
+                  <TableHead className="text-right">Utilisation (%)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,6 +206,9 @@ export default function StoragePage() {
                     <TableCell className="font-medium">{keyToFrench[key] || key}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatBytes(size)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{itemCount ?? '-'}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {totalSize > 0 ? ((size / totalSize) * 100).toFixed(2) : '0.00'}%
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
