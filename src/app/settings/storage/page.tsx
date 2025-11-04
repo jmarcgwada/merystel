@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface StorageInfo {
   key: string;
@@ -103,6 +104,7 @@ const keyToFrench: { [key: string]: string } = {
 export default function StoragePage() {
   const [storageData, setStorageData] = useState<StorageInfo[]>([]);
   const [totalSize, setTotalSize] = useState(0);
+  const [showSmallFiles, setShowSmallFiles] = useState(false);
 
   const calculateStorage = () => {
     if (typeof window === 'undefined') return;
@@ -196,10 +198,18 @@ export default function StoragePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Détail par Fichier</CardTitle>
-            <CardDescription>
-              Taille de chaque ensemble de données stocké localement.
-            </CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>Détail par Fichier</CardTitle>
+                    <CardDescription>
+                      Taille de chaque ensemble de données stocké localement.
+                    </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch id="show-small-files" checked={showSmallFiles} onCheckedChange={setShowSmallFiles} />
+                    <Label htmlFor="show-small-files" className="text-sm">Afficher tout</Label>
+                </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -212,7 +222,9 @@ export default function StoragePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {storageData.filter(item => totalSize > 0 && (item.size / totalSize) * 100 >= 0.1).map(({ key, size, itemCount }) => (
+                {storageData
+                  .filter(item => showSmallFiles || (totalSize > 0 && (item.size / totalSize) * 100 >= 0.1))
+                  .map(({ key, size, itemCount }) => (
                   <TableRow key={key}>
                     <TableCell className="font-medium">{keyToFrench[key] || key}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatBytes(size)}</TableCell>
