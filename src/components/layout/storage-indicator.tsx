@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Skeleton } from '../ui/skeleton';
+import { Label } from '../ui/label';
 
 const LOCAL_STORAGE_QUOTA = 5 * 1024 * 1024; // 5 MB in bytes
 
@@ -69,14 +70,18 @@ export function StorageIndicator() {
   const hue = 120 - (usage.percentage * 1.2);
 
   if (!isClient) {
-    return <Skeleton className="w-24 h-2 rounded-full" />; // Skeleton loader
+    return <Skeleton className="w-48 h-6 rounded-md" />; // Skeleton loader
   }
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="w-24 flex items-center gap-2">
+          <div className="w-48 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Stockage local</Label>
+                <span className="text-xs font-bold text-primary">{usage.percentage}%</span>
+            </div>
             <Progress
               value={usage.percentage}
               className="h-2"
@@ -87,10 +92,9 @@ export function StorageIndicator() {
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Espace de stockage local utilisé :</p>
-          <p className="font-bold text-center">{`${formatBytes(
+          <p className="text-center font-bold">{`${formatBytes(
             usage.totalSize
-          )} / ${formatBytes(LOCAL_STORAGE_QUOTA)} (${usage.percentage.toFixed(2)}%)`}</p>
+          )} / ${formatBytes(LOCAL_STORAGE_QUOTA)}`}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
