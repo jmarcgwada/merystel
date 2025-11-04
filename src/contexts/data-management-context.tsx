@@ -35,7 +35,7 @@ import type {
   RemiseCheque,
   Payment
 } from '@/lib/types';
-import { useToast as useShadcnToast, updateToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
@@ -1516,11 +1516,11 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     }, 0);
                     
                     const paymentTotals: Record<string, number> = {};
-                    rows.forEach(row => {
+                    if(firstRow) {
                         ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
-                            if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm];
+                            if (firstRow[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + firstRow[pm];
                         });
-                    });
+                    }
     
                     const payments: Payment[] = [];
                     const paymentMapping: Record<string, string> = {
@@ -1550,7 +1550,6 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     addError(0, `Erreur sur pièce ${ticketNumber}: ${e.message}`);
                 }
             }
-            report.successCount = (report.newSalesCount || 0);
         } else {
             for (const [index, row] of jsonData.entries()) {
                 try {
@@ -1572,14 +1571,14 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        updateToast(toastId, {
+        shadcnToast({
             title: "Importation terminée !",
             description: `${report.successCount} succès, ${report.errorCount} échecs.`
         });
         return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, updateToast]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
-  const value: PosContextType = {
+  const value: InternalPosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
