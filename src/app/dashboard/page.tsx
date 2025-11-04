@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { StorageIndicator } from '@/components/layout/storage-indicator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -391,27 +391,56 @@ export default function DashboardPage() {
                               </div>
                           </div>
                           <div className="mt-4 flex flex-wrap gap-2">
-                                  <div className="inline-flex items-center">
-                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/invoices">Factures</Link></Button>
-                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=invoice"><BarChart3 className="h-4 w-4" /></Link></Button>
-                                  </div>
-                                   <div className="inline-flex items-center">
-                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/quotes">Devis</Link></Button>
-                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=quote"><BarChart3 className="h-4 w-4" /></Link></Button>
-                                  </div>
-                                   <div className="inline-flex items-center">
-                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
-                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=delivery_note"><BarChart3 className="h-4 w-4" /></Link></Button>
-                                  </div>
-                                   <div className="inline-flex items-center">
-                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
-                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=supplier_order"><BarChart3 className="h-4 w-4" /></Link></Button>
-                                  </div>
-                                   <div className="inline-flex items-center">
-                                      <Button variant="secondary" size="sm" className="rounded-r-none" onClick={() => setCreditNoteConfirmOpen(true)}>Avoirs</Button>
-                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=credit_note"><BarChart3 className="h-4 w-4" /></Link></Button>
-                                  </div>
-                                  <Button asChild variant="destructive" size="sm"><Link href="/reports/unpaid">Impayés</Link></Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="secondary" className="w-full">
+                                        Sélectionner un document...
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-64">
+                                    <DropdownMenuLabel>Documents Commerciaux</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Factures</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem asChild><Link href="/commercial/invoices">Créer une facture</Link></DropdownMenuItem>
+                                            <DropdownMenuItem asChild><Link href="/reports?docType=invoice">Voir la liste</Link></DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Devis</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem asChild><Link href="/commercial/quotes">Créer un devis</Link></DropdownMenuItem>
+                                            <DropdownMenuItem asChild><Link href="/reports?docType=quote">Voir la liste</Link></DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Bons de livraison</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem asChild><Link href="/commercial/delivery-notes">Créer un BL</Link></DropdownMenuItem>
+                                            <DropdownMenuItem asChild><Link href="/reports?docType=delivery_note">Voir la liste</Link></DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                     <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Cdes Fournisseur</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem asChild><Link href="/commercial/supplier-orders">Créer une commande</Link></DropdownMenuItem>
+                                            <DropdownMenuItem asChild><Link href="/reports?docType=supplier_order">Voir la liste</Link></DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setCreditNoteConfirmOpen(true)}>
+                                      Créer un avoir
+                                    </DropdownMenuItem>
+                                     <DropdownMenuItem asChild>
+                                        <Link href="/reports?docType=credit_note">Liste des avoirs</Link>
+                                    </DropdownMenuItem>
+                                     <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/reports/unpaid" className="text-destructive focus:text-destructive">Voir les impayés</Link>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                       </CardContent>
                   </Card>
