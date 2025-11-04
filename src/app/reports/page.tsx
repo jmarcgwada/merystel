@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -821,6 +822,15 @@ function ReportsPageContent() {
     )
   }
 
+  const pageTitle = (
+    <div className="flex items-center gap-4">
+      <span>Pièces</span>
+      <span className="text-base font-normal text-muted-foreground">
+        ({filteredAndSortedSales.length} / {allSales?.length || 0})
+      </span>
+    </div>
+  );
+
   return (
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
@@ -888,7 +898,7 @@ function ReportsPageContent() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
                 title="Rapports des pièces"
-                subtitle={`Page ${currentPage} sur ${totalPages} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)`}
+                subtitle={`Page ${currentPage} sur ${totalPages}`}
             >
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
@@ -1034,7 +1044,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                  Pièces
+                                  {pageTitle}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
