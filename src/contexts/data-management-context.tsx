@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1428,6 +1427,10 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
             report.errors.push(`Ligne ${line}: ${message}`);
         };
     
+        let localCategories = [...categories];
+        let localItems = [...items];
+        let localCustomers = [...customers];
+    
         if (dataType === 'ventes_completes') {
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
             const groupedByTicket = new Map<string, any[]>();
@@ -1464,14 +1467,18 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     }
                     saleDate = parsed;
     
-                    let customer = customers.find(c => c.id === firstRow.customerCode) || null;
+                    let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
                         const newCustomer = await addCustomer({
                             id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
                             name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
                             address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
                         });
-                        if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; }
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
+                        }
                     }
     
                     const saleItems: OrderItem[] = [];
@@ -1482,26 +1489,33 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                             }
                             continue;
                         }
-                        let item = items.find(i => i.barcode === row.itemBarcode);
+                        let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
-                            let category = categories.find(c => c.name === row.itemCategory);
-                            if (!category) category = await addCategory({ name: row.itemCategory || 'Importé' });
+                            let category = localCategories.find(c => c.name === row.itemCategory);
+                            if (!category) {
+                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                                if (category) localCategories.push(category);
+                            }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                             if (!vat) vat = vatRates[0];
+                             
                             item = await addItem({
                                 name: row.itemName, barcode: row.itemBarcode,
                                 price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
                                 purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
                             });
-                            if (item) report.newItemsCount = (report.newItemsCount || 0) + 1;
+                            if(item) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(item);
+                            }
                         }
     
                         if (item) {
-                            const vatInfo = vatRates.find(v => v.id === item!.vatId);
-                            const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
-                            const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
-                            const total = priceTTC * row.quantity - discountAmount;
-                            saleItems.push({
+                             const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                             const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                             const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                             const total = priceTTC * row.quantity - discountAmount;
+                             saleItems.push({
                                 id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
                                 quantity: row.quantity, total, discount: discountAmount,
                                 discountPercent: row.discountPercentage, barcode: item.barcode!,
@@ -1562,7 +1576,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                         if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
                         await addItem(row);
                     } else if (dataType === 'fournisseurs') {
-                        if (!row.id || !row.name) throw new Error("ID et Nom requis.");
+                         if (!row.id || !row.name) throw new Error("ID et Nom requis.");
                         if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
                         await addSupplier(row);
                     }
