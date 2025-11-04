@@ -175,6 +175,12 @@ function toast(props: Toast) {
   }
 }
 
+const updateToast = (toastId: string, props: Partial<ToasterToast>) =>
+  dispatch({
+    type: "UPDATE_TOAST",
+    toast: { ...props, id: toastId },
+  });
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -192,12 +198,8 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-    update: (toastId: string, props: Partial<ToasterToast>) =>
-      dispatch({
-        type: "UPDATE_TOAST",
-        toast: { ...props, id: toastId },
-      }),
+    update: updateToast,
   }
 }
 
-export { useToast, toast }
+export { useToast, toast, updateToast }
