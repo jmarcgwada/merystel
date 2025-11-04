@@ -49,7 +49,7 @@ import { SaleDetailModal } from './components/sale-detail-modal';
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax' | 'totalDiscount';
 
 const documentTypes = {
-    ticket: { label: 'Ticket', type: 'in', path: '/pos' },
+    ticket: { label: 'Ticket', type: 'in' },
     invoice: { label: 'Facture', type: 'in', path: '/commercial/invoices' },
     quote: { label: 'Devis', type: 'neutral', path: '/commercial/quotes' },
     delivery_note: { label: 'Bon de Livraison', type: 'neutral', path: '/commercial/delivery-notes' },
@@ -804,8 +804,6 @@ function ReportsPageContent() {
                     </CollapsibleContent>
                 </Collapsible>
                 
-                <div className="relative">
-                    {docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
                     <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card>
                             <CardHeader className="p-4">
@@ -870,7 +868,7 @@ function ReportsPageContent() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
-                                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                                    <div className="flex items-center gap-2">
                                         <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                                     </div>
                                 </div>
@@ -896,7 +894,8 @@ function ReportsPageContent() {
                             </CollapsibleContent>
                         </Card>
                     </Collapsible>
-                    <Card>
+                    <Card className="relative">
+                        {docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
@@ -1057,7 +1056,6 @@ function ReportsPageContent() {
                     </Card>
                 </div>
             </div>
-        </div>
       <SaleDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -1074,5 +1072,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
