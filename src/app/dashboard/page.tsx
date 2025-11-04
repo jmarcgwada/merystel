@@ -279,7 +279,6 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
             )}
-             <StorageIndicator />
             <div className="flex items-center gap-1">
               {authUser && (
                 <TooltipProvider>
@@ -392,11 +391,26 @@ export default function DashboardPage() {
                               </div>
                           </div>
                           <div className="mt-4 flex flex-wrap gap-2">
-                                  <Button asChild variant="secondary" size="sm"><Link href="/commercial/invoices">Factures</Link></Button>
-                                  <Button asChild variant="secondary" size="sm"><Link href="/commercial/quotes">Devis</Link></Button>
-                                  <Button asChild variant="secondary" size="sm"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
-                                  <Button asChild variant="secondary" size="sm"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
-                                  <Button variant="secondary" size="sm" onClick={() => setCreditNoteConfirmOpen(true)}>Avoirs</Button>
+                                  <div className="inline-flex items-center">
+                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/invoices">Factures</Link></Button>
+                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=invoice"><BarChart3 className="h-4 w-4" /></Link></Button>
+                                  </div>
+                                   <div className="inline-flex items-center">
+                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/quotes">Devis</Link></Button>
+                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=quote"><BarChart3 className="h-4 w-4" /></Link></Button>
+                                  </div>
+                                   <div className="inline-flex items-center">
+                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/delivery-notes">Bons de livraison</Link></Button>
+                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=delivery_note"><BarChart3 className="h-4 w-4" /></Link></Button>
+                                  </div>
+                                   <div className="inline-flex items-center">
+                                      <Button asChild variant="secondary" size="sm" className="rounded-r-none"><Link href="/commercial/supplier-orders">Cdes Fournisseur</Link></Button>
+                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=supplier_order"><BarChart3 className="h-4 w-4" /></Link></Button>
+                                  </div>
+                                   <div className="inline-flex items-center">
+                                      <Button variant="secondary" size="sm" className="rounded-r-none" onClick={() => setCreditNoteConfirmOpen(true)}>Avoirs</Button>
+                                      <Button asChild variant="secondary" size="icon-sm" className="rounded-l-none border-l"><Link href="/reports?docType=credit_note"><BarChart3 className="h-4 w-4" /></Link></Button>
+                                  </div>
                                   <Button asChild variant="destructive" size="sm"><Link href="/reports/unpaid">Impayés</Link></Button>
                           </div>
                       </CardContent>
