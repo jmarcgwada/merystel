@@ -244,9 +244,14 @@ function AnalyticsPageContent() {
 
 
     const filteredItems = useMemo(() => {
+        if (generalFilter.trim() === '*') {
+            return flattenedItems;
+        }
         const activeDocTypes = Object.entries(filterDocTypes)
             .filter(([, isActive]) => isActive)
             .map(([type]) => type);
+
+        const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
 
         return flattenedItems.filter(item => {
             const customerMatch = !filterCustomer || item.customerName.toLowerCase().includes(filterCustomer.toLowerCase());
@@ -260,17 +265,35 @@ function AnalyticsPageContent() {
             
             const docTypeMatch = activeDocTypes.includes(item.documentType);
 
-             const generalMatch = !generalFilter || (
-                (item.ticketNumber && item.ticketNumber.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                item.name.toLowerCase().includes(generalFilter.toLowerCase()) ||
-                (item.barcode && item.barcode.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                item.customerName.toLowerCase().includes(generalFilter.toLowerCase()) ||
-                item.userName.toLowerCase().includes(generalFilter.toLowerCase()) ||
-                item.categoryName.toLowerCase().includes(generalFilter.toLowerCase()) ||
-                (item.note && item.note.toLowerCase().includes(generalFilter.toLowerCase())) ||
-                (item.serialNumbers && item.serialNumbers.some(sn => sn.toLowerCase().includes(generalFilter.toLowerCase()))) ||
-                (item.selectedVariants && item.selectedVariants.some(v => `${v.name}: ${v.value}`.toLowerCase().includes(generalFilter.toLowerCase())))
-             );
+             const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+                let currentTerm = term;
+                let isNegation = false;
+                let isStartsWith = false;
+
+                if (currentTerm.startsWith('!')) {
+                    isNegation = true;
+                    currentTerm = currentTerm.substring(1);
+                } else if (currentTerm.startsWith('^')) {
+                    isStartsWith = true;
+                    currentTerm = currentTerm.substring(1);
+                }
+                if (!currentTerm) return true;
+
+                const searchableText = [
+                    item.ticketNumber,
+                    item.name,
+                    item.barcode,
+                    item.customerName,
+                    item.userName,
+                    item.categoryName,
+                    item.note,
+                    ...(item.serialNumbers || []),
+                    ...(item.selectedVariants?.map(v => `${v.name}: ${v.value}`) || [])
+                ].filter(Boolean).join(' ').toLowerCase();
+                
+                let match = isStartsWith ? searchableText.startsWith(currentTerm) : searchableText.includes(currentTerm);
+                return isNegation ? !match : match;
+            });
              
             const selectedItemsMatch = selectedTopItems.length === 0 || selectedTopItems.includes(item.name);
             const selectedCustomersMatch = selectedTopCustomers.length === 0 || selectedTopCustomers.includes(item.customerName);
@@ -457,7 +480,16 @@ function AnalyticsPageContent() {
         }
     };
   
-    if (!isClient || isLoading) {
+  const handleInsertSyntax = (syntax: string) => {
+    setGeneralFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
+    
+  if (!isClient || isLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 <PageHeader title="Reporting avancé" subtitle="Chargement des données..."/>
@@ -518,20 +550,28 @@ function AnalyticsPageContent() {
                       <div className="relative">
                           <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
                           <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
-                                <HelpCircle className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent>
-                              <div className="space-y-4 text-sm">
-                                <h4 className="font-semibold">Syntaxe de recherche</h4>
-                                <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
-                              </div>
-                            </PopoverContent>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                    <HelpCircle className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <div className="space-y-4 text-sm">
+                                  <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                  {[
+                                      { syntax: "texte", explanation: "Contient le texte" },
+                                      { syntax: "/", explanation: "Sépare les termes (ET)" },
+                                      { syntax: "!", explanation: "Ne contient pas" },
+                                      { syntax: "^", explanation: "Commence par" },
+                                      { syntax: "*", explanation: "Ignore les filtres" }
+                                  ].map(({ syntax, explanation }) => (
+                                      <div key={syntax} className="flex items-center justify-between">
+                                          <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                          <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                      </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
                           </Popover>
                       </div>
                       <DropdownMenu>
@@ -574,17 +614,7 @@ function AnalyticsPageContent() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                   </Popover>
-                   <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}>
-                      <SelectTrigger className="w-[200px] h-9">
-                          <SelectValue placeholder="Filtrer par catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="all">Toutes les catégories</SelectItem>
-                          {categories.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
+                   <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}><SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrer par catégorie" /></SelectTrigger><SelectContent><SelectItem value="all">Toutes les catégories</SelectItem>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
                   <Input placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs h-9" />
                   <Input
                       ref={itemFilterRef}

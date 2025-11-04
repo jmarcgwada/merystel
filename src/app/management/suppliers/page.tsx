@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -62,6 +61,7 @@ export default function SuppliersPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const router = useRouter();
+  const generalFilterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -124,6 +124,15 @@ export default function SuppliersPage() {
     setOpenCollapsibles(prev => ({...prev, [id]: !prev[id]}));
   }
 
+  const handleInsertSyntax = (syntax: string) => {
+    setFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
+
   return (
     <>
       <PageHeader 
@@ -153,6 +162,7 @@ export default function SuppliersPage() {
               <div className="flex justify-between items-center mb-4">
                   <div className="relative max-w-sm">
                     <Input 
+                      ref={generalFilterRef}
                       placeholder="Rechercher par nom, code, contact ou email..."
                       value={filter}
                       onChange={(e) => {
@@ -167,14 +177,22 @@ export default function SuppliersPage() {
                                 <HelpCircle className="h-4 w-4" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent>
-                            <div className="space-y-4 text-sm">
-                                <h4 className="font-semibold">Syntaxe de recherche</h4>
-                                <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
-                                <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
-                            </div>
+                        <PopoverContent className="w-80">
+                           <div className="space-y-4 text-sm">
+                              <h4 className="font-semibold">Syntaxe de recherche</h4>
+                              {[
+                                  { syntax: "texte", explanation: "Contient le texte" },
+                                  { syntax: "/", explanation: "Sépare les termes (ET)" },
+                                  { syntax: "!", explanation: "Ne contient pas" },
+                                  { syntax: "^", explanation: "Commence par" },
+                                  { syntax: "*", explanation: "Ignore les filtres" }
+                              ].map(({ syntax, explanation }) => (
+                                  <div key={syntax} className="flex items-center justify-between">
+                                      <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                      <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                  </div>
+                              ))}
+                          </div>
                         </PopoverContent>
                     </Popover>
                   </div>

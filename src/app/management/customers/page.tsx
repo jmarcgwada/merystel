@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
@@ -93,6 +92,8 @@ function CustomersPageContent() {
   const [customerForEmail, setCustomerForEmail] = useState<Customer | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
+  const generalFilterRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setIsClient(true);
     const customerIdFromParams = searchParams.get('filter');
@@ -142,45 +143,49 @@ function CustomersPageContent() {
 
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
-    if (filter.trim() === '*') return customers;
     
-    let filtered = customers.filter(c => {
-        if (!c) return false;
+    let filtered;
+    if (filter.trim() === '*') {
+      filtered = customers;
+    } else {
+      const searchTerms = filter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
+      filtered = customers.filter(c => {
+          if (!c) return false;
 
-        const postalCodeMatch = !filterPostalCode || (c.postalCode && c.postalCode.toLowerCase().includes(filterPostalCode.toLowerCase()));
-        const phoneMatch = !filterPhone || (c.phone && c.phone.includes(filterPhone)) || (c.phone2 && c.phone2.includes(filterPhone));
-        const addressMatch = !filterAddress || (c.address && c.address.toLowerCase().includes(filterAddress.toLowerCase()));
-        const emailMatch = !filterEmail || (c.email && c.email.toLowerCase().includes(filterEmail.toLowerCase()));
-        const disabledMatch = filterIsDisabled === 'all' || (c.isDisabled ? 'yes' : 'no') === filterIsDisabled;
-        
-        const searchTerms = filter.toLowerCase().split('/').map(term => term.trim()).filter(Boolean);
-        const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
-            let currentTerm = term;
-            let isNegation = false;
-            let isStartsWith = false;
+          const postalCodeMatch = !filterPostalCode || (c.postalCode && c.postalCode.toLowerCase().includes(filterPostalCode.toLowerCase()));
+          const phoneMatch = !filterPhone || (c.phone && c.phone.includes(filterPhone)) || (c.phone2 && c.phone2.includes(filterPhone));
+          const addressMatch = !filterAddress || (c.address && c.address.toLowerCase().includes(filterAddress.toLowerCase()));
+          const emailMatch = !filterEmail || (c.email && c.email.toLowerCase().includes(filterEmail.toLowerCase()));
+          const disabledMatch = filterIsDisabled === 'all' || (c.isDisabled ? 'yes' : 'no') === filterIsDisabled;
+          
+          const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+              let currentTerm = term;
+              let isNegation = false;
+              let isStartsWith = false;
 
-            if (currentTerm.startsWith('!')) {
-                isNegation = true;
-                currentTerm = currentTerm.substring(1);
-            } else if (currentTerm.startsWith('^')) {
-                isStartsWith = true;
-                currentTerm = currentTerm.substring(1);
-            }
-            if (!currentTerm) return true;
+              if (currentTerm.startsWith('!')) {
+                  isNegation = true;
+                  currentTerm = currentTerm.substring(1);
+              } else if (currentTerm.startsWith('^')) {
+                  isStartsWith = true;
+                  currentTerm = currentTerm.substring(1);
+              }
+              if (!currentTerm) return true;
 
-            const searchableText = [c.name, c.id, c.email, c.phone, c.phone2, c.city, c.postalCode].filter(Boolean).join(' ').toLowerCase();
-            
-            let match;
-            if(isStartsWith) {
-                match = (c.name && c.name.toLowerCase().startsWith(currentTerm)) || (c.id && c.id.toLowerCase().startsWith(currentTerm));
-            } else {
-                match = searchableText.includes(currentTerm);
-            }
-            return isNegation ? !match : match;
-        });
+              const searchableText = [c.name, c.id, c.email, c.phone, c.phone2, c.city, c.postalCode].filter(Boolean).join(' ').toLowerCase();
+              
+              let match;
+              if(isStartsWith) {
+                  match = (c.name && c.name.toLowerCase().startsWith(currentTerm)) || (c.id && c.id.toLowerCase().startsWith(currentTerm));
+              } else {
+                  match = searchableText.includes(currentTerm);
+              }
+              return isNegation ? !match : match;
+          });
 
-        return generalMatch && postalCodeMatch && phoneMatch && addressMatch && emailMatch && disabledMatch;
-    });
+          return generalMatch && postalCodeMatch && phoneMatch && addressMatch && emailMatch && disabledMatch;
+      });
+    }
 
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
@@ -276,6 +281,14 @@ function CustomersPageContent() {
     }
   };
 
+   const handleInsertSyntax = (syntax: string) => {
+    setFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
 
   return (
     <>
@@ -320,6 +333,7 @@ function CustomersPageContent() {
                       <div className="flex items-center gap-2 flex-1 justify-end">
                             <div className="relative">
                                <Input 
+                                  ref={generalFilterRef}
                                   placeholder="Recherche générale..."
                                   value={filter}
                                   onChange={(e) => {
@@ -334,13 +348,21 @@ function CustomersPageContent() {
                                             <HelpCircle className="h-4 w-4" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent>
+                                    <PopoverContent className="w-80">
                                         <div className="space-y-4 text-sm">
                                             <h4 className="font-semibold">Syntaxe de recherche</h4>
-                                            <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout, ignore les autres filtres.</p>
+                                            {[
+                                                { syntax: "texte", explanation: "Contient le texte" },
+                                                { syntax: "/", explanation: "Sépare les termes (ET)" },
+                                                { syntax: "!", explanation: "Ne contient pas" },
+                                                { syntax: "^", explanation: "Commence par" },
+                                                { syntax: "*", explanation: "Ignore les filtres" }
+                                            ].map(({ syntax, explanation }) => (
+                                                <div key={syntax} className="flex items-center justify-between">
+                                                    <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                                    <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                                </div>
+                                            ))}
                                         </div>
                                     </PopoverContent>
                                 </Popover>

@@ -389,71 +389,73 @@ function ReportsPageContent() {
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales) return [];
-        if (generalFilter.trim() === '*') return allSales;
+
+        let filteredSales = allSales;
+        if (generalFilter.trim() !== '*') {
+          const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(term => term);
+          const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
+
+          filteredSales = allSales.filter(sale => {
+              const customerName = getCustomerName(sale.customerId);
+              const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
+              const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
+              const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
+              const saleTotal = Math.abs(sale.total);
+              let statusMatch = true;
+              if (filterStatus !== 'all') {
+                  if (filterStatus === 'paid') statusMatch = sale.status === 'paid' || totalPaid >= saleTotal;
+                  else if (filterStatus === 'pending') statusMatch = (sale.status === 'pending' || sale.status === 'quote' || sale.status === 'delivery_note') && totalPaid === 0;
+                  else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < saleTotal;
+                  else statusMatch = sale.status === filterStatus;
+              }
+              const saleSellerName = getUserName(sale.userId, sale.userName);
+              const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
+              let dateMatch = true;
+              const saleDate = getDateFromSale(sale);
+              if (dateRange?.from) dateMatch = saleDate >= startOfDay(dateRange.from);
+              if (dateRange?.to) dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
+              const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+              const docTypeMatch = activeDocTypes.includes(docType);
+              const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
+              
+              const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
+                  let currentTerm = term;
+                  let isNegation = false;
+                  let isStartsWith = false;
+
+                  if (currentTerm.startsWith('!')) {
+                      isNegation = true;
+                      currentTerm = currentTerm.substring(1);
+                  } else if (currentTerm.startsWith('^')) {
+                      isStartsWith = true;
+                      currentTerm = currentTerm.substring(1);
+                  }
+                  
+                  if (!currentTerm) return true;
+
+                  const searchableText = [
+                      sale.ticketNumber,
+                      customerName,
+                      sale.total.toFixed(2),
+                      sale.customerId,
+                      ...sale.items.map(item => item.name)
+                  ].join(' ').toLowerCase();
+
+                  let match = false;
+                  if (isStartsWith) {
+                      match = (sale.ticketNumber && sale.ticketNumber.toLowerCase().startsWith(currentTerm)) ||
+                            (customerName && customerName.toLowerCase().startsWith(currentTerm));
+                  } else {
+                      match = searchableText.includes(currentTerm);
+                  }
+                  
+                  return isNegation ? !match : match;
+              });
+
+              return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
+          });
+        }
         
-        const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(term => term);
-
-        const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
-
-        let filteredSales = allSales.filter(sale => {
-            const customerName = getCustomerName(sale.customerId);
-            const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
-            const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
-            const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
-            const saleTotal = Math.abs(sale.total);
-            let statusMatch = true;
-            if (filterStatus !== 'all') {
-                if (filterStatus === 'paid') statusMatch = sale.status === 'paid' || totalPaid >= saleTotal;
-                else if (filterStatus === 'pending') statusMatch = (sale.status === 'pending' || sale.status === 'quote' || sale.status === 'delivery_note') && totalPaid === 0;
-                else if (filterStatus === 'partial') statusMatch = sale.status === 'pending' && totalPaid > 0 && totalPaid < saleTotal;
-                else statusMatch = sale.status === filterStatus;
-            }
-            const saleSellerName = getUserName(sale.userId, sale.userName);
-            const sellerMatch = !filterSellerName || (saleSellerName && saleSellerName.toLowerCase().includes(filterSellerName.toLowerCase()));
-            let dateMatch = true;
-            const saleDate = getDateFromSale(sale);
-            if (dateRange?.from) dateMatch = saleDate >= startOfDay(dateRange.from);
-            if (dateRange?.to) dateMatch = dateMatch && saleDate <= endOfDay(dateRange.to);
-            const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-            const docTypeMatch = activeDocTypes.includes(docType);
-            const paymentMethodMatch = filterPaymentMethod === 'all' || (sale.payments && sale.payments.some(p => p.method.name === filterPaymentMethod));
-            
-            const generalMatch = searchTerms.length === 0 || searchTerms.every(term => {
-                let currentTerm = term;
-                let isNegation = false;
-                let isStartsWith = false;
-
-                if (currentTerm.startsWith('!')) {
-                    isNegation = true;
-                    currentTerm = currentTerm.substring(1);
-                } else if (currentTerm.startsWith('^')) {
-                    isStartsWith = true;
-                    currentTerm = currentTerm.substring(1);
-                }
-                
-                if (!currentTerm) return true;
-
-                const searchableText = [
-                    sale.ticketNumber,
-                    customerName,
-                    sale.total.toFixed(2),
-                    sale.customerId,
-                    ...sale.items.map(item => item.name)
-                ].join(' ').toLowerCase();
-
-                let match = false;
-                if (isStartsWith) {
-                    match = (sale.ticketNumber && sale.ticketNumber.toLowerCase().startsWith(currentTerm)) ||
-                           (customerName && customerName.toLowerCase().startsWith(currentTerm));
-                } else {
-                    match = searchableText.includes(currentTerm);
-                }
-                
-                return isNegation ? !match : match;
-            });
-
-            return customerMatch && originMatch && statusMatch && dateMatch && sellerMatch && generalMatch && docTypeMatch && paymentMethodMatch;
-        });
 
         if (sortConfig !== null) {
             filteredSales.sort((a, b) => {
@@ -649,6 +651,15 @@ function ReportsPageContent() {
     }
   };
 
+  const handleInsertSyntax = (syntax: string) => {
+    setGeneralFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
+
     if (isCashier) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -781,14 +792,21 @@ function ReportsPageContent() {
                                                         <HelpCircle className="h-4 w-4" />
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent>
-                                                    <div className="space-y-4 text-sm">
+                                                <PopoverContent className="w-80">
+                                                     <div className="space-y-4 text-sm">
                                                         <h4 className="font-semibold">Syntaxe de recherche</h4>
-                                                        <p><code className="font-mono bg-muted p-1 rounded">texte</code>: Contient le texte.</p>
-                                                        <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
-                                                        <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
-                                                        <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
-                                                        <p><code className="font-mono bg-muted p-1 rounded">*</code>: Ignore tous les filtres et affiche tout.</p>
+                                                        {[
+                                                            { syntax: "texte", explanation: "Contient le texte" },
+                                                            { syntax: "/", explanation: "Sépare les termes (ET)" },
+                                                            { syntax: "!", explanation: "Ne contient pas" },
+                                                            { syntax: "^", explanation: "Commence par" },
+                                                            { syntax: "*", explanation: "Ignore les filtres" }
+                                                        ].map(({ syntax, explanation }) => (
+                                                            <div key={syntax} className="flex items-center justify-between">
+                                                                <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                                                <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </PopoverContent>
                                             </Popover>
