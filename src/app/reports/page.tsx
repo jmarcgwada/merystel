@@ -46,7 +46,7 @@ import { Slider } from '@/components/ui/slider';
 import { SaleDetailModal } from './components/sale-detail-modal';
 
 
-type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax' | 'totalDiscount';
+type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax' | 'totalDiscount' | 'margin';
 
 const documentTypes = {
     ticket: { label: 'Ticket', type: 'in' },
@@ -82,6 +82,7 @@ const columnsConfig = [
     { id: 'subtotal', label: 'Total HT' },
     { id: 'tax', label: 'Total TVA' },
     { id: 'totalDiscount', label: 'Total Remise' },
+    { id: 'margin', label: 'Marge' },
     { id: 'total', label: 'Total TTC' },
     { id: 'payment', label: 'Paiement' },
 ];
@@ -209,7 +210,8 @@ function ReportsPageContent() {
       itemsPerPage,
       setItemsPerPage,
       lastReportsUrl,
-      setLastReportsUrl
+      setLastReportsUrl,
+      items: allItems,
   } = usePos();
   const { user } = useUser();
   const isCashier = user?.role === 'cashier';
@@ -287,7 +289,7 @@ function ReportsPageContent() {
              setVisibleColumns({
                 type: true, ticketNumber: true, date: true, userName: true, origin: false,
                 customerName: true, itemCount: false, details: false, subtotal: false,
-                tax: false, totalDiscount: true, total: true, payment: true,
+                tax: false, totalDiscount: true, margin: true, total: true, payment: true,
             });
         }
         setIsClient(true);
@@ -421,14 +423,23 @@ function ReportsPageContent() {
     }, [router, toast, setLastSelectedSaleId]);
 
     const filteredAndSortedSales = useMemo(() => {
-        if (!allSales) return [];
+        if (!allSales || !allItems) return [];
 
-        let filteredSales = allSales;
+        let augmentedSales = allSales.map(sale => {
+            const totalCost = sale.items.reduce((acc, orderItem) => {
+                const itemDetail = allItems.find(i => i.id === orderItem.itemId);
+                return acc + ((itemDetail?.purchasePrice || 0) * orderItem.quantity);
+            }, 0);
+            const margin = sale.total - totalCost;
+            return { ...sale, margin };
+        });
+
+        let filteredSales = augmentedSales;
         if (generalFilter.trim() !== '*') {
           const searchTerms = generalFilter.toLowerCase().split('/').map(term => term.trim()).filter(term => term);
           const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
 
-          filteredSales = allSales.filter(sale => {
+          filteredSales = augmentedSales.filter(sale => {
               const customerName = getCustomerName(sale.customerId);
               const customerMatch = !filterCustomerName || (customerName && customerName.toLowerCase().includes(filterCustomerName.toLowerCase()));
               const originMatch = !filterOrigin || (sale.tableName && sale.tableName.toLowerCase().includes(filterOrigin.toLowerCase()));
@@ -506,6 +517,10 @@ function ReportsPageContent() {
                         aValue = a.items.reduce((sum, item) => sum + (item.discount || 0), 0);
                         bValue = b.items.reduce((sum, item) => sum + (item.discount || 0), 0);
                         break;
+                    case 'margin':
+                        aValue = (a as Sale & { margin: number }).margin;
+                        bValue = (b as Sale & { margin: number }).margin;
+                        break;
                     default: aValue = a[sortConfig.key as keyof Sale] as number || 0; bValue = b[sortConfig.key as keyof Sale] as number || 0; break;
                 }
                 if (aValue instanceof Date && bValue instanceof Date) {
@@ -520,7 +535,7 @@ function ReportsPageContent() {
             });
         }
         return filteredSales;
-    }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes]);
+    }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, allItems]);
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -655,11 +670,6 @@ function ReportsPageContent() {
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
-  
-  const getDetailLink = (saleId: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      return `/reports/${saleId}?${params.toString()}`;
-  }
   
   const handleMouseDown = (action: () => void) => {
     const timer = setTimeout(() => {
@@ -966,6 +976,7 @@ function ReportsPageContent() {
                                         {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
                                         {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
                                         {visibleColumns.totalDiscount && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('totalDiscount')} className="justify-end w-full">Total Remise {getSortIcon('totalDiscount')}</Button></TableHead>}
+                                        {visibleColumns.margin && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('margin')} className="justify-end w-full">Marge {getSortIcon('margin')}</Button></TableHead>}
                                         {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
                                         {visibleColumns.payment && <TableHead>Paiement</TableHead>}
                                         <TableHead className="w-[150px] text-right">Actions</TableHead>
@@ -1030,6 +1041,7 @@ function ReportsPageContent() {
                                                 {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.totalDiscount && <TableCell className="text-right font-medium text-destructive">{totalDiscount > 0 ? `-${totalDiscount.toFixed(2)}€` : '-'}</TableCell>}
+                                                {visibleColumns.margin && <TableCell className="text-right font-bold text-green-600">{(sale as Sale & { margin: number }).margin.toFixed(2)}€</TableCell>}
                                                 {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                                 <TableCell className="text-right">
@@ -1055,7 +1067,7 @@ function ReportsPageContent() {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+      </div>
       <SaleDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
