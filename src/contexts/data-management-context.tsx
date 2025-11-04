@@ -35,7 +35,7 @@ import type {
   RemiseCheque,
   Payment
 } from '@/lib/types';
-import { useToast as useShadcnToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast, updateToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
@@ -133,7 +133,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
-  const { toast: shadcnToast, update: updateToast } = useShadcnToast();
+  const { toast: shadcnToast } = useShadcnToast();
   const pageTypeToResetRef = useRef<string | null>(null);
 
   const [isHydrated, setIsHydrated] = useState(false);
@@ -1429,44 +1429,41 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
         };
     
         if (dataType === 'ventes_completes') {
-            const BATCH_SIZE = 50;
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-
-            for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
-                const chunk = jsonData.slice(i, i + BATCH_SIZE);
-                const groupedByTicket = new Map<string, any[]>();
+            const groupedByTicket = new Map<string, any[]>();
                 
-                chunk.forEach((row, index) => {
-                    const ticketNum = row.ticketNumber;
-                    if (!ticketNum) {
-                        addError(i + index + 1, 'Numéro de pièce manquant.');
-                        return;
-                    }
-                    if (!groupedByTicket.has(ticketNum)) {
-                        groupedByTicket.set(ticketNum, []);
-                    }
-                    groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: i + index + 1 });
-                });
-
-                for (const [ticketNumber, rows] of groupedByTicket.entries()) {
-                    if (existingSaleNumbers.has(ticketNumber)) {
-                        addError(rows[0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
-                        continue;
-                    }
-
+            jsonData.forEach((row, index) => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) {
+                    addError(index + 1, 'Numéro de pièce manquant.');
+                    return;
+                }
+                if (!groupedByTicket.has(ticketNum)) {
+                    groupedByTicket.set(ticketNum, []);
+                }
+                groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
+            });
+    
+            for (const [ticketNumber, rows] of groupedByTicket.entries()) {
+                if (existingSaleNumbers.has(ticketNumber)) {
+                    addError(rows[0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+                    continue;
+                }
+    
+                try {
                     const firstRow = rows[0];
                     let saleDate: Date;
                     const dateString = firstRow.saleDate;
                     const timeString = firstRow.saleTime || '00:00';
                     const fullDateTimeString = `${dateString} ${timeString}`;
                     const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-
+    
                     if (!isValid(parsed)) {
                         addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
                         continue;
                     }
                     saleDate = parsed;
-
+    
                     let customer = customers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
                         const newCustomer = await addCustomer({
@@ -1476,7 +1473,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                         });
                         if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; }
                     }
-
+    
                     const saleItems: OrderItem[] = [];
                     for (const row of rows) {
                         if (!row.itemBarcode) {
@@ -1498,7 +1495,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                             });
                             if (item) report.newItemsCount = (report.newItemsCount || 0) + 1;
                         }
-
+    
                         if (item) {
                             const vatInfo = vatRates.find(v => v.id === item!.vatId);
                             const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
@@ -1511,7 +1508,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                             });
                         }
                     }
-
+    
                     const total = saleItems.reduce((sum, i) => sum + i.total, 0);
                     const totalTax = saleItems.reduce((sum, i) => {
                         const vat = vatRates.find(v => v.id === i.vatId);
@@ -1536,28 +1533,26 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     });
                     
                     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-
+                    const isPaid = totalPaid >= total - 0.01;
+    
                     const newSale: Omit<Sale, 'id'> = {
                         ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
-                        payments, status: totalPaid >= total - 0.01 ? 'paid' : 'pending',
+                        payments, status: isPaid ? 'paid' : 'pending',
                         customerId: customer?.id,
                         documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
                         userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
                     };
                     
                     await recordSale(newSale);
-                    report.successCount++;
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
+                } catch (e: any) {
+                    addError(0, `Erreur sur pièce ${ticketNumber}: ${e.message}`);
                 }
-                report.newSalesCount = (report.newSalesCount || 0) + 1;
-
-                updateToast(toastId, {
-                    description: `Traitement... ${Math.min(i + BATCH_SIZE, jsonData.length)} / ${jsonData.length} lignes.`
-                });
-                await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread
             }
+            report.successCount = (report.newSalesCount || 0);
         } else {
-             for (const [index, row] of jsonData.entries()) {
+            for (const [index, row] of jsonData.entries()) {
                 try {
                     if (dataType === 'clients') {
                         if (!row.id || !row.name) throw new Error("ID et Nom requis.");
@@ -1573,7 +1568,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                         await addSupplier(row);
                     }
                     report.successCount++;
-                } catch (e: any) { addError(index + 1, e.message); }
+                } catch (e: any) { addError(index, e.message); }
             }
         }
         
@@ -1651,4 +1646,3 @@ export function usePos() {
   }
   return context;
 }
-
