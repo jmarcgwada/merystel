@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Payment, Sale, User } from '@/lib/types';
+import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle } from 'lucide-react';
@@ -40,7 +40,6 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { InvoicePrintTemplate } from './components/invoice-print-template';
 import jsPDF from 'jspdf';
-import { sendEmail } from '@/ai/flows/send-email-flow';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { SaleDetailModal } from './components/sale-detail-modal';
@@ -671,37 +670,48 @@ function ReportsPageContent() {
         setIsDetailModalOpen(true);
     };
   
-  const handleMouseDown = (action: () => void) => {
-    const timer = setTimeout(() => {
-        action();
-        setLongPressTimer(null); // Prevent click
-    }, 700); // 700ms for long press
-    setLongPressTimer(timer);
-  };
+    const handleMouseDown = (action: () => void) => {
+      const timer = setTimeout(() => {
+          action();
+          setLongPressTimer(null); // Prevent click
+      }, 700); // 700ms for long press
+      setLongPressTimer(timer);
+    };
+  
+    const handleMouseUp = (clickAction: () => void) => {
+      if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          setLongPressTimer(null);
+          clickAction();
+      }
+    };
+  
+    const handleMouseLeave = () => {
+      if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          setLongPressTimer(null);
+      }
+    };
 
-  const handleMouseUp = (clickAction: () => void) => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-        clickAction();
-    }
-  };
+    const handleInsertSyntax = (syntax: string) => {
+      setGeneralFilter(prev => {
+          if (syntax === '*') return '*';
+          const newFilter = prev ? `${prev} ${syntax}` : syntax;
+          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+      });
+      generalFilterRef.current?.focus();
+    };
 
-  const handleMouseLeave = () => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-    }
-  };
+    const navigationParams = useMemo(() => {
+        const params = new URLSearchParams(Array.from(searchParams.entries()));
+        return params.toString();
+    }, [searchParams]);
 
-  const handleInsertSyntax = (syntax: string) => {
-    setGeneralFilter(prev => {
-        if (syntax === '*') return '*';
-        const newFilter = prev ? `${prev} ${syntax}` : syntax;
-        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-    });
-    generalFilterRef.current?.focus();
-  };
+    const getDetailLink = useCallback((id: string | null) => {
+        if (!id) return '#';
+        const params = new URLSearchParams(navigationParams);
+        return `/reports/${id}?${params.toString()}`;
+    }, [navigationParams]);
 
     if (isCashier) {
         return (
@@ -1025,19 +1035,7 @@ function ReportsPageContent() {
                                                 {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
                                                 {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
                                                 {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
-                                                {visibleColumns.details && (
-                                                    <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-wrap">
-                                                        {sale.items.map(item => {
-                                                            const details = [];
-                                                            if(item.selectedVariants && item.selectedVariants.length > 0) {
-                                                                details.push(item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', '));
-                                                            }
-                                                            if(item.note) details.push(`Note: ${item.note}`);
-                                                            if(item.serialNumbers && item.serialNumbers.length > 0) details.push(`N/S: ${item.serialNumbers.join(', ')}`);
-                                                            return details.length > 0 ? `${item.name} (${details.join('; ')})` : item.name;
-                                                        }).join(' | ')}
-                                                    </TableCell>
-                                                )}
+                                                {visibleColumns.details && <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-wrap">{sale.items.map(i => i.name).join(', ')}</TableCell>}
                                                 {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.totalDiscount && <TableCell className="text-right font-medium text-destructive">{totalDiscount > 0 ? `-${totalDiscount.toFixed(2)}€` : '-'}</TableCell>}
