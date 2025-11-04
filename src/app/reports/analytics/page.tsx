@@ -314,7 +314,7 @@ function AnalyticsPageContent() {
         
         const itemStats = filteredItems.reduce((acc, item) => {
             if(!acc[item.itemId]) {
-                const catalogItem = allItems.find(i => i.id === item.itemId);
+                const catalogItem = items.find(i => i.id === item.itemId);
                 acc[item.itemId] = { name: catalogItem?.name || item.name, quantity: 0, revenue: 0 };
             }
             acc[item.itemId].quantity += item.quantity;
@@ -367,7 +367,7 @@ function AnalyticsPageContent() {
             topCustomers: Object.values(customerStats),
             topCategories: Object.values(categoryStats),
         };
-    }, [filteredItems, filterDocTypes, allItems]);
+    }, [filteredItems, filterDocTypes, items]);
 
 
     const sortedAndPaginatedSalesLines = useMemo(() => {
@@ -534,6 +534,26 @@ function AnalyticsPageContent() {
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
                   </div>
+                  {Object.keys(paymentMethodSummary).length > 0 && (
+                  <Card className="mt-4">
+                      <CardHeader>
+                      <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      {Object.entries(paymentMethodSummary).map(([method, data]) => (
+                          <Card key={method}>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">{method}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
+                              <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
+                          </CardContent>
+                          </Card>
+                      ))}
+                      </CardContent>
+                  </Card>
+                  )}
               </CollapsibleContent>
           </Collapsible>
           
