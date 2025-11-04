@@ -819,20 +819,15 @@ function ReportsPageContent() {
                                         </DropdownMenu>
                                     </div>
                                     <div className="flex items-center gap-2 flex-wrap justify-end">
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="h-4 w-4" /></Button></TooltipTrigger>
-                                                <TooltipContent><p>Réinitialiser les filtres</p></TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked && isDocTypeFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                                     </div>
                                 </div>
                             </CardHeader>
                             <CollapsibleContent>
-                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-0">
+                                <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                                     <Popover>
                                         <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                            <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                            <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
@@ -840,11 +835,11 @@ function ReportsPageContent() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                                     </Popover>
-                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="h-9" />
-                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="h-9" />
-                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="h-9" />
-                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
-                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-full h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
+                                    <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
+                                    <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
+                                    <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                                    <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
                                 </CardContent>
                             </CollapsibleContent>
                         </Card>
@@ -852,11 +847,11 @@ function ReportsPageContent() {
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <CardTitle>Détail des pièces</CardTitle>
-                                <div className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2">
+                                    Détail des pièces ({filteredAndSortedSales.length})
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="icon" className="h-9 w-9">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
                                                 <Columns className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -874,54 +869,34 @@ function ReportsPageContent() {
                                             ))}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="outline" size="icon" className="h-9 w-9"
-                                            onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                            onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
-                                            onMouseLeave={handleMouseLeave}
-                                            onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
-                                            onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                            disabled={currentPage === 1}
-                                        >
-                                            <ArrowLeft className="h-4 w-4" />
-                                        </Button>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                                    Page {currentPage} / {totalPages || 1}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-48 p-2">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                                        <span>{itemsPerPageState}</span>
-                                                    </div>
-                                                    <Slider
-                                                        id="items-per-page-slider"
-                                                        value={[itemsPerPageState]}
-                                                        onValueChange={(value) => setItemsPerPageState(value[0])}
-                                                        onValueCommit={(value) => setItemsPerPage(value[0])}
-                                                        min={5}
-                                                        max={100}
-                                                        step={5}
-                                                    />
+                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseDown={() => handleMouseDown(() => setCurrentPage(1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(1))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                                Page {currentPage} / {totalPages || 1}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-48 p-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                                <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                    <span>{itemsPerPageState}</span>
                                                 </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Button
-                                            variant="outline" size="icon" className="h-9 w-9"
-                                            onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
-                                            onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))}
-                                            onMouseLeave={handleMouseLeave}
-                                            onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))}
-                                            onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
-                                            disabled={currentPage === totalPages || totalPages <= 1}
-                                        >
-                                            <ArrowRight className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                                <Slider
+                                                    id="items-per-page-slider"
+                                                    value={[itemsPerPageState]}
+                                                    onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                    onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                    min={5}
+                                                    max={100}
+                                                    step={5}
+                                                />
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                                 </div>
                             </div>
                         </CardHeader>
