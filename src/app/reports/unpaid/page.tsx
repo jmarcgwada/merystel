@@ -24,6 +24,7 @@ import {
   Mic,
   MicOff,
   Banknote,
+  ArrowRight
 } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import {
@@ -70,6 +71,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, format } from 'date-fns';
+import { Slider } from '@/components/ui/slider';
+
 
 function DunningActionDialog({
   isOpen,
@@ -210,6 +213,19 @@ function PartialPaymentDialog({
   const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
   const amountDue = sale.total - totalPaid;
 
+  const handleConfirmClick = () => {
+    const paymentAmount = parseFloat(amount);
+    if (!amount || !method || isNaN(paymentAmount) || paymentAmount <= 0) {
+      alert("Veuillez saisir un montant valide et choisir un moyen de paiement.");
+      return;
+    }
+    if (paymentAmount > amountDue) {
+      alert("Le montant du règlement ne peut pas dépasser le solde restant de la facture.");
+      return;
+    }
+    onConfirm(paymentAmount, method);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -228,6 +244,7 @@ function PartialPaymentDialog({
               value={amount}
               onChange={e => setAmount(e.target.value)}
               placeholder={amountDue.toFixed(2)}
+              max={amountDue}
             />
           </div>
           <div>
@@ -246,7 +263,7 @@ function PartialPaymentDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Annuler</Button>
-          <Button onClick={() => onConfirm(parseFloat(amount), method)} disabled={!amount || !method}>
+          <Button onClick={handleConfirmClick} disabled={!amount || !method}>
             Enregistrer
           </Button>
         </DialogFooter>
@@ -265,6 +282,8 @@ export default function UnpaidInvoicesPage() {
     dunningLogs,
     addDunningLog,
     addPaiementPartiel,
+    itemsPerPage,
+    setItemsPerPage
   } = usePos();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -282,6 +301,8 @@ export default function UnpaidInvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [saleForPartialPayment, setSaleForPartialPayment] = useState<Sale | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
 
   const getCustomerName = useCallback(
     (customerId?: string) => {
@@ -324,6 +345,17 @@ export default function UnpaidInvoicesPage() {
           new Date(a.date as any).getTime() - new Date(b.date as any).getTime()
       );
   }, [sales, searchTerm, dateRange, getCustomerName]);
+  
+  const totalPages = Math.ceil(unpaidInvoices.length / itemsPerPage);
+
+  const paginatedInvoices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return unpaidInvoices.slice(startIndex, startIndex + itemsPerPage);
+  }, [unpaidInvoices, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setItemsPerPageState(itemsPerPage);
+  }, [itemsPerPage]);
 
   const saleDunningLogs = useCallback(
     (saleId: string) => {
@@ -460,7 +492,7 @@ export default function UnpaidInvoicesPage() {
                   <Input 
                       placeholder="Rechercher par n° ou client..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                       className="h-9 w-auto sm:w-64"
                   />
                   <Popover>
@@ -477,6 +509,34 @@ export default function UnpaidInvoicesPage() {
                   <Button variant="ghost" size="icon" onClick={resetFilters}>
                       <X className="h-4 w-4" />
                   </Button>
+                  <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                  Page {currentPage} / {totalPages || 1}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-2">
+                              <div className="space-y-2">
+                                  <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                  <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                      <span>{itemsPerPageState}</span>
+                                  </div>
+                                  <Slider
+                                      id="items-per-page-slider"
+                                      value={[itemsPerPageState]}
+                                      onValueChange={(value) => setItemsPerPageState(value[0])}
+                                      onValueCommit={(value) => setItemsPerPage(value[0])}
+                                      min={5}
+                                      max={50}
+                                      step={5}
+                                  />
+                              </div>
+                          </PopoverContent>
+                      </Popover>
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
+                  </div>
               </div>
             </div>
           </CardHeader>
@@ -497,7 +557,7 @@ export default function UnpaidInvoicesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading &&
-                    Array.from({ length: 5 }).map((_, i) => (
+                    Array.from({ length: itemsPerPage }).map((_, i) => (
                       <TableRow key={i}>
                         <TableCell colSpan={7} className="h-12">
                             <Skeleton className="h-6 w-full" />
@@ -505,7 +565,7 @@ export default function UnpaidInvoicesPage() {
                       </TableRow>
                     ))}
                   {!isLoading &&
-                    unpaidInvoices.map((sale) => {
+                    paginatedInvoices.map((sale) => {
                       const totalPaid = (sale.payments || []).reduce(
                         (sum, p) => sum + p.amount,
                         0
@@ -696,5 +756,3 @@ export default function UnpaidInvoicesPage() {
     </>
   );
 }
-
-  
