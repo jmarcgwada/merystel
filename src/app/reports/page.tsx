@@ -336,9 +336,9 @@ function ReportsPageContent() {
 
         setFilterDocTypes(prev => {
             const newState = { ...prev, [typeKey]: checked };
-            if (checked && typeInfo.type !== 'neutral') {
+            if (checked && typeInfo.type) {
                 for (const key in documentTypes) {
-                    if (documentTypes[key as keyof typeof documentTypes].type !== 'neutral' && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
+                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
                         newState[key] = false;
                     }
                 }
@@ -797,10 +797,10 @@ function ReportsPageContent() {
                                                         <h4 className="font-semibold">Syntaxe de recherche</h4>
                                                         {[
                                                             { syntax: "texte", explanation: "Contient le texte" },
-                                                            { syntax: "/", explanation: "Sépare les termes (ET)" },
-                                                            { syntax: "!", explanation: "Ne contient pas" },
-                                                            { syntax: "^", explanation: "Commence par" },
-                                                            { syntax: "*", explanation: "Ignore les filtres" }
+                                                            { syntax: "/", explanation: "Sépare les termes (ET logique)" },
+                                                            { syntax: "!", explanation: "Ne contient pas le texte" },
+                                                            { syntax: "^", explanation: "Commence par le texte" },
+                                                            { syntax: "*", explanation: "Ignore tous les filtres" }
                                                         ].map(({ syntax, explanation }) => (
                                                             <div key={syntax} className="flex items-center justify-between">
                                                                 <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
@@ -866,7 +866,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                    Détail des pièces ({filteredAndSortedSales.length})
+                                  Détail des pièces ({filteredAndSortedSales.length})
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -982,7 +982,7 @@ function ReportsPageContent() {
                                                 {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
                                                 {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
                                                 {visibleColumns.details && (
-                                                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                                    <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-wrap">
                                                         {sale.items.map(item => {
                                                             const details = [];
                                                             if(item.selectedVariants && item.selectedVariants.length > 0) {
@@ -1030,7 +1030,7 @@ function ReportsPageContent() {
         sale={selectedSaleForModal}
       />
     </>
-    );
+  );
 }
 
 export default function ReportsPage() {
