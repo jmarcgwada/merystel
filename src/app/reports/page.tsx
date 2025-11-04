@@ -149,6 +149,39 @@ function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, bo
     return [state, setState];
 }
 
+const DocumentTypeWatermark = ({ docType }: { docType: string | null }) => {
+  const { 
+    invoiceBgColor, 
+    quoteBgColor, 
+    deliveryNoteBgColor, 
+    supplierOrderBgColor,
+    creditNoteBgColor,
+  } = usePos();
+  
+  if (!docType) return null;
+
+  const docInfo = documentTypes[docType as keyof typeof documentTypes];
+  if (!docInfo) return null;
+
+  let color = '#cccccc'; // default gray
+  switch(docType) {
+    case 'invoice': color = invoiceBgColor; break;
+    case 'quote': color = quoteBgColor; break;
+    case 'delivery_note': color = deliveryNoteBgColor; break;
+    case 'supplier_order': color = supplierOrderBgColor; break;
+    case 'credit_note': color = creditNoteBgColor; break;
+  }
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+      <h1 className="text-[20vw] lg:text-[12rem] font-black uppercase opacity-5 select-none" style={{ color }}>
+        {docInfo.label}
+      </h1>
+    </div>
+  );
+};
+
+
 function ReportsPageContent() {
   const { 
       sales: allSales, 
@@ -771,7 +804,8 @@ function ReportsPageContent() {
                     </CollapsibleContent>
                 </Collapsible>
                 
-                <div className="flex flex-col gap-4">
+                <div className="relative">
+                    {docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
                     <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                         <Card>
                             <CardHeader className="p-4">
@@ -866,7 +900,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                  Détail des pièces ({filteredAndSortedSales.length})
+                                  Pièces
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1040,3 +1074,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
