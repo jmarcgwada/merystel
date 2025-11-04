@@ -104,7 +104,18 @@ function AnalyticsPageContent() {
     const [filterCustomer, setFilterCustomer] = useState('');
     const [filterItem, setFilterItem] = useState('');
     const [filterSeller, setFilterSeller] = useState('');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    
+    const dateFilterParam = searchParams.get('date');
+    const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
+
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        if (dateFilterParam) {
+            const date = parseISO(dateFilterParam);
+            return { from: date, to: date };
+        }
+        return undefined;
+    });
+
     const [currentPage, setCurrentPage] = useState(1);
     const [isFiltersOpen, setFiltersOpen] = useState(false);
     const [isSummaryOpen, setSummaryOpen] = useState(true);
@@ -112,6 +123,9 @@ function AnalyticsPageContent() {
     const { setTargetInput, inputValue, targetInput } = useKeyboard();
     const generalFilterRef = useRef<HTMLInputElement>(null);
     const itemFilterRef = useRef<HTMLInputElement>(null);
+    const customerNameFilterRef = useRef<HTMLInputElement>(null);
+    const sellerNameFilterRef = useRef<HTMLInputElement>(null);
+
 
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
 
@@ -639,17 +653,17 @@ function AnalyticsPageContent() {
                       </DropdownMenu>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={resetFilters}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                    <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                   </div>
                 </div>
               </CardHeader>
               <CollapsibleContent asChild>
                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                   <Popover>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger asChild disabled={isDateFilterLocked}>
                       <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateFilterParam && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                        {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                         {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
                       </Button>
                     </PopoverTrigger>
