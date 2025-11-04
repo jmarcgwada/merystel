@@ -1417,222 +1417,167 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
     }, [sales, recordCommercialDocument]);
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-      const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-      const BATCH_SIZE = 50;
-      const { id: toastId } = toast({
-          title: 'Importation...',
-          description: `Préparation de ${jsonData.length} lignes.`
-      });
-
-      const addError = (line: number, message: string) => {
-          report.errorCount++;
-          report.errors.push(`Ligne ${line + 1}: ${message}`);
-      };
-
-      for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
-          const chunk = jsonData.slice(i, i + BATCH_SIZE);
-          
-          if (dataType === 'clients') {
-              const customerIds = new Set(customers.map(c => c.id));
-              for (const [index, row] of chunk.entries()) {
-                  if (!row.id || !row.name) { addError(i + index, "L'ID et le nom du client sont requis."); continue; }
-                  if (customerIds.has(row.id)) { addError(i + index, `Le client avec l'ID ${row.id} existe déjà.`); continue; }
-                  await addCustomer(row);
-                  report.successCount++;
-                  customerIds.add(row.id);
-              }
-          } else if (dataType === 'articles') {
-              const itemBarcodes = new Set(items.map(i => i.barcode));
-              for (const [index, row] of chunk.entries()) {
-                  if (!row.barcode || !row.name || !row.price || !row.vatId) { addError(i + index, 'Champs article manquants (code-barres, nom, prix, TVA).'); continue; }
-                  if (itemBarcodes.has(row.barcode)) { addError(i + index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue; }
-                  await addItem(row);
-                  report.successCount++;
-                  itemBarcodes.add(row.barcode);
-              }
-          } else if (dataType === 'fournisseurs') {
-             const supplierIds = new Set(suppliers.map(s => s.id));
-             for (const [index, row] of chunk.entries()) {
-                if (!row.id || !row.name) {
-                    addError(index, "L'ID et le nom du fournisseur sont requis."); continue;
-                }
-                if (supplierIds.has(row.id)) {
-                    addError(index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue;
-                }
-                await addSupplier(row);
-                report.successCount++;
-                supplierIds.add(row.id);
-             }
-        } else if (dataType === 'ventes_completes') {
-            const groupedRows: Record<string, any[]> = {};
-            chunk.forEach(row => {
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
+        const { id: toastId } = toast({
+            title: 'Importation...',
+            description: `Préparation de ${jsonData.length} lignes.`
+        });
+    
+        const addError = (line: number, message: string) => {
+            report.errorCount++;
+            report.errors.push(`Ligne ${line}: ${message}`);
+        };
+    
+        if (dataType === 'ventes_completes') {
+            const groupedByTicket = jsonData.reduce((acc, row, index) => {
                 const ticketNum = row.ticketNumber;
-                if (!ticketNum) return;
-                if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
-                groupedRows[ticketNum].push(row);
-            });
-            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-            const salesMap = new Map<string, { sale: Omit<Sale, 'id'>, paymentTotals: Record<string, number> }>();
-
-            for (const ticketNumber in groupedRows) {
-                const rows = groupedRows[ticketNumber];
+                if (!ticketNum) {
+                    addError(index + 1, 'Numéro de pièce manquant.');
+                    return acc;
+                }
+                if (!acc[ticketNum]) acc[ticketNum] = [];
+                acc[ticketNum].push({ ...row, originalIndex: index + 1 });
+                return acc;
+            }, {} as Record<string, any[]>);
+    
+            let existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+    
+            for (const ticketNumber in groupedByTicket) {
+                if (existingSaleNumbers.has(ticketNumber)) {
+                    addError(groupedByTicket[ticketNumber][0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+                    continue;
+                }
+    
+                const rows = groupedByTicket[ticketNumber];
                 const firstRow = rows[0];
-                try {
-                    const finalTicketNumber = firstRow.ticketNumber;
-                    if (existingSaleNumbers.has(finalTicketNumber)) {
-                        addError(i, `La pièce #${finalTicketNumber} existe déjà.`); continue;
-                    }
-                    
-                    
-                    let saleDate: Date | null = null;
-                    const dateString = firstRow.saleDate;
-                    const timeString = firstRow.saleTime || '00:00';
-                    const fullDateTimeString = `${dateString} ${timeString}`;
-                    
-                    let parsed;
-                    if (dateString.includes('/')) {
-                        parsed = parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date());
-                    } else if (dateString.includes('-')) {
-                        parsed = parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                    } else {
-                        parsed = new Date('invalid');
-                    }
+    
+                let saleDate: Date;
+                const dateString = firstRow.saleDate;
+                const timeString = firstRow.saleTime || '00:00';
+                const fullDateTimeString = `${dateString} ${timeString}`;
+                const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+                
+                if (!isValid(parsed)) {
+                    addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
+                    continue;
+                }
+                saleDate = parsed;
 
-                    if (isValid(parsed)) {
-                        saleDate = parsed;
+                let customer = customers.find(c => c.id === firstRow.customerCode) || null;
+                if (!customer && firstRow.customerName) {
+                    const newCustomer = await addCustomer({
+                        id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                        name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                        address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
+                    });
+                    if (newCustomer) {
+                        customer = newCustomer;
+                        report.newCustomersCount = (report.newCustomersCount || 0) + 1;
                     }
-
-                    if (!saleDate) {
-                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA ou YYYY-MM-DD.`);
+                }
+    
+                const saleItems: OrderItem[] = [];
+                for (const row of rows) {
+                    if (!row.itemBarcode) {
+                        if (saleItems.length > 0 && row.itemName) {
+                            saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                        }
                         continue;
                     }
-
-                    let saleEntry = salesMap.get(finalTicketNumber);
-                    if (!saleEntry) {
-                        report.newSalesCount = (report.newSalesCount || 0) + 1;
-                        let customer: Customer | null = null;
-                        if(firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
-                        if (!customer && firstRow.customerName) {
-                            customer = await addCustomer({
-                                id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
-                                name: firstRow.customerName,
-                                email: firstRow.customerEmail,
-                                phone: firstRow.customerPhone,
-                                address: firstRow.customerAddress,
-                                postalCode: firstRow.customerPostalCode,
-                                city: firstRow.customerCity
-                            });
-                            if(customer) report.newCustomersCount = (report.newCustomersCount || 0) + 1;
-                        }
-
-                        saleEntry = {
-                            sale: {
-                                ticketNumber: finalTicketNumber,
-                                date: saleDate,
-                                items: [],
-                                subtotal: 0, tax: 0, total: 0,
-                                payments: [],
-                                status: 'paid',
-                                customerId: customer?.id,
-                                documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
-                                userId: user?.id,
-                                userName: firstRow.sellerName || user?.firstName || 'Import',
-                            },
-                            paymentTotals: {}
-                        };
-                        salesMap.set(finalTicketNumber, saleEntry);
+    
+                    let item = items.find(i => i.barcode === row.itemBarcode);
+                    if (!item && row.itemName) {
+                        let category = categories.find(c => c.name === row.itemCategory);
+                        if (!category) category = await addCategory({ name: row.itemCategory || 'Importé' });
+                        let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                        if (!vat) vat = vatRates[0];
+                        item = await addItem({
+                            name: row.itemName, barcode: row.itemBarcode,
+                            price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                            purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
+                        });
+                        if (item) report.newItemsCount = (report.newItemsCount || 0) + 1;
                     }
-
-                    for(let j = 0; j < rows.length; j++) {
-                        const row = rows[j];
-                        if (!row.itemBarcode) {
-                            if (saleEntry.sale.items.length > 0 && row.itemName) {
-                                const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
-                                lastItem.note = ((lastItem.note || '') + '\n' + row.itemName).trim();
-                            }
-                            continue;
-                        }
-                        
-                        let item = items.find(i => i.barcode === row.itemBarcode);
-                        if (!item && row.itemName) {
-                            let category = categories.find(c => c.name === row.itemCategory);
-                            if (!category) {
-                                category = await addCategory({ name: row.itemCategory || 'Importé' });
-                            }
-                            let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
-                            if (!vat) vat = vatRates[0];
-                             
-                            item = await addItem({
-                                name: row.itemName,
-                                barcode: row.itemBarcode,
-                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
-                                purchasePrice: row.itemPurchasePrice,
-                                categoryId: category?.id,
-                                vatId: vat?.id || '',
-                            });
-                            if(item) report.newItemsCount = (report.newItemsCount || 0) + 1;
-                        }
-
-                        if (item) {
-                            const vatInfo = vatRates.find(v => v.id === item!.vatId);
-                            const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
-                            const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
-                            const total = priceTTC * row.quantity - discountAmount;
-                            saleEntry.sale.items.push({
-                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
-                                quantity: row.quantity, total, discount: discountAmount,
-                                discountPercent: row.discountPercentage, barcode: item.barcode!,
-                            });
-                        }
-                    }
-                    
-                    const paymentFields = ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'];
-                    if (firstRow) {
-                        paymentFields.forEach(pm => {
-                            if(firstRow[pm]) {
-                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + firstRow[pm];
-                            }
+    
+                    if (item) {
+                        const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                        const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                        const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                        const total = priceTTC * row.quantity - discountAmount;
+                        saleItems.push({
+                            id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
+                            quantity: row.quantity, total, discount: discountAmount,
+                            discountPercent: row.discountPercentage, barcode: item.barcode!,
                         });
                     }
-
-                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
-            }
-
-            for (const { sale, paymentTotals } of salesMap.values()) {
-                const total = sale.items.reduce((sum, i) => sum + i.total, 0);
-                sale.total = total;
-                const totalTax = sale.items.reduce((sum, i) => {
+                }
+    
+                const total = saleItems.reduce((sum, i) => sum + i.total, 0);
+                const totalTax = saleItems.reduce((sum, i) => {
                     const vat = vatRates.find(v => v.id === i.vatId);
                     return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
                 }, 0);
-                sale.tax = totalTax;
-                sale.subtotal = total - totalTax;
-
+    
+                const paymentTotals: Record<string, number> = {};
+                rows.forEach(row => {
+                    ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
+                        if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm];
+                    });
+                });
+    
+                const payments: Payment[] = [];
                 const paymentMapping: Record<string, string> = {
                   paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
                   paymentCheck: 'Chèque', paymentOther: 'AUTRE'
                 };
-                
                 Object.entries(paymentTotals).forEach(([key, amount]) => {
                   const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
-                  if(method && amount > 0) sale.payments.push({ method, amount, date: sale.date });
+                  if(method && amount > 0) payments.push({ method, amount, date: saleDate });
                 });
                 
-                await recordSale(sale);
+                const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+
+                const newSale: Omit<Sale, 'id'> = {
+                    ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
+                    payments, status: totalPaid >= total - 0.01 ? 'paid' : 'pending',
+                    customerId: customer?.id,
+                    documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                    userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
+                };
+                
+                await recordSale(newSale);
+                report.successCount++;
+                existingSaleNumbers.add(ticketNumber);
+            }
+        } else {
+             for (const [index, row] of jsonData.entries()) {
+                try {
+                    if (dataType === 'clients') {
+                        if (!row.id || !row.name) throw new Error("ID et Nom requis.");
+                        if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+                        await addCustomer(row);
+                    } else if (dataType === 'articles') {
+                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
+                        if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
+                        await addItem(row);
+                    } else if (dataType === 'fournisseurs') {
+                        if (!row.id || !row.name) throw new Error("ID et Nom requis.");
+                        if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                        await addSupplier(row);
+                    }
+                    report.successCount++;
+                } catch (e: any) { addError(index + 1, e.message); }
             }
         }
-    
+        
         updateToast(toastId, {
-            description: `Traitement... ${Math.min(i + BATCH_SIZE, jsonData.length)} / ${jsonData.length} lignes.`
+            title: "Importation terminée !",
+            description: `${report.successCount} succès, ${report.errorCount} échecs.`
         });
-        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to main thread
-      }
-      
-      toast({id: toastId}).dismiss();
-      return report;
+        return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, updateToast]);
 
-  const value: InternalPosContextType = {
+  const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -1690,4 +1635,12 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       {children}
     </PosContext.Provider>
   );
+}
+
+export function usePos() {
+  const context = useContext(PosContext);
+  if (context === undefined) {
+    throw new Error('usePos must be used within a PosProvider');
+  }
+  return context;
 }
