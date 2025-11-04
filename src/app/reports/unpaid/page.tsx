@@ -481,7 +481,7 @@ export default function UnpaidInvoicesPage() {
         </PageHeader>
         
         <div className="mt-8 space-y-4">
-            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+            <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                 <Card className="mb-4">
                     <CardHeader className="p-4">
                         <div className="flex items-center justify-between">
@@ -525,7 +525,7 @@ export default function UnpaidInvoicesPage() {
         
             <Card>
               <CardHeader>
-                  <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
                     <CardTitle className="flex items-center gap-4">
                        Liste des impayés
                         <span className="text-base font-normal text-muted-foreground">({unpaidInvoices.length})</span>
