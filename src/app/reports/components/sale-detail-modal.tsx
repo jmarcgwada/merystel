@@ -37,7 +37,7 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
 };
 
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
-  const { customers, users, loadSaleForEditing, lastReportsUrl } = usePos();
+  const { customers, users, lastReportsUrl } = usePos();
   const router = useRouter();
   
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
@@ -122,7 +122,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" asChild>
-                <Link href={lastReportsUrl || `/reports/${sale.id}?from=payments`}>Voir la fiche détaillée</Link>
+                <Link href={`/reports/${sale.id}?from=payments`}>Voir la fiche détaillée</Link>
             </Button>
             {isInvoice && balanceDue > 0 && (
                 <Button onClick={handleEdit}>
