@@ -122,7 +122,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" asChild>
-                <Link href={`/reports/${sale.id}?from=payments`}>Voir la fiche détaillée</Link>
+                <Link href={lastReportsUrl || `/reports/${sale.id}`}>Voir la fiche détaillée</Link>
             </Button>
             {isInvoice && balanceDue > 0 && (
                 <Button onClick={handleEdit}>
