@@ -53,7 +53,7 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
             let jsDate: Date;
             if (date instanceof Date) {
                 jsDate = date;
-            } else if (date && typeof (date as Timestamp)?.toDate === 'function') {
+            } else if (date && typeof (date as Timestamp).toDate === 'function') {
                 jsDate = (date as Timestamp).toDate();
             } else if (date && typeof (date as any).seconds === 'number') {
                 jsDate = new Date((date as any).seconds * 1000);
@@ -357,11 +357,14 @@ function SaleDetailContent() {
       return allItems.find(i => i.id === orderItem.itemId) || {};
   }, [allItems]);
 
-  const { subtotal, tax, vatBreakdown } = useMemo(() => {
-    if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {} };
+  const { subtotal, tax, vatBreakdown, balanceDue } = useMemo(() => {
+    if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {}, balanceDue: 0 };
     
+    const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+    const balance = sale.total - totalPaid;
+
     if (sale.vatBreakdown && sale.subtotal !== undefined && sale.tax !== undefined) {
-        return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown };
+        return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown, balanceDue: balance };
     }
     
     let calcSubtotal = 0;
@@ -391,7 +394,7 @@ function SaleDetailContent() {
 
     const calcTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
 
-    return { subtotal: calcSubtotal, tax: calcTax, vatBreakdown: breakdown };
+    return { subtotal: calcSubtotal, tax: calcTax, vatBreakdown: breakdown, balanceDue: balance };
 }, [sale, vatRates]);
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
@@ -662,7 +665,7 @@ function SaleDetailContent() {
               
               {Object.entries(vatBreakdown).map(([rate, values]) => (
                 <div key={rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA (${parseFloat(rate).toFixed(2)}%)</span>
+                    <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
                     <span>{values.base.toFixed(2)}€</span>
                 </div>
               ))}
@@ -680,9 +683,15 @@ function SaleDetailContent() {
                 </div>
               )}
               <div className="flex justify-between font-bold text-lg">
-                <span>Total ${sale.originalTotal ? 'Final ' : ''}(TTC)</span>
+                <span>Total {sale.originalTotal ? 'Final ' : ''}(TTC)</span>
                 <span>{sale.total.toFixed(2)}€</span>
               </div>
+              {balanceDue > 0.01 && (
+                <div className="flex justify-between font-bold text-lg text-destructive pt-2 border-t border-destructive/20">
+                    <span>Solde Dû</span>
+                    <span>{balanceDue.toFixed(2)}€</span>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col items-start gap-4">
                  {sale.originalPayments && sale.originalPayments.length > 0 && (
