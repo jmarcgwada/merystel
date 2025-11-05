@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -24,26 +24,16 @@ import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
 import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { EmailSenderDialog } from '../components/email-sender-dialog';
-import { addMonths } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-
+import { FullSaleDetailDialog } from '../components/full-sale-detail-dialog';
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | undefined, formatString: string}) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -639,20 +629,8 @@ function SaleDetailContent() {
         <div className="lg:col-span-1 space-y-8">
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {sellerName && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3>
-                    <p>{sellerName}</p>
-                  </div>
-                )}
-                {customer && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground">Client</h3>
-                    <p className="font-semibold">{customer.name}</p>
-                    {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
-                    {customer.phone && <p className="text-sm text-muted-foreground">{customer.phone}</p>}
-                  </div>
-                )}
+                {sellerName && (<div><h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3><p>{sellerName}</p></div>)}
+                {customer && (<div><h3 className="text-sm font-semibold text-muted-foreground">Client</h3><p className="font-semibold">{customer.name}</p></div>)}
               </div>
             </div>
 

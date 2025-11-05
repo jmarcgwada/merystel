@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
@@ -15,6 +15,7 @@ import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { FullSaleDetailDialog } from './full-sale-detail-dialog';
 
 interface SaleDetailModalProps {
   isOpen: boolean;
@@ -31,9 +32,9 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
                 <div key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
                     <div className="flex items-center gap-2">
                         <Badge variant="outline">{p.method.name}</Badge>
-                        <span className="text-xs text-muted-foreground">
-                            (<ClientFormattedDate date={p.date} formatString="dd/MM/yy HH:mm" />)
-                        </span>
+                         <span className="text-xs text-muted-foreground">
+                           (<ClientFormattedDate date={p.date} formatString="dd/MM/yy HH:mm" />)
+                         </span>
                     </div>
                     <span className="font-medium">{p.amount.toFixed(2)}€</span>
                 </div>
@@ -45,6 +46,7 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
   const { customers, users, lastReportsUrl } = usePos();
   const router = useRouter();
+  const [isFullDetailOpen, setIsFullDetailOpen] = useState(false);
   
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
@@ -65,7 +67,12 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     router.push(`${path}?edit=${sale.id}`);
   };
 
+  const handleOpenFullDetail = () => {
+    setIsFullDetailOpen(true);
+  };
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
@@ -130,8 +137,8 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
             </div>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" asChild>
-                <Link href={lastReportsUrl ? lastReportsUrl.replace(/[^?]*\?/, `/reports/${sale.id}?`) : `/reports/${sale.id}`}>Voir la fiche détaillée</Link>
+            <Button variant="outline" onClick={handleOpenFullDetail}>
+              Voir la fiche détaillée
             </Button>
             {isInvoice && balanceDue > 0 && (
                 <Button onClick={handleEdit}>
@@ -141,5 +148,14 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         </DialogFooter>
       </DialogContent>
     </Dialog>
+     {isFullDetailOpen && (
+        <FullSaleDetailDialog
+            isOpen={isFullDetailOpen}
+            onClose={() => setIsFullDetailOpen(false)}
+            saleId={sale.id}
+        />
+     )}
+    </>
   );
 }
+
