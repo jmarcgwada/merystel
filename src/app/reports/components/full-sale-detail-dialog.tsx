@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
@@ -108,7 +107,7 @@ const PaymentsList = ({ payments, title, saleId }: { payments: Payment[], title:
 interface FullSaleDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  saleId: string;
+  saleId: string | null;
 }
 
 export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetailDialogProps) {
@@ -144,7 +143,7 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
       }
       setIsRecurrenceModified(false);
     }
-  }, [allSales, saleId]);
+  }, [allSales, saleId, isOpen]);
 
   const handleSaveRecurrence = async () => {
     if (!sale) return;
@@ -234,7 +233,7 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
     const calcTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
 
     return { subtotal: calcSubtotal, tax: calcTax, vatBreakdown: breakdown, balanceDue: balance };
-}, [sale, vatRates]);
+  }, [sale, vatRates]);
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
                   : sale?.documentType === 'quote' ? 'Devis'
@@ -298,13 +297,17 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                 )}
               </span>
             </DialogDescription>
+             <div className="pt-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap gap-x-6 gap-y-1">
+                    {sellerName && (<div><span className="font-semibold">Vendeur:</span> {sellerName}</div>)}
+                    {customer && (<div><span className="font-semibold">Client:</span> {customer.name}</div>)}
+                </div>
+            </div>
           </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-4">
             <div className="lg:col-span-2 space-y-8">
               <Card>
-                <CardHeader>
-                  <CardTitle>Articles vendus</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Articles</CardTitle></CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
@@ -343,13 +346,6 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
             </div>
             
             <div className="lg:col-span-1 space-y-8">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {sellerName && (<div><h3 className="text-sm font-semibold text-muted-foreground">Vendeur</h3><p>{sellerName}</p></div>)}
-                    {customer && (<div><h3 className="text-sm font-semibold text-muted-foreground">Client</h3><p className="font-semibold">{customer.name}</p></div>)}
-                  </div>
-                </div>
-
               <Card>
                 <CardHeader><CardTitle>Résumé</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -366,7 +362,7 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
             </div>
           </div>
           <DialogFooter>
-             <Button variant="outline" onClick={onClose}>Fermer</Button>
+            <Button variant="outline" onClick={onClose}>Fermer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
