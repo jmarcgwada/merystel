@@ -826,7 +826,7 @@ function ReportsPageContent() {
     <div className="flex items-center gap-4">
       <span>Pièces</span>
       <span className="text-base font-normal text-muted-foreground">
-        ({filteredAndSortedSales.length} / {allSales?.length || 0})
+        ({filteredAndSortedSales.length} sur {allSales?.length || 0})
       </span>
     </div>
   );
@@ -898,7 +898,7 @@ function ReportsPageContent() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
                 title="Rapports des pièces"
-                subtitle={`Page ${currentPage} sur ${totalPages}`}
+                subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
@@ -1067,7 +1067,7 @@ function ReportsPageContent() {
                                                             handleColumnVisibilityChange(column.id, checked)
                                                         }
                                                     }}
-                                                    disabled={isMarginColumn && visibleColumns.margin}
+                                                    disabled={isMarginColumn && !!visibleColumns.margin && user?.role !== 'admin'}
                                                 >
                                                     {isMarginColumn && <Lock className="mr-2 h-3 w-3" />}
                                                     {column.label}
@@ -1078,7 +1078,7 @@ function ReportsPageContent() {
                                     </DropdownMenu>
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseDown={() => handleMouseDown(() => setCurrentPage(1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(1))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => setCurrentPage(p => Math.max(1, p - 1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(1))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
@@ -1097,13 +1097,13 @@ function ReportsPageContent() {
                                                     onValueChange={(value) => setItemsPerPageState(value[0])}
                                                     onValueCommit={(value) => setItemsPerPage(value[0])}
                                                     min={5}
-                                                    max={100}
+                                                    max={50}
                                                     step={5}
                                                 />
                                             </div>
                                         </PopoverContent>
                                     </Popover>
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => setCurrentPage(p => Math.min(totalPages, p + 1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                                 </div>
                             </div>
                         </CardHeader>
