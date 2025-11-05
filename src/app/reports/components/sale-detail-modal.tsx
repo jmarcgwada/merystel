@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -28,7 +29,12 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
         <div className="space-y-2">
             {payments.map((p, index) => (
                 <div key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                    <Badge variant="outline">{p.method.name}</Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline">{p.method.name}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                            (<ClientFormattedDate date={p.date} formatString="dd/MM/yy HH:mm" />)
+                        </span>
+                    </div>
                     <span className="font-medium">{p.amount.toFixed(2)}€</span>
                 </div>
             ))}
@@ -109,7 +115,10 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                         <div className="flex justify-between"><span className="text-muted-foreground">Total à payer</span><span className="font-semibold">{sale.total.toFixed(2)}€</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Total payé</span><span className="font-semibold">{totalPaid.toFixed(2)}€</span></div>
                         <Separator />
-                        <div className={`flex justify-between font-bold ${balanceDue > 0 ? 'text-destructive' : 'text-green-600'}`}><span>Reste à payer</span><span>{balanceDue.toFixed(2)}€</span></div>
+                        <div className={`flex justify-between font-bold ${balanceDue > 0.01 ? 'text-destructive' : 'text-green-600'}`}>
+                          <span>{balanceDue > 0.01 ? 'Reste à payer' : 'Solde'}</span>
+                          <span>{balanceDue.toFixed(2)}€</span>
+                        </div>
                     </CardContent>
                 </Card>
                  <Card>
@@ -122,7 +131,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" asChild>
-                <Link href={lastReportsUrl || `/reports/${sale.id}`}>Voir la fiche détaillée</Link>
+                <Link href={lastReportsUrl ? lastReportsUrl.replace(/[^?]*\?/, `/reports/${sale.id}?`) : `/reports/${sale.id}`}>Voir la fiche détaillée</Link>
             </Button>
             {isInvoice && balanceDue > 0 && (
                 <Button onClick={handleEdit}>

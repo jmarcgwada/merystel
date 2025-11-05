@@ -84,6 +84,9 @@ const PaymentsList = ({ payments, title, saleId }: { payments: Payment[], title:
                           <div className="flex justify-between items-center text-sm">
                               <div className="flex items-center gap-2">
                                   <Badge variant="secondary">{p.method.name}</Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    (<ClientFormattedDate date={p.date} formatString="dd/MM/yy HH:mm" />)
+                                  </span>
                                   {p.chequesCount && p.chequesCount > 1 && (
                                       <Badge variant="outline">{p.chequesCount} chèques</Badge>
                                   )}
