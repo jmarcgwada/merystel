@@ -150,6 +150,7 @@ function AnalyticsPageContent() {
     const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isMarginColumnVisible, setIsMarginColumnVisible] = useState(false);
     
     useEffect(() => {
         setIsClient(true);
@@ -165,9 +166,14 @@ function AnalyticsPageContent() {
     }, [inputValue, targetInput]);
     
      useEffect(() => {
-        const storedColumns = localStorage.getItem('analyticsVisibleColumns');
-        if (storedColumns) {
-            setVisibleColumns(JSON.parse(storedColumns));
+        const storedSalesColumns = localStorage.getItem('reportsVisibleColumns');
+        if(storedSalesColumns) {
+            setIsMarginColumnVisible(JSON.parse(storedSalesColumns)['margin'] === true);
+        }
+
+        const storedAnalyticsColumns = localStorage.getItem('analyticsVisibleColumns');
+        if (storedAnalyticsColumns) {
+            setVisibleColumns(JSON.parse(storedAnalyticsColumns));
         } else {
              setVisibleColumns({
                 saleDate: true,
@@ -324,6 +330,13 @@ function AnalyticsPageContent() {
         const totalSold = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
         const uniqueSales = new Set(filteredItems.map(item => item.saleId)).size;
         const averageBasket = uniqueSales > 0 ? revenue / uniqueSales : 0;
+        
+        const totalMargin = filteredItems.reduce((acc, item) => {
+            const catalogItem = allItems.find(i => i.id === item.itemId);
+            const purchasePrice = catalogItem?.purchasePrice || 0;
+            const lineMargin = (item.total - (purchasePrice * item.quantity));
+            return acc + lineMargin;
+        }, 0);
 
         const itemStats = filteredItems.reduce((acc, item) => {
             const catalogItem = allItems.find(i => i.id === item.itemId);
@@ -376,7 +389,7 @@ function AnalyticsPageContent() {
         }
 
         return {
-            stats: { revenue, totalSold, uniqueSales, averageBasket, summaryTitle },
+            stats: { revenue, totalSold, uniqueSales, averageBasket, summaryTitle, totalMargin },
             topItems: Object.values(itemStats),
             topCustomers: Object.values(customerStats),
             topCategories: Object.values(categoryStats),
@@ -548,11 +561,20 @@ function AnalyticsPageContent() {
                   </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{stats.summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.revenue.toFixed(2)}€</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.uniqueSales}</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. d'Articles Vendus</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.totalSold}</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Panier Moyen</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{stats.averageBasket.toFixed(2)}€</div></CardContent></Card>
+                       {isMarginColumnVisible && (
+                        <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Marge Brute Réalisée</CardTitle>
+                                <DollarSign className="h-4 w-4 text-emerald-600" />
+                            </CardHeader>
+                            <CardContent><div className="text-2xl font-bold text-emerald-600">{stats.totalMargin.toFixed(2)}€</div></CardContent>
+                        </Card>
+                      )}
                   </div>
               </CollapsibleContent>
           </Collapsible>
@@ -925,5 +947,3 @@ export default function AnalyticsPage() {
         </Suspense>
     )
 }
-
-    
