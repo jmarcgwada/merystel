@@ -805,7 +805,7 @@ export const CommercialOrderForm = forwardRef<
                                   <div className="flex justify-between items-center">
                                       <Label htmlFor="acompte">Acompte (€)</Label>
                                       <Controller control={form.control} name="acompte" render={({ field }) => (
-                                          <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right h-8" placeholder="0.00"/>
+                                          <Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} min={0} className="max-w-[100px] text-right h-8 bg-muted" placeholder="0.00" readOnly/>
                                       )}/>
                                   </div>
                               )}
