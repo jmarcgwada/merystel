@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -624,7 +623,7 @@ function ReportsPageContent() {
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
     
-     const summaryStats = useMemo(() => {
+    const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
         const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
@@ -634,8 +633,31 @@ function ReportsPageContent() {
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
         const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
 
-        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin };
-    }, [filteredAndSortedSales]);
+         const paymentSummary = filteredAndSortedSales
+            .flatMap(sale => sale.payments || [])
+            .reduce((acc, p) => {
+                const name = p.method.name;
+                if (!acc[name]) {
+                    acc[name] = { count: 0, total: 0 };
+                }
+                acc[name].count += 1;
+                acc[name].total += p.amount;
+                return acc;
+            }, {} as Record<string, { count: number; total: number }>);
+            
+
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
+        let summaryTitle = "Total";
+        const uniqueTypes = [...new Set(activeDocTypes)].filter(Boolean);
+
+        if (uniqueTypes.length === 1) {
+            const type = uniqueTypes[0];
+            if (type === 'in') summaryTitle = "Revenu Total";
+            else if (type === 'out') summaryTitle = "Total Dépensé";
+        }
+        
+        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin, paymentMethodSummary, summaryTitle };
+    }, [filteredAndSortedSales, filterDocTypes]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -946,6 +968,26 @@ function ReportsPageContent() {
                                 </Card>
                             )}
                         </div>
+                        {Object.keys(summaryStats.paymentMethodSummary).length > 0 && (
+                          <Card className="mt-4">
+                              <CardHeader>
+                              <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                              {Object.entries(summaryStats.paymentMethodSummary).map(([method, data]) => (
+                                  <Card key={method}>
+                                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                      <CardTitle className="text-sm font-medium">{method}</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                      <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
+                                      <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
+                                  </CardContent>
+                                  </Card>
+                              ))}
+                              </CardContent>
+                          </Card>
+                        )}
                     </CollapsibleContent>
                 </Collapsible>
                 
