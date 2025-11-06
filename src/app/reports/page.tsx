@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag as ShoppingBagIcon, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -627,9 +627,11 @@ function ReportsPageContent() {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
         const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
+        
         const totalRevenue = revenueSales.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const totalCreditNotes = creditNotes.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
         const totalPurchases = supplierOrders.reduce((acc, sale) => acc + Math.abs(sale.total), 0);
+        
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
         const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
 
@@ -644,7 +646,6 @@ function ReportsPageContent() {
               acc[name].total += p.amount;
               return acc;
           }, {} as Record<string, { count: number; total: number }>);
-            
 
         const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
         let summaryTitle = "Total";
@@ -807,17 +808,6 @@ function ReportsPageContent() {
       generalFilterRef.current?.focus();
     };
 
-    const navigationParams = useMemo(() => {
-        const params = new URLSearchParams(Array.from(searchParams.entries()));
-        return params.toString();
-    }, [searchParams]);
-
-    const getDetailLink = useCallback((id: string | null) => {
-        if (!id) return '#';
-        const params = new URLSearchParams(navigationParams);
-        return `/reports/${id}?${params.toString()}`;
-    }, [navigationParams]);
-
     if (isCashier) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -958,15 +948,6 @@ function ReportsPageContent() {
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Balance Nette</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
-                            {visibleColumns.margin && (
-                                <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Marge Brute Réalisée</CardTitle>
-                                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                                    </CardHeader>
-                                    <CardContent><div className="text-2xl font-bold text-emerald-600">{summaryStats.totalMargin.toFixed(2)}€</div></CardContent>
-                                </Card>
-                            )}
                         </div>
                         {Object.keys(summaryStats.paymentMethodSummary).length > 0 && (
                           <Card className="mt-4">
@@ -1120,8 +1101,18 @@ function ReportsPageContent() {
                                     </DropdownMenu>
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => setCurrentPage(p => Math.max(1, p - 1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(1))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                                    <Popover>
+                                     <Button
+                                        variant="outline" size="icon" className="h-9 w-9"
+                                        onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                        onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
+                                        onMouseLeave={handleMouseLeave}
+                                        onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
+                                        onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </Button>
+                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
                                                 Page {currentPage} / {totalPages || 1}
@@ -1145,7 +1136,17 @@ function ReportsPageContent() {
                                             </div>
                                         </PopoverContent>
                                     </Popover>
-                                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => setCurrentPage(p => Math.min(totalPages, p + 1))} onMouseLeave={handleMouseLeave} onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))} onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                                    <Button
+                                        variant="outline" size="icon" className="h-9 w-9"
+                                        onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                                        onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                                        onMouseLeave={handleMouseLeave}
+                                        onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                                        onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                                        disabled={currentPage === totalPages || totalPages <= 1}
+                                    >
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             </div>
                         </CardHeader>
@@ -1204,7 +1205,7 @@ function ReportsPageContent() {
                                                     <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
                                                 </TableCell>}
                                                 {visibleColumns.ticketNumber && <TableCell>
-                                                  <Link href={getDetailLink(sale.id)} className="font-mono text-muted-foreground text-xs hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                                                  <Link href={`/reports/${sale.id}?${searchParams.toString()}`} className="font-mono text-muted-foreground text-xs hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
                                                     {sale.ticketNumber}
                                                   </Link>
                                                 </TableCell>}
@@ -1260,5 +1261,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
