@@ -633,17 +633,17 @@ function ReportsPageContent() {
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
         const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
 
-         const paymentSummary = filteredAndSortedSales
-            .flatMap(sale => sale.payments || [])
-            .reduce((acc, p) => {
-                const name = p.method.name;
-                if (!acc[name]) {
-                    acc[name] = { count: 0, total: 0 };
-                }
-                acc[name].count += 1;
-                acc[name].total += p.amount;
-                return acc;
-            }, {} as Record<string, { count: number; total: number }>);
+        const paymentMethodSummary = filteredAndSortedSales
+          .flatMap(sale => sale.payments || [])
+          .reduce((acc, p) => {
+              const name = p.method.name;
+              if (!acc[name]) {
+                  acc[name] = { count: 0, total: 0 };
+              }
+              acc[name].count += 1;
+              acc[name].total += p.amount;
+              return acc;
+          }, {} as Record<string, { count: number; total: number }>);
             
 
         const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
@@ -1260,3 +1260,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
