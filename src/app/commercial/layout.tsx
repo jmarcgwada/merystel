@@ -126,7 +126,7 @@ export default function CommercialLayout({
   }
   
   const showNav = commercialViewLevel < 2;
-  const showTabs = commercialViewLevel < 1;
+  const showTabs = commercialViewLevel === 0;
 
   return (
     <>
@@ -159,9 +159,6 @@ export default function CommercialLayout({
                                 </Link>
                             </Button>
                         )}
-                        <Button onClick={cycleCommercialViewLevel} variant="outline" size="icon">
-                             {showNav ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
                         <Button onClick={handleBackToDashboard} size="icon" className="btn-back">
                             <LayoutDashboard />
                         </Button>
@@ -170,11 +167,14 @@ export default function CommercialLayout({
             </header>
         )}
          <main className="flex-1 flex flex-col relative">
-          {!showNav && (
-            <Button onClick={cycleCommercialViewLevel} variant="ghost" size="icon" className="fixed top-2 right-2 z-20 bg-background/50 backdrop-blur-sm">
-                <Eye className="h-4 w-4" />
+           <Button 
+                onClick={cycleCommercialViewLevel} 
+                variant="outline" 
+                size="icon" 
+                className="fixed top-2 right-2 z-20 bg-background/50 backdrop-blur-sm"
+            >
+                {showNav ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
-          )}
           <Suspense fallback={<div>Chargement...</div>}>
             {children}
           </Suspense>
@@ -199,4 +199,3 @@ export default function CommercialLayout({
     </>
   );
 }
-
