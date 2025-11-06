@@ -280,16 +280,15 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const newPayment: Payment = { method, amount: amountToAdd, date: paymentDate as any };
     const newPayments = [...payments, newPayment];
     setPayments(newPayments);
+    setShowCalculator(false); // Hide calculator on payment
     
     const newTotalAmountPaid = totalAmountPaid + amountToAdd;
     const newBalance = displayTotalAmount - newTotalAmountPaid;
     
     if (Math.abs(newBalance) > 0.009) {
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
-        setShowCalculator(true);
     } else { 
         setCurrentAmount(Math.abs(newBalance).toFixed(2));
-        setShowCalculator(false);
         if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
         if (Math.abs(newBalance) < 0.009) { // Exactly paid
             autoFinalizeTimer.current = setTimeout(() => {
@@ -386,6 +385,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             toast({ variant: 'destructive', title: 'Montant invalide', description: 'Veuillez saisir un montant pour le paiement par chèque.' });
             return;
         }
+        if (amount > Math.abs(balanceDue) + 0.009) {
+          setShowOverpaymentAlert(true);
+          return;
+        }
         const roundedAmount = parseFloat(amount.toFixed(2));
         setChequeTotalToPay(roundedAmount);
         setView('cheque');
@@ -435,7 +438,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   }
 
   const isInvoiceMode = currentSaleContext?.documentType === 'invoice';
-  const finalizeButtonDisabled = balanceDue > 0.009 && !isInvoiceMode && !isCreditNote;
+  const finalizeButtonDisabled = (balanceDue > 0.009 && !isInvoiceMode && !isCreditNote) || showCalculator;
 
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
       if (method.type === 'indirect' && method.value) {
@@ -644,7 +647,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         const IconComponent = getIcon(method.icon);
                         const isDisabled = (balanceDue <= 0 && method.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote) || 
                                             (!currentAmount && !method.value) || 
-                                            (parseFloat(String(currentAmount)) <= 0 && !method.value);
+                                            (parseFloat(String(currentAmount)) <= 0 && !method.value) ||
+                                            showCalculator;
 
                         return (
                           <Button
@@ -665,7 +669,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         variant="outline"
                         className="h-24 flex-grow flex flex-col items-center justify-center gap-2 relative"
                         onClick={handleOpenChequeView}
-                        disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote) || !currentAmount || parseFloat(String(currentAmount)) <= 0}
+                        disabled={(balanceDue <= 0 && !isCreditNote) || (isOverpaid && !isCreditNote) || !currentAmount || parseFloat(String(currentAmount)) <= 0 || showCalculator}
                       >
                          <StickyNote className="h-6 w-6 z-10" />
                          <span className="text-sm whitespace-normal text-center leading-tight z-10">Chèque</span>
@@ -675,7 +679,8 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                 {otherPaymentMethod && (() => {
                     const isDisabled = (balanceDue <= 0 && otherPaymentMethod.type === 'direct' && !(parseFloat(String(currentAmount)) > 0) && !isCreditNote) || 
                                         (!currentAmount && !otherPaymentMethod.value) || 
-                                        (parseFloat(String(currentAmount)) <= 0 && !otherPaymentMethod.value);
+                                        (parseFloat(String(currentAmount)) <= 0 && !otherPaymentMethod.value) ||
+                                        showCalculator;
                     return (
                       <div className="flex items-center gap-2 border rounded-md p-2 bg-secondary/30 mt-2">
                         <Button
@@ -692,7 +697,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                             variant="secondary"
                             className="h-12"
                             onClick={() => setView('advanced')}
-                            disabled={advancedPaymentMethods.length === 0 || (isOverpaid && !isCreditNote)}
+                            disabled={advancedPaymentMethods.length === 0 || (isOverpaid && !isCreditNote) || showCalculator}
                          >
                             Avancé <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
@@ -719,6 +724,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
               variant="secondary"
               onClick={handleSaveAsPending}
               className="w-full sm:w-auto"
+              disabled={showCalculator}
             >
               {isCreditNote ? 'Enregistrer sans paiement' : 'Enregistrer en attente'}
             </Button>
