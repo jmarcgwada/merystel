@@ -302,6 +302,17 @@ export const CommercialOrderForm = forwardRef<
       }
     }
   };
+
+  const handleWheel = (e: React.WheelEvent) => {
+      if (listContent.length > 0) {
+          e.preventDefault();
+          if (e.deltaY < 0) { // Scrolling up
+              setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+          } else { // Scrolling down
+              setHighlightedIndex(prev => (prev < listContent.length - 1 ? prev + 1 : prev));
+          }
+      }
+  };
   
   useEffect(() => {
     if (highlightedIndex !== -1 && itemRefs.current[highlightedIndex]) {
@@ -545,7 +556,7 @@ export const CommercialOrderForm = forwardRef<
                 </div>
             </div>
             {listContent.length > 0 && (
-                <Card className="mt-2 absolute z-10 w-full max-w-2xl top-full">
+                <Card className="mt-2 absolute z-10 w-full max-w-2xl top-full" onWheel={handleWheel}>
                     <ScrollArea className="h-full max-h-80">
                          <div className="space-y-px p-1">
                             {listContent.map((item, index) => (
@@ -839,4 +850,5 @@ export const CommercialOrderForm = forwardRef<
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
 
+    
     
