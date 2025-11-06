@@ -394,9 +394,9 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
     }
 
     const defaultVatRates: VatRate[] = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1, createdAt: new Date() },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2, createdAt: new Date() },
-        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
+        { id: 'vat_0', name: 'EXO', rate: 0, code: 1, createdAt: new Date() },
+        { id: 'vat_20', name: 'FRANCE', rate: 20, code: 2, createdAt: new Date() },
+        { id: 'vat_8.5', name: 'ANTILLES', rate: 8.5, code: 3, createdAt: new Date() },
     ];
     setVatRates(defaultVatRates);
 
@@ -1561,9 +1561,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     await recordSale(newSale);
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
-                } catch (e: any) {
-                    addError(0, `Erreur sur pièce ${ticketNumber}: ${e.message}`);
-                }
+                } catch (e: any) { addError(0, `Erreur sur pièce ${ticketNumber}: ${e.message}`); }
             }
         } else {
             for (const [index, row] of jsonData.entries()) {
@@ -1593,7 +1591,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
-  const value: InternalPosContextType = {
+  const value = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
