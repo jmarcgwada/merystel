@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -395,7 +396,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
     const defaultVatRates: VatRate[] = [
         { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1, createdAt: new Date() },
         { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2, createdAt: new Date() },
-        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
+        { id: 'vat_5.5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
     ];
     setVatRates(defaultVatRates);
 
@@ -1424,7 +1425,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
     
         const addError = (line: number, message: string) => {
             report.errorCount++;
-            report.errors.push(`Ligne ${line}: ${message}`);
+            report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
     
         let localCategories = [...categories];
@@ -1438,7 +1439,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
             jsonData.forEach((row, index) => {
                 const ticketNum = row.ticketNumber;
                 if (!ticketNum) {
-                    addError(index + 1, 'Numéro de pièce manquant.');
+                    addError(index, 'Numéro de pièce manquant.');
                     return;
                 }
                 if (!groupedByTicket.has(ticketNum)) {
@@ -1568,7 +1569,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
             for (const [index, row] of jsonData.entries()) {
                 try {
                     if (dataType === 'clients') {
-                        if (!row.id || !row.name) throw new Error("ID et Nom requis.");
+                        if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
                         if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
                         await addCustomer(row);
                     } else if (dataType === 'articles') {
@@ -1576,7 +1577,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                         if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
                         await addItem(row);
                     } else if (dataType === 'fournisseurs') {
-                         if (!row.id || !row.name) throw new Error("ID et Nom requis.");
+                         if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
                         if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
                         await addSupplier(row);
                     }
@@ -1617,7 +1618,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
       setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight,
       showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
       enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
