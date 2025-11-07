@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -241,7 +242,6 @@ function ReportsPageContent() {
   const printRef = useRef<HTMLDivElement>(null);
   const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
-  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const [filterDocTypes, setFilterDocTypes] = usePersistentDocTypeFilter('reports.filterDocTypes', {
       ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
@@ -291,6 +291,7 @@ function ReportsPageContent() {
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     
     useEffect(() => {
         setIsClient(true);
@@ -304,15 +305,6 @@ function ReportsPageContent() {
         const url = `${pathname}?${searchParams.toString()}`;
         setLastReportsUrl(url);
     }, [searchParams, pathname, setLastReportsUrl]);
-
-    useEffect(() => {
-        if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
-            setTimeout(() => {
-                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-    }, [lastSelectedSaleId, paginatedSales]);
-
 
     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
@@ -337,8 +329,6 @@ function ReportsPageContent() {
             });
         }
     }, []);
-
-    const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -360,23 +350,17 @@ function ReportsPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
-        if (isDateFilterLocked && dateRange?.from) {
-             return format(dateRange.from, "d MMMM yyyy", { locale: fr });
-        }
         if (!dateRange || !dateRange.from) return 'Période';
-        
-        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
-        
         if (dateRange.from && dateRange.to) {
-            if (isSameDay(dateRange.from, dateRange.to) && isSameDay(dateRange.from, new Date())) return "Aujourd'hui";
-            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
-            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
-            
             if (isSameDay(dateRange.from, dateRange.to)) {
+                if (isSameDay(dateRange.from, new Date())) return "Aujourd'hui";
                 return format(dateRange.from, "d MMMM yyyy", { locale: fr });
             }
+            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
             return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
         }
+        if (dateRange.from) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         return 'Période';
     };
 
@@ -436,7 +420,7 @@ function ReportsPageContent() {
         const difference = Math.abs(day - month).toString();
     
         return `${monthStr}${dayStr}${difference}`;
-      }, []);
+    }, []);
 
     const handlePinSubmit = useCallback((e?: React.FormEvent) => {
         e?.preventDefault();
@@ -447,7 +431,7 @@ function ReportsPageContent() {
             toast({ variant: 'destructive', title: 'Code PIN incorrect' });
         }
         setPin('');
-      }, [pin, generateDynamicPin, toast]);
+    }, [pin, generateDynamicPin, toast]);
 
     const handleMarginToggle = (checked: boolean) => {
         if (checked) {
@@ -462,23 +446,19 @@ function ReportsPageContent() {
       setTimeout(() => setActiveKey(null), 150);
     }, []);
 
-   useEffect(() => {
-    if (isPinDialogOpen) {
-        if (pin.length === 6) {
-            handlePinSubmit();
+    useEffect(() => {
+        if (isPinDialogOpen) {
+            const handleKeyDown = (event: KeyboardEvent) => {
+                const { key } = event;
+                triggerVisualFeedback(key);
+                if (key >= '0' && key <= '9') handlePinKeyPress(key);
+                else if (key === 'Backspace') handlePinBackspace();
+                else if (key === 'Enter') handlePinSubmit();
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
         }
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const { key } = event;
-            triggerVisualFeedback(key);
-            if (key >= '0' && key <= '9') handlePinKeyPress(key);
-            else if (key === 'Backspace') handlePinBackspace();
-            else if (key === 'Enter') handlePinSubmit();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
-
+    }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
   
     const handlePinKeyPress = (key: string) => {
       if (pin.length < 6) {
@@ -489,7 +469,6 @@ function ReportsPageContent() {
     const handlePinBackspace = () => {
       setPin(prev => prev.slice(0, -1));
     };
-
 
     const getRowStyle = (sale: Sale) => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
@@ -667,6 +646,14 @@ function ReportsPageContent() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+        if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+            setTimeout(() => {
+                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [lastSelectedSaleId, paginatedSales]);
     
     const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -967,8 +954,8 @@ function ReportsPageContent() {
                     <CollapsibleContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Balance Nette</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
                             {visibleColumns.margin && (
                                 <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
@@ -1060,7 +1047,7 @@ function ReportsPageContent() {
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                                  dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                                  dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                                                 }
                                             </Button>
                                         </PopoverTrigger>
@@ -1069,7 +1056,7 @@ function ReportsPageContent() {
                                     <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
-                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem></SelectContent></Select>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="invoiced">Facturé</SelectItem><SelectItem value="partial">Partiellement payé</SelectItem><SelectItem value="pending">En attente</SelectItem><SelectItem value="quote">Devis</SelectItem><SelectItem value="delivery_note">Bon de livraison</SelectItem></SelectContent></Select>
                                     <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(method => (<SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>))}</SelectContent></Select>
                                 </CardContent>
                             </CollapsibleContent>
