@@ -199,7 +199,7 @@ function ReportsPageContent() {
       sales: allSales, 
       customers, 
       users, 
-      isLoading: isPosLoading, 
+      isPosLoading, 
       deleteAllSales, 
       convertToInvoice,
       paymentMethods,
@@ -509,18 +509,13 @@ function ReportsPageContent() {
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, allItems]);
     
-    const paginatedSales = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
-
     useEffect(() => {
         if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
             setTimeout(() => {
                 rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
-    }, [lastSelectedSaleId, paginatedSales]);
+    }, [lastSelectedSaleId]);
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -643,6 +638,11 @@ function ReportsPageContent() {
   };
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
+
+    const paginatedSales = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
     const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
@@ -769,7 +769,31 @@ function ReportsPageContent() {
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
+    
+    const getRowStyle = (sale: Sale) => {
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        let color = 'transparent';
+        let opacity = 100;
+        
+        switch (docType) {
+            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
+            case 'quote': color = quoteBgColor; opacity = quoteBgOpacity; break;
+            case 'delivery_note': color = deliveryNoteBgColor; opacity = deliveryNoteBgOpacity; break;
+            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
+            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
+        }
+        return { backgroundColor: hexToRgba(color, opacity) };
+    };
 
+    const handleEdit = (sale: Sale) => {
+        if(sale.documentType && documentTypes[sale.documentType as keyof typeof documentTypes]?.path) {
+            setLastSelectedSaleId(sale.id);
+            router.push(`${documentTypes[sale.documentType as keyof typeof documentTypes].path}?edit=${sale.id}`);
+        } else {
+             toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
+        }
+    };
+    
     if (isCashier) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -975,9 +999,7 @@ function ReportsPageContent() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onSelect={resetFilters} className="text-destructive focus:text-destructive">
-                                                    Tout désélectionner
-                                                </DropdownMenuItem>
+                                                <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 {Object.entries(documentTypes).map(([type, { label }]) => (
                                                     <DropdownMenuCheckboxItem
@@ -1135,7 +1157,7 @@ function ReportsPageContent() {
                                             <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                         </TableRow>
                                     )) : null}
-                                    {!isPosLoading && paginatedSales && paginatedSales.map(sale => {
+                                    {!isPosLoading && paginatedSales.map(sale => {
                                         const sellerName = getUserName(sale.userId, sale.userName);
                                         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                                         const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
@@ -1218,3 +1240,4 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
