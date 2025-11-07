@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingCart, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale, HelpCircle, SlidersHorizontal, Truck } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale, HelpCircle, SlidersHorizontal, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -310,15 +310,8 @@ function PaymentsReportPageContent() {
         }
         return filtered;
     }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
-
-    const totalPages = Math.ceil(filteredAndSortedPayments.length / itemsPerPage);
-
-    const paginatedPayments = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredAndSortedPayments.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredAndSortedPayments, currentPage, itemsPerPage]);
-
-     const { summaryTitle, totalRevenue, totalPayments, averagePayment, paymentMethodSummary, totalDeferred } = useMemo(() => {
+    
+    const summaryStats = useMemo(() => {
         const paymentSummary = filteredAndSortedPayments.reduce((acc, p) => {
             const name = p.method.name;
             if (!acc[name]) {
@@ -356,15 +349,57 @@ function PaymentsReportPageContent() {
             else if (type === 'out') title = "Total Dépensé";
         }
         
+        const unpaidTotal = allSales
+            .filter(sale => {
+                // Apply same filters as payments
+                const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
+                const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                if (!activeDocTypes.includes(docType)) return false;
+                
+                const customerName = getCustomerName(sale.customerId);
+                if (filterCustomerName && !customerName.toLowerCase().includes(filterCustomerName.toLowerCase())) return false;
+                
+                const sellerName = getUserName(sale.userId, sale.userName);
+                if (filterSellerName && !sellerName.toLowerCase().includes(filterSellerName.toLowerCase())) return false;
+
+                if (dateRange?.from || dateRange?.to) {
+                    const hasMatchingPayment = sale.payments?.some(p => {
+                        const paymentJsDate = new Date(p.date as any);
+                         let dateMatch = true;
+                        if (dateRange.from) dateMatch = paymentJsDate >= startOfDay(dateRange.from);
+                        if (dateRange.to) dateMatch = dateMatch && paymentJsDate <= endOfDay(dateRange.to);
+                        return dateMatch;
+                    });
+                    if (!hasMatchingPayment) return false;
+                }
+
+                if (filterMethodName !== 'all' && !sale.payments?.some(p => p.method.name === filterMethodName)) return false;
+
+                const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                return sale.total > totalPaid;
+            })
+            .reduce((acc, sale) => {
+                const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                return acc + (sale.total - totalPaid);
+            }, 0);
+        
         return { 
             summaryTitle: title, 
             totalRevenue: totalRev, 
             totalPayments: totalPay, 
             averagePayment: avgPay,
             paymentMethodSummary: paymentSummary,
-            totalDeferred: deferredTotal
+            totalDeferred: deferredTotal,
+            totalUnpaid: unpaidTotal,
         };
-    }, [filteredAndSortedPayments, filterDocTypes]);
+    }, [filteredAndSortedPayments, filterDocTypes, allSales, getCustomerName, getUserName, filterCustomerName, filterSellerName, dateRange, filterMethodName]);
+
+    const totalPages = Math.ceil(filteredAndSortedPayments.length / itemsPerPage);
+
+    const paginatedPayments = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAndSortedPayments.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAndSortedPayments, currentPage, itemsPerPage]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -459,13 +494,17 @@ function PaymentsReportPageContent() {
                   </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalRevenue.toFixed(2)}€</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nombre de Paiements</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">+{totalPayments}</div></CardContent></Card>
                       <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Paiement Moyen</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{averagePayment.toFixed(2)}€</div></CardContent></Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Différé</CardTitle><CalendarIcon className="h-4 w-4 text-muted-foreground" /></CardHeader>
                         <CardContent><div className="text-2xl font-bold text-amber-600">{totalDeferred.toFixed(2)}€</div></CardContent>
+                      </Card>
+                       <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Impayés</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                        <CardContent><div className="text-2xl font-bold text-destructive">{summaryStats.totalUnpaid.toFixed(2)}€</div></CardContent>
                       </Card>
                   </div>
                   {Object.keys(paymentMethodSummary).length > 0 && (
@@ -503,23 +542,8 @@ function PaymentsReportPageContent() {
                                     <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                 </Button>
                             </CollapsibleTrigger>
-                            <div className="relative">
-                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
-                                            <HelpCircle className="h-4 w-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent>
-                                        <div className="space-y-2 text-sm">
-                                            <p><code className="font-mono bg-muted p-1 rounded">/</code>: Sépare les termes (ET logique).</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">!texte</code>: Ne contient pas le texte.</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">^texte</code>: Commence par le texte.</p>
-                                            <p><code className="font-mono bg-muted p-1 rounded">*</code>: Affiche tout.</p>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
+                             <div className="relative">
+                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
                             </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
