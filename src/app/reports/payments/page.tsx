@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -211,12 +212,18 @@ function PaymentsReportPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
-        switch(periodFilter) {
-            case 'today': return "Aujourd'hui";
-            case 'this_week': return 'Semaine';
-            case 'this_month': return 'Mois';
-            default: return 'Période';
+        if (!dateRange || !dateRange.from) return 'Période';
+        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        if (dateRange.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) {
+                return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+            }
+            return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
         }
+        return 'Période';
     };
 
 
@@ -636,10 +643,12 @@ function PaymentsReportPageContent() {
                     <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                               <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                    {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
+                                      dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                    }
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>

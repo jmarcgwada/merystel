@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -5,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -213,8 +214,8 @@ function AnalyticsPageContent() {
     const getSmartDateButtonLabel = () => {
         switch(periodFilter) {
             case 'today': return "Aujourd'hui";
-            case 'this_week': return 'Semaine';
-            case 'this_month': return 'Mois';
+            case 'this_week': return 'Cette semaine';
+            case 'this_month': return 'Ce mois-ci';
             default: return 'Période';
         }
     };
@@ -673,11 +674,16 @@ function AnalyticsPageContent() {
                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                   <Popover>
                     <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                      <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
-                      </Button>
+                       <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                            {dateRange?.from ? 
+                                dateRange.to ? 
+                                    isSameDay(dateRange.from, dateRange.to) ? format(dateRange.from, "d MMMM yyyy", { locale: fr })
+                                    : `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`
+                                : format(dateRange.from, "d MMMM yyyy", { locale: fr }) 
+                            : <span>Choisir une période</span>}
+                        </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                   </Popover>
