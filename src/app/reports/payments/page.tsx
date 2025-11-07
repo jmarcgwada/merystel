@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -152,8 +151,13 @@ function PaymentsReportPageContent() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     
+    const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
+    
     useEffect(() => {
         setIsClient(true);
+    }, []);
+    
+    useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
 
@@ -186,6 +190,35 @@ function PaymentsReportPageContent() {
             return newState;
         });
     };
+    
+     const handleSmartDateFilter = () => {
+        const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
+        const currentIdx = periodCycle.indexOf(periodFilter);
+        const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
+        
+        setPeriodFilter(nextPeriod);
+        
+        const now = new Date();
+        if (nextPeriod === 'today') {
+            setDateRange({ from: startOfDay(now), to: endOfDay(now) });
+        } else if (nextPeriod === 'this_week') {
+            setDateRange({ from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) });
+        } else if (nextPeriod === 'this_month') {
+            setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+    
+    const getSmartDateButtonLabel = () => {
+        switch(periodFilter) {
+            case 'today': return "Aujourd'hui";
+            case 'this_week': return 'Semaine';
+            case 'this_month': return 'Mois';
+            default: return 'Période';
+        }
+    };
+
 
     const allPayments = useMemo(() => {
         if (!allSales) return [];
@@ -351,7 +384,6 @@ function PaymentsReportPageContent() {
         
         const unpaidTotal = allSales
             .filter(sale => {
-                // Apply same filters as payments
                 const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
                 const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                 if (!activeDocTypes.includes(docType)) return false;
@@ -431,11 +463,6 @@ function PaymentsReportPageContent() {
         setCurrentPage(1);
     }
     
-    const setTodayFilter = () => {
-        const today = new Date();
-        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
-    }
-
     const openSaleDetailModal = (saleId: string) => {
         const sale = allSales.find(s => s.id === saleId);
         if (sale) {
@@ -443,15 +470,15 @@ function PaymentsReportPageContent() {
             setIsDetailModalOpen(true);
         }
     };
-    
-      const handleInsertSyntax = (syntax: string) => {
-        setGeneralFilter(prev => {
-            if (syntax === '*') return '*';
-            const newFilter = prev ? `${prev} ${syntax}` : syntax;
-            return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-        });
-        generalFilterRef.current?.focus();
-      };
+  
+  const handleInsertSyntax = (syntax: string) => {
+    setGeneralFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
     
     if (!isClient || isPosLoading) {
         return (
@@ -479,7 +506,7 @@ function PaymentsReportPageContent() {
           subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+              <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
               <Button asChild variant="secondary">
                   <Link href="/reports">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -630,35 +657,35 @@ function PaymentsReportPageContent() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>{pageTitle}</CardTitle>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                    Page {currentPage} / {totalPages || 1}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                    <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                        <span>{itemsPerPageState}</span>
-                                    </div>
-                                    <Slider
-                                        id="items-per-page-slider"
-                                        value={[itemsPerPageState]}
-                                        onValueChange={(value) => setItemsPerPageState(value[0])}
-                                        onValueCommit={(value) => setItemsPerPage(value[0])}
-                                        min={10}
-                                        max={100}
-                                        step={10}
-                                    />
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                  Page {currentPage} / {totalPages || 1}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-2">
+                              <div className="space-y-2">
+                                  <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                  <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                      <span>{itemsPerPageState}</span>
+                                  </div>
+                                  <Slider
+                                      id="items-per-page-slider"
+                                      value={[itemsPerPageState]}
+                                      onValueChange={(value) => setItemsPerPageState(value[0])}
+                                      onValueCommit={(value) => setItemsPerPage(value[0])}
+                                      min={10}
+                                      max={100}
+                                      step={10}
+                                  />
+                              </div>
+                          </PopoverContent>
+                      </Popover>
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
-                </div>
+                  </div>
               </CardHeader>
               <CardContent className="pt-0">
                   <Table>
@@ -720,5 +747,3 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
-
-    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -291,6 +290,37 @@ function ReportsPageContent() {
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
+
+
+    const handleSmartDateFilter = () => {
+        const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
+        const currentIdx = periodCycle.indexOf(periodFilter);
+        const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
+        
+        setPeriodFilter(nextPeriod);
+        
+        const now = new Date();
+        if (nextPeriod === 'today') {
+            setDateRange({ from: startOfDay(now), to: endOfDay(now) });
+        } else if (nextPeriod === 'this_week') {
+            setDateRange({ from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) });
+        } else if (nextPeriod === 'this_month') {
+            setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+    
+    const getSmartDateButtonLabel = () => {
+        switch(periodFilter) {
+            case 'today': return "Aujourd'hui";
+            case 'this_week': return 'Semaine';
+            case 'this_month': return 'Mois';
+            default: return 'Période';
+        }
+    };
 
   const generateDynamicPin = useCallback(() => {
     const now = new Date();
@@ -635,30 +665,8 @@ function ReportsPageContent() {
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
         const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
 
-        const paymentMethodSummary = filteredAndSortedSales
-          .flatMap(sale => sale.payments || [])
-          .reduce((acc, p) => {
-              const name = p.method.name;
-              if (!acc[name]) {
-                  acc[name] = { count: 0, total: 0 };
-              }
-              acc[name].count += 1;
-              acc[name].total += p.amount;
-              return acc;
-          }, {} as Record<string, { count: number; total: number }>);
-
-        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
-        let summaryTitle = "Total";
-        const uniqueTypes = [...new Set(activeDocTypes)].filter(Boolean);
-
-        if (uniqueTypes.length === 1) {
-            const type = uniqueTypes[0];
-            if (type === 'in') summaryTitle = "Revenu Total";
-            else if (type === 'out') summaryTitle = "Total Dépensé";
-        }
-        
-        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin, paymentMethodSummary, summaryTitle };
-    }, [filteredAndSortedSales, filterDocTypes]);
+        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin };
+    }, [filteredAndSortedSales]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -691,12 +699,7 @@ function ReportsPageContent() {
         setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
-    
-    const setTodayFilter = () => {
-        const today = new Date();
-        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
-    };
-    
+
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
       const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
       const saleTotal = Math.abs(sale.total);
@@ -913,7 +916,7 @@ function ReportsPageContent() {
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+                    <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
                     <Button onClick={handleNewDocumentClick}>
                         <FilePlus className="mr-2 h-4 w-4" />
                         Nouvelle Pièce
@@ -943,32 +946,21 @@ function ReportsPageContent() {
                         </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryStats.summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Balance Nette</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
+                             {visibleColumns.margin && (
+                                <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Marge Brute Réalisée</CardTitle>
+                                        <DollarSign className="h-4 w-4 text-emerald-600" />
+                                    </CardHeader>
+                                    <CardContent><div className="text-2xl font-bold text-emerald-600">{summaryStats.totalMargin.toFixed(2)}€</div></CardContent>
+                                </Card>
+                            )}
                         </div>
-                        {Object.keys(summaryStats.paymentMethodSummary).length > 0 && (
-                          <Card className="mt-4">
-                              <CardHeader>
-                              <CardTitle className="text-base">Synthèse par méthode de paiement</CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                              {Object.entries(summaryStats.paymentMethodSummary).map(([method, data]) => (
-                                  <Card key={method}>
-                                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                      <CardTitle className="text-sm font-medium">{method}</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                      <div className="text-2xl font-bold">{data.total.toFixed(2)}€</div>
-                                      <p className="text-xs text-muted-foreground">{data.count} transaction{data.count > 1 ? 's' : ''}</p>
-                                  </CardContent>
-                                  </Card>
-                              ))}
-                              </CardContent>
-                          </Card>
-                        )}
                     </CollapsibleContent>
                 </Collapsible>
                 

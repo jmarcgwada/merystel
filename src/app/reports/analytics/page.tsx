@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -151,6 +150,8 @@ function AnalyticsPageContent() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isMarginColumnVisible, setIsMarginColumnVisible] = useState(false);
+
+    const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     
     useEffect(() => {
         setIsClient(true);
@@ -189,6 +190,34 @@ function AnalyticsPageContent() {
             });
         }
     }, []);
+    
+    const handleSmartDateFilter = () => {
+        const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
+        const currentIdx = periodCycle.indexOf(periodFilter);
+        const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
+        
+        setPeriodFilter(nextPeriod);
+        
+        const now = new Date();
+        if (nextPeriod === 'today') {
+            setDateRange({ from: startOfDay(now), to: endOfDay(now) });
+        } else if (nextPeriod === 'this_week') {
+            setDateRange({ from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) });
+        } else if (nextPeriod === 'this_month') {
+            setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+    
+    const getSmartDateButtonLabel = () => {
+        switch(periodFilter) {
+            case 'today': return "Aujourd'hui";
+            case 'this_week': return 'Semaine';
+            case 'this_month': return 'Mois';
+            default: return 'Période';
+        }
+    };
 
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
         const newVisibility = { ...visibleColumns, [columnId]: isVisible };
@@ -478,11 +507,6 @@ function AnalyticsPageContent() {
         setCurrentPage(1);
     }
     
-    const setTodayFilter = () => {
-        const today = new Date();
-        setDateRange({ from: startOfDay(today), to: endOfDay(today) });
-    };
-
     const handleTopItemSelect = (itemName: string, isSelected: boolean) => {
         setSelectedTopItems(prev => 
             isSelected ? [...prev, itemName] : prev.filter(name => name !== itemName)
@@ -537,7 +561,7 @@ function AnalyticsPageContent() {
           subtitle="Analysez chaque ligne de vente pour des informations détaillées."
         >
           <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={setTodayFilter}>Aujourd'hui</Button>
+              <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
               <Button asChild variant="secondary">
                   <Link href="/reports">
                       <ArrowLeft className="mr-2 h-4 w-4" />
