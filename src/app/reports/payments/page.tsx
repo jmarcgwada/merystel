@@ -311,7 +311,7 @@ function PaymentsReportPageContent() {
         return filtered;
     }, [allPayments, sortConfig, filterCustomerName, filterMethodName, filterPaymentType, dateRange, filterSellerName, generalFilter, filterDocTypes, getCustomerName, getUserName]);
     
-    const summaryStats = useMemo(() => {
+    const { summaryTitle, totalRevenue, totalPayments, averagePayment, paymentMethodSummary, totalDeferred, totalUnpaid } = useMemo(() => {
         const paymentSummary = filteredAndSortedPayments.reduce((acc, p) => {
             const name = p.method.name;
             if (!acc[name]) {
@@ -444,6 +444,15 @@ function PaymentsReportPageContent() {
         }
     };
     
+      const handleInsertSyntax = (syntax: string) => {
+        setGeneralFilter(prev => {
+            if (syntax === '*') return '*';
+            const newFilter = prev ? `${prev} ${syntax}` : syntax;
+            return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+        });
+        generalFilterRef.current?.focus();
+      };
+    
     if (!isClient || isPosLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -504,7 +513,7 @@ function PaymentsReportPageContent() {
                       </Card>
                        <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Impayés</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                        <CardContent><div className="text-2xl font-bold text-destructive">{summaryStats.totalUnpaid.toFixed(2)}€</div></CardContent>
+                        <CardContent><div className="text-2xl font-bold text-destructive">{totalUnpaid.toFixed(2)}€</div></CardContent>
                       </Card>
                   </div>
                   {Object.keys(paymentMethodSummary).length > 0 && (
@@ -543,9 +552,33 @@ function PaymentsReportPageContent() {
                                 </Button>
                             </CollapsibleTrigger>
                              <div className="relative">
-                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
+                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                            <HelpCircle className="h-4 w-4" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                        <div className="space-y-4 text-sm">
+                                            <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                            {[
+                                                { syntax: "texte", explanation: "Contient le texte" },
+                                                { syntax: "/", explanation: "Sépare les termes (ET logique)" },
+                                                { syntax: "!", explanation: "Ne contient pas le texte" },
+                                                { syntax: "^", explanation: "Commence par le texte" },
+                                                { syntax: "*", explanation: "Ignore tous les filtres" }
+                                            ].map(({ syntax, explanation }) => (
+                                                <div key={syntax} className="flex items-center justify-between">
+                                                    <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                                    <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
-                            <DropdownMenu>
+                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9">
                                         <span>Types de pièce</span>
@@ -572,7 +605,7 @@ function PaymentsReportPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CollapsibleContent asChild>
+                <CollapsibleContent>
                     <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
@@ -586,7 +619,7 @@ function PaymentsReportPageContent() {
                         </Popover>
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
-                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem>{paymentMethods && paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(pm => (<SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>))}</SelectContent></Select>
                         <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
@@ -595,7 +628,7 @@ function PaymentsReportPageContent() {
           
           <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                     <CardTitle>{pageTitle}</CardTitle>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
@@ -687,3 +720,5 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
+
+    
