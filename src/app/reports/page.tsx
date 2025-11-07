@@ -298,58 +298,6 @@ function ReportsPageContent() {
         }
     }, []);
     
-    const handlePinSubmit = useCallback((e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (pin === generateDynamicPin()) {
-            handleColumnVisibilityChange('margin', true);
-            setPinDialogOpen(false);
-        } else {
-            toast({ variant: 'destructive', title: 'Code PIN incorrect' });
-        }
-        setPin('');
-    }, [pin]);
-
-    const triggerVisualFeedback = useCallback((key: string) => {
-      setActiveKey(key);
-      setTimeout(() => setActiveKey(null), 150);
-    }, []);
-
-    useEffect(() => {
-        if (isPinDialogOpen) {
-            const handleKeyDown = (event: KeyboardEvent) => {
-                const { key } = event;
-                triggerVisualFeedback(key);
-                if (key >= '0' && key <= '9') handlePinKeyPress(key);
-                else if (key === 'Backspace') handlePinBackspace();
-                else if (key === 'Enter') handlePinSubmit();
-            };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
-        }
-    }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
-
-    const generateDynamicPin = useCallback(() => {
-        const now = new Date();
-        const month = (now.getMonth() + 1);
-        const day = now.getDate();
-        
-        const monthStr = month.toString().padStart(2, '0');
-        const dayStr = day.toString().padStart(2, '0');
-        const difference = Math.abs(day - month).toString();
-    
-        return `${monthStr}${dayStr}${difference}`;
-    }, []);
-  
-    const handlePinKeyPress = (key: string) => {
-      if (pin.length < 6) {
-        setPin(prev => prev + key);
-      }
-    };
-    
-    const handlePinBackspace = () => {
-      setPin(prev => prev.slice(0, -1));
-    };
-
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
         const newVisibility = { ...visibleColumns, [columnId]: isVisible };
         setVisibleColumns(newVisibility);
@@ -385,6 +333,59 @@ function ReportsPageContent() {
         const saleUser = users.find(u => u.id === userId);
         return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
+    
+    const handlePinSubmit = useCallback((e?: React.FormEvent) => {
+        e?.preventDefault();
+        const correctPin = generateDynamicPin();
+        if (pin === correctPin) {
+            handleColumnVisibilityChange('margin', true);
+            setPinDialogOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Code PIN incorrect' });
+        }
+        setPin('');
+    }, [pin, toast]);
+
+    const triggerVisualFeedback = useCallback((key: string) => {
+      setActiveKey(key);
+      setTimeout(() => setActiveKey(null), 150);
+    }, []);
+
+    useEffect(() => {
+        if (isPinDialogOpen) {
+            const handleKeyDown = (event: KeyboardEvent) => {
+                const { key } = event;
+                triggerVisualFeedback(key);
+                if (key >= '0' && key <= '9') handlePinKeyPress(key);
+                else if (key === 'Backspace') handlePinBackspace();
+                else if (key === 'Enter') handlePinSubmit();
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
+
+  const generateDynamicPin = useCallback(() => {
+    const now = new Date();
+    const month = (now.getMonth() + 1);
+    const day = now.getDate();
+    
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const difference = Math.abs(day - month).toString();
+
+    return `${monthStr}${dayStr}${difference}`;
+  }, []);
+  
+    const handlePinKeyPress = (key: string) => {
+      if (pin.length < 6) {
+        setPin(prev => prev + key);
+      }
+    };
+    
+    const handlePinBackspace = () => {
+      setPin(prev => prev.slice(0, -1));
+    };
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales || !allItems) return [];
@@ -507,7 +508,7 @@ function ReportsPageContent() {
                 rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
-    }, [lastSelectedSaleId]);
+    }, [lastSelectedSaleId, filteredAndSortedSales]);
 
 
     useEffect(() => {
@@ -602,14 +603,14 @@ function ReportsPageContent() {
         setDateRange({ from: newFrom, to: newTo });
     };
   
-    const handleInsertSyntax = (syntax: string) => {
-      setGeneralFilter(prev => {
-          if (syntax === '*') return '*';
-          const newFilter = prev ? `${prev} ${syntax}` : syntax;
-          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-      });
-      generalFilterRef.current?.focus();
-    };
+  const handleInsertSyntax = (syntax: string) => {
+    setGeneralFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -619,7 +620,13 @@ function ReportsPageContent() {
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
 
     const summaryStats = useMemo(() => {
-        const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
+        
+        const revenueSales = filteredAndSortedSales.filter(s => {
+            const docType = s.documentType || (s.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+            const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+            return typeInfo?.type === 'in';
+        });
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
         const supplierOrders = filteredAndSortedSales.filter(s => s.documentType === 'supplier_order');
         
@@ -630,8 +637,17 @@ function ReportsPageContent() {
         const netBalance = totalRevenue - totalCreditNotes - totalPurchases;
         const totalMargin = filteredAndSortedSales.reduce((acc, sale) => acc + (sale as Sale & { margin: number }).margin, 0);
 
-        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin };
-    }, [filteredAndSortedSales]);
+        let summaryTitle = "Total";
+        const uniqueTypes = [...new Set(activeDocTypes)].filter(Boolean);
+
+        if (uniqueTypes.length === 1) {
+            const type = uniqueTypes[0];
+            if (type === 'in') summaryTitle = "Revenu Total";
+            else if (type === 'out') summaryTitle = "Total Dépensé";
+        }
+        
+        return { totalRevenue, totalCreditNotes, totalPurchases, netBalance, totalMargin, summaryTitle };
+    }, [filteredAndSortedSales, filterDocTypes]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -782,26 +798,38 @@ function ReportsPageContent() {
             </div>
         );
     }
+  
+    const handleMouseDown = (action: () => void) => {
+        const timer = setTimeout(() => {
+            action();
+            setLongPressTimer(null); // Prevent click
+        }, 700); // 700ms for long press
+        setLongPressTimer(timer);
+    };
     
-  if (isPosLoading) {
-    return (
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
-            <div className="mt-8">
-                <Skeleton className="h-[700px] w-full" />
-            </div>
-        </div>
-    )
-  }
+    const handleMouseUp = (clickAction: () => void) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+            clickAction();
+        }
+    };
 
-  const pageTitle = (
-    <div className="flex items-center gap-4">
-      <span>Pièces</span>
-      <span className="text-base font-normal text-muted-foreground">
-        ({filteredAndSortedSales.length} sur {allSales?.length || 0})
-      </span>
-    </div>
-  );
+    const handleMouseLeave = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+    };
+
+    const pageTitle = (
+        <div className="flex items-center gap-4">
+            <span>Pièces</span>
+            <span className="text-base font-normal text-muted-foreground">
+                ({filteredAndSortedSales.length} / {allSales?.length || 0})
+            </span>
+        </div>
+    );
 
   return (
     <>
@@ -873,7 +901,7 @@ function ReportsPageContent() {
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
+                     <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
                       <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
@@ -908,7 +936,7 @@ function ReportsPageContent() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
-                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Revenu Total</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryStats.summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Balance Nette</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
@@ -1000,7 +1028,7 @@ function ReportsPageContent() {
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                                  dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                                  dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                                                 }
                                             </Button>
                                         </PopoverTrigger>
@@ -1125,13 +1153,7 @@ function ReportsPageContent() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isPosLoading ? Array.from({length: 10}).map((_, i) => (
-                                        <TableRow key={i}>
-                                            {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
-                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-                                        </TableRow>
-                                    )) : null}
-                                    {!isPosLoading && paginatedSales.map(sale => {
+                                    {paginatedSales.map(sale => {
                                         const sellerName = getUserName(sale.userId, sale.userName);
                                         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                                         const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
@@ -1207,9 +1229,20 @@ function ReportsPageContent() {
   );
 }
 
+const DocumentTypeWatermark = ({ docType }: { docType: string }) => {
+    const typeLabel = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
+    return (
+        <div className="absolute inset-0 flex items-center justify-center -z-10 overflow-hidden">
+            <h1 className="text-[12vw] font-black text-gray-200/50 dark:text-gray-800/50 select-none -rotate-12 whitespace-nowrap">
+                {typeLabel.toUpperCase()}
+            </h1>
+        </div>
+    )
+}
+
 export default function ReportsPage() {
     return (
-      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><p>Chargement des rapports...</p></div>}>
+      <Suspense>
         <ReportsPageContent />
       </Suspense>
     )
