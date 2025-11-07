@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -212,12 +213,60 @@ function AnalyticsPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
-        switch(periodFilter) {
-            case 'today': return "Aujourd'hui";
-            case 'this_week': return 'Cette semaine';
-            case 'this_month': return 'Ce mois-ci';
-            default: return 'Période';
+        if (isDateFilterLocked && dateRange?.from) {
+             return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         }
+        if (!dateRange || !dateRange.from) return 'Période';
+        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        if (dateRange.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) {
+                return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+            }
+            return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
+        }
+        return 'Période';
+    };
+
+    const handleDateArrowClick = (direction: 'prev' | 'next') => {
+        if (isDateFilterLocked) return;
+        
+        let currentRangeType: 'day' | 'week' | 'month' | 'custom' = 'custom';
+        let newFrom: Date, newTo: Date | undefined;
+
+        if (dateRange?.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) currentRangeType = 'day';
+            else if (isSameDay(dateRange.from, startOfWeek(dateRange.from, { weekStartsOn: 1 })) && isSameDay(dateRange.to, endOfWeek(dateRange.from, { weekStartsOn: 1 }))) currentRangeType = 'week';
+            else if (isSameDay(dateRange.from, startOfMonth(dateRange.from)) && isSameDay(dateRange.to, endOfMonth(dateRange.from))) currentRangeType = 'month';
+        } else if (dateRange?.from) {
+            currentRangeType = 'day';
+        }
+
+        const from = dateRange?.from || new Date();
+        
+        switch (currentRangeType) {
+            case 'day':
+                newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
+                newTo = newFrom;
+                break;
+            case 'week':
+                newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
+                newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
+                break;
+            case 'month':
+                newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
+                newTo = endOfMonth(newFrom);
+                break;
+            default: // custom range
+                const diff = (dateRange?.to || from).getTime() - from.getTime();
+                newFrom = new Date(from.getTime() + (direction === 'prev' ? -diff - (24*60*60*1000) : diff + (24*60*60*1000)));
+                newTo = new Date(newFrom.getTime() + diff);
+                break;
+        }
+
+        setDateRange({ from: newFrom, to: newTo });
     };
 
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
@@ -225,20 +274,6 @@ function AnalyticsPageContent() {
         setVisibleColumns(newVisibility);
         localStorage.setItem('analyticsVisibleColumns', JSON.stringify(newVisibility));
     };
-
-    const salesLinesColumns = [
-        { id: 'saleDate', label: 'Date' },
-        { id: 'ticketNumber', label: 'Pièce' },
-        { id: 'name', label: 'Désignation' },
-        { id: 'details', label: 'Détails' },
-        { id: 'categoryName', label: 'Catégorie' },
-        { id: 'barcode', label: 'Référence' },
-        { id: 'customerName', label: 'Client' },
-        { id: 'userName', label: 'Vendeur' },
-        { id: 'quantity', label: 'Qté' },
-        { id: 'total', label: 'Total Ligne' },
-    ];
-
 
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'N/A';
@@ -562,7 +597,11 @@ function AnalyticsPageContent() {
           subtitle="Analysez chaque ligne de vente pour des informations détaillées."
         >
           <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
+              <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                  <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
+                   <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+              </div>
               <Button asChild variant="secondary">
                   <Link href="/reports">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -670,25 +709,20 @@ function AnalyticsPageContent() {
                   </div>
                 </div>
               </CardHeader>
-              <CollapsibleContent asChild>
+              <CollapsibleContent>
                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                   <Popover>
                     <PopoverTrigger asChild disabled={isDateFilterLocked}>
                        <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                            {dateRange?.from ? 
-                                dateRange.to ? 
-                                    isSameDay(dateRange.from, dateRange.to) ? format(dateRange.from, "d MMMM yyyy", { locale: fr })
-                                    : `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`
-                                : format(dateRange.from, "d MMMM yyyy", { locale: fr }) 
-                            : <span>Choisir une période</span>}
+                            {getSmartDateButtonLabel()}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
                   </Popover>
                   <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)} className="max-w-xs h-9" />
-                  <Input ref={itemFilterRef} placeholder="Filtrer par article/réf..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}/>
+                  <Input ref={itemFilterRef} placeholder="Filtrer par article..." value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="max-w-xs h-9" onFocus={() => setTargetInput({ value: filterItem, name: 'analytics-item-filter', ref: itemFilterRef })}/>
                   <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSeller} onChange={(e) => setFilterSeller(e.target.value)} className="max-w-xs h-9" />
                    <Select value={filterCategory} onValueChange={(value) => setFilterCategory(value)}><SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrer par catégorie" /></SelectTrigger><SelectContent><SelectItem value="all">Toutes les catégories</SelectItem>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
                   <div className="grid gap-2 w-48">

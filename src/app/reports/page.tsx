@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -293,8 +294,11 @@ function ReportsPageContent() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
-
-
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+    
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
         const currentIdx = periodCycle.indexOf(periodFilter);
@@ -329,81 +333,34 @@ function ReportsPageContent() {
         return 'Période';
     };
 
-  const generateDynamicPin = useCallback(() => {
-    const now = new Date();
-    const month = (now.getMonth() + 1);
-    const day = now.getDate();
-    const monthStr = month.toString().padStart(2, '0');
-    const dayStr = day.toString().padStart(2, '0');
-    const difference = Math.abs(day - month).toString();
-    return `${monthStr}${dayStr}${difference}`;
-  }, []);
-
-  const handlePinSubmit = useCallback((e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (pin === generateDynamicPin()) {
-        handleColumnVisibilityChange('margin', true);
-        setPinDialogOpen(false);
-    } else {
-        toast({ variant: 'destructive', title: 'Code PIN incorrect' });
-    }
-    setPin('');
-  }, [pin, generateDynamicPin, toast]);
-
-    useEffect(() => {
-        if (isClient) {
-            const storedColumns = localStorage.getItem('reportsVisibleColumns');
-            if (storedColumns) {
-                setVisibleColumns(JSON.parse(storedColumns));
-            } else {
-                 setVisibleColumns({
-                    type: true, ticketNumber: true, date: true, userName: true, origin: false,
-                    customerName: true, itemCount: false, details: false, subtotal: false,
-                    tax: false, totalDiscount: true, margin: false, total: true, payment: true,
-                });
-            }
+    const handleDateArrowClick = (direction: 'prev' | 'next') => {
+        if (!dateRange || !dateRange.from) {
+            setDateRange({ from: new Date(), to: new Date() });
+            return;
         }
-        setIsClient(true);
-    }, [isClient]);
-
-    useEffect(() => {
-        const fullUrl = `${pathname}?${searchParams.toString()}`;
-        setLastReportsUrl(fullUrl);
-    }, [pathname, searchParams, setLastReportsUrl]);
-
-    useEffect(() => {
-      setItemsPerPageState(itemsPerPage);
-    }, [itemsPerPage]);
-    
-    useEffect(() => {
-        const params = new URLSearchParams(Array.from(searchParams.entries()));
-        if (generalFilter) params.set('q', generalFilter); else params.delete('q');
-        if (filterCustomerName) params.set('customerName', filterCustomerName); else params.delete('customerName');
-        if (filterSellerName) params.set('seller', filterSellerName); else params.delete('seller');
-        if (filterOrigin) params.set('origin', filterOrigin); else params.delete('origin');
-        if (filterStatus !== 'all') params.set('status', filterStatus); else params.delete('status');
-        if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod); else params.delete('paymentMethod');
-        if (dateRange?.from) params.set('dateFrom', format(dateRange.from, 'yyyy-MM-dd')); else params.delete('dateFrom');
-        if (dateRange?.to) params.set('dateTo', format(dateRange.to, 'yyyy-MM-dd')); else params.delete('dateTo');
-        if (sortConfig) {
-          params.set('sortKey', sortConfig.key);
-          params.set('sortDirection', sortConfig.direction);
-        } else {
-            params.delete('sortKey');
-            params.delete('sortDirection');
-        }
-        if (currentPage > 1) params.set('page', String(currentPage)); else params.delete('page');
         
-        router.replace(`${pathname}?${params.toString()}`);
-    }, [generalFilter, filterCustomerName, filterSellerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, currentPage, sortConfig, router, pathname]);
-    
-    useEffect(() => {
-        if (isCashier) {
-            router.push('/dashboard');
+        let newFrom, newTo;
+        const from = dateRange.from;
+        const to = dateRange.to || from;
+        const diff = to.getTime() - from.getTime();
+        
+        if (isSameDay(from, to)) { // Day view
+            newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
+            newTo = newFrom;
+        } else if (diff <= 7 * 24 * 60 * 60 * 1000 && from.getDay() === 1 && to.getDay() === 0) { // Week view
+            newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
+            newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
+        } else if (from.getDate() === 1 && to.getDate() === endOfMonth(from).getDate()) { // Month view
+            newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
+            newTo = endOfMonth(newFrom);
+        } else { // Custom range, shift by range duration
+            const duration = to.getTime() - from.getTime() + (24 * 60 * 60 * 1000); // add one day in ms
+            newFrom = new Date(from.getTime() + (direction === 'prev' ? -duration : duration));
+            newTo = new Date(newFrom.getTime() + diff);
         }
-    }, [isCashier, router]);
-
-    const isLoading = isPosLoading || !isClient;
+        
+        setDateRange({ from: newFrom, to: newTo });
+    };
 
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
         const newVisibility = { ...visibleColumns, [columnId]: isVisible };
@@ -434,37 +391,43 @@ function ReportsPageContent() {
       setTimeout(() => setActiveKey(null), 150);
     }, []);
 
-    useEffect(() => {
-      if (isPinDialogOpen) {
-          if (pin.length === 6) {
+   useEffect(() => {
+    if (isPinDialogOpen) {
+        if (pin.length === 6) {
             handlePinSubmit();
-          }
-          const handleKeyDown = (event: KeyboardEvent) => {
-              const { key } = event;
-              triggerVisualFeedback(key);
-              if (key >= '0' && key <= '9') handlePinKeyPress(key);
-              else if (key === 'Backspace') handlePinBackspace();
-              else if (key === 'Enter') handlePinSubmit();
-          };
-          window.addEventListener('keydown', handleKeyDown);
-          return () => window.removeEventListener('keydown', handleKeyDown);
-      }
-    }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
-
-
-    useEffect(() => {
-        if (docTypeFilterParam) {
-            setIsDocTypeFilterLocked(true);
-            const newFilterDocTypes: Record<string, boolean> = {};
-            Object.keys(documentTypes).forEach(key => {
-                newFilterDocTypes[key] = key === docTypeFilterParam;
-            });
-            setFilterDocTypes(newFilterDocTypes);
-        } else {
-            setIsDocTypeFilterLocked(false);
         }
-    }, [docTypeFilterParam, setFilterDocTypes]);
-    
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const { key } = event;
+            triggerVisualFeedback(key);
+            if (key >= '0' && key <= '9') handlePinKeyPress(key);
+            else if (key === 'Backspace') handlePinBackspace();
+            else if (key === 'Enter') handlePinSubmit();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
+
+  const generateDynamicPin = useCallback(() => {
+    const now = new Date();
+    const month = (now.getMonth() + 1);
+    const day = now.getDate();
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const difference = Math.abs(day - month).toString();
+    return `${monthStr}${dayStr}${difference}`;
+  }, []);
+
+  const handlePinSubmit = useCallback((e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (pin === generateDynamicPin()) {
+        handleColumnVisibilityChange('margin', true);
+        setPinDialogOpen(false);
+    } else {
+        toast({ variant: 'destructive', title: 'Code PIN incorrect' });
+    }
+    setPin('');
+  }, [pin, generateDynamicPin, toast]);
 
     const getRowStyle = (sale: Sale) => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
@@ -481,23 +444,6 @@ function ReportsPageContent() {
         return { backgroundColor: hexToRgba(color, opacity) };
     };
     
-    const handleDocTypeChange = (typeKey: string, checked: boolean) => {
-        const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
-        if (!typeInfo) return;
-
-        setFilterDocTypes(prev => {
-            const newState = { ...prev, [typeKey]: checked };
-            if (checked && typeInfo.type) {
-                for (const key in documentTypes) {
-                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
-                        newState[key] = false;
-                    }
-                }
-            }
-            return newState;
-        });
-    };
-
     const deselectAllDocTypes = () => {
         const newFilterDocTypes: Record<string, boolean> = {};
         Object.keys(documentTypes).forEach(key => {
@@ -958,7 +904,7 @@ function ReportsPageContent() {
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs (Remboursements)</CardTitle><RefreshCw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-amber-600">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats (Fournisseurs)</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
                             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Balance Nette</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={cn("text-2xl font-bold", summaryStats.netBalance >= 0 ? 'text-green-600' : 'text-red-600')}>{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
-                             {visibleColumns.margin && (
+                            {visibleColumns.margin && (
                                 <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                         <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Marge Brute Réalisée</CardTitle>
@@ -992,7 +938,7 @@ function ReportsPageContent() {
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-80">
-                                                     <div className="space-y-4 text-sm">
+                                                    <div className="space-y-4 text-sm">
                                                         <h4 className="font-semibold">Syntaxe de recherche</h4>
                                                         {[
                                                             { syntax: "texte", explanation: "Contient le texte" },
@@ -1042,18 +988,20 @@ function ReportsPageContent() {
                             </CardHeader>
                             <CollapsibleContent>
                                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                                    <Popover>
-                                        <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                            <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                                {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                                  dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
-                                                }
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                                    </Popover>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={!dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                                        <Popover>
+                                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                               <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                                    {getSmartDateButtonLabel()}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                                        </Popover>
+                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={!dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+                                    </div>
                                     <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
@@ -1101,7 +1049,7 @@ function ReportsPageContent() {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </CardTitle>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                      <Button
                                         variant="outline" size="icon" className="h-9 w-9"
                                         onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
