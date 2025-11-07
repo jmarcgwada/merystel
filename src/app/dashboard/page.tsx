@@ -31,6 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { StorageIndicator } from '@/components/layout/storage-indicator';
 
 // Function to convert hex to rgba
 const hexToRgba = (hex: string, opacity: number) => {
@@ -280,6 +281,7 @@ export default function DashboardPage() {
                 </Card>
             )}
             <div className="flex items-center gap-1">
+              <StorageIndicator />
               {authUser && (
                 <TooltipProvider>
                     <Tooltip>
