@@ -8,15 +8,7 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { LogOut, ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +19,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { User as UserIcon } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { StorageIndicator } from './storage-indicator';
+import { UserNav } from './user-nav';
 
 
 const PinKey = ({ value, onClick }: { value: string, onClick: (value: string) => void }) => (
@@ -47,14 +39,12 @@ export default function Header() {
   const {
     order,
     showNavConfirm,
-    handleSignOut,
     isForcedMode,
     setIsForcedMode: setGlobalForcedMode,
     toast,
     defaultSalesMode,
     externalLinkModalEnabled,
     isLoading: isPosLoading,
-    user,
     setCurrentSaleContext,
     companyInfo,
     setIsCalculatorOpen,
@@ -148,7 +138,7 @@ export default function Header() {
               href="/"
               className="flex items-center gap-2 rounded-md p-2 -m-2 transition-colors"
               onClick={(e) => {
-                if (user) handleNavClick(e, '/');
+                if (isClient) handleNavClick(e, '/');
               }}
             >
               <svg
@@ -198,6 +188,9 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
+             <div className="hidden lg:block">
+                 <StorageIndicator />
+             </div>
             <Button
                 variant="outline"
                 size="icon"
@@ -214,45 +207,7 @@ export default function Header() {
                     <ExternalLink className="h-4 w-4" />
                 </Button>
             )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-auto px-4 py-2 flex flex-col items-end">
-                      <p className="text-sm font-medium text-foreground">{user?.firstName || 'Utilisateur'}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email || '...'}</p>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.firstName} {user?.lastName}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" onClick={(e) => handleNavClick(e, '/profile')}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Mon Profil</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  {isUserInForcedMode && (
-                    <>
-                      <DropdownMenuSeparator />
-                       <DropdownMenuItem onClick={() => setPinDialogOpen(true)}>
-                         <LockOpen className="mr-2 h-4 w-4" />
-                         <span>Quitter le mode forcé</span>
-                       </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleSignOut()}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <UserNav />
           </div>
         </div>
       </header>
