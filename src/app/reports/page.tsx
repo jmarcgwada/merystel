@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -7,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -242,6 +241,7 @@ function ReportsPageContent() {
   const printRef = useRef<HTMLDivElement>(null);
   const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const [filterDocTypes, setFilterDocTypes] = usePersistentDocTypeFilter('reports.filterDocTypes', {
       ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
@@ -329,86 +329,6 @@ function ReportsPageContent() {
             });
         }
     }, []);
-    
-    const handleSmartDateFilter = () => {
-        const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
-        const currentIdx = periodCycle.indexOf(periodFilter);
-        const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
-        
-        setPeriodFilter(nextPeriod);
-        
-        const now = new Date();
-        if (nextPeriod === 'today') {
-            setDateRange({ from: startOfDay(now), to: endOfDay(now) });
-        } else if (nextPeriod === 'this_week') {
-            setDateRange({ from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) });
-        } else if (nextPeriod === 'this_month') {
-            setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
-        } else {
-            setDateRange(undefined);
-        }
-    };
-    
-    const getSmartDateButtonLabel = () => {
-        if (!dateRange || !dateRange.from) return 'Période';
-        if (dateRange.from && dateRange.to) {
-            if (isSameDay(dateRange.from, dateRange.to)) {
-                if (isSameDay(dateRange.from, new Date())) return "Aujourd'hui";
-                return format(dateRange.from, "d MMMM yyyy", { locale: fr });
-            }
-            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
-            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
-            return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
-        }
-        if (dateRange.from) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
-        return 'Période';
-    };
-
-
-    const handleDateArrowClick = (direction: 'prev' | 'next') => {
-        if (isDateFilterLocked) return;
-        
-        let currentRangeType: 'day' | 'week' | 'month' | 'custom' = 'custom';
-        let newFrom: Date, newTo: Date | undefined;
-
-        if (dateRange?.from && dateRange.to) {
-            if (isSameDay(dateRange.from, dateRange.to)) currentRangeType = 'day';
-            else if (isSameDay(dateRange.from, startOfWeek(dateRange.from, { weekStartsOn: 1 })) && isSameDay(dateRange.to, endOfWeek(dateRange.from, { weekStartsOn: 1 }))) currentRangeType = 'week';
-            else if (isSameDay(dateRange.from, startOfMonth(dateRange.from)) && isSameDay(dateRange.to, endOfMonth(dateRange.from))) currentRangeType = 'month';
-        } else if (dateRange?.from) {
-            currentRangeType = 'day';
-        }
-
-        const from = dateRange?.from || new Date();
-        
-        switch (currentRangeType) {
-            case 'day':
-                newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
-                newTo = newFrom;
-                break;
-            case 'week':
-                newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
-                newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
-                break;
-            case 'month':
-                newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
-                newTo = endOfMonth(newFrom);
-                break;
-            default: // custom range
-                const diff = (dateRange?.to || from).getTime() - from.getTime();
-                newFrom = new Date(from.getTime() + (direction === 'prev' ? -diff - (24*60*60*1000) : diff + (24*60*60*1000)));
-                newTo = new Date(newFrom.getTime() + diff);
-                break;
-        }
-
-        setDateRange({ from: newFrom, to: newTo });
-    };
-
-    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
-        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
-        setVisibleColumns(newVisibility);
-        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
-    };
 
     const generateDynamicPin = useCallback(() => {
         const now = new Date();
@@ -433,14 +353,6 @@ function ReportsPageContent() {
         setPin('');
     }, [pin, generateDynamicPin, toast]);
 
-    const handleMarginToggle = (checked: boolean) => {
-        if (checked) {
-            setPinDialogOpen(true);
-        } else {
-            handleColumnVisibilityChange('margin', false);
-        }
-    };
-    
     const triggerVisualFeedback = useCallback((key: string) => {
       setActiveKey(key);
       setTimeout(() => setActiveKey(null), 150);
@@ -469,30 +381,7 @@ function ReportsPageContent() {
     const handlePinBackspace = () => {
       setPin(prev => prev.slice(0, -1));
     };
-
-    const getRowStyle = (sale: Sale) => {
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
-            case 'quote': color = quoteBgColor; opacity = quoteBgOpacity; break;
-            case 'delivery_note': color = deliveryNoteBgColor; opacity = deliveryNoteBgOpacity; break;
-            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
-            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
-        }
-        return { backgroundColor: hexToRgba(color, opacity) };
-    };
     
-    const deselectAllDocTypes = () => {
-        const newFilterDocTypes: Record<string, boolean> = {};
-        Object.keys(documentTypes).forEach(key => {
-            newFilterDocTypes[key] = false;
-        });
-        setFilterDocTypes(newFilterDocTypes);
-    };
-
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
@@ -504,26 +393,6 @@ function ReportsPageContent() {
         const saleUser = users.find(u => u.id === userId);
         return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
-
-    const handleEdit = useCallback((sale: Sale) => {
-      setLastSelectedSaleId(sale.id);
-      const typeMap: Record<string, string> = {
-          'quote': 'quotes', 'delivery_note': 'delivery-notes',
-          'supplier_order': 'supplier-orders', 'invoice': 'invoices',
-          'credit_note': 'credit-notes',
-      };
-      const docType = sale.documentType || (sale.ticketNumber?.startsWith('Fact-') ? 'invoice' : 'ticket');
-      if(docType === 'ticket') {
-          toast({ variant: 'destructive', title: 'Action non autorisée', description: 'Les tickets ne peuvent pas être modifiés, seulement dupliqués ou visualisés.'});
-          return;
-      }
-      const pathSegment = typeMap[docType];
-      if (!pathSegment) {
-          toast({ variant: 'destructive', title: 'Type de document inconnu', description: "Impossible d'ouvrir ce type de pièce pour modification."});
-          return;
-      }
-      router.push(`/commercial/${pathSegment}?edit=${sale.id}`);
-    }, [router, toast, setLastSelectedSaleId]);
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales || !allItems) return [];
@@ -639,9 +508,7 @@ function ReportsPageContent() {
         }
         return filteredSales;
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, allItems]);
-
-    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
-
+    
     const paginatedSales = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
@@ -655,6 +522,128 @@ function ReportsPageContent() {
         }
     }, [lastSelectedSaleId, paginatedSales]);
     
+    const handleSmartDateFilter = () => {
+        const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
+        const currentIdx = periodCycle.indexOf(periodFilter);
+        const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
+        
+        setPeriodFilter(nextPeriod);
+        
+        const now = new Date();
+        if (nextPeriod === 'today') {
+            setDateRange({ from: startOfDay(now), to: endOfDay(now) });
+        } else if (nextPeriod === 'this_week') {
+            setDateRange({ from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) });
+        } else if (nextPeriod === 'this_month') {
+            setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+    
+    const getSmartDateButtonLabel = () => {
+        if (!dateRange || !dateRange.from) return 'Période';
+        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        if (dateRange.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) {
+                return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+            }
+            return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
+        }
+        return 'Période';
+    };
+
+
+    const handleDateArrowClick = (direction: 'prev' | 'next') => {
+        if (isDateFilterLocked) return;
+        
+        let currentRangeType: 'day' | 'week' | 'month' | 'custom' = 'custom';
+        let newFrom: Date, newTo: Date | undefined;
+
+        if (dateRange?.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) currentRangeType = 'day';
+            else if (isSameDay(dateRange.from, startOfWeek(dateRange.from, { weekStartsOn: 1 })) && isSameDay(dateRange.to, endOfWeek(dateRange.from, { weekStartsOn: 1 }))) currentRangeType = 'week';
+            else if (isSameDay(dateRange.from, startOfMonth(dateRange.from)) && isSameDay(dateRange.to, endOfMonth(dateRange.from))) currentRangeType = 'month';
+        } else if (dateRange?.from) {
+            currentRangeType = 'day';
+        }
+
+        const from = dateRange?.from || new Date();
+        
+        switch (currentRangeType) {
+            case 'day':
+                newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
+                newTo = newFrom;
+                break;
+            case 'week':
+                newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
+                newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
+                break;
+            case 'month':
+                newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
+                newTo = endOfMonth(newFrom);
+                break;
+            default: // custom range
+                const diff = (dateRange?.to || from).getTime() - from.getTime();
+                newFrom = new Date(from.getTime() + (direction === 'prev' ? -diff - (24*60*60*1000) : diff + (24*60*60*1000)));
+                newTo = new Date(newFrom.getTime() + diff);
+                break;
+        }
+
+        setDateRange({ from: newFrom, to: newTo });
+    };
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const handleMarginToggle = (checked: boolean) => {
+        if (checked) {
+            setPinDialogOpen(true);
+        } else {
+            handleColumnVisibilityChange('margin', false);
+        }
+    };
+    
+    const handleInsertSyntax = (syntax: string) => {
+      setGeneralFilter(prev => {
+          if (syntax === '*') return '*';
+          const newFilter = prev ? `${prev} ${syntax}` : syntax;
+          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+      });
+      generalFilterRef.current?.focus();
+    };
+
+  const handleMouseDown = (action: () => void) => {
+    const timer = setTimeout(() => {
+        action();
+        setLongPressTimer(null); // Prevent click
+    }, 700); // 700ms for long press
+    setLongPressTimer(timer);
+  };
+
+  const handleMouseUp = (clickAction: () => void) => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+        clickAction();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+    }
+  };
+
+    const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
+
     const summaryStats = useMemo(() => {
         const revenueSales = filteredAndSortedSales.filter(s => s.documentType === 'invoice' || s.documentType === 'ticket');
         const creditNotes = filteredAndSortedSales.filter(s => s.documentType === 'credit_note');
@@ -780,38 +769,6 @@ function ReportsPageContent() {
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
-  
-    const handleMouseDown = (action: () => void) => {
-      const timer = setTimeout(() => {
-          action();
-          setLongPressTimer(null); // Prevent click
-      }, 700); // 700ms for long press
-      setLongPressTimer(timer);
-    };
-  
-    const handleMouseUp = (clickAction: () => void) => {
-      if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          setLongPressTimer(null);
-          clickAction();
-      }
-    };
-  
-    const handleMouseLeave = () => {
-      if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          setLongPressTimer(null);
-      }
-    };
-
-    const handleInsertSyntax = (syntax: string) => {
-      setGeneralFilter(prev => {
-          if (syntax === '*') return '*';
-          const newFilter = prev ? `${prev} ${syntax}` : syntax;
-          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-      });
-      generalFilterRef.current?.focus();
-    };
 
     if (isCashier) {
         return (
@@ -828,7 +785,7 @@ function ReportsPageContent() {
         );
     }
     
-  if (isLoading) {
+  if (isPosLoading) {
     return (
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
@@ -918,10 +875,10 @@ function ReportsPageContent() {
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
-                     <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                        <Button variant="outline" onClick={handleSmartDateFilter} className="min-w-32">{getSmartDateButtonLabel()}</Button>
-                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                      <Button variant="outline" onClick={handleSmartDateFilter} className="min-w-32">{getSmartDateButtonLabel()}</Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                     <Button onClick={handleNewDocumentClick}>
                         <FilePlus className="mr-2 h-4 w-4" />
@@ -1018,7 +975,7 @@ function ReportsPageContent() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onSelect={deselectAllDocTypes} className="text-destructive focus:text-destructive">
+                                                <DropdownMenuItem onSelect={resetFilters} className="text-destructive focus:text-destructive">
                                                     Tout désélectionner
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
@@ -1172,13 +1129,13 @@ function ReportsPageContent() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading ? Array.from({length: 10}).map((_, i) => (
+                                    {isPosLoading ? Array.from({length: 10}).map((_, i) => (
                                         <TableRow key={i}>
                                             {Object.values(visibleColumns).filter(v => v).map((_, index) => <TableCell key={index}><Skeleton className="h-4 w-full" /></TableCell>)}
                                             <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                         </TableRow>
                                     )) : null}
-                                    {!isLoading && paginatedSales && paginatedSales.map(sale => {
+                                    {!isPosLoading && paginatedSales && paginatedSales.map(sale => {
                                         const sellerName = getUserName(sale.userId, sale.userName);
                                         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
                                         const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
