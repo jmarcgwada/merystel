@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -292,12 +291,54 @@ function ReportsPageContent() {
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [activeKey, setActiveKey] = useState<string | null>(null);
-
-  const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     
     useEffect(() => {
         setIsClient(true);
     }, []);
+    
+    useEffect(() => {
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
+    
+    useEffect(() => {
+        const url = `${pathname}?${searchParams.toString()}`;
+        setLastReportsUrl(url);
+    }, [searchParams, pathname, setLastReportsUrl]);
+
+    useEffect(() => {
+        if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+            setTimeout(() => {
+                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [lastSelectedSaleId, paginatedSales]);
+
+
+    useEffect(() => {
+        const storedColumns = localStorage.getItem('reportsVisibleColumns');
+        if (storedColumns) {
+            setVisibleColumns(JSON.parse(storedColumns));
+        } else {
+             setVisibleColumns({
+                type: true,
+                ticketNumber: true,
+                date: true,
+                userName: true,
+                origin: false,
+                customerName: true,
+                itemCount: false,
+                details: true,
+                subtotal: false,
+                tax: false,
+                totalDiscount: false,
+                margin: false,
+                total: true,
+                payment: true,
+            });
+        }
+    }, []);
+
+    const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -319,12 +360,18 @@ function ReportsPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
+        if (isDateFilterLocked && dateRange?.from) {
+             return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        }
         if (!dateRange || !dateRange.from) return 'Période';
-        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
-        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
-        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+        
         if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        
         if (dateRange.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to) && isSameDay(dateRange.from, new Date())) return "Aujourd'hui";
+            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+            
             if (isSameDay(dateRange.from, dateRange.to)) {
                 return format(dateRange.from, "d MMMM yyyy", { locale: fr });
             }
@@ -333,32 +380,43 @@ function ReportsPageContent() {
         return 'Période';
     };
 
+
     const handleDateArrowClick = (direction: 'prev' | 'next') => {
-        if (!dateRange || !dateRange.from) {
-            setDateRange({ from: new Date(), to: new Date() });
-            return;
+        if (isDateFilterLocked) return;
+        
+        let currentRangeType: 'day' | 'week' | 'month' | 'custom' = 'custom';
+        let newFrom: Date, newTo: Date | undefined;
+
+        if (dateRange?.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) currentRangeType = 'day';
+            else if (isSameDay(dateRange.from, startOfWeek(dateRange.from, { weekStartsOn: 1 })) && isSameDay(dateRange.to, endOfWeek(dateRange.from, { weekStartsOn: 1 }))) currentRangeType = 'week';
+            else if (isSameDay(dateRange.from, startOfMonth(dateRange.from)) && isSameDay(dateRange.to, endOfMonth(dateRange.from))) currentRangeType = 'month';
+        } else if (dateRange?.from) {
+            currentRangeType = 'day';
         }
+
+        const from = dateRange?.from || new Date();
         
-        let newFrom, newTo;
-        const from = dateRange.from;
-        const to = dateRange.to || from;
-        const diff = to.getTime() - from.getTime();
-        
-        if (isSameDay(from, to)) { // Day view
-            newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
-            newTo = newFrom;
-        } else if (diff <= 7 * 24 * 60 * 60 * 1000 && from.getDay() === 1 && to.getDay() === 0) { // Week view
-            newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
-            newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
-        } else if (from.getDate() === 1 && to.getDate() === endOfMonth(from).getDate()) { // Month view
-            newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
-            newTo = endOfMonth(newFrom);
-        } else { // Custom range, shift by range duration
-            const duration = to.getTime() - from.getTime() + (24 * 60 * 60 * 1000); // add one day in ms
-            newFrom = new Date(from.getTime() + (direction === 'prev' ? -duration : duration));
-            newTo = new Date(newFrom.getTime() + diff);
+        switch (currentRangeType) {
+            case 'day':
+                newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
+                newTo = newFrom;
+                break;
+            case 'week':
+                newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
+                newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
+                break;
+            case 'month':
+                newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
+                newTo = endOfMonth(newFrom);
+                break;
+            default: // custom range
+                const diff = (dateRange?.to || from).getTime() - from.getTime();
+                newFrom = new Date(from.getTime() + (direction === 'prev' ? -diff - (24*60*60*1000) : diff + (24*60*60*1000)));
+                newTo = new Date(newFrom.getTime() + diff);
+                break;
         }
-        
+
         setDateRange({ from: newFrom, to: newTo });
     };
 
@@ -368,22 +426,35 @@ function ReportsPageContent() {
         localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
     };
 
+    const generateDynamicPin = useCallback(() => {
+        const now = new Date();
+        const month = (now.getMonth() + 1);
+        const day = now.getDate();
+        
+        const monthStr = month.toString().padStart(2, '0');
+        const dayStr = day.toString().padStart(2, '0');
+        const difference = Math.abs(day - month).toString();
+    
+        return `${monthStr}${dayStr}${difference}`;
+      }, []);
+
+    const handlePinSubmit = useCallback((e?: React.FormEvent) => {
+        e?.preventDefault();
+        if (pin === generateDynamicPin()) {
+            handleColumnVisibilityChange('margin', true);
+            setPinDialogOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Code PIN incorrect' });
+        }
+        setPin('');
+      }, [pin, generateDynamicPin, toast]);
+
     const handleMarginToggle = (checked: boolean) => {
         if (checked) {
             setPinDialogOpen(true);
         } else {
             handleColumnVisibilityChange('margin', false);
         }
-    };
-    
-    const handlePinKeyPress = (key: string) => {
-      if (pin.length < 6) {
-        setPin(prev => prev + key);
-      }
-    };
-    
-    const handlePinBackspace = () => {
-      setPin(prev => prev.slice(0, -1));
     };
     
     const triggerVisualFeedback = useCallback((key: string) => {
@@ -408,26 +479,17 @@ function ReportsPageContent() {
     }
   }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
 
-  const generateDynamicPin = useCallback(() => {
-    const now = new Date();
-    const month = (now.getMonth() + 1);
-    const day = now.getDate();
-    const monthStr = month.toString().padStart(2, '0');
-    const dayStr = day.toString().padStart(2, '0');
-    const difference = Math.abs(day - month).toString();
-    return `${monthStr}${dayStr}${difference}`;
-  }, []);
+  
+    const handlePinKeyPress = (key: string) => {
+      if (pin.length < 6) {
+        setPin(prev => prev + key);
+      }
+    };
+    
+    const handlePinBackspace = () => {
+      setPin(prev => prev.slice(0, -1));
+    };
 
-  const handlePinSubmit = useCallback((e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (pin === generateDynamicPin()) {
-        handleColumnVisibilityChange('margin', true);
-        setPinDialogOpen(false);
-    } else {
-        toast({ variant: 'destructive', title: 'Code PIN incorrect' });
-    }
-    setPin('');
-  }, [pin, generateDynamicPin, toast]);
 
     const getRowStyle = (sale: Sale) => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
@@ -869,7 +931,11 @@ function ReportsPageContent() {
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
+                     <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                        <Button variant="outline" onClick={handleSmartDateFilter} className="min-w-32">{getSmartDateButtonLabel()}</Button>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+                    </div>
                     <Button onClick={handleNewDocumentClick}>
                         <FilePlus className="mr-2 h-4 w-4" />
                         Nouvelle Pièce
@@ -973,7 +1039,7 @@ function ReportsPageContent() {
                                                     <DropdownMenuCheckboxItem
                                                         key={type}
                                                         checked={filterDocTypes[type]}
-                                                        onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                                        onCheckedChange={(checked) => setFilterDocTypes(prev => ({...prev, [type]: checked}))}
                                                     >
                                                         {label}
                                                     </DropdownMenuCheckboxItem>
@@ -988,20 +1054,18 @@ function ReportsPageContent() {
                             </CardHeader>
                             <CollapsibleContent>
                                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={!dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                                        <Popover>
-                                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                               <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                                    {getSmartDateButtonLabel()}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
-                                        </Popover>
-                                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={!dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
-                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                           <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                                {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
+                                                  dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                                }
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                                    </Popover>
                                     <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
                                     <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
@@ -1050,7 +1114,7 @@ function ReportsPageContent() {
                                     </DropdownMenu>
                                 </CardTitle>
                                 <div className="flex items-center gap-1">
-                                     <Button
+                                    <Button
                                         variant="outline" size="icon" className="h-9 w-9"
                                         onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
                                         onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
