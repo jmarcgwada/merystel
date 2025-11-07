@@ -6,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -161,38 +161,6 @@ function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, bo
     return [state, setState];
 }
 
-const DocumentTypeWatermark = ({ docType }: { docType: string | null }) => {
-  const { 
-    invoiceBgColor, 
-    quoteBgColor, 
-    deliveryNoteBgColor, 
-    supplierOrderBgColor,
-    creditNoteBgColor,
-  } = usePos();
-  
-  if (!docType) return null;
-
-  const docInfo = documentTypes[docType as keyof typeof documentTypes];
-  if (!docInfo) return null;
-
-  let color = '#cccccc'; // default gray
-  switch(docType) {
-    case 'invoice': color = invoiceBgColor; break;
-    case 'quote': color = quoteBgColor; break;
-    case 'delivery_note': color = deliveryNoteBgColor; break;
-    case 'supplier_order': color = supplierOrderBgColor; break;
-    case 'credit_note': color = creditNoteBgColor; break;
-  }
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
-      <h1 className="text-[20vw] lg:text-[12rem] font-black uppercase opacity-5 select-none" style={{ color }}>
-        {docInfo.label}
-      </h1>
-    </div>
-  );
-};
-
 
 function ReportsPageContent() {
   const { 
@@ -329,19 +297,7 @@ function ReportsPageContent() {
             });
         }
     }, []);
-
-    const generateDynamicPin = useCallback(() => {
-        const now = new Date();
-        const month = (now.getMonth() + 1);
-        const day = now.getDate();
-        
-        const monthStr = month.toString().padStart(2, '0');
-        const dayStr = day.toString().padStart(2, '0');
-        const difference = Math.abs(day - month).toString();
     
-        return `${monthStr}${dayStr}${difference}`;
-    }, []);
-
     const handlePinSubmit = useCallback((e?: React.FormEvent) => {
         e?.preventDefault();
         if (pin === generateDynamicPin()) {
@@ -351,7 +307,7 @@ function ReportsPageContent() {
             toast({ variant: 'destructive', title: 'Code PIN incorrect' });
         }
         setPin('');
-    }, [pin, generateDynamicPin, toast]);
+    }, [pin]);
 
     const triggerVisualFeedback = useCallback((key: string) => {
       setActiveKey(key);
@@ -371,6 +327,18 @@ function ReportsPageContent() {
             return () => window.removeEventListener('keydown', handleKeyDown);
         }
     }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
+
+    const generateDynamicPin = useCallback(() => {
+        const now = new Date();
+        const month = (now.getMonth() + 1);
+        const day = now.getDate();
+        
+        const monthStr = month.toString().padStart(2, '0');
+        const dayStr = day.toString().padStart(2, '0');
+        const difference = Math.abs(day - month).toString();
+    
+        return `${monthStr}${dayStr}${difference}`;
+    }, []);
   
     const handlePinKeyPress = (key: string) => {
       if (pin.length < 6) {
@@ -381,7 +349,31 @@ function ReportsPageContent() {
     const handlePinBackspace = () => {
       setPin(prev => prev.slice(0, -1));
     };
-    
+
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const handleMarginToggle = (checked: boolean) => {
+        if (checked) {
+            setPinDialogOpen(true);
+        } else {
+            handleColumnVisibilityChange('margin', false);
+        }
+    };
+
+    useEffect(() => {
+        if (docTypeFilterParam) {
+            const newFilterDocTypes: Record<string, boolean> = {};
+            for (const key in documentTypes) {
+                newFilterDocTypes[key] = key === docTypeFilterParam;
+            }
+            setFilterDocTypes(newFilterDocTypes as any);
+        }
+    }, [docTypeFilterParam]);
+
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
@@ -516,6 +508,25 @@ function ReportsPageContent() {
             }, 100);
         }
     }, [lastSelectedSaleId]);
+
+
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (generalFilter) params.set('q', generalFilter);
+        if (sortConfig) {
+            params.set('sortKey', sortConfig.key);
+            params.set('sortDirection', sortConfig.direction);
+        }
+        if (currentPage > 1) params.set('page', String(currentPage));
+        if (filterCustomerName) params.set('customerName', filterCustomerName);
+        if (filterOrigin) params.set('origin', filterOrigin);
+        if (filterSellerName) params.set('seller', filterSellerName);
+        if (filterStatus !== 'all') params.set('status', filterStatus);
+        if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod);
+        if (dateRange?.from) params.set('dateFrom', dateRange.from.toISOString());
+        if (dateRange?.to) params.set('dateTo', dateRange.to.toISOString());
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [generalFilter, sortConfig, currentPage, filterCustomerName, filterOrigin, filterSellerName, filterStatus, filterPaymentMethod, dateRange, router, pathname]);
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -590,21 +601,7 @@ function ReportsPageContent() {
 
         setDateRange({ from: newFrom, to: newTo });
     };
-
-    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
-        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
-        setVisibleColumns(newVisibility);
-        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
-    };
-
-    const handleMarginToggle = (checked: boolean) => {
-        if (checked) {
-            setPinDialogOpen(true);
-        } else {
-            handleColumnVisibilityChange('margin', false);
-        }
-    };
-    
+  
     const handleInsertSyntax = (syntax: string) => {
       setGeneralFilter(prev => {
           if (syntax === '*') return '*';
@@ -613,29 +610,6 @@ function ReportsPageContent() {
       });
       generalFilterRef.current?.focus();
     };
-
-  const handleMouseDown = (action: () => void) => {
-    const timer = setTimeout(() => {
-        action();
-        setLongPressTimer(null); // Prevent click
-    }, 700); // 700ms for long press
-    setLongPressTimer(timer);
-  };
-
-  const handleMouseUp = (clickAction: () => void) => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-        clickAction();
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-    }
-  };
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -901,7 +875,7 @@ function ReportsPageContent() {
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                      <Button variant="outline" onClick={handleSmartDateFilter} className="min-w-32">{getSmartDateButtonLabel()}</Button>
+                      <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                     <Button onClick={handleNewDocumentClick}>
@@ -1026,7 +1000,7 @@ function ReportsPageContent() {
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                                  dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                                  dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                                                 }
                                             </Button>
                                         </PopoverTrigger>
@@ -1240,4 +1214,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
