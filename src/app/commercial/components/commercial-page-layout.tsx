@@ -31,6 +31,8 @@ type DocumentType = 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 
 interface CommercialPageLayoutProps {
   documentType: DocumentType;
+  isNavVisible: boolean;
+  setIsNavVisible: (visible: boolean) => void;
 }
 
 const docTypeConfig = {
@@ -76,7 +78,7 @@ const typeMap: Record<DocumentType, string> = {
 };
 
 
-function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
+function CommercialPageContent({ documentType, isNavVisible, setIsNavVisible }: CommercialPageLayoutProps) {
   const { 
       addToOrder, 
       order, 
@@ -322,10 +324,10 @@ const handleGenerateRandom = () => {
   );
 }
 
-export default function CommercialPageLayout({ documentType }: CommercialPageLayoutProps) {
+export default function CommercialPageLayout({ documentType, isNavVisible, setIsNavVisible }: CommercialPageLayoutProps) {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
-            <CommercialPageContent documentType={documentType}/>
+            <CommercialPageContent documentType={documentType} isNavVisible={isNavVisible} setIsNavVisible={setIsNavVisible}/>
         </Suspense>
     )
 }
