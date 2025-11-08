@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -495,6 +494,22 @@ function PaymentsReportPageContent() {
         if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
         return sortConfig.direction === 'asc' ? '▲' : '▼';
     }
+    
+    const getRowStyle = (payment: any) => {
+        const sale = allSales.find(s => s.id === payment.saleId);
+        if (!sale) return {};
+    
+        const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const balance = sale.total - totalPaid;
+        
+        if (sale.status === 'paid' || balance <= 0.01) {
+            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
+        }
+        if (sale.status === 'pending' && totalPaid > 0) {
+             return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
+        }
+        return {};
+    };
 
     const resetFilters = () => {
         if (isDateFilterLocked) return;
@@ -726,7 +741,7 @@ function PaymentsReportPageContent() {
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
                         <Select value={filterMethodName} onValueChange={setFilterMethodName}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(pm => (<SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>))}</SelectContent></Select>
-                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut du paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
+                        <Select value={filterPaymentType} onValueChange={(v) => setFilterPaymentType(v as any)}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Type de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les types</SelectItem><SelectItem value="immediate">Immédiat</SelectItem><SelectItem value="deferred">Différé</SelectItem></SelectContent></Select>
                     </CardContent>
                 </CollapsibleContent>
               </Card>
@@ -835,5 +850,3 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
-
-
