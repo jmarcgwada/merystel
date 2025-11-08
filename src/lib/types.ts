@@ -327,3 +327,5 @@ export interface MappingTemplate {
   mappingModes: Record<string, 'column' | 'fixed'>;
   fixedValues: Record<string, string>;
 }
+
+

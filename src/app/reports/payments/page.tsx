@@ -177,19 +177,17 @@ function PaymentsReportPageContent() {
     }, []);
 
      const getRowStyle = (payment: any) => {
-        const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
-            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
-            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
-            default: // ticket and others
-                color = '#ffffff'; 
-                opacity = 0;
+        const totalPaid = (payment.salePayments || []).reduce((acc: number, p: Payment) => acc + p.amount, 0);
+        const saleTotal = payment.saleTotal || 0;
+        const balance = saleTotal - totalPaid;
+
+        if (balance > 0.01) {
+            if (totalPaid > 0) {
+                return { backgroundColor: 'hsla(var(--accent) / 0.1)' }; // Partiel (orange-ish)
+            }
+            return { backgroundColor: 'hsla(var(--destructive) / 0.1)' }; // Impayé (red-ish)
         }
-        return { backgroundColor: hexToRgba(color, opacity) };
+        return { backgroundColor: 'hsla(var(--primary) / 0.05)' }; // Payé (green-ish)
     };
     
     const handleDocTypeChange = (typeKey: string, checked: boolean) => {
@@ -229,17 +227,20 @@ function PaymentsReportPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
-        if (!dateRange || !dateRange.from) return 'Période';
+      if (isDateFilterLocked && dateRange?.from) {
+        return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+      }
+      if (!dateRange || !dateRange.from) return 'Période';
         if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
+        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         if (dateRange.from && dateRange.to) {
-            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
-            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
             if (isSameDay(dateRange.from, dateRange.to)) {
                 return format(dateRange.from, "d MMMM yyyy", { locale: fr });
             }
             return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
         }
-        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         return 'Période';
     };
 
@@ -294,7 +295,9 @@ function PaymentsReportPageContent() {
                 saleDate: sale.date,
                 customerId: sale.customerId,
                 userId: sale.userId,
-                userName: sale.userName
+                userName: sale.userName,
+                salePayments: sale.payments,
+                saleTotal: sale.total,
             }))
         );
     }, [allSales]);
@@ -855,3 +858,4 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
+
