@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale, HelpCircle, SlidersHorizontal, Truck } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, CreditCard, LayoutDashboard, Scale, HelpCircle, SlidersHorizontal, Truck, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -154,7 +154,8 @@ function PaymentsReportPageContent() {
     
     const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-    
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -162,6 +163,18 @@ function PaymentsReportPageContent() {
     useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
+    
+    useEffect(() => {
+        const checkScroll = () => {
+            if (window.scrollY > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+        window.addEventListener('scroll', checkScroll);
+        return () => window.removeEventListener('scroll', checkScroll);
+    }, []);
 
      const getRowStyle = (payment: any) => {
         const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
@@ -172,6 +185,9 @@ function PaymentsReportPageContent() {
             case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
             case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
             case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
+            default: // ticket and others
+                color = '#ffffff'; 
+                opacity = 0;
         }
         return { backgroundColor: hexToRgba(color, opacity) };
     };
@@ -527,6 +543,36 @@ function PaymentsReportPageContent() {
     generalFilterRef.current?.focus();
   };
     
+    const handleMouseDown = (action: () => void) => {
+        const timer = setTimeout(() => {
+            action();
+            setLongPressTimer(null); // Prevent click
+        }, 700); // 700ms for long press
+        setLongPressTimer(timer);
+    };
+    
+    const handleMouseUp = (clickAction: () => void) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+            clickAction();
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+    
     if (!isClient || isPosLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -555,9 +601,7 @@ function PaymentsReportPageContent() {
           <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" onClick={handleSmartDateFilter} className={cn(!dateRange && 'text-muted-foreground')}>
-                  {getSmartDateButtonLabel()}
-                </Button>
+                <Button variant="outline" onClick={handleSmartDateFilter} className={cn(!dateRange && 'text-muted-foreground')}>{getSmartDateButtonLabel()}</Button>
                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
               </div>
               <Button asChild variant="secondary">
@@ -745,12 +789,12 @@ function PaymentsReportPageContent() {
               <CardContent className="pt-0">
                   <Table>
                       <TableHeader><TableRow>
-                          <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead>
-                          <TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead>
-                          <TableHead><Button variant="ghost" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead>
-                          <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
-                          <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>
-                          <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full">Montant {getSortIcon('amount')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('date')}>Date Paiement {getSortIcon('date')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('ticketNumber')}>Pièce {getSortIcon('ticketNumber')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('methodName')}>Type {getSortIcon('methodName')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
+                          <TableHead><Button variant="ghost" className="px-0" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>
+                          <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('amount')} className="justify-end w-full px-0">Montant {getSortIcon('amount')}</Button></TableHead>
                           <TableHead className="w-[80px] text-right">Actions</TableHead>
                       </TableRow></TableHeader>
                       <TableBody>
@@ -785,6 +829,15 @@ function PaymentsReportPageContent() {
               </CardContent>
           </Card>
         </div>
+        {showScrollTop && (
+          <Button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 h-12 w-12 rounded-full shadow-lg"
+            size="icon"
+          >
+            <ArrowUp className="h-6 w-6" />
+          </Button>
+        )}
       </div>
       <SaleDetailModal
         isOpen={isDetailModalOpen}
