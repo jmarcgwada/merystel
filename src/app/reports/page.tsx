@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -7,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, subMonths, addMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -271,7 +270,7 @@ function ReportsPageContent() {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
     
-    useEffect(() => {
+     useEffect(() => {
         const url = `${pathname}?${searchParams.toString()}`;
         setLastReportsUrl(url);
     }, [searchParams, pathname, setLastReportsUrl]);
@@ -300,7 +299,17 @@ function ReportsPageContent() {
         }
     }, []);
     
-     useEffect(() => {
+    useEffect(() => {
+        if (docTypeFilterParam) {
+            const newFilterDocTypes: Record<string, boolean> = {};
+            for (const key in documentTypes) {
+                newFilterDocTypes[key] = key === docTypeFilterParam;
+            }
+            setFilterDocTypes(newFilterDocTypes as any);
+        }
+    }, [docTypeFilterParam, setFilterDocTypes]);
+    
+    useEffect(() => {
         const checkScroll = () => {
             if (window.scrollY > 300) {
                 setShowScrollTop(true);
@@ -311,30 +320,6 @@ function ReportsPageContent() {
         window.addEventListener('scroll', checkScroll);
         return () => window.removeEventListener('scroll', checkScroll);
     }, []);
-    
-    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
-        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
-        setVisibleColumns(newVisibility);
-        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
-    };
-
-    const handleMarginToggle = (checked: boolean) => {
-        if (checked) {
-            setPinDialogOpen(true);
-        } else {
-            handleColumnVisibilityChange('margin', false);
-        }
-    };
-
-    useEffect(() => {
-        if (docTypeFilterParam) {
-            const newFilterDocTypes: Record<string, boolean> = {};
-            for (const key in documentTypes) {
-                newFilterDocTypes[key] = key === docTypeFilterParam;
-            }
-            setFilterDocTypes(newFilterDocTypes as any);
-        }
-    }, [docTypeFilterParam]);
 
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
@@ -347,7 +332,7 @@ function ReportsPageContent() {
         const saleUser = users.find(u => u.id === userId);
         return saleUser ? `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.` : (fallbackName || 'Utilisateur supprimé');
     }, [users]);
-    
+
     const handlePinSubmit = useCallback((e?: React.FormEvent) => {
         e?.preventDefault();
         const correctPin = generateDynamicPin();
@@ -364,6 +349,20 @@ function ReportsPageContent() {
       setActiveKey(key);
       setTimeout(() => setActiveKey(null), 150);
     }, []);
+    
+    const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
+        const newVisibility = { ...visibleColumns, [columnId]: isVisible };
+        setVisibleColumns(newVisibility);
+        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
+    };
+
+    const handleMarginToggle = (checked: boolean) => {
+        if (checked) {
+            setPinDialogOpen(true);
+        } else {
+            handleColumnVisibilityChange('margin', false);
+        }
+    };
 
     useEffect(() => {
         if (isPinDialogOpen) {
@@ -768,6 +767,7 @@ function ReportsPageContent() {
     };
 
     const handleOpenDetailModal = (sale: Sale) => {
+        setLastSelectedSaleId(sale.id);
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
@@ -778,13 +778,13 @@ function ReportsPageContent() {
         const balance = saleTotal - totalPaid;
 
         if (sale.status === 'paid' || balance <= 0.01) {
-            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' }; // green-100 with opacity
+            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
         }
         if (sale.status === 'pending') {
             if (totalPaid > 0) {
-                 return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' }; // orange-100 with opacity
+                 return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
             }
-            return { backgroundColor: 'hsla(0, 84%, 97%, 0.5)' }; // red-100 with opacity
+            return { backgroundColor: 'hsla(0, 84%, 97%, 0.5)' };
         }
         return getDocumentBackgroundColor(sale);
     };
@@ -827,7 +827,7 @@ function ReportsPageContent() {
             </div>
         );
     }
-    
+
     const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
@@ -866,6 +866,17 @@ function ReportsPageContent() {
             </span>
         </div>
       );
+
+  if (isPosLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Skeleton className="h-96 w-full" />
+            </div>
+        </div>
+    )
+  }
 
   return (
     <>
@@ -1292,4 +1303,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
 
