@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -1845,7 +1846,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         payments, status: isPaid ? 'paid' : 'pending',
                         customerId: customer?.id,
                         documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
-                        userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
+                        userId: user?.id,
+                        userName: firstRow.sellerName || user?.firstName || 'Import',
                     };
                     
                     await recordSale(newSale);

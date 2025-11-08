@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AppLoading({ message = "Chargement de l'application..." }: { message?: string }) {
   return (
-    <div className="flex h-screen w-screen items-center justify-center">
+    <div className="flex h-screen w-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <svg
           xmlns="http://www.w3.org/2000/svg"
