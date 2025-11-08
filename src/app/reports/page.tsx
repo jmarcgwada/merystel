@@ -309,17 +309,24 @@ function ReportsPageContent() {
         }
     }, [docTypeFilterParam, setFilterDocTypes]);
     
+    const scrollToTop = () => {
+        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     useEffect(() => {
+        const mainEl = document.querySelector('main');
         const checkScroll = () => {
-            if (window.scrollY > 300) {
+            if (mainEl && mainEl.scrollTop > 300) {
                 setShowScrollTop(true);
             } else {
                 setShowScrollTop(false);
             }
         };
-        window.addEventListener('scroll', checkScroll);
-        return () => window.removeEventListener('scroll', checkScroll);
+
+        mainEl?.addEventListener('scroll', checkScroll);
+        return () => mainEl?.removeEventListener('scroll', checkScroll);
     }, []);
+
 
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
@@ -364,6 +371,28 @@ function ReportsPageContent() {
         }
     };
 
+    const generateDynamicPin = useCallback(() => {
+        const now = new Date();
+        const month = (now.getMonth() + 1);
+        const day = now.getDate();
+        
+        const monthStr = month.toString().padStart(2, '0');
+        const dayStr = day.toString().padStart(2, '0');
+        const difference = Math.abs(day - month).toString();
+
+        return `${monthStr}${dayStr}${difference}`;
+    }, []);
+
+    const handlePinKeyPress = (key: string) => {
+      if (pin.length < 6) {
+        setPin(prev => prev + key);
+      }
+    };
+    
+    const handlePinBackspace = () => {
+      setPin(prev => prev.slice(0, -1));
+    };
+
     useEffect(() => {
         if (isPinDialogOpen) {
             const handleKeyDown = (event: KeyboardEvent) => {
@@ -377,28 +406,7 @@ function ReportsPageContent() {
             return () => window.removeEventListener('keydown', handleKeyDown);
         }
     }, [isPinDialogOpen, pin, handlePinSubmit, triggerVisualFeedback]);
-
-  const generateDynamicPin = useCallback(() => {
-    const now = new Date();
-    const month = (now.getMonth() + 1);
-    const day = now.getDate();
     
-    const monthStr = month.toString().padStart(2, '0');
-    const dayStr = day.toString().padStart(2, '0');
-    const difference = Math.abs(day - month).toString();
-
-    return `${monthStr}${dayStr}${difference}`;
-  }, []);
-  
-    const handlePinKeyPress = (key: string) => {
-      if (pin.length < 6) {
-        setPin(prev => prev + key);
-      }
-    };
-    
-    const handlePinBackspace = () => {
-      setPin(prev => prev.slice(0, -1));
-    };
 
     const filteredAndSortedSales = useMemo(() => {
         if (!allSales || !allItems) return [];
@@ -516,15 +524,6 @@ function ReportsPageContent() {
     }, [allSales, getCustomerName, getUserName, sortConfig, filterCustomerName, filterOrigin, filterStatus, filterPaymentMethod, dateRange, filterSellerName, generalFilter, filterDocTypes, allItems]);
     
     useEffect(() => {
-        if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
-            setTimeout(() => {
-                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-    }, [lastSelectedSaleId, filteredAndSortedSales]);
-
-
-    useEffect(() => {
         const params = new URLSearchParams();
         if (generalFilter) params.set('q', generalFilter);
         if (sortConfig) {
@@ -618,14 +617,14 @@ function ReportsPageContent() {
         setDateRange({ from: newFrom, to: newTo });
     };
   
-  const handleInsertSyntax = (syntax: string) => {
-    setGeneralFilter(prev => {
-        if (syntax === '*') return '*';
-        const newFilter = prev ? `${prev} ${syntax}` : syntax;
-        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-    });
-    generalFilterRef.current?.focus();
-  };
+    const handleInsertSyntax = (syntax: string) => {
+      setGeneralFilter(prev => {
+          if (syntax === '*') return '*';
+          const newFilter = prev ? `${prev} ${syntax}` : syntax;
+          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+      });
+      generalFilterRef.current?.focus();
+    };
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -633,6 +632,14 @@ function ReportsPageContent() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredAndSortedSales.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAndSortedSales, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+        if(lastSelectedSaleId && rowRefs.current[lastSelectedSaleId]) {
+            setTimeout(() => {
+                rowRefs.current[lastSelectedSaleId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [lastSelectedSaleId, paginatedSales]);
 
     const summaryStats = useMemo(() => {
         const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => documentTypes[type as keyof typeof documentTypes]?.type);
@@ -776,7 +783,12 @@ function ReportsPageContent() {
         const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
         const saleTotal = sale.total;
         const balance = saleTotal - totalPaid;
-
+        
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        if (documentTypes[docType as keyof typeof documentTypes]?.type === 'neutral') {
+             return {}; // No special color for neutral types
+        }
+        
         if (sale.status === 'paid' || balance <= 0.01) {
             return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
         }
@@ -786,7 +798,7 @@ function ReportsPageContent() {
             }
             return { backgroundColor: 'hsla(0, 84%, 97%, 0.5)' };
         }
-        return getDocumentBackgroundColor(sale);
+        return {};
     };
     
      const getDocumentBackgroundColor = (sale: Sale) => {
@@ -827,7 +839,7 @@ function ReportsPageContent() {
             </div>
         );
     }
-
+    
     const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
@@ -843,19 +855,12 @@ function ReportsPageContent() {
             clickAction();
         }
     };
-
+    
     const handleMouseLeave = () => {
         if (longPressTimer) {
             clearTimeout(longPressTimer);
             setLongPressTimer(null);
         }
-    };
-    
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
     };
 
     const pageTitle = (
@@ -1303,5 +1308,6 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
 
 
