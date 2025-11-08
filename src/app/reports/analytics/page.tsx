@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,19 @@ const documentTypes = {
     supplier_order: { label: 'Cde Fournisseur', type: 'out' },
     credit_note: { label: 'Avoir', type: 'out' },
 };
+
+const salesLinesColumns = [
+    { id: 'saleDate', label: 'Date' },
+    { id: 'ticketNumber', label: 'Pièce' },
+    { id: 'name', label: 'Désignation' },
+    { id: 'details', label: 'Détails' },
+    { id: 'categoryName', label: 'Catégorie' },
+    { id: 'barcode', label: 'Référence' },
+    { id: 'customerName', label: 'Client' },
+    { id: 'userName', label: 'Vendeur' },
+    { id: 'quantity', label: 'Qté' },
+    { id: 'total', label: 'Total Ligne' },
+];
 
 
 function AnalyticsPageContent() {
@@ -716,7 +729,9 @@ function AnalyticsPageContent() {
                        <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                            {getSmartDateButtonLabel()}
+                            {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
+                              dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                            }
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
@@ -1011,3 +1026,5 @@ export default function AnalyticsPage() {
         </Suspense>
     )
 }
+
+    
