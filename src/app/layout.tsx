@@ -15,7 +15,7 @@ import { CalculatorModal } from '@/components/shared/calculator-modal';
 import { AppLoading } from '@/components/layout/app-loading';
 import { ExternalLinkModal } from '@/components/layout/external-link-modal';
 
-function AppContent({ children }: { children: React.ReactNode }) {
+function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = usePos();
   const [isClient, setIsClient] = useState(false);
 
@@ -26,28 +26,22 @@ function AppContent({ children }: { children: React.ReactNode }) {
   if (!isClient || isLoading) {
     return <AppLoading />;
   }
-
+  
   return (
-    <div className="antialiased flex flex-col h-screen overflow-hidden">
-      <Header />
-      <main className="flex-1 overflow-auto">{children}</main>
-      <Toaster />
-      <NavigationConfirmationDialog />
-      <ExternalLinkModal />
-      <CalculatorModal />
-    </div>
+      <CompanyInfoGuard>
+        <NavigationGuard />
+        <div className="antialiased flex flex-col h-screen overflow-hidden">
+            <Header />
+            <main className="flex-1 overflow-auto">{children}</main>
+            <Toaster />
+            <NavigationConfirmationDialog />
+            <ExternalLinkModal />
+            <CalculatorModal />
+        </div>
+      </CompanyInfoGuard>
   );
 }
 
-function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <FirebaseClientProvider>
-      <PosProvider>
-        {children}
-      </PosProvider>
-    </FirebaseClientProvider>
-  );
-}
 
 export default function RootLayout({
   children,
@@ -67,16 +61,15 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body">
-        <Providers>
-          <Suspense fallback={<AppLoading />}>
-            <CompanyInfoGuard>
-              <NavigationGuard />
-              <AppContent>
-                {children}
-              </AppContent>
-            </CompanyInfoGuard>
-          </Suspense>
-        </Providers>
+        <Suspense fallback={<AppLoading />}>
+            <FirebaseClientProvider>
+              <PosProvider>
+                <RootLayoutContent>
+                  {children}
+                </RootLayoutContent>
+              </PosProvider>
+            </FirebaseClientProvider>
+        </Suspense>
       </body>
     </html>
   );
