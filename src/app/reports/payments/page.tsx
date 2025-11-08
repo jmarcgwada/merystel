@@ -155,6 +155,26 @@ function PaymentsReportPageContent() {
     const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
     const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
     const [showScrollTop, setShowScrollTop] = useState(false);
+    
+    useEffect(() => {
+      const mainEl = document.querySelector('main');
+      if (!mainEl) return;
+  
+      const checkScroll = () => {
+        if (mainEl.scrollTop > 300) {
+          setShowScrollTop(true);
+        } else {
+          setShowScrollTop(false);
+        }
+      };
+  
+      mainEl.addEventListener('scroll', checkScroll, { passive: true });
+      return () => mainEl.removeEventListener('scroll', checkScroll);
+    }, []);
+
+    const scrollToTop = () => {
+      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     useEffect(() => {
         setIsClient(true);
@@ -163,51 +183,13 @@ function PaymentsReportPageContent() {
     useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
-    
-    useEffect(() => {
-        const checkScroll = () => {
-            if (window.scrollY > 300) {
-                setShowScrollTop(true);
-            } else {
-                setShowScrollTop(false);
-            }
-        };
-        window.addEventListener('scroll', checkScroll);
-        return () => window.removeEventListener('scroll', checkScroll);
-    }, []);
 
-     const getRowStyle = (payment: any) => {
-        const totalPaid = (payment.salePayments || []).reduce((acc: number, p: Payment) => acc + p.amount, 0);
-        const saleTotal = payment.saleTotal || 0;
-        const balance = saleTotal - totalPaid;
-
-        if (balance > 0.01) {
-            if (totalPaid > 0) {
-                return { backgroundColor: 'hsla(var(--accent) / 0.1)' }; // Partiel (orange-ish)
-            }
-            return { backgroundColor: 'hsla(var(--destructive) / 0.1)' }; // Impayé (red-ish)
-        }
-        return { backgroundColor: 'hsla(var(--primary) / 0.05)' }; // Payé (green-ish)
-    };
+     useEffect(() => {
+        if (targetInput?.name === 'analytics-general-filter') setGeneralFilter(inputValue);
+        if (targetInput?.name === 'analytics-item-filter') setGeneralFilter(inputValue);
+    }, [inputValue, targetInput]);
     
-    const handleDocTypeChange = (typeKey: string, checked: boolean) => {
-        const typeInfo = documentTypes[typeKey as keyof typeof documentTypes];
-        if (!typeInfo) return;
-
-        setFilterDocTypes(prev => {
-            const newState = { ...prev, [typeKey]: checked };
-            if (checked && typeInfo.type) {
-                for (const key in documentTypes) {
-                    if (documentTypes[key as keyof typeof documentTypes].type && documentTypes[key as keyof typeof documentTypes].type !== typeInfo.type) {
-                        newState[key] = false;
-                    }
-                }
-            }
-            return newState;
-        });
-    };
-    
-     const handleSmartDateFilter = () => {
+    const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
         const currentIdx = periodCycle.indexOf(periodFilter);
         const nextPeriod = periodCycle[(currentIdx + 1) % periodCycle.length];
@@ -568,13 +550,6 @@ function PaymentsReportPageContent() {
             setLongPressTimer(null);
         }
     };
-
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    };
     
     if (!isClient || isPosLoading) {
         return (
@@ -604,7 +579,7 @@ function PaymentsReportPageContent() {
           <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" onClick={handleSmartDateFilter} className={cn(!dateRange && 'text-muted-foreground')}>{getSmartDateButtonLabel()}</Button>
+                <Button variant="outline" onClick={handleSmartDateFilter} className={cn("h-9", !dateRange && 'text-muted-foreground')}>{getSmartDateButtonLabel()}</Button>
                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
               </div>
               <Button asChild variant="secondary">
@@ -858,4 +833,5 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
+
 

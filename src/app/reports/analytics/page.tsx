@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -12,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Sale } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, FileSignature } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, FileSignature, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -167,11 +166,33 @@ function AnalyticsPageContent() {
     const [isMarginColumnVisible, setIsMarginColumnVisible] = useState(false);
 
     const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
+    const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+    const [showScrollTop, setShowScrollTop] = useState(false);
     
     useEffect(() => {
         setIsClient(true);
     }, []);
     
+    useEffect(() => {
+        const mainEl = document.querySelector('main');
+        if (!mainEl) return;
+    
+        const checkScroll = () => {
+            if (mainEl.scrollTop > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+    
+        mainEl.addEventListener('scroll', checkScroll, { passive: true });
+        return () => mainEl.removeEventListener('scroll', checkScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
@@ -591,7 +612,30 @@ function AnalyticsPageContent() {
     generalFilterRef.current?.focus();
   };
     
-  if (!isClient || isLoading) {
+    const handleMouseDown = (action: () => void) => {
+        const timer = setTimeout(() => {
+            action();
+            setLongPressTimer(null); // Prevent click
+        }, 700); // 700ms for long press
+        setLongPressTimer(timer);
+    };
+    
+    const handleMouseUp = (clickAction: () => void) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+            clickAction();
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+    };
+    
+    if (!isClient || isLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 <PageHeader title="Reporting avancé" subtitle="Chargement des données..."/>
@@ -726,11 +770,11 @@ function AnalyticsPageContent() {
                 <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                   <Popover>
                     <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                       <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                       <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                             {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                              dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                              dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                             }
                         </Button>
                     </PopoverTrigger>
@@ -918,7 +962,7 @@ function AnalyticsPageContent() {
                               </DropdownMenuContent>
                           </DropdownMenu>
                       </CardTitle>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                           <Popover>
                               <PopoverTrigger asChild>
@@ -1010,11 +1054,20 @@ function AnalyticsPageContent() {
           </Card>
         </div>
       </div>
-       <SaleDetailModal
+      <SaleDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         sale={selectedSale}
       />
+        {showScrollTop && (
+          <Button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 h-12 w-12 rounded-full shadow-lg"
+            size="icon"
+          >
+            <ArrowUp className="h-6 w-6" />
+          </Button>
+        )}
     </>
   );
 }
