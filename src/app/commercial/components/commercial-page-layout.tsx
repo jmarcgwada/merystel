@@ -31,8 +31,6 @@ type DocumentType = 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 
 interface CommercialPageLayoutProps {
   documentType: DocumentType;
-  isNavVisible: boolean;
-  setIsNavVisible: (visible: boolean) => void;
 }
 
 const docTypeConfig = {
@@ -78,7 +76,7 @@ const typeMap: Record<DocumentType, string> = {
 };
 
 
-function CommercialPageContent({ documentType, isNavVisible, setIsNavVisible }: CommercialPageLayoutProps) {
+function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const { 
       addToOrder, 
       order, 
@@ -238,9 +236,6 @@ const handleGenerateRandom = () => {
           subtitle={pageSubtitle}
         >
             <div className="flex items-center gap-2">
-                 <Button variant="outline" size="icon" onClick={() => setIsNavVisible(!isNavVisible)}>
-                    {isNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
                  <div className="flex items-center gap-2">
                     {!isEditing && (
                     <Button
@@ -327,10 +322,10 @@ const handleGenerateRandom = () => {
   );
 }
 
-export default function CommercialPageLayout({ documentType, isNavVisible, setIsNavVisible }: CommercialPageLayoutProps) {
+export default function CommercialPageLayout({ documentType }: CommercialPageLayoutProps) {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
-            <CommercialPageContent documentType={documentType} isNavVisible={isNavVisible} setIsNavVisible={setIsNavVisible}/>
+            <CommercialPageContent documentType={documentType} />
         </Suspense>
     )
 }

@@ -41,7 +41,7 @@ const hexToRgba = (hex: string, opacity: number) => {
 };
 
 
-function SupplierOrdersPageContent({ isNavVisible, setIsNavVisible }: { isNavVisible: boolean, setIsNavVisible: (visible: boolean) => void }) {
+function SupplierOrdersPageContent() {
   const { 
       addToOrder, 
       order, 
@@ -214,9 +214,6 @@ function SupplierOrdersPageContent({ isNavVisible, setIsNavVisible }: { isNavVis
             subtitle={isEditing ? "Modifiez les articles et finalisez la commande." : "Créez une nouvelle commande fournisseur."}
         >
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setIsNavVisible(!isNavVisible)}>
-                {isNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
             {!isEditing && (
               <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
                 <Sparkles className="h-4 w-4" />
@@ -289,10 +286,10 @@ function SupplierOrdersPageContent({ isNavVisible, setIsNavVisible }: { isNavVis
   );
 }
 
-export default function SupplierOrdersPage({ isNavVisible, setIsNavVisible }: { isNavVisible: boolean, setIsNavVisible: (visible: boolean) => void }) {
+export default function SupplierOrdersPage() {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
-            <SupplierOrdersPageContent isNavVisible={isNavVisible} setIsNavVisible={setIsNavVisible}/>
+            <SupplierOrdersPageContent />
         </Suspense>
     )
 }
