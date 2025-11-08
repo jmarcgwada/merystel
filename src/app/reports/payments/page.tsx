@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -157,23 +158,23 @@ function PaymentsReportPageContent() {
     const [showScrollTop, setShowScrollTop] = useState(false);
     
     useEffect(() => {
-      const mainEl = document.querySelector('main');
-      if (!mainEl) return;
-  
-      const checkScroll = () => {
-        if (mainEl.scrollTop > 300) {
-          setShowScrollTop(true);
-        } else {
-          setShowScrollTop(false);
-        }
-      };
-  
-      mainEl.addEventListener('scroll', checkScroll, { passive: true });
-      return () => mainEl.removeEventListener('scroll', checkScroll);
+        const mainEl = document.querySelector('main');
+        if (!mainEl) return;
+    
+        const checkScroll = () => {
+            if (mainEl.scrollTop > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+    
+        mainEl.addEventListener('scroll', checkScroll, { passive: true });
+        return () => mainEl.removeEventListener('scroll', checkScroll);
     }, []);
 
     const scrollToTop = () => {
-      document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     useEffect(() => {
@@ -280,6 +281,7 @@ function PaymentsReportPageContent() {
                 userName: sale.userName,
                 salePayments: sale.payments,
                 saleTotal: sale.total,
+                saleStatus: sale.status,
             }))
         );
     }, [allSales]);
@@ -550,6 +552,30 @@ function PaymentsReportPageContent() {
             setLongPressTimer(null);
         }
     };
+
+    const getRowStyle = (payment: typeof allPayments[0]) => {
+      const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+      let color = 'transparent';
+      let opacity = 100;
+      
+      switch (docType) {
+          case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
+          case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
+          case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
+      }
+      if (payment.saleStatus === 'paid' || (payment.saleTotal && payment.amount >= payment.saleTotal - 0.01)) {
+        return { backgroundColor: hexToRgba('#dcfce7', 50) };
+      }
+      if (payment.saleStatus === 'pending') {
+        const totalPaid = (payment.salePayments || []).reduce((acc, p) => acc + p.amount, 0);
+        if (totalPaid > 0) {
+            return { backgroundColor: hexToRgba('#fef3c7', 50) };
+        }
+        return { backgroundColor: hexToRgba('#fee2e2', 50) };
+      }
+      
+      return { backgroundColor: hexToRgba(color, opacity) };
+    };
     
     if (!isClient || isPosLoading) {
         return (
@@ -694,7 +720,7 @@ function PaymentsReportPageContent() {
                                         <DropdownMenuCheckboxItem
                                             key={type}
                                             checked={filterDocTypes[type]}
-                                            onCheckedChange={(checked) => handleDocTypeChange(type, checked)}
+                                            onCheckedChange={(checked) => setFilterDocTypes(prev => ({...prev, [type]: checked}))}
                                         >
                                             {label}
                                         </DropdownMenuCheckboxItem>
@@ -715,7 +741,7 @@ function PaymentsReportPageContent() {
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                     {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                      dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                      dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                                     }
                                 </Button>
                             </PopoverTrigger>
@@ -833,5 +859,4 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
-
 
