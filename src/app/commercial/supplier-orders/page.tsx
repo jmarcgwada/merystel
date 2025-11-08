@@ -9,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, CheckCircle, Lock, Save } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle, Lock, Save, Eye, EyeOff } from 'lucide-react';
 import type { OrderItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,7 +41,7 @@ const hexToRgba = (hex: string, opacity: number) => {
 };
 
 
-function SupplierOrdersPageContent() {
+function SupplierOrdersPageContent({ isNavVisible, setIsNavVisible }: { isNavVisible: boolean, setIsNavVisible: (visible: boolean) => void }) {
   const { 
       addToOrder, 
       order, 
@@ -214,6 +214,9 @@ function SupplierOrdersPageContent() {
             subtitle={isEditing ? "Modifiez les articles et finalisez la commande." : "Créez une nouvelle commande fournisseur."}
         >
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setIsNavVisible(!isNavVisible)}>
+                {isNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
             {!isEditing && (
               <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
                 <Sparkles className="h-4 w-4" />
@@ -286,10 +289,10 @@ function SupplierOrdersPageContent() {
   );
 }
 
-export default function SupplierOrdersPage() {
+export default function SupplierOrdersPage({ isNavVisible, setIsNavVisible }: { isNavVisible: boolean, setIsNavVisible: (visible: boolean) => void }) {
     return (
         <Suspense fallback={<div>Chargement...</div>}>
-            <SupplierOrdersPageContent/>
+            <SupplierOrdersPageContent isNavVisible={isNavVisible} setIsNavVisible={setIsNavVisible}/>
         </Suspense>
     )
 }
