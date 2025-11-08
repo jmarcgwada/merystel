@@ -47,7 +47,7 @@ export default function Header() {
     setCurrentSaleContext,
     companyInfo,
     setIsCalculatorOpen,
-    isCommercialNavVisible, 
+    isCommercialNavVisible,
     setIsCommercialNavVisible,
     isFullscreen,
     toggleFullscreen,
@@ -123,6 +123,12 @@ export default function Header() {
   
   const handlePinBackspace = () => {
     setPin(prev => prev.slice(0, -1));
+  };
+  
+  const handleCancelPin = () => {
+    setPin('');
+    setPinDialogOpen(false);
+    // Don't redirect, just close the dialog
   };
 
   const isUserInForcedMode = isForcedMode;
