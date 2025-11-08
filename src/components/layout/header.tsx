@@ -56,8 +56,6 @@ export default function Header() {
   
   const [isClient, setIsClient] = useState(false);
   
-  const { commercialViewLevel } = usePos();
-
    useEffect(() => {
     setIsClient(true);
   }, []);
@@ -188,9 +186,6 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 pl-4 flex-1">
-             <div className="hidden lg:block">
-                 <StorageIndicator />
-             </div>
             <Button
                 variant="outline"
                 size="icon"
