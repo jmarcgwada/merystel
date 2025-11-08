@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -552,30 +552,6 @@ function PaymentsReportPageContent() {
             setLongPressTimer(null);
         }
     };
-
-    const getRowStyle = (payment: typeof allPayments[0]) => {
-      const docType = payment.saleDocumentType || (payment.saleTicketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-      let color = 'transparent';
-      let opacity = 100;
-      
-      switch (docType) {
-          case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
-          case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
-          case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
-      }
-      if (payment.saleStatus === 'paid' || (payment.saleTotal && payment.amount >= payment.saleTotal - 0.01)) {
-        return { backgroundColor: hexToRgba('#dcfce7', 50) };
-      }
-      if (payment.saleStatus === 'pending') {
-        const totalPaid = (payment.salePayments || []).reduce((acc, p) => acc + p.amount, 0);
-        if (totalPaid > 0) {
-            return { backgroundColor: hexToRgba('#fef3c7', 50) };
-        }
-        return { backgroundColor: hexToRgba('#fee2e2', 50) };
-      }
-      
-      return { backgroundColor: hexToRgba(color, opacity) };
-    };
     
     if (!isClient || isPosLoading) {
         return (
@@ -859,4 +835,5 @@ export default function PaymentsPage() {
         </Suspense>
     )
 }
+
 

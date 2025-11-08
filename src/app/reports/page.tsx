@@ -7,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -1290,6 +1290,7 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
 
 
 
