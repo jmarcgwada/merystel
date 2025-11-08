@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -197,7 +196,6 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#ffffff');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
-  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -1380,9 +1378,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-    const cycleCommercialViewLevel = useCallback(() => {
-      setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
+    const cycleCommercialViewLevel = () => {};
 
   const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
@@ -1561,7 +1557,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                     await recordSale(newSale);
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
-                } catch (e: any) { addError(0, `Erreur sur pièce ${ticketNumber}: ${e.message}`); }
+                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
         } else {
             for (const [index, row] of jsonData.entries()) {
@@ -1630,7 +1626,6 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      commercialViewLevel, cycleCommercialViewLevel,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,

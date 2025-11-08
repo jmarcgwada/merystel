@@ -13,6 +13,10 @@ const PosContext = createContext<PosContextType | undefined>(undefined);
 
 // The main provider that wraps the data management logic
 export function PosProvider({ children }: { children: React.ReactNode }) {
+  const contextValue = useContext(PosContext);
+  if (contextValue) {
+    return <>{children}</>;
+  }
   return (
     <DataManagementProvider>
       {children}
