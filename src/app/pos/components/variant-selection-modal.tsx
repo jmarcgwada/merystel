@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePos } from '@/contexts/pos-context';
 import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { CustomVariantInputModal } from './custom-variant-input-modal';
 
 const CUSTOM_INPUT_SYMBOL = '*';
 
@@ -85,45 +85,49 @@ export function VariantSelectionModal() {
   }
 
   return (
-    <Dialog open={!!variantItem} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Sélectionner les options</DialogTitle>
-          <DialogDescription>
-            Choisissez les déclinaisons pour l'article "{variantItem.name}".
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-          {variantItem.variantOptions?.map(option => (
-            <div key={option.name} className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor={option.name} className="text-right">
-                {option.name}
-              </Label>
-              <Select
-                onValueChange={(value) => handleSelectChange(option.name, value)}
-                defaultValue={option.values[0]}
-              >
-                <SelectTrigger id={option.name} className="col-span-3">
-                  <SelectValue placeholder={`Choisir ${option.name}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {option.values.map(value => (
-                    <SelectItem key={value} value={value}>
-                      {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Annuler
-          </Button>
-          <Button onClick={handleConfirm}>Confirmer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={!!variantItem} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sélectionner les options</DialogTitle>
+            <DialogDescription>
+              Choisissez les déclinaisons pour l'article "{variantItem.name}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {variantItem.variantOptions?.map(option => (
+              <div key={option.name} className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor={option.name} className="text-right">
+                  {option.name}
+                </Label>
+                <Select
+                  onValueChange={(value) => handleSelectChange(option.name, value)}
+                  defaultValue={option.values[0]}
+                >
+                  <SelectTrigger id={option.name} className="col-span-3">
+                    <SelectValue placeholder={`Choisir ${option.name}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {option.values.map((value, index) => (
+                      <SelectItem key={`${value}-${index}`} value={value}>
+                        {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Annuler
+            </Button>
+            <Button onClick={handleConfirm}>Confirmer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <CustomVariantInputModal />
+    </>
   );
 }
+
