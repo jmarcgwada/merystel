@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -196,6 +197,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#ffffff');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
+  const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -205,7 +207,6 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
   const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
-  const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -242,6 +243,28 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
 
   const isLoading = userLoading || !isHydrated;
   
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
   const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
       return shadcnToast({
@@ -1379,9 +1402,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-    const cycleCommercialViewLevel = () => {};
-
-  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
   }, [setCompanyInfo]);
   
@@ -1608,7 +1629,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-      isCalculatorOpen, setIsCalculatorOpen,
+      isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator, Eye, EyeOff } from 'lucide-react';
+import { ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator, Eye, EyeOff, Maximize, Minimize } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +48,9 @@ export default function Header() {
     companyInfo,
     setIsCalculatorOpen,
     isCommercialNavVisible, 
-    setIsCommercialNavVisible
+    setIsCommercialNavVisible,
+    isFullscreen,
+    toggleFullscreen,
   } = usePos();
   const router = useRouter();
   const pathname = usePathname();
@@ -194,6 +196,13 @@ export default function Header() {
             >
                 <Calculator className="h-4 w-4" />
             </Button>
+             <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleFullscreen}
+            >
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </Button>
             {pathname.startsWith('/commercial') && (
                 <Button variant="outline" size="icon" onClick={() => setIsCommercialNavVisible(!isCommercialNavVisible)}>
                     {isCommercialNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -244,7 +253,7 @@ export default function Header() {
                        </div>
                     </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel type="button" onClick={() => { setPin(''); setPinDialogOpen(false); }}>Annuler</AlertDialogCancel>
+                        <Button type="button" variant="outline" onClick={handleCancelPin}>Annuler</Button>
                         <AlertDialogAction type="submit">
                             Déverrouiller
                         </AlertDialogAction>
