@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,14 +18,15 @@ import { usePos } from '@/contexts/pos-context';
 import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
+const CUSTOM_INPUT_SYMBOL = '*';
+
 export function VariantSelectionModal() {
-  const { variantItem, setVariantItem, addToOrder } = usePos();
+  const { variantItem, setVariantItem, addToOrder, setCustomVariantRequest } = usePos();
   const { toast } = useToast();
   const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>([]);
 
   useEffect(() => {
     if (variantItem?.variantOptions) {
-      // Pre-select the first value for each option
       const defaultSelections = variantItem.variantOptions.map(option => ({
         name: option.name,
         value: option.values[0],
@@ -36,6 +38,18 @@ export function VariantSelectionModal() {
   }, [variantItem]);
 
   const handleSelectChange = (optionName: string, value: string) => {
+    if (value === CUSTOM_INPUT_SYMBOL) {
+      if (variantItem) {
+        setCustomVariantRequest({
+          item: variantItem,
+          optionName,
+          currentSelections: selectedVariants
+        });
+        handleClose();
+      }
+      return;
+    }
+    
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value }];
@@ -95,7 +109,7 @@ export function VariantSelectionModal() {
                 <SelectContent>
                   {option.values.map(value => (
                     <SelectItem key={value} value={value}>
-                      {value}
+                      {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
                     </SelectItem>
                   ))}
                 </SelectContent>

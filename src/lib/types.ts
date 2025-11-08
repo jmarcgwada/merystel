@@ -33,6 +33,7 @@ export interface VariantOption {
 export interface SelectedVariant {
   name: string;
   value: string;
+  isCustom?: boolean; // To flag custom values
 }
 
 export interface Item {
@@ -327,5 +328,3 @@ export interface MappingTemplate {
   mappingModes: Record<string, 'column' | 'fixed'>;
   fixedValues: Record<string, string>;
 }
-
-
