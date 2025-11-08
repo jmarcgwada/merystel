@@ -51,6 +51,7 @@ export default function CommercialLayout({
   const { order, showNavConfirm, currentSaleContext, invoiceBgColor, invoiceBgOpacity, quoteBgColor, quoteBgOpacity, deliveryNoteBgColor, deliveryNoteBgOpacity, supplierOrderBgColor, supplierOrderBgOpacity, creditNoteBgColor, creditNoteBgOpacity } = usePos();
   const [isClient, setIsClient] = useState(false);
   const [isCreditNoteConfirmOpen, setCreditNoteConfirmOpen] = useState(false);
+  const [isTabsVisible, setIsTabsVisible] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -131,20 +132,25 @@ export default function CommercialLayout({
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div className="flex-1">
-                    <Tabs value={activeTab} className="w-full max-w-2xl">
-                        <TabsList className="grid w-full grid-cols-5">
-                            {navLinks.map(link => (
-                                <TabsTrigger value={link.value} asChild key={link.href} disabled={isCreditNotePage && link.value !== 'credit-notes'}>
-                                    <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        <span className="hidden sm:inline-block">{link.label}</span>
-                                    </Link>
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
+                    {isTabsVisible && (
+                        <Tabs value={activeTab} className="w-full max-w-2xl">
+                            <TabsList className="grid w-full grid-cols-5">
+                                {navLinks.map(link => (
+                                    <TabsTrigger value={link.value} asChild key={link.href} disabled={isCreditNotePage && link.value !== 'credit-notes'}>
+                                        <Link href={link.href} onClick={(e) => handleTabClick(e, link.href)} className="flex items-center gap-2">
+                                            <FileText className="h-4 w-4" />
+                                            <span className="hidden sm:inline-block">{link.label}</span>
+                                        </Link>
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 ml-4">
+                     <Button variant="outline" size="icon" onClick={() => setIsTabsVisible(!isTabsVisible)}>
+                        {isTabsVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
                     {activeReportInfo && (
                         <Button asChild variant="outline">
                             <Link href={`/reports?docType=${activeReportInfo.reportFilter}`} onClick={handleListClick}>
