@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -43,7 +42,7 @@ export function VariantSelectionModal() {
         setCustomVariantRequest({
           item: variantItem,
           optionName,
-          currentSelections: selectedVariants
+          currentSelections: selectedVariants.filter(v => v.name !== optionName)
         });
         handleClose();
       }
@@ -130,4 +129,3 @@ export function VariantSelectionModal() {
     </>
   );
 }
-
