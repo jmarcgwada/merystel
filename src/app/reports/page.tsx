@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -267,15 +268,30 @@ function ReportsPageContent() {
     }, []);
     
     useEffect(() => {
-        setItemsPerPageState(itemsPerPage);
-    }, [itemsPerPage]);
-    
-     useEffect(() => {
-        const url = `${pathname}?${searchParams.toString()}`;
-        setLastReportsUrl(url);
-    }, [searchParams, pathname, setLastReportsUrl]);
+        const mainEl = document.querySelector('main');
+        if (!mainEl) return;
+
+        const checkScroll = () => {
+            if (mainEl.scrollTop > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+
+        mainEl.addEventListener('scroll', checkScroll, { passive: true });
+        return () => mainEl.removeEventListener('scroll', checkScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     useEffect(() => {
+        setItemsPerPageState(itemsPerPage);
+    }, [itemsPerPage]);
+
+     useEffect(() => {
         const storedColumns = localStorage.getItem('reportsVisibleColumns');
         if (storedColumns) {
             setVisibleColumns(JSON.parse(storedColumns));
@@ -309,25 +325,6 @@ function ReportsPageContent() {
         }
     }, [docTypeFilterParam, setFilterDocTypes]);
     
-    const scrollToTop = () => {
-        document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        const mainEl = document.querySelector('main');
-        const checkScroll = () => {
-            if (mainEl && mainEl.scrollTop > 300) {
-                setShowScrollTop(true);
-            } else {
-                setShowScrollTop(false);
-            }
-        };
-
-        mainEl?.addEventListener('scroll', checkScroll);
-        return () => mainEl?.removeEventListener('scroll', checkScroll);
-    }, []);
-
-
     const getCustomerName = useCallback((customerId?: string) => {
         if (!customerId || !customers) return 'Client au comptoir';
         return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
@@ -617,14 +614,14 @@ function ReportsPageContent() {
         setDateRange({ from: newFrom, to: newTo });
     };
   
-    const handleInsertSyntax = (syntax: string) => {
-      setGeneralFilter(prev => {
-          if (syntax === '*') return '*';
-          const newFilter = prev ? `${prev} ${syntax}` : syntax;
-          return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
-      });
-      generalFilterRef.current?.focus();
-    };
+  const handleInsertSyntax = (syntax: string) => {
+    setGeneralFilter(prev => {
+        if (syntax === '*') return '*';
+        const newFilter = prev ? `${prev} ${syntax}` : syntax;
+        return newFilter.replace(/ \/ $/, '/'); // Tidy up for separator
+    });
+    generalFilterRef.current?.focus();
+  };
 
     const totalPages = Math.ceil(filteredAndSortedSales.length / itemsPerPage);
 
@@ -704,7 +701,7 @@ function ReportsPageContent() {
       const saleTotal = Math.abs(sale.total);
 
       if (sale.status === 'invoiced') {
-          return <Badge variant="outline">Facturé</Badge>;
+          return <Badge variant="outline">Convertie en Facture</Badge>;
       }
       if (sale.status === 'paid' || totalPaid >= saleTotal) {
           return (
@@ -801,21 +798,6 @@ function ReportsPageContent() {
         return {};
     };
     
-     const getDocumentBackgroundColor = (sale: Sale) => {
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        let color = 'transparent';
-        let opacity = 100;
-        
-        switch (docType) {
-            case 'invoice': color = invoiceBgColor; opacity = invoiceBgOpacity; break;
-            case 'quote': color = quoteBgColor; opacity = quoteBgOpacity; break;
-            case 'delivery_note': color = deliveryNoteBgColor; opacity = deliveryNoteBgOpacity; break;
-            case 'supplier_order': color = supplierOrderBgColor; opacity = supplierOrderBgOpacity; break;
-            case 'credit_note': color = creditNoteBgColor; opacity = creditNoteBgOpacity; break;
-        }
-        return { backgroundColor: hexToRgba(color, opacity) };
-    };
-
     const handleEdit = (sale: Sale) => {
         if(sale.documentType && documentTypes[sale.documentType as keyof typeof documentTypes]?.path) {
             setLastSelectedSaleId(sale.id);
@@ -855,12 +837,12 @@ function ReportsPageContent() {
             clickAction();
         }
     };
-    
+
     const handleMouseLeave = () => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            setLongPressTimer(null);
-        }
+      if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          setLongPressTimer(null);
+      }
     };
 
     const pageTitle = (
@@ -1080,7 +1062,7 @@ function ReportsPageContent() {
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                                 {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
-                                                  dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}` : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                                  dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
                                                 }
                                             </Button>
                                         </PopoverTrigger>
@@ -1308,6 +1290,7 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
 
 
 
