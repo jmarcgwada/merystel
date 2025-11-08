@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,12 +7,12 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, subMonths, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag as ShoppingBagIcon, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag as ShoppingBagIcon, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -255,6 +256,7 @@ function ReportsPageContent() {
   const originFilterRef = useRef<HTMLInputElement>(null);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
@@ -296,6 +298,18 @@ function ReportsPageContent() {
                 payment: true,
             });
         }
+    }, []);
+    
+     useEffect(() => {
+        const checkScroll = () => {
+            if (window.scrollY > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+        window.addEventListener('scroll', checkScroll);
+        return () => window.removeEventListener('scroll', checkScroll);
     }, []);
     
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
@@ -549,8 +563,11 @@ function ReportsPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
+        if (isDateFilterLocked && dateRange?.from) {
+             return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+        }
         if (!dateRange || !dateRange.from) return 'Période';
-        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
+        if (isSameDay(dateRange.from, new Date()) && (!dateRange.to || isSameDay(dateRange.to, new Date()))) return "Aujourd'hui";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
         if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
@@ -562,7 +579,6 @@ function ReportsPageContent() {
         }
         return 'Période';
     };
-
 
     const handleDateArrowClick = (direction: 'prev' | 'next') => {
         if (isDateFilterLocked) return;
@@ -666,10 +682,6 @@ function ReportsPageContent() {
 
     const resetFilters = () => {
         if (isDateFilterLocked) return;
-        if(isDocTypeFilterLocked) {
-            router.push('/reports');
-            return;
-        }
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
@@ -677,7 +689,7 @@ function ReportsPageContent() {
         setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
-        setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
+        if(!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
 
@@ -761,6 +773,23 @@ function ReportsPageContent() {
     };
     
     const getRowStyle = (sale: Sale) => {
+        const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const saleTotal = sale.total;
+        const balance = saleTotal - totalPaid;
+
+        if (sale.status === 'paid' || balance <= 0.01) {
+            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' }; // green-100 with opacity
+        }
+        if (sale.status === 'pending') {
+            if (totalPaid > 0) {
+                 return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' }; // orange-100 with opacity
+            }
+            return { backgroundColor: 'hsla(0, 84%, 97%, 0.5)' }; // red-100 with opacity
+        }
+        return getDocumentBackgroundColor(sale);
+    };
+    
+     const getDocumentBackgroundColor = (sale: Sale) => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
         let color = 'transparent';
         let opacity = 100;
@@ -798,7 +827,7 @@ function ReportsPageContent() {
             </div>
         );
     }
-  
+    
     const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
@@ -821,6 +850,13 @@ function ReportsPageContent() {
             setLongPressTimer(null);
         }
     };
+    
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
 
     const pageTitle = (
         <div className="flex items-center gap-4">
@@ -829,7 +865,7 @@ function ReportsPageContent() {
                 ({filteredAndSortedSales.length} / {allSales?.length || 0})
             </span>
         </div>
-    );
+      );
 
   return (
     <>
@@ -903,7 +939,7 @@ function ReportsPageContent() {
                 <div className="flex items-center gap-2">
                      <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
-                      <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
+                      <Button variant="outline" onClick={handleSmartDateFilter} className={cn("h-9", !dateRange && 'text-muted-foreground')}>{getSmartDateButtonLabel()}</Button>
                       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
                     </div>
                     <Button onClick={handleNewDocumentClick}>
@@ -1171,7 +1207,7 @@ function ReportsPageContent() {
                                                 'cursor-pointer',
                                                 sale.id === lastSelectedSaleId
                                                 ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
-                                                : 'hover:bg-muted/50'
+                                                : ''
                                             )}
                                             style={getRowStyle(sale)}
                                             onClick={() => handleOpenDetailModal(sale)}
@@ -1225,6 +1261,15 @@ function ReportsPageContent() {
         onClose={() => setIsDetailModalOpen(false)}
         sale={selectedSaleForModal}
       />
+       {showScrollTop && (
+          <Button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 h-12 w-12 rounded-full shadow-lg"
+            size="icon"
+          >
+            <ArrowUp className="h-6 w-6" />
+          </Button>
+        )}
     </>
   );
 }
@@ -1247,3 +1292,4 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
