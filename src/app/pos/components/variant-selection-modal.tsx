@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,12 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePos } from '@/contexts/pos-context';
 import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { CustomVariantInputModal } from './custom-variant-input-modal';
+import { Input } from '@/components/ui/input';
 
 const CUSTOM_INPUT_SYMBOL = '*';
 
 export function VariantSelectionModal() {
-  const { variantItem, setVariantItem, addToOrder, setCustomVariantRequest } = usePos();
+  const { variantItem, setVariantItem, addToOrder } = usePos();
   const { toast } = useToast();
   const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>([]);
 
@@ -28,27 +29,15 @@ export function VariantSelectionModal() {
     if (variantItem?.variantOptions) {
       const defaultSelections = variantItem.variantOptions.map(option => ({
         name: option.name,
-        value: option.values[0],
+        value: option.values.includes(CUSTOM_INPUT_SYMBOL) ? '' : option.values[0],
       }));
       setSelectedVariants(defaultSelections);
     } else {
       setSelectedVariants([]);
     }
   }, [variantItem]);
-
-  const handleSelectChange = (optionName: string, value: string) => {
-    if (value === CUSTOM_INPUT_SYMBOL) {
-      if (variantItem) {
-        setCustomVariantRequest({
-          item: variantItem,
-          optionName,
-          currentSelections: selectedVariants.filter(v => v.name !== optionName)
-        });
-        handleClose();
-      }
-      return;
-    }
-    
+  
+  const handleValueChange = (optionName: string, value: string) => {
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value }];
@@ -59,14 +48,14 @@ export function VariantSelectionModal() {
     if (!variantItem) return;
 
     const allOptionsSelected = variantItem.variantOptions?.every(opt =>
-      selectedVariants.some(sel => sel.name === opt.name && sel.value)
+      selectedVariants.some(sel => sel.name === opt.name && sel.value && sel.value.trim() !== '')
     );
 
     if (!allOptionsSelected) {
       toast({
         variant: 'destructive',
         title: 'Sélection incomplète',
-        description: 'Veuillez sélectionner une valeur pour chaque option.',
+        description: 'Veuillez sélectionner ou saisir une valeur pour chaque option.',
       });
       return;
     }
@@ -84,48 +73,61 @@ export function VariantSelectionModal() {
   }
 
   return (
-    <>
-      <Dialog open={!!variantItem} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sélectionner les options</DialogTitle>
-            <DialogDescription>
-              Choisissez les déclinaisons pour l'article "{variantItem.name}".
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {variantItem.variantOptions?.map(option => (
+    <Dialog open={!!variantItem} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Sélectionner les options</DialogTitle>
+          <DialogDescription>
+            Choisissez les déclinaisons pour l'article "{variantItem.name}".
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          {variantItem.variantOptions?.map(option => {
+            const isCustomInput = option.values.length === 1 && option.values[0] === CUSTOM_INPUT_SYMBOL;
+            const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
+
+            return (
               <div key={option.name} className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor={option.name} className="text-right">
                   {option.name}
                 </Label>
-                <Select
-                  onValueChange={(value) => handleSelectChange(option.name, value)}
-                  defaultValue={option.values[0]}
-                >
-                  <SelectTrigger id={option.name} className="col-span-3">
-                    <SelectValue placeholder={`Choisir ${option.name}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {option.values.map((value, index) => (
-                      <SelectItem key={`${value}-${index}`} value={value}>
-                        {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isCustomInput ? (
+                  <Input
+                    id={option.name}
+                    value={currentValue}
+                    onChange={(e) => handleValueChange(option.name, e.target.value)}
+                    className="col-span-3"
+                    placeholder="Saisie manuelle..."
+                    autoFocus
+                  />
+                ) : (
+                  <Select
+                    onValueChange={(value) => handleValueChange(option.name, value)}
+                    defaultValue={currentValue || option.values[0]}
+                  >
+                    <SelectTrigger id={option.name} className="col-span-3">
+                      <SelectValue placeholder={`Choisir ${option.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {option.values.map((value, index) => (
+                        <SelectItem key={`${value}-${index}`} value={value}>
+                          {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
-              Annuler
-            </Button>
-            <Button onClick={handleConfirm}>Confirmer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <CustomVariantInputModal />
-    </>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Annuler
+          </Button>
+          <Button onClick={handleConfirm}>Confirmer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
