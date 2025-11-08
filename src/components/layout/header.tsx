@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { usePos } from '@/contexts/pos-context';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator } from 'lucide-react';
+import { ExternalLink, ArrowLeft, LockOpen, Delete, Blocks, FileText, ShoppingCart, Calculator, Eye, EyeOff } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Separator } from '../ui/separator';
-import { StorageIndicator } from './storage-indicator';
 import { UserNav } from './user-nav';
 
 
@@ -48,6 +47,8 @@ export default function Header() {
     setCurrentSaleContext,
     companyInfo,
     setIsCalculatorOpen,
+    isCommercialNavVisible, 
+    setIsCommercialNavVisible
   } = usePos();
   const router = useRouter();
   const pathname = usePathname();
@@ -193,6 +194,11 @@ export default function Header() {
             >
                 <Calculator className="h-4 w-4" />
             </Button>
+            {pathname.startsWith('/commercial') && (
+                <Button variant="outline" size="icon" onClick={() => setIsCommercialNavVisible(!isCommercialNavVisible)}>
+                    {isCommercialNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+            )}
             {externalLinkModalEnabled && (
                 <Button 
                   variant="outline"

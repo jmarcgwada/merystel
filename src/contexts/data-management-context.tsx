@@ -205,6 +205,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
   const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -1486,6 +1487,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
                             }
                             continue;
                         }
+                        
                         let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
                             let category = localCategories.find(c => c.name === row.itemCategory);
@@ -1626,6 +1628,7 @@ export function DataManagementProvider({ children }: { children: ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      isCommercialNavVisible, setIsCommercialNavVisible,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
