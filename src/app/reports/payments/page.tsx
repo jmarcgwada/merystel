@@ -6,7 +6,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfDay, endOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays, subWeeks, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -153,6 +153,7 @@ function PaymentsReportPageContent() {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     
     const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
+    const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
     
     useEffect(() => {
         setIsClient(true);
@@ -214,18 +215,57 @@ function PaymentsReportPageContent() {
     const getSmartDateButtonLabel = () => {
         if (!dateRange || !dateRange.from) return 'Période';
         if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
-        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
-        if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
-        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         if (dateRange.from && dateRange.to) {
+            if (isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
+            if (isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
             if (isSameDay(dateRange.from, dateRange.to)) {
                 return format(dateRange.from, "d MMMM yyyy", { locale: fr });
             }
             return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
         }
+        if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         return 'Période';
     };
 
+
+    const handleDateArrowClick = (direction: 'prev' | 'next') => {
+        if (isDateFilterLocked) return;
+        
+        let currentRangeType: 'day' | 'week' | 'month' | 'custom' = 'custom';
+        let newFrom: Date, newTo: Date | undefined;
+
+        if (dateRange?.from && dateRange.to) {
+            if (isSameDay(dateRange.from, dateRange.to)) currentRangeType = 'day';
+            else if (isSameDay(dateRange.from, startOfWeek(dateRange.from, { weekStartsOn: 1 })) && isSameDay(dateRange.to, endOfWeek(dateRange.from, { weekStartsOn: 1 }))) currentRangeType = 'week';
+            else if (isSameDay(dateRange.from, startOfMonth(dateRange.from)) && isSameDay(dateRange.to, endOfMonth(dateRange.from))) currentRangeType = 'month';
+        } else if (dateRange?.from) {
+            currentRangeType = 'day';
+        }
+
+        const from = dateRange?.from || new Date();
+        
+        switch (currentRangeType) {
+            case 'day':
+                newFrom = direction === 'prev' ? subDays(from, 1) : addDays(from, 1);
+                newTo = newFrom;
+                break;
+            case 'week':
+                newFrom = direction === 'prev' ? subWeeks(from, 1) : addWeeks(from, 1);
+                newTo = endOfWeek(newFrom, { weekStartsOn: 1 });
+                break;
+            case 'month':
+                newFrom = direction === 'prev' ? subMonths(from, 1) : addMonths(from, 1);
+                newTo = endOfMonth(newFrom);
+                break;
+            default: // custom range
+                const diff = (dateRange?.to || from).getTime() - from.getTime();
+                newFrom = new Date(from.getTime() + (direction === 'prev' ? -diff - (24*60*60*1000) : diff + (24*60*60*1000)));
+                newTo = new Date(newFrom.getTime() + diff);
+                break;
+        }
+
+        setDateRange({ from: newFrom, to: newTo });
+    };
 
     const allPayments = useMemo(() => {
         if (!allSales) return [];
@@ -513,7 +553,13 @@ function PaymentsReportPageContent() {
           subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
         >
           <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleSmartDateFilter}>{getSmartDateButtonLabel()}</Button>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" onClick={handleSmartDateFilter} className={cn(!dateRange && 'text-muted-foreground')}>
+                  {getSmartDateButtonLabel()}
+                </Button>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+              </div>
               <Button asChild variant="secondary">
                   <Link href="/reports">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -586,7 +632,7 @@ function PaymentsReportPageContent() {
                                 </Button>
                             </CollapsibleTrigger>
                              <div className="relative">
-                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" onFocus={() => setTargetInput({ value: generalFilter, name: 'analytics-general-filter', ref: generalFilterRef })} />
+                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" />
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
@@ -643,7 +689,7 @@ function PaymentsReportPageContent() {
                     <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                               <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                               <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
                                     {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
