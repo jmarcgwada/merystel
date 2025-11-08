@@ -164,12 +164,7 @@ export default function CommercialLayout({
         )}
          <main className="flex-1 flex flex-col relative">
           <Suspense fallback={<div>Chargement...</div>}>
-            {React.Children.map(children, child => {
-              if (React.isValidElement(child)) {
-                return React.cloneElement(child, { isNavVisible, setIsNavVisible } as any);
-              }
-              return child;
-            })}
+            {React.cloneElement(children as React.ReactElement, { isNavVisible, setIsNavVisible })}
           </Suspense>
         </main>
     </div>

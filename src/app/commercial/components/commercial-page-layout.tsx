@@ -9,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft } from 'lucide-react';
+import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft, EyeOff, Eye } from 'lucide-react';
 import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -238,6 +238,9 @@ const handleGenerateRandom = () => {
           subtitle={pageSubtitle}
         >
             <div className="flex items-center gap-2">
+                 <Button variant="outline" size="icon" onClick={() => setIsNavVisible(!isNavVisible)}>
+                    {isNavVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
                  <div className="flex items-center gap-2">
                     {!isEditing && (
                     <Button
