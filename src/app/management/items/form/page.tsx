@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
@@ -1038,7 +1037,8 @@ const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValu
 
   return (
     <div className="space-y-2 pl-4 border-l-2">
-      <FormLabel>Valeurs de l'option (utilisez '*' pour la saisie manuelle)</FormLabel>
+      <FormLabel>Valeurs de l'option</FormLabel>
+      <FormDescription>Utilisez '*' pour permettre la saisie manuelle en plus des options prédéfinies.</FormDescription>
       {fields.map((field, valueIndex) => (
         <div key={field.id} className="flex items-center gap-2">
           <FormField

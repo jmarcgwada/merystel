@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -96,27 +95,38 @@ export function VariantSelectionModal() {
         <div className="py-4 space-y-4">
           {variantItem.variantOptions?.map(option => {
             const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
+            const hasCustomInputOption = option.values.includes(CUSTOM_INPUT_SYMBOL);
 
             return (
               <div key={option.name} className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor={option.name} className="text-right">
                   {option.name}
                 </Label>
-                <Select
-                  onValueChange={(value) => handleValueChange(option.name, value)}
-                  defaultValue={currentValue || option.values[0]}
-                >
-                  <SelectTrigger id={option.name} className="col-span-3">
-                    <SelectValue placeholder={`Choisir ${option.name}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {option.values.map((value, index) => (
-                      <SelectItem key={`${value}-${index}`} value={value}>
-                        {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {hasCustomInputOption && option.values.length === 1 ? (
+                  <Input
+                    id={option.name}
+                    value={currentValue}
+                    onChange={(e) => handleValueChange(option.name, e.target.value)}
+                    className="col-span-3"
+                    placeholder="Saisie libre..."
+                  />
+                ) : (
+                  <Select
+                    onValueChange={(value) => handleValueChange(option.name, value)}
+                    defaultValue={currentValue || (hasCustomInputOption ? '' : option.values[0])}
+                  >
+                    <SelectTrigger id={option.name} className="col-span-3">
+                      <SelectValue placeholder={`Choisir ${option.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {option.values.map((value, index) => (
+                        <SelectItem key={`${value}-${index}`} value={value}>
+                          {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             );
           })}
