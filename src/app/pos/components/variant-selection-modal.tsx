@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/components/ui/select';
 import { usePos } from '@/contexts/pos-context';
 import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -44,7 +44,7 @@ export function VariantSelectionModal() {
     }
   }, [variantItem]);
   
-  const handleValueChange = (optionName: string, value: string) => {
+  const handleValueChange = useCallback((optionName: string, value: string) => {
     if (value === CUSTOM_INPUT_SYMBOL) {
       handleOpenCustomInput(optionName);
       return;
@@ -53,26 +53,26 @@ export function VariantSelectionModal() {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value: value, isCustom: false }];
     });
-  };
+  }, []);
 
-  const handleOpenCustomInput = (optionName: string) => {
+  const handleOpenCustomInput = useCallback((optionName: string) => {
     if (!variantItem) return;
     setCustomVariantRequest({ 
       item: variantItem, 
       optionName, 
       currentSelections: selectedVariants.filter(v => v.name !== optionName)
     });
-  };
+  }, [variantItem, selectedVariants, setCustomVariantRequest]);
   
-  const handleCustomValueConfirm = (optionName: string, customValue: string) => {
+  const handleCustomValueConfirm = useCallback((optionName: string, customValue: string) => {
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value: customValue.trim(), isCustom: true }];
     });
     setCustomVariantRequest(null);
-  }
+  }, [setCustomVariantRequest]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (!variantItem) return;
 
     const allOptionsSelected = variantItem.variantOptions?.every(opt =>
@@ -90,11 +90,11 @@ export function VariantSelectionModal() {
     
     addToOrder(variantItem.id, selectedVariants);
     handleClose();
-  };
+  }, [variantItem, selectedVariants, addToOrder, toast]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setVariantItem(null);
-  };
+  }, [setVariantItem]);
 
   if (!variantItem) {
     return null;
