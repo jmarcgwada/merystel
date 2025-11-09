@@ -298,7 +298,7 @@ function ItemsPageContent() {
     }
   };
 
- const pageTitle = (
+  const pageTitle = (
     <div className="flex items-center gap-4">
       <span>Articles</span>
       <span className="text-base font-normal text-muted-foreground">
@@ -368,17 +368,20 @@ function ItemsPageContent() {
                                 <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
                                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                                     Filtres
+                                    <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                 </Button>
                             </CollapsibleTrigger>
-                             <Input 
-                                placeholder="Filtrer par nom ou référence..."
-                                value={filterName}
-                                onChange={(e) => {
-                                setFilterName(e.target.value);
-                                setCurrentPage(1);
-                                }}
-                                className="h-9 max-w-xs"
-                            />
+                             <div className="relative">
+                               <Input 
+                                  placeholder="Filtrer par nom ou référence..."
+                                  value={filterName}
+                                  onChange={(e) => {
+                                    setFilterName(e.target.value);
+                                    setCurrentPage(1);
+                                  }}
+                                  className="h-9 pr-8"
+                                />
+                            </div>
                         </div>
                         <div className="flex items-center gap-2 flex-1 justify-end">
                              <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
@@ -449,7 +452,7 @@ function ItemsPageContent() {
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-0">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-0">
                         <Input
                             placeholder="Filtrer par catégorie..."
                             value={filterCategoryName}
