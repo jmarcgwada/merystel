@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, Suspense, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck, ChevronDown } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -379,7 +379,7 @@ function ItemsPageContent() {
                                     setFilterName(e.target.value);
                                     setCurrentPage(1);
                                   }}
-                                  className="h-9 pr-8"
+                                  className="h-9 w-full sm:w-auto"
                                 />
                             </div>
                         </div>
@@ -645,3 +645,4 @@ export default function ItemsPage() {
     
 
     
+
