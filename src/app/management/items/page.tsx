@@ -304,26 +304,6 @@ function ItemsPageContent() {
       <span className="text-base font-normal text-muted-foreground">
           ({sortedAndFilteredItems.length} / {items?.length || 0})
       </span>
-       <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Columns className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {columnsConfig.map(column => (
-                    <DropdownMenuCheckboxItem
-                        key={column.id}
-                        checked={visibleColumns[column.id] ?? false}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                    >
-                        {column.label}
-                    </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
     </div>
   );
 
@@ -331,10 +311,30 @@ function ItemsPageContent() {
   return (
     <>
       <PageHeader 
-        title="Gérer les articles" 
+        title={pageTitle} 
         subtitle={isClient && items ? `Page ${currentPage} sur ${totalPages} (${sortedAndFilteredItems.length} articles sur ${items.length} au total)` : "Ajoutez, modifiez ou supprimez des produits."}
       >
         <div className="flex items-center gap-2">
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Columns className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {columnsConfig.map(column => (
+                        <DropdownMenuCheckboxItem
+                            key={column.id}
+                            checked={visibleColumns[column.id] ?? false}
+                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                        >
+                            {column.label}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
             {selectedItemIds.length > 0 && (
                 <Button asChild>
                     <Link href={bulkEditLink}>
@@ -650,7 +650,4 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
-
     
-
-
