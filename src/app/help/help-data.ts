@@ -58,16 +58,17 @@ Zenith POS propose plusieurs modes de vente pour s'adapter à votre activité. V
       },
       {
         slug: "commercial-invoicing",
-        title: "Gestion Commerciale (Facturation)",
+        title: "Gestion Commerciale (Factures, Devis...)",
         content: `
-La section Commercial est dédiée à la création et à la gestion des factures.
+La section Commercial est dédiée à la création et à la gestion de vos pièces commerciales.
 
 **Fonctionnement :**
-1.  **Sélectionnez un client** ou créez-en un nouveau. La sélection d'un client est obligatoire pour une facture.
-2.  **Ajoutez des articles** à la commande en les recherchant ou en scannant leur code-barres.
-3.  **Ajustez les détails :** modifiez les quantités, appliquez des remises en pourcentage ou en montant fixe sur chaque ligne.
-4.  **Saisissez un acompte** si nécessaire. Le "Net à Payer" sera calculé automatiquement.
-5.  **Sauvegardez la facture** pour l'encaisser. Vous serez redirigé vers la modale de paiement. Les factures peuvent aussi être enregistrées en attente de paiement.
+1.  **Naviguez** entre les différents types de documents (Factures, Devis, BL...) en utilisant les onglets en haut.
+2.  **Sélectionnez un client** ou créez-en un nouveau. La sélection d'un client est obligatoire pour une facture.
+3.  **Ajoutez des articles** à la commande soit en les recherchant dans la barre de recherche, soit en utilisant le bouton **Catalogue** pour une sélection visuelle.
+4.  **Ajustez les détails :** modifiez les quantités, les prix, et appliquez des remises en pourcentage ou en montant fixe sur chaque ligne.
+5.  **Saisissez un acompte** si nécessaire (pour les factures). Le "Net à Payer" sera calculé automatiquement.
+6.  **Sauvegardez la pièce.** Pour une facture ou un avoir, vous serez redirigé vers la modale de paiement pour encaisser. Les autres pièces (devis, BL) sont simplement enregistrées.
         `,
       },
       {
@@ -79,7 +80,7 @@ La modale de paiement est le centre de l'encaissement.
 **Fonctionnalités :**
 - **Client :** Associez la vente à un client existant ou créez-en un nouveau rapidement.
 - **Montant :** Le montant à payer est affiché. Vous pouvez utiliser la calculatrice intégrée pour entrer des montants spécifiques (paiements partiels, etc.).
-- **Méthodes de paiement :** Cliquez sur les boutons correspondants (Espèces, Carte, Chèque, etc.) pour ajouter un paiement. Des méthodes de paiement avancées (comme les titres-restaurant) sont disponibles.
+- **Méthodes de paiement :** Cliquez sur les boutons correspondants (Espèces, Carte, Chèque, etc.) pour ajouter un paiement. Des méthodes de paiement avancées (comme les titres-restaurant) sont disponibles via le bouton "Avancé".
 - **Multi-paiement :** Vous pouvez ajouter plusieurs paiements de différentes méthodes jusqu'à ce que le solde soit à zéro.
 - **Rendu Monnaie :** Si le montant payé en espèces est supérieur au total, le rendu est calculé et affiché.
 - **Finalisation :** Une fois le montant total atteint, la vente est finalisée et un reçu peut être généré.
@@ -100,8 +101,34 @@ La section de gestion des articles vous permet de contrôler votre catalogue de 
 - **Ajouter/Modifier :** Créez ou modifiez un article en définissant son nom, prix de vente et d'achat, catégorie, TVA, code-barres, descriptions et son image (qui peut être générée par une IA).
 - **Gestion de stock :** Activez le suivi du stock, définissez la quantité actuelle et un seuil d'alerte pour le stock bas.
 - **Numéros de série :** Exigez la saisie d'un numéro de série à la vente pour certains articles.
-- **Déclinaisons :** Créez des variantes pour un article (ex: Taille, Couleur) qui seront demandées lors de l'ajout à la commande.
+- **Déclinaisons :** Créez des variantes pour un article (ex: Taille, Couleur). Pour chaque option, vous pouvez définir une liste de valeurs prédéfinies (S, M, L) ou autoriser une saisie manuelle.
+- **Déclinaisons avec saisie manuelle :** Pour permettre la saisie libre, ajoutez simplement le caractère '*' comme l'une des valeurs. Si '*' est la seule valeur, un champ de saisie direct s'affichera. Sinon, l'option "Saisie manuelle..." apparaîtra dans la liste déroulante.
 - **Favoris :** Marquez un article comme "favori" pour qu'il apparaisse dans la catégorie spéciale du POS.
+        `,
+      },
+      {
+        slug: "manage-checks",
+        title: "Gérer le portefeuille de chèques",
+        content: `
+Cette section permet un suivi détaillé des chèques que vous acceptez en paiement.
+
+**Fonctionnement :**
+- **Statuts :** Chaque chèque passe par plusieurs statuts : 'En Portefeuille' (reçu mais pas encore déposé), 'Remis en Banque', 'Encaissé', 'Impayé', ou 'Annulé'.
+- **Bordereau de Remise :** Vous pouvez sélectionner plusieurs chèques 'En Portefeuille' pour créer un bordereau de remise. Cela mettra automatiquement à jour leur statut à 'Remis en Banque' et créera un document de suivi.
+- **Actions sur les Impayés :** Si un chèque est marqué comme 'Impayé', vous pouvez enregistrer des actions de relance (Email, Téléphone, WhatsApp) et suivre l'historique.
+- **Règlements Partiels :** Pour un chèque impayé, vous pouvez enregistrer des règlements partiels via d'autres moyens de paiement jusqu'à ce que le solde soit réglé.
+        `,
+      },
+       {
+        slug: "manage-recurring",
+        title: "Gérer les Factures Récurrentes",
+        content: `
+Cette section vous permet de gérer les factures qui doivent être générées de manière périodique.
+
+**Fonctionnement :**
+1.  **Création :** Pour transformer une facture en modèle récurrent, allez sur la page de détail de la facture (dans les Rapports), activez l'option "Activer la récurrence" et choisissez une fréquence (mensuelle, hebdomadaire, etc.).
+2.  **Suivi :** La page "Récurrences" liste tous vos modèles. Vous pouvez voir la prochaine date d'échéance et activer ou désactiver la récurrence.
+3.  **Génération :** Les factures arrivées à échéance apparaissent en haut de la page. Vous pouvez les sélectionner et les générer en masse. Une nouvelle facture "en attente" sera créée pour chaque modèle sélectionné.
         `,
       },
       {
@@ -125,7 +152,7 @@ Cette section (réservée aux administrateurs) permet de gérer les accès à l'
     topics: [
       {
         slug: "settings-customization",
-        title: "Personnalisation",
+        title: "Personnalisation de l'interface",
         content: `
 Cette section vous permet d'ajuster l'apparence et le comportement de l'interface pour qu'elle corresponde à vos préférences.
 
@@ -138,7 +165,7 @@ Cette section vous permet d'ajuster l'apparence et le comportement de l'interfac
       },
        {
         slug: "settings-parameters",
-        title: "Paramétrage",
+        title: "Paramétrage Général",
         content: `
 Cette section contient les réglages fonctionnels de l'application.
 
@@ -151,16 +178,30 @@ Cette section contient les réglages fonctionnels de l'application.
         `,
       },
       {
+        slug: "settings-connectivity",
+        title: "Connectivité",
+        content: `
+Cette section vous permet de connecter Zenith POS à des services externes.
+
+**Options de Configuration :**
+- **SMTP :** Configurez un serveur d'envoi d'e-mails (Simple Mail Transfer Protocol). Cela est nécessaire pour envoyer des factures, devis ou relances par e-mail directement depuis l'application.
+- **FTP :** Paramétrez un serveur FTP (File Transfer Protocol) pour y exporter automatiquement des sauvegardes de votre configuration.
+- **Twilio :** Intégrez votre compte Twilio pour envoyer des messages WhatsApp, par exemple pour des relances de paiement.
+- **Tests :** Chaque section dispose d'un bouton pour tester la connexion et s'assurer que les paramètres sont corrects.
+        `,
+      },
+      {
         slug: "settings-firestore",
-        title: "Données Firestore (Admin)",
+        title: "Données & Sécurité (Admin)",
         content: `
 Cette section, réservée aux administrateurs et protégée par un code PIN, permet de réaliser des opérations sensibles sur la base de données.
 
 **Actions Possibles :**
+- **Sécurité :** Activez l'exigence d'un code PIN pour accéder à cette page.
+- **Sauvegarde & Restauration :** Exportez (téléchargement ou envoi FTP) ou importez l'ensemble de votre configuration (articles, clients, etc.) via un fichier JSON.
 - **Initialiser l'application :** Crée un jeu de données de base (catégories, TVA) si l'application est vide.
 - **Importer des données de démo :** Ajoute des articles et des clients fictifs pour tester l'application.
-- **Exporter/Importer la configuration :** Sauvegardez ou restaurez toute votre configuration (articles, catégories, etc.) dans un fichier JSON.
-- **Zone de danger :** Contient des options pour supprimer toutes les ventes ou réinitialiser complètement l'application.
+- **Zone de danger :** Contient des options pour supprimer sélectivement certaines données (ex: toutes les ventes), ou réinitialiser complètement l'application.
 - **Générer le Prompt Projet :** Crée un prompt détaillé pour recréer une copie de cette application dans un autre environnement Firebase Studio.
         `,
       },
@@ -225,9 +266,5 @@ Ce processus vous permet d'importer un historique de ventes complexe sans avoir 
     ],
   },
 ];
-
-    
-
-    
 
     
