@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +25,7 @@ export function VariantSelectionModal() {
   const { variantItem, setVariantItem, addToOrder, setCustomVariantRequest } = usePos();
   const { toast } = useToast();
   const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>([]);
+  const firstManualInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (variantItem?.variantOptions) {
@@ -39,19 +39,31 @@ export function VariantSelectionModal() {
         };
       });
       setSelectedVariants(defaultSelections);
+
+      // Auto-focus logic
+      const firstManualOnlyOption = variantItem.variantOptions.find(
+        opt => opt.values.length === 1 && opt.values[0] === CUSTOM_INPUT_SYMBOL
+      );
+      if (firstManualOnlyOption) {
+        setTimeout(() => {
+          firstManualInputRef.current?.focus();
+          firstManualInputRef.current?.select();
+        }, 100);
+      }
+      
     } else {
       setSelectedVariants([]);
     }
   }, [variantItem]);
   
-  const handleValueChange = useCallback((optionName: string, value: string) => {
+  const handleValueChange = useCallback((optionName: string, value: string, isCustom = false) => {
     if (value === CUSTOM_INPUT_SYMBOL) {
       handleOpenCustomInput(optionName);
       return;
     }
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
-      return [...otherVariants, { name: optionName, value: value, isCustom: false }];
+      return [...otherVariants, { name: optionName, value, isCustom }];
     });
   }, []);
 
@@ -100,6 +112,8 @@ export function VariantSelectionModal() {
     return null;
   }
 
+  let isFirstManualInputAssigned = false;
+
   return (
     <>
       <Dialog open={!!variantItem} onOpenChange={handleClose}>
@@ -118,6 +132,13 @@ export function VariantSelectionModal() {
               
               const hasCustomInputOption = option.values.includes(CUSTOM_INPUT_SYMBOL);
               const selectableValues = option.values.filter(v => v !== CUSTOM_INPUT_SYMBOL);
+              const isManualOnly = selectableValues.length === 0 && hasCustomInputOption;
+
+              let inputRefToUse = null;
+              if (isManualOnly && !isFirstManualInputAssigned) {
+                  inputRefToUse = firstManualInputRef;
+                  isFirstManualInputAssigned = true;
+              }
 
               return (
                 <div key={option.name} className="grid grid-cols-4 items-center gap-4">
@@ -125,32 +146,50 @@ export function VariantSelectionModal() {
                     {option.name}
                   </Label>
                   <div className="col-span-3 flex gap-2">
-                      <Select
-                        onValueChange={(value) => handleValueChange(option.name, value)}
-                        value={isCustom ? '' : currentValue}
-                      >
-                        <SelectTrigger id={option.name}>
-                          <SelectValue placeholder={isCustom ? currentValue : `Choisir ${option.name}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectableValues.map((value, index) => (
-                            <SelectItem key={`${value}-${index}`} value={value}>
-                              {value}
-                            </SelectItem>
-                          ))}
-                           {hasCustomInputOption && selectableValues.length > 0 && <SelectSeparator />}
-                           {hasCustomInputOption && (
-                            <SelectItem value={CUSTOM_INPUT_SYMBOL}>
-                              <span className="italic text-muted-foreground">Saisie manuelle...</span>
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      {hasCustomInputOption && (
-                          <Button variant="outline" size="icon" onClick={() => handleOpenCustomInput(option.name)}>
-                              <Pencil className="h-4 w-4" />
-                          </Button>
-                      )}
+                    {isManualOnly ? (
+                      <Input
+                        ref={inputRefToUse}
+                        id={option.name}
+                        placeholder={`Saisir ${option.name}...`}
+                        value={currentValue}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleConfirm();
+                            }
+                        }}
+                        onChange={(e) => handleValueChange(option.name, e.target.value, true)}
+                      />
+                    ) : (
+                      <>
+                        <Select
+                          onValueChange={(value) => handleValueChange(option.name, value)}
+                          value={isCustom ? '' : currentValue}
+                        >
+                          <SelectTrigger id={option.name}>
+                            <SelectValue placeholder={isCustom ? currentValue : `Choisir ${option.name}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectableValues.map((value, index) => (
+                              <SelectItem key={`${value}-${index}`} value={value}>
+                                {value}
+                              </SelectItem>
+                            ))}
+                            {hasCustomInputOption && selectableValues.length > 0 && <SelectSeparator />}
+                            {hasCustomInputOption && (
+                              <SelectItem value={CUSTOM_INPUT_SYMBOL}>
+                                <span className="italic text-muted-foreground">Saisie manuelle...</span>
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {hasCustomInputOption && (
+                            <Button variant="outline" size="icon" onClick={() => handleOpenCustomInput(option.name)}>
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               );
