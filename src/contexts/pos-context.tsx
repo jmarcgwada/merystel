@@ -363,6 +363,46 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+        setIsHydrated(true);
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
+            try {
+                localStorage.setItem(key, JSON.stringify(state));
+            } catch (error) {
+                console.error("Error setting localStorage key " + key + ":", error);
+            }
+        }
+    }, [key, state, isHydrated]);
+
+    const rehydrate = useCallback(() => {
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error re-reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    return [state, setState, rehydrate];
+}
+
 export function PosProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
@@ -375,10 +415,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
 
   // Settings States
-  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -437,7 +477,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [lastReportsUrl, setLastReportsUrl] = usePersistentState<string | null>('state.lastReportsUrl', '/reports');
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
-  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -460,18 +500,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
-  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
+  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
