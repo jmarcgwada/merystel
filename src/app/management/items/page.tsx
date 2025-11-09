@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
@@ -299,6 +298,35 @@ function ItemsPageContent() {
     }
   };
 
+ const pageTitle = (
+    <div className="flex items-center gap-2">
+      <span>Articles</span>
+      <span className="text-base font-normal text-muted-foreground">
+          ({sortedAndFilteredItems.length} / {items?.length || 0})
+      </span>
+       <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Columns className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {columnsConfig.map(column => (
+                    <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={visibleColumns[column.id] ?? false}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                    >
+                        {column.label}
+                    </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
+  );
+
 
   return (
     <>
@@ -335,7 +363,7 @@ function ItemsPageContent() {
             <Card className="mb-4">
                 <CardHeader className="p-2">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2">
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
                                     <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -624,4 +652,5 @@ export default function ItemsPage() {
 }
 
     
+
 
