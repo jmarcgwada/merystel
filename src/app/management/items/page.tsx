@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, Suspense, useRef } from 'react';
@@ -40,6 +41,35 @@ import { v4 as uuidv4 } from 'uuid';
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId' | 'vatId';
 
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(defaultValue);
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        setIsHydrated(true);
+        try {
+            const storedValue = localStorage.getItem(key);
+            if (storedValue) {
+                setState(JSON.parse(storedValue));
+            }
+        } catch (error) {
+            console.error("Error reading localStorage key " + key + ":", error);
+        }
+    }, [key]);
+
+    useEffect(() => {
+        if (isHydrated) {
+            try {
+                localStorage.setItem(key, JSON.stringify(state));
+            } catch (error) {
+                console.error("Error setting localStorage key " + key + ":", error);
+            }
+        }
+    }, [key, state, isHydrated]);
+
+    return [state, setState];
+}
+
 function ItemsPageContent() {
   const { items, categories, suppliers, vatRates, deleteItem, toggleItemFavorite, updateItem, isLoading, itemsPerPage, setItemsPerPage } = usePos();
   const router = useRouter();
@@ -54,6 +84,8 @@ function ItemsPageContent() {
   const [filterHasVariants, setFilterHasVariants] = useState<'all' | 'yes'>(searchParams.get('hasVariants') === 'yes' ? 'yes' : 'all');
   const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>(searchParams.get('isDisabled') as any || 'no');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
+  const [showDescription, setShowDescription] = usePersistentState('management.items.showDescription', false);
 
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
@@ -452,7 +484,7 @@ function ItemsPageContent() {
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-0">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-0">
                         <Input
                             placeholder="Filtrer par catégorie..."
                             value={filterCategoryName}
@@ -479,6 +511,10 @@ function ItemsPageContent() {
                          <div className="flex items-center space-x-2 rounded-md border p-2 h-9">
                             <Switch id="variants-filter" checked={filterHasVariants === 'yes'} onCheckedChange={(checked) => setFilterHasVariants(checked ? 'yes' : 'all')} />
                             <Label htmlFor="variants-filter" className="text-sm">Avec déclinaisons</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 rounded-md border p-2 h-9">
+                            <Switch id="description-filter" checked={showDescription} onCheckedChange={setShowDescription} />
+                            <Label htmlFor="description-filter" className="text-sm">Afficher descriptions</Label>
                         </div>
                     </CardContent>
                  </CollapsibleContent>
@@ -568,7 +604,12 @@ function ItemsPageContent() {
                             data-ai-hint="product image"
                             />
                         </TableCell>}
-                        {visibleColumns.name && <TableCell className="font-medium">{item.name}</TableCell>}
+                        {visibleColumns.name && <TableCell className="font-medium">
+                          {item.name}
+                          {showDescription && (
+                            <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{item.description}</p>
+                          )}
+                        </TableCell>}
                         {visibleColumns.barcode && <TableCell className="font-mono text-xs">{item.barcode}</TableCell>}
                         {visibleColumns.category && <TableCell>
                             <Badge variant="secondary">{getCategoryName(item.categoryId)}</Badge>
@@ -645,4 +686,5 @@ export default function ItemsPage() {
     
 
     
+
 
