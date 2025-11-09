@@ -954,10 +954,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-      const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
-      );
-
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
           const existingItem = order.find(i => i.itemId === itemId);
@@ -965,10 +961,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       
-      if (itemToAdd.hasVariants && itemToAdd.variantOptions && !selectedVariants) {
-        setVariantItem(itemToAdd);
-        return;
+      if (itemToAdd.hasVariants && itemToAdd.variantOptions) {
+        if (itemToAdd.variantOptions.length === 1 && itemToAdd.variantOptions[0].values.length === 1 && itemToAdd.variantOptions[0].values[0] === '*') {
+            setCustomVariantRequest({ item: itemToAdd, optionName: itemToAdd.variantOptions[0].name, currentSelections: [] });
+            return;
+        }
+        if(!selectedVariants) {
+            setVariantItem(itemToAdd);
+            return;
+        }
       }
+
+      const existingItemIndex = order.findIndex(
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
+      );
 
       setOrder((currentOrder) => {
         if (existingItemIndex > -1) {
@@ -1005,7 +1011,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setCustomVariantRequest]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {

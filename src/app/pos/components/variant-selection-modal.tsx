@@ -30,9 +30,8 @@ export function VariantSelectionModal() {
   useEffect(() => {
     if (variantItem?.variantOptions) {
       const defaultSelections = variantItem.variantOptions.map(option => {
-        const defaultValue = option.values.includes(CUSTOM_INPUT_SYMBOL)
-          ? ''
-          : option.values[0] || '';
+        const nonCustomValues = option.values.filter(v => v !== CUSTOM_INPUT_SYMBOL);
+        const defaultValue = nonCustomValues[0] || '';
         return {
           name: option.name,
           value: defaultValue,
@@ -46,6 +45,10 @@ export function VariantSelectionModal() {
   }, [variantItem]);
   
   const handleValueChange = (optionName: string, value: string) => {
+    if (value === CUSTOM_INPUT_SYMBOL) {
+      handleOpenCustomInput(optionName);
+      return;
+    }
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value: value, isCustom: false }];
@@ -135,6 +138,12 @@ export function VariantSelectionModal() {
                               {value}
                             </SelectItem>
                           ))}
+                           {hasCustomInputOption && selectableValues.length > 0 && <SelectSeparator />}
+                           {hasCustomInputOption && (
+                            <SelectItem value={CUSTOM_INPUT_SYMBOL}>
+                              <span className="italic text-muted-foreground">Saisie manuelle...</span>
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       {hasCustomInputOption && (
