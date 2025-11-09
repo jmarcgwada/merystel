@@ -363,6 +363,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -961,15 +962,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       
-      if (itemToAdd.hasVariants && itemToAdd.variantOptions) {
-        if (itemToAdd.variantOptions.length === 1 && itemToAdd.variantOptions[0].values.length === 1 && itemToAdd.variantOptions[0].values[0] === '*') {
-            setCustomVariantRequest({ item: itemToAdd, optionName: itemToAdd.variantOptions[0].name, currentSelections: [] });
-            return;
-        }
-        if(!selectedVariants) {
-            setVariantItem(itemToAdd);
-            return;
-        }
+      if (itemToAdd.hasVariants && itemToAdd.variantOptions && !selectedVariants) {
+        setVariantItem(itemToAdd);
+        return;
       }
 
       const existingItemIndex = order.findIndex(
