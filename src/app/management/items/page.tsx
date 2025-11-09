@@ -334,42 +334,26 @@ function ItemsPageContent() {
         <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
             <Card className="mb-4">
                 <CardHeader className="p-2">
-                    <div className="flex items-center justify-between">
-                         <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
-                                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                                Filtres
-                            </Button>
-                        </CollapsibleTrigger>
-                         <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                          <Button variant="outline" size="icon" className="h-9 w-9">
-                                              <Columns className="h-4 w-4" />
-                                          </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                          <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                          <DropdownMenuSeparator />
-                                          {columnsConfig.map(column => (
-                                              <DropdownMenuCheckboxItem
-                                                  key={column.id}
-                                                  checked={visibleColumns[column.id] ?? true}
-                                                  onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                              >
-                                                  {column.label}
-                                              </DropdownMenuCheckboxItem>
-                                          ))}
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Affichage des colonnes</p></TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="justify-start px-2 text-lg font-semibold">
+                                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                    Filtres
+                                </Button>
+                            </CollapsibleTrigger>
+                            <Input 
+                                placeholder="Filtrer par nom ou référence..."
+                                value={filterName}
+                                onChange={(e) => {
+                                setFilterName(e.target.value);
+                                setCurrentPage(1);
+                                }}
+                                className="h-9 max-w-xs"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-1 justify-end">
+                            
                              <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
                                 <SelectTrigger className="w-[220px] h-9">
                                     <SelectValue placeholder="Statut de l'article" />
@@ -387,14 +371,14 @@ function ItemsPageContent() {
                               </Tooltip>
                             </TooltipProvider>
                             <div className="flex items-center gap-1 shrink-0">
-                                <Button
-                                    variant="outline" size="icon" className="h-9 w-9"
-                                    onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                    onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
-                                    onMouseLeave={handleMouseLeave}
-                                    onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
-                                    onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                    disabled={currentPage === 1}
+                                <Button 
+                                  variant="outline" size="icon" className="h-9 w-9" 
+                                  onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                  onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
+                                  onMouseLeave={handleMouseLeave}
+                                  onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
+                                  onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                  disabled={currentPage === 1}
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
@@ -407,7 +391,7 @@ function ItemsPageContent() {
                                     <PopoverContent className="w-48 p-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                            <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                             <div className="flex justify-between items-center text-sm font-bold text-primary">
                                                 <span>{itemsPerPageState}</span>
                                             </div>
                                             <Slider
@@ -439,12 +423,6 @@ function ItemsPageContent() {
                 </CardHeader>
                  <CollapsibleContent>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 pt-0">
-                        <Input
-                            placeholder="Filtrer par nom ou référence..."
-                            value={filterName}
-                            onChange={(e) => { setFilterName(e.target.value); setCurrentPage(1); }}
-                            className="h-9"
-                        />
                         <Input
                             placeholder="Filtrer par catégorie..."
                             value={filterCategoryName}
@@ -646,3 +624,4 @@ export default function ItemsPage() {
 }
 
     
+
