@@ -36,6 +36,7 @@ export function VariantSelectionModal() {
         return {
           name: option.name,
           value: defaultValue,
+          isCustom: false,
         };
       });
       setSelectedVariants(defaultSelections);
@@ -47,7 +48,7 @@ export function VariantSelectionModal() {
   const handleValueChange = (optionName: string, value: string) => {
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
-      return [...otherVariants, { name: optionName, value }];
+      return [...otherVariants, { name: optionName, value: value, isCustom: false }];
     });
   };
 
@@ -59,6 +60,14 @@ export function VariantSelectionModal() {
       currentSelections: selectedVariants.filter(v => v.name !== optionName)
     });
   };
+  
+  const handleCustomValueConfirm = (optionName: string, customValue: string) => {
+    setSelectedVariants(prev => {
+      const otherVariants = prev.filter(v => v.name !== optionName);
+      return [...otherVariants, { name: optionName, value: customValue.trim(), isCustom: true }];
+    });
+    setCustomVariantRequest(null);
+  }
 
   const handleConfirm = () => {
     if (!variantItem) return;
@@ -100,7 +109,10 @@ export function VariantSelectionModal() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             {variantItem.variantOptions?.map(option => {
-              const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
+              const currentSelection = selectedVariants.find(v => v.name === option.name);
+              const currentValue = currentSelection?.value || '';
+              const isCustom = currentSelection?.isCustom || false;
+              
               const hasCustomInputOption = option.values.includes(CUSTOM_INPUT_SYMBOL);
               const selectableValues = option.values.filter(v => v !== CUSTOM_INPUT_SYMBOL);
 
@@ -112,10 +124,10 @@ export function VariantSelectionModal() {
                   <div className="col-span-3 flex gap-2">
                       <Select
                         onValueChange={(value) => handleValueChange(option.name, value)}
-                        defaultValue={currentValue || (selectableValues.length > 0 ? selectableValues[0] : '')}
+                        value={isCustom ? '' : currentValue}
                       >
                         <SelectTrigger id={option.name}>
-                          <SelectValue placeholder={`Choisir ${option.name}`} />
+                          <SelectValue placeholder={isCustom ? currentValue : `Choisir ${option.name}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {selectableValues.map((value, index) => (
@@ -143,7 +155,7 @@ export function VariantSelectionModal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <CustomVariantInputModal />
+      <CustomVariantInputModal onConfirm={handleCustomValueConfirm}/>
     </>
   );
 }

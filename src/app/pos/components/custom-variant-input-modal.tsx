@@ -14,11 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
-import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-export function CustomVariantInputModal() {
-  const { customVariantRequest, setCustomVariantRequest, addToOrder } = usePos();
+interface CustomVariantInputModalProps {
+  onConfirm: (optionName: string, customValue: string) => void;
+}
+
+export function CustomVariantInputModal({ onConfirm }: CustomVariantInputModalProps) {
+  const { customVariantRequest, setCustomVariantRequest } = usePos();
   const { toast } = useToast();
   const [customValue, setCustomValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,18 +43,7 @@ export function CustomVariantInputModal() {
       });
       return;
     }
-
-    const newSelections: SelectedVariant[] = [
-      ...customVariantRequest.currentSelections,
-      {
-        name: customVariantRequest.optionName,
-        value: customValue.trim(),
-        isCustom: true,
-      },
-    ];
-
-    addToOrder(customVariantRequest.item.id, newSelections);
-    handleClose();
+    onConfirm(customVariantRequest.optionName, customValue);
   };
 
   const handleClose = () => {
