@@ -33,6 +33,7 @@ import { AddCategoryDialog } from '@/app/management/categories/components/add-ca
 import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Label } from '@/components/ui/label';
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -880,7 +881,8 @@ function ItemForm() {
                                                 <Image
                                                     src={watchedImage || defaultImage || 'https://picsum.photos/seed/placeholder/200/150'}
                                                     alt={watchedName || "Aperçu de l'article"}
-                                                    fill
+                                                    width={200}
+                                                    height={150}
                                                     className="object-cover"
                                                 />
                                             </div>
