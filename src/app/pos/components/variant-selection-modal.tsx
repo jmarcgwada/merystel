@@ -18,6 +18,7 @@ import type { SelectedVariant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Pencil } from 'lucide-react';
+import { CustomVariantInputModal } from './custom-variant-input-modal';
 
 const CUSTOM_INPUT_SYMBOL = '*';
 
@@ -28,10 +29,15 @@ export function VariantSelectionModal() {
 
   useEffect(() => {
     if (variantItem?.variantOptions) {
-      const defaultSelections = variantItem.variantOptions.map(option => ({
-        name: option.name,
-        value: option.values.includes(CUSTOM_INPUT_SYMBOL) ? '' : option.values[0],
-      }));
+      const defaultSelections = variantItem.variantOptions.map(option => {
+        const defaultValue = option.values.includes(CUSTOM_INPUT_SYMBOL)
+          ? ''
+          : option.values[0] || '';
+        return {
+          name: option.name,
+          value: defaultValue,
+        };
+      });
       setSelectedVariants(defaultSelections);
     } else {
       setSelectedVariants([]);
@@ -83,58 +89,61 @@ export function VariantSelectionModal() {
   }
 
   return (
-    <Dialog open={!!variantItem} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Sélectionner les options</DialogTitle>
-          <DialogDescription>
-            Choisissez les déclinaisons pour l'article "{variantItem.name}".
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-          {variantItem.variantOptions?.map(option => {
-            const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
-            const hasCustomInputOption = option.values.includes(CUSTOM_INPUT_SYMBOL);
-            const selectableValues = option.values.filter(v => v !== CUSTOM_INPUT_SYMBOL);
+    <>
+      <Dialog open={!!variantItem} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sélectionner les options</DialogTitle>
+            <DialogDescription>
+              Choisissez les déclinaisons pour l'article "{variantItem.name}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {variantItem.variantOptions?.map(option => {
+              const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
+              const hasCustomInputOption = option.values.includes(CUSTOM_INPUT_SYMBOL);
+              const selectableValues = option.values.filter(v => v !== CUSTOM_INPUT_SYMBOL);
 
-            return (
-              <div key={option.name} className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor={option.name} className="text-right">
-                  {option.name}
-                </Label>
-                <div className="col-span-3 flex gap-2">
-                    <Select
-                      onValueChange={(value) => handleValueChange(option.name, value)}
-                      defaultValue={currentValue || (selectableValues.length > 0 ? selectableValues[0] : '')}
-                    >
-                      <SelectTrigger id={option.name}>
-                        <SelectValue placeholder={`Choisir ${option.name}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectableValues.map((value, index) => (
-                          <SelectItem key={`${value}-${index}`} value={value}>
-                            {value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {hasCustomInputOption && (
-                        <Button variant="outline" size="icon" onClick={() => handleOpenCustomInput(option.name)}>
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    )}
+              return (
+                <div key={option.name} className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor={option.name} className="text-right">
+                    {option.name}
+                  </Label>
+                  <div className="col-span-3 flex gap-2">
+                      <Select
+                        onValueChange={(value) => handleValueChange(option.name, value)}
+                        defaultValue={currentValue || (selectableValues.length > 0 ? selectableValues[0] : '')}
+                      >
+                        <SelectTrigger id={option.name}>
+                          <SelectValue placeholder={`Choisir ${option.name}`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectableValues.map((value, index) => (
+                            <SelectItem key={`${value}-${index}`} value={value}>
+                              {value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {hasCustomInputOption && (
+                          <Button variant="outline" size="icon" onClick={() => handleOpenCustomInput(option.name)}>
+                              <Pencil className="h-4 w-4" />
+                          </Button>
+                      )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Annuler
-          </Button>
-          <Button onClick={handleConfirm}>Confirmer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Annuler
+            </Button>
+            <Button onClick={handleConfirm}>Confirmer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <CustomVariantInputModal />
+    </>
   );
 }
