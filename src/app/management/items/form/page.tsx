@@ -904,7 +904,7 @@ function ItemForm() {
                                                 <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
                                                 <Input 
                                                     id="item-image-url"
-                                                    value={watchedImage?.startsWith('data:') ? '' : watchedImage}
+                                                    value={(watchedImage || '').startsWith('data:') ? '' : (watchedImage || '')}
                                                     onChange={e => setValue('image', e.target.value)}
                                                     placeholder="https://..."
                                                     className="pl-9"
