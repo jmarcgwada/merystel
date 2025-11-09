@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import { Input } from '@/components/ui/input';
 const CUSTOM_INPUT_SYMBOL = '*';
 
 export function VariantSelectionModal() {
-  const { variantItem, setVariantItem, addToOrder } = usePos();
+  const { variantItem, setVariantItem, addToOrder, setCustomVariantRequest } = usePos();
   const { toast } = useToast();
   const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>([]);
 
@@ -38,6 +39,17 @@ export function VariantSelectionModal() {
   }, [variantItem]);
   
   const handleValueChange = (optionName: string, value: string) => {
+    if (value === CUSTOM_INPUT_SYMBOL) {
+      if (!variantItem) return;
+      setCustomVariantRequest({ 
+        item: variantItem, 
+        optionName, 
+        currentSelections: selectedVariants.filter(v => v.name !== optionName)
+      });
+      // We don't close this modal yet. It will close when the custom one is done.
+      return;
+    }
+    
     setSelectedVariants(prev => {
       const otherVariants = prev.filter(v => v.name !== optionName);
       return [...otherVariants, { name: optionName, value }];
@@ -83,7 +95,6 @@ export function VariantSelectionModal() {
         </DialogHeader>
         <div className="py-4 space-y-4">
           {variantItem.variantOptions?.map(option => {
-            const isCustomInput = option.values.length === 1 && option.values[0] === CUSTOM_INPUT_SYMBOL;
             const currentValue = selectedVariants.find(v => v.name === option.name)?.value || '';
 
             return (
@@ -91,32 +102,21 @@ export function VariantSelectionModal() {
                 <Label htmlFor={option.name} className="text-right">
                   {option.name}
                 </Label>
-                {isCustomInput ? (
-                  <Input
-                    id={option.name}
-                    value={currentValue}
-                    onChange={(e) => handleValueChange(option.name, e.target.value)}
-                    className="col-span-3"
-                    placeholder="Saisie manuelle..."
-                    autoFocus
-                  />
-                ) : (
-                  <Select
-                    onValueChange={(value) => handleValueChange(option.name, value)}
-                    defaultValue={currentValue || option.values[0]}
-                  >
-                    <SelectTrigger id={option.name} className="col-span-3">
-                      <SelectValue placeholder={`Choisir ${option.name}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {option.values.map((value, index) => (
-                        <SelectItem key={`${value}-${index}`} value={value}>
-                          {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Select
+                  onValueChange={(value) => handleValueChange(option.name, value)}
+                  defaultValue={currentValue || option.values[0]}
+                >
+                  <SelectTrigger id={option.name} className="col-span-3">
+                    <SelectValue placeholder={`Choisir ${option.name}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {option.values.map((value, index) => (
+                      <SelectItem key={`${value}-${index}`} value={value}>
+                        {value === CUSTOM_INPUT_SYMBOL ? 'Saisie manuelle...' : value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             );
           })}

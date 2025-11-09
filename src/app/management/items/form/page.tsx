@@ -485,7 +485,7 @@ function ItemForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
-            {isEditMode && itemToEdit && (
+            {isEditMode && itemToEdit?.createdAt && (
                 <Card>
                     <CardContent className="p-3 text-xs text-muted-foreground">
                         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -1038,7 +1038,7 @@ const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValu
 
   return (
     <div className="space-y-2 pl-4 border-l-2">
-      <FormLabel>Valeurs de l'option</FormLabel>
+      <FormLabel>Valeurs de l'option (utilisez '*' pour la saisie manuelle)</FormLabel>
       {fields.map((field, valueIndex) => (
         <div key={field.id} className="flex items-center gap-2">
           <FormField
