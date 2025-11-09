@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Star, ArrowUpDown, RefreshCw, ArrowLeft, ArrowRight, Package, LayoutDashboard, SlidersHorizontal, EyeOff, Columns, X, FilePen, Truck } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -50,8 +50,8 @@ function ItemsPageContent() {
   const [filterName, setFilterName] = useState(searchParams.get('name') || '');
   const [filterCategoryName, setFilterCategoryName] = useState(searchParams.get('categoryName') || '');
   const [filterVatId, setFilterVatId] = useState(searchParams.get('vatId') || 'all');
-  const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState(searchParams.get('requiresSerialNumber') || 'all');
-  const [filterHasVariants, setFilterHasVariants] = useState(searchParams.get('hasVariants') || 'all');
+  const [filterRequiresSerialNumber, setFilterRequiresSerialNumber] = useState<'all' | 'yes'>(searchParams.get('requiresSerialNumber') === 'yes' ? 'yes' : 'all');
+  const [filterHasVariants, setFilterHasVariants] = useState<'all' | 'yes'>(searchParams.get('hasVariants') === 'yes' ? 'yes' : 'all');
   const [filterIsDisabled, setFilterIsDisabled] = useState<'no' | 'yes' | 'all'>(searchParams.get('isDisabled') as any || 'no');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -299,11 +299,31 @@ function ItemsPageContent() {
   };
 
  const pageTitle = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
       <span>Articles</span>
       <span className="text-base font-normal text-muted-foreground">
           ({sortedAndFilteredItems.length} / {items?.length || 0})
       </span>
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Columns className="h-4 w-4" />
+              </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+              <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {columnsConfig.map(column => (
+                  <DropdownMenuCheckboxItem
+                      key={column.id}
+                      checked={visibleColumns[column.id] ?? false}
+                      onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                  >
+                      {column.label}
+                  </DropdownMenuCheckboxItem>
+              ))}
+          </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 
@@ -315,26 +335,6 @@ function ItemsPageContent() {
         subtitle={isClient && items ? `Page ${currentPage} sur ${totalPages} (${sortedAndFilteredItems.length} articles sur ${items.length} au total)` : "Ajoutez, modifiez ou supprimez des produits."}
       >
         <div className="flex items-center gap-2">
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Columns className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {columnsConfig.map(column => (
-                        <DropdownMenuCheckboxItem
-                            key={column.id}
-                            checked={visibleColumns[column.id] ?? false}
-                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                        >
-                            {column.label}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
             {selectedItemIds.length > 0 && (
                 <Button asChild>
                     <Link href={bulkEditLink}>
@@ -370,7 +370,7 @@ function ItemsPageContent() {
                                     Filtres
                                 </Button>
                             </CollapsibleTrigger>
-                            <Input 
+                             <Input 
                                 placeholder="Filtrer par nom ou référence..."
                                 value={filterName}
                                 onChange={(e) => {
@@ -381,7 +381,6 @@ function ItemsPageContent() {
                             />
                         </div>
                         <div className="flex items-center gap-2 flex-1 justify-end">
-                            
                              <Select value={filterIsDisabled} onValueChange={(value) => { setFilterIsDisabled(value as any); setCurrentPage(1); }}>
                                 <SelectTrigger className="w-[220px] h-9">
                                     <SelectValue placeholder="Statut de l'article" />
@@ -450,7 +449,7 @@ function ItemsPageContent() {
                     </div>
                 </CardHeader>
                  <CollapsibleContent>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 pt-0">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-0">
                         <Input
                             placeholder="Filtrer par catégorie..."
                             value={filterCategoryName}
@@ -470,26 +469,14 @@ function ItemsPageContent() {
                                 ))}
                             </SelectContent>
                         </Select>
-                        <Select value={filterRequiresSerialNumber} onValueChange={(value) => { setFilterRequiresSerialNumber(value); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-full h-9">
-                                <SelectValue placeholder="Numéro de série" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous</SelectItem>
-                                <SelectItem value="yes">Avec N/S</SelectItem>
-                                <SelectItem value="no">Sans N/S</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={filterHasVariants} onValueChange={(value) => { setFilterHasVariants(value); setCurrentPage(1); }}>
-                            <SelectTrigger className="w-full h-9">
-                                <SelectValue placeholder="Déclinaisons" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous</SelectItem>
-                                <SelectItem value="yes">Avec déclinaisons</SelectItem>
-                                <SelectItem value="no">Sans déclinaisons</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-center space-x-2 rounded-md border p-2 h-9">
+                            <Switch id="serial-filter" checked={filterRequiresSerialNumber === 'yes'} onCheckedChange={(checked) => setFilterRequiresSerialNumber(checked ? 'yes' : 'all')} />
+                            <Label htmlFor="serial-filter" className="text-sm">Avec N/S</Label>
+                        </div>
+                         <div className="flex items-center space-x-2 rounded-md border p-2 h-9">
+                            <Switch id="variants-filter" checked={filterHasVariants === 'yes'} onCheckedChange={(checked) => setFilterHasVariants(checked ? 'yes' : 'all')} />
+                            <Label htmlFor="variants-filter" className="text-sm">Avec déclinaisons</Label>
+                        </div>
                     </CardContent>
                  </CollapsibleContent>
             </Card>
@@ -606,15 +593,17 @@ function ItemsPageContent() {
                         {visibleColumns.purchasePrice && <TableCell className="text-right">{item.purchasePrice?.toFixed(2) || '0.00'}€</TableCell>}
                         {visibleColumns.price && <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>}
                         <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
-                                <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
-                                <Edit className="h-4 w-4"/>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
+                            <div className="flex items-center justify-end">
+                                <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
+                                    <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
+                                    <Edit className="h-4 w-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </div>
                         </TableCell>
                         </TableRow>
                     )
@@ -650,4 +639,6 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
+    
+
     
