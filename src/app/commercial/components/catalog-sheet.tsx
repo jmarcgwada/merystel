@@ -148,20 +148,19 @@ export function CatalogSheet({ isOpen, onClose }: CatalogSheetProps) {
                     </div>
                 </div>
             </SheetHeader>
-            <div className="relative flex-1">
-                 <ScrollArea className="absolute inset-0" viewportRef={itemListRef}>
-                    <div className="p-4">
-                        <ItemList
-                            category={selectedCategory}
-                            searchTerm={itemSearchTerm}
-                            showFavoritesOnly={showFavoritesOnly}
-                            onItemClick={handleItemClick}
-                        />
-                    </div>
-                </ScrollArea>
-            </div>
+            <ScrollArea className="flex-1" viewportRef={itemListRef}>
+              <div className="p-4">
+                <ItemList
+                  category={selectedCategory}
+                  searchTerm={itemSearchTerm}
+                  showFavoritesOnly={showFavoritesOnly}
+                  onItemClick={handleItemClick}
+                />
+              </div>
+            </ScrollArea>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
+
