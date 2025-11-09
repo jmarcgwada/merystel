@@ -1047,7 +1047,7 @@ const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValu
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormControl>
-                  <Input placeholder={`ex: S, M, Rouge, Bleu...`} {...field} />
+                  <Input placeholder={`ex: S, M, Rouge, Bleu... ou *`} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
