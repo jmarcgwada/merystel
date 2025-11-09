@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useEffect, useState, Suspense, useMemo } from 'react';
+import React, { useEffect, useState, Suspense, useMemo, useRef } from 'react';
 import { useForm, Controller, useFieldArray, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,10 +19,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/page-header';
-import { ArrowLeft, PlusCircle, RefreshCw, Sparkles, Trash2, Plus, Calendar, Clock, Truck } from 'lucide-react';
+import { ArrowLeft, PlusCircle, RefreshCw, Trash2, Plus, Calendar, Clock, Upload, Link as LinkIcon } from 'lucide-react';
 import type { Item, Category, Timestamp, Supplier } from '@/lib/types';
 import Link from 'next/link';
-import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -94,13 +94,12 @@ function ItemForm() {
   const { items, categories, suppliers, vatRates, addItem, updateItem, isLoading } = usePos();
   const { user } = useUser();
   const isCashier = user?.role === 'cashier';
-  const [isGenerating, setIsGenerating] = useState(false);
   const [defaultImage, setDefaultImage] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isAddSupplierOpen, setAddSupplierOpen] = useState(false);
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const itemId = searchParams.get('id');
   const barcodeParam = searchParams.get('barcode');
@@ -328,33 +327,15 @@ function ItemForm() {
     }
   }
 
-  const handleGenerateImage = async () => {
-    const name = form.getValues('name');
-    if (!name) {
-      toast({
-        variant: 'destructive',
-        title: 'Nom requis',
-        description: "Veuillez d'abord entrer un nom pour l'article.",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const result = await generateImage(name);
-      if (result) {
-        setValue('image', result);
-        toast({ title: 'Image générée avec succès !' });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de génération',
-        description: "Impossible de générer l'image. Veuillez réessayer.",
-      });
-    } finally {
-      setIsGenerating(false);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setValue('image', reader.result as string);
+            toast({ title: 'Image téléversée avec succès !' });
+        };
+        reader.readAsDataURL(file);
     }
   };
   
@@ -896,18 +877,12 @@ function ItemForm() {
                                     <div className="w-full max-w-[200px]">
                                         <Card className="flex flex-col overflow-hidden">
                                             <div className="relative aspect-video w-full">
-                                            {isGenerating ? (
-                                                <div className="w-full aspect-video flex items-center justify-center">
-                                                    <Skeleton className="w-full h-full" />
-                                                </div>
-                                                ) : (
                                                 <Image
                                                     src={watchedImage || defaultImage || 'https://picsum.photos/seed/placeholder/200/150'}
                                                     alt={watchedName || "Aperçu de l'article"}
                                                     fill
                                                     className="object-cover"
                                                 />
-                                                )}
                                             </div>
                                             <div className="flex-1 p-3">
                                                 <h3 className="font-semibold leading-tight truncate">{watchedName || "Nom de l'article"}</h3>
@@ -920,10 +895,37 @@ function ItemForm() {
                                             </div>
                                         </Card>
                                     </div>
-                                    <Button type="button" variant="outline" onClick={handleGenerateImage} disabled={isGenerating}>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        {isGenerating ? "Génération en cours..." : "Générer une image IA"}
-                                    </Button>
+                                    <div className="w-full space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="item-image-url">URL de l'image</Label>
+                                            <div className="flex items-center">
+                                                <LinkIcon className="h-4 w-4 text-muted-foreground absolute ml-3" />
+                                                <Input 
+                                                    id="item-image-url"
+                                                    value={watchedImage?.startsWith('data:') ? '' : watchedImage}
+                                                    onChange={e => setValue('image', e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="pl-9"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Separator className="flex-1"/>
+                                            <span className="text-xs text-muted-foreground">OU</span>
+                                            <Separator className="flex-1"/>
+                                        </div>
+                                        <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Téléverser un fichier
+                                        </Button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                        />
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>
@@ -1000,7 +1002,7 @@ function ItemForm() {
             </Tabs>
           
           <div className="lg:col-span-3 flex justify-end mt-8">
-             <Button type="submit" size="lg" disabled={isGenerating}>
+             <Button type="submit" size="lg">
                 {isEditMode ? 'Sauvegarder les modifications' : 'Créer l\'article'}
             </Button>
           </div>
