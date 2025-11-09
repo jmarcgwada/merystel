@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -10,7 +8,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3 } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale, Timestamp } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +29,7 @@ import Link from 'next/link';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { CatalogSheet } from './catalog-sheet';
 
 const ClientFormattedDate = ({ date, formatString, withIcon, label }: { date: Date | Timestamp | string | undefined; formatString: string, withIcon?: boolean; label?: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -154,6 +153,7 @@ export const CommercialOrderForm = forwardRef<
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
+  const [isCatalogOpen, setCatalogOpen] = useState(false);
 
 
     useEffect(() => {
@@ -530,7 +530,7 @@ export const CommercialOrderForm = forwardRef<
                         performSearch(e.target.value, searchType);
                     }}
                     onKeyDown={handleKeyDown}
-                    className="h-14 text-xl pl-12 pr-28"
+                    className="h-14 text-xl pl-12 pr-40"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <TooltipProvider>
@@ -552,6 +552,9 @@ export const CommercialOrderForm = forwardRef<
                     </TooltipProvider>
                     <Button variant="ghost" size="icon" className="h-12 w-12" onClick={handleShowAll}>
                         <List className="h-6 w-6" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-12 w-12" onClick={() => setCatalogOpen(true)}>
+                        <BookOpen className="h-6 w-6" />
                     </Button>
                 </div>
             </div>
@@ -844,11 +847,9 @@ export const CommercialOrderForm = forwardRef<
               }}
           />
       )}
+      <CatalogSheet isOpen={isCatalogOpen} onClose={() => setCatalogOpen(false)} />
     </div>
   );
 });
 
 CommercialOrderForm.displayName = "CommercialOrderForm";
-
-    
-    
