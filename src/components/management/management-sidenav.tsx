@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePos } from '@/contexts/pos-context';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '../ui/separator';
 
 
 export default function ManagementSideNav() {
@@ -32,16 +33,19 @@ export default function ManagementSideNav() {
     setIsClient(true);
   }, []);
 
-  const navLinks = [
+  const mainNavLinks = [
     { href: '/management/items', label: 'Articles', icon: Box, count: items?.length || 0 },
     { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, count: categories?.length || 0 },
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
     { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
+    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+  ];
+  
+  const financeNavLinks = [
     { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
-    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
   
@@ -61,9 +65,7 @@ export default function ManagementSideNav() {
       );
   }
 
-  return (
-    <nav className="flex flex-col gap-2 p-4">
-      {navLinks.map((link) => (
+  const renderLinks = (links: typeof mainNavLinks) => links.map(link => (
         <Link
           key={link.href}
           href={link.href}
@@ -76,8 +78,14 @@ export default function ManagementSideNav() {
           <span className="flex-1">{link.label}</span>
           <Badge variant={pathname.startsWith(link.href) ? "default" : "secondary"}>{link.count}</Badge>
         </Link>
-      ))}
-      <div className="my-2 border-t -mx-4"></div>
+  ));
+
+  return (
+    <nav className="flex flex-col gap-2 p-4">
+      {renderLinks(mainNavLinks)}
+      <Separator className="my-1" />
+      {renderLinks(financeNavLinks)}
+      <Separator className="my-1" />
       <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">RAPPORTS</h3>
        {reportLinks.map((link) => (
         <Link
