@@ -154,7 +154,7 @@ const fieldLabels: Record<string, string> = {
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
-    articles: ['name', 'price', 'vatCode', 'barcode'],
+    articles: ['name', 'price', 'vatId', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
     ventes_completes: ['pieceName', 'ticketNumber', 'saleDate', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
@@ -622,11 +622,16 @@ export default function ImportDataPage() {
                 </div>
                 <div className="lg:col-span-2">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Prévisualisation des données</CardTitle>
-                            <CardDescription>
-                                Vérifiez que vos données sont correctement séparées.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Prévisualisation des données</CardTitle>
+                                <CardDescription>
+                                    Vérifiez que vos données sont correctement séparées.
+                                </CardDescription>
+                            </div>
+                             <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
+                                Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <ScrollArea className="h-[400px] border rounded-md">
@@ -664,11 +669,6 @@ export default function ImportDataPage() {
                               )}
                               <ScrollBar orientation="horizontal" />
                             </ScrollArea>
-                           <div className="mt-4 flex justify-end">
-                                <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
-                                    Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
                         </CardContent>
                     </Card>
                 </div>
