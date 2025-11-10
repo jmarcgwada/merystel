@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, UserCog, BarChart3, Truck, History, Landmark, Library } from 'lucide-react';
+import { Box, LayoutGrid, Users, CreditCard, Percent, Utensils, Truck, History, Landmark, Library } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,28 +33,24 @@ export default function ManagementSideNav() {
     setIsClient(true);
   }, []);
 
-  const mainNavLinks = [
+  const navLinks = [
     { href: '/management/items', label: 'Articles', icon: Box, count: items?.length || 0 },
     { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, count: categories?.length || 0 },
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
     { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
-  ];
-  
-  const financeNavLinks = [
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
-  ];
-
-  const reportLinks = [
-    { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
-    { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
   ];
 
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
   const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
 
+  const reportLinks = [
+    { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
+    { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
+  ];
 
   if (!isClient) {
       // Render a placeholder or skeleton while waiting for client-side mount
@@ -84,7 +80,8 @@ export default function ManagementSideNav() {
 
   return (
     <nav className="flex flex-col gap-2 p-4">
-      {mainNavLinks.map(renderLink)}
+      {navLinks.map(renderLink)}
+      
       <Separator className="my-1" />
       
       {renderLink(vatLink)}
@@ -92,9 +89,7 @@ export default function ManagementSideNav() {
       {renderLink(chequeLink)}
       
       <Separator className="my-1" />
-      {financeNavLinks.map(renderLink)}
       
-      <Separator className="my-1" />
       <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">RAPPORTS</h3>
        {reportLinks.map(link => (
         <Link
