@@ -341,6 +341,8 @@ export interface PosContextType {
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   isCommercialNavVisible: boolean;
   setIsCommercialNavVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  commercialViewLevel: number;
+  cycleCommercialViewLevel: () => void;
   smtpConfig: SmtpConfig;
   setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
   ftpConfig: FtpConfig;
@@ -488,6 +490,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#ffffff');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
   const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
+  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -1417,7 +1420,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 documentId: finalDoc.id,
                 documentNumber: finalDoc.ticketNumber,
                 details: `Mise à jour de la pièce.`,
-                 richDetails: {
+                richDetails: {
                   items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
                   total: docData.total,
                 }
@@ -1761,7 +1764,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-    const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    const cycleCommercialViewLevel = useCallback(() => {
+      setCommercialViewLevel(prev => (prev + 1) % 3);
+  }, [setCommercialViewLevel]);
+  
+  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
   }, [setCompanyInfo]);
   
@@ -1796,18 +1803,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
         const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
         const toastId = shadcnToast({ title: 'Importation...', description: `Préparation de ${jsonData.length} lignes.` });
-
+    
         const addError = (line: number, message: string) => {
             report.errorCount++;
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
+    
+        let localCategories = [...categories];
 
         if (dataType === 'articles') {
             const itemBarcodes = new Set(items.map(i => i.barcode));
             for (const [index, row] of jsonData.entries()) {
                 try {
                     if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) {
-                        throw new Error("Champs article requis (barcode, name, price, vatCode).");
+                        throw new Error("Champs requis manquants (barcode, name, price, vatCode).");
                     }
                     if (itemBarcodes.has(row.barcode)) {
                         throw new Error(`L'article avec le code-barres ${row.barcode} existe déjà.`);
@@ -1817,10 +1826,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         throw new Error(`Code TVA "${row.vatCode}" introuvable.`);
                     }
                     
-                    let category = categories.find(c => c.name === row.categoryId);
+                    let category = localCategories.find(c => c.name === row.categoryId);
                     if (!category && row.categoryId) {
                       const newCategory = await addCategory({ name: row.categoryId });
-                      if(newCategory) category = newCategory;
+                      if (newCategory) {
+                        category = newCategory;
+                        localCategories.push(newCategory);
+                      }
                     }
 
                     await addItem({ ...row, vatId: vat.id, categoryId: category?.id });
@@ -1893,7 +1905,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      isCommercialNavVisible, setIsCommercialNavVisible,
+      isCommercialNavVisible, setIsCommercialNavVisible, commercialViewLevel, cycleCommercialViewLevel,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
