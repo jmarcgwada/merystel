@@ -43,11 +43,11 @@ export default function ManagementSideNav() {
   ];
   
   const accountingNavLinks = [
+      { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
       { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
   ];
   
   const financeNavLinks = [
-    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
