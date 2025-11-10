@@ -522,7 +522,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         if (typeof document === 'undefined') return;
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-              console.error(`Error attempting to enable full-screen mode: ${''}${err.message} (${err.name})`);
+              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
             });
         } else {
             if (document.exitFullscreen) {
@@ -724,7 +724,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         newCategories.push({
             id: catId,
             name: categoryData.name,
-            image: `https://picsum.photos/seed/${''}${catId}/200/150`,
+            image: `https://picsum.photos/seed/${catId}/200/150`,
             color: '#e2e8f0',
             createdAt: new Date(),
         });
@@ -740,8 +740,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 description: itemData.description,
                 categoryId: catId,
                 vatId: defaultVatId,
-                image: `https://picsum.photos/seed/${''}${itemId}/200/150`,
-                barcode: `DEMO${''}${Math.floor(100000 + Math.random() * 900000)}`,
+                image: `https://picsum.photos/seed/${itemId}/200/150`,
+                barcode: `DEMO${Math.floor(100000 + Math.random() * 900000)}`,
                 createdAt: new Date(),
             });
         });
@@ -755,8 +755,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const importDemoCustomers = useCallback(async () => {
     const demoCustomers: Customer[] = Array.from({ length: 10 }).map((_, i) => ({
         id: uuidv4(),
-        name: `Client Démo ${''}${i + 1}`,
-        email: `client${''}${i+1}@demo.com`,
+        name: `Client Démo ${i + 1}`,
+        email: `client${i+1}@demo.com`,
         createdAt: new Date(),
     }));
     setCustomers(prev => [...prev, ...demoCustomers]);
@@ -766,8 +766,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const importDemoSuppliers = useCallback(async () => {
     const demoSuppliers: Supplier[] = Array.from({ length: 5 }).map((_, i) => ({
         id: uuidv4(),
-        name: `Fournisseur Démo ${''}${i + 1}`,
-        email: `fournisseur${''}${i+1}@demo.com`,
+        name: `Fournisseur Démo ${i + 1}`,
+        email: `fournisseur${i+1}@demo.com`,
         createdAt: new Date(),
     }));
     setSuppliers(prev => [...prev, ...demoSuppliers]);
@@ -930,7 +930,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: `${''}${item.name} ajouté/mis à jour dans la commande` });
+    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
 
   const addToOrder = useCallback(
@@ -944,14 +944,14 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       if (itemToAdd.manageStock && (itemToAdd.stock || 0) <= 0) {
-        toast({ variant: 'destructive', title: 'Rupture de stock', description: `L'article "${''}${itemToAdd.name}" n'est plus en stock.` });
+        toast({ variant: 'destructive', title: 'Rupture de stock', description: `L'article "${itemToAdd.name}" n'est plus en stock.` });
         return;
       }
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
-        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: `L'article "${''}${itemToAdd.name}" n'a pas de prix d'achat valide.` });
+        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.` });
         return;
     }
 
@@ -1004,7 +1004,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         }
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: `${''}${itemToAdd.name} ajouté à la commande` });
+    toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
   );
@@ -1330,7 +1330,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             };
             addAuditLog({
                 userId: user?.id || 'system',
-                userName: user ? `${''}${user.firstName} ${user.lastName}` : 'System',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
                 action: 'update',
                 documentType: type,
                 documentId: finalDoc.id,
@@ -1344,19 +1344,19 @@ export function PosProvider({ children }: { children: ReactNode }) {
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
              const count = sales.filter(s => s.documentType === type).length;
-             const number = `${''}${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+             const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
              finalDoc = {
                 id: uuidv4(),
                 date: today,
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id,
-                userName: user ? `${''}${user.firstName} ${user.lastName}` : 'N/A',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
                 ...docData,
             };
             addAuditLog({
                 userId: user?.id || 'system',
-                userName: user ? `${''}${user.firstName} ${user.lastName}` : 'System',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
                 action: 'create',
                 documentType: type,
                 documentId: finalDoc.id,
@@ -1371,7 +1371,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         }
         
         const docLabel = prefixMap[type] || "Document";
-        toast({ title: `${''}${docLabel} ${finalDoc.status === 'paid' ? 'facturé(e)' : 'enregistré(e)'}` });
+        toast({ title: `${docLabel} ${finalDoc.status === 'paid' ? 'facturé(e)' : 'enregistré(e)'}` });
         
         if (pageTypeToResetRef.current === type) {
           clearOrder();
@@ -1618,7 +1618,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         if (sale) {
           addAuditLog({
             userId: user?.id || 'system',
-            userName: user ? `${''}${user.firstName} ${user.lastName}` : 'System',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
             action: 'transform',
             documentType: sale.documentType || 'unknown',
             documentId: sale.id,
@@ -1626,7 +1626,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             details: `Transformation en facture.`
           });
         }
-        router.push(`/commercial/invoices?fromConversion=${''}${saleId}`);
+        router.push(`/commercial/invoices?fromConversion=${saleId}`);
     }, [router, sales, addAuditLog, user]);
     
     const generateRandomSales = useCallback(async (count: number) => {
@@ -1655,7 +1655,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             
             const newSale: Sale = {
                 id: uuidv4(),
-                ticketNumber: `Tick-RAND-${''}${uuidv4().substring(0, 4)}`,
+                ticketNumber: `Tick-RAND-${uuidv4().substring(0, 4)}`,
                 date: saleDate,
                 items: saleItems,
                 subtotal: total / 1.2,
@@ -1670,7 +1670,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             newSales.push(newSale);
         }
         setSales(prev => [...prev, ...newSales]);
-        toast({ title: `${''}${count} ventes aléatoires générées !` });
+        toast({ title: `${count} ventes aléatoires générées !` });
     }, [items, customers, paymentMethods, user, setSales, toast]);
     
     const updateSale = async (sale: Sale) => {
@@ -1714,7 +1714,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
         const addError = (line: number, message: string) => {
             report.errorCount++;
-            report.errors.push(`Ligne ${''}${line + 1}: ${message}`);
+            report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
     
         let localCategories = [...categories];
@@ -1735,15 +1735,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 try {
                     let saleDate: Date;
                     const dateString = firstRow.saleDate, timeString = firstRow.saleTime || '00:00';
-                    const fullDateTimeString = `${''}${dateString} ${timeString}`;
+                    const fullDateTimeString = `${dateString} ${timeString}`;
                     const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                    if (!isValid(parsed)) { addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${''}${ticketNumber}.`); continue; }
+                    if (!isValid(parsed)) { addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`); continue; }
                     saleDate = parsed;
 
                     let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
                         const newCustomer = await addCustomer({
-                            id: firstRow.customerCode || `C-${''}${uuidv4().substring(0, 6)}`,
+                            id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
                             name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
                             address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
                         });
@@ -1761,8 +1761,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         if (!item && row.itemName) {
                             let category = localCategories.find(c => c.name === row.itemCategory);
                             if (!category) {
-                                category = await addCategory({ name: row.itemCategory || 'Importé' });
-                                if (category) localCategories.push(category);
+                                let importedCategory = localCategories.find(c => c.name === 'Importé');
+                                if (!importedCategory) {
+                                    const newCat = await addCategory({ name: 'Importé' });
+                                    if(newCat) {
+                                        importedCategory = newCat;
+                                        localCategories.push(newCat);
+                                    }
+                                }
+                                category = importedCategory;
                             }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                             if (!vat) vat = vatRates[0];
@@ -1826,10 +1833,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     
                     await recordSale(newSale);
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
-                } catch (e: any) { addError(firstRow.originalIndex, `Erreur sur pièce ${''}${firstRow.ticketNumber}: ${e.message}`); }
+                } catch (e: any) { addError(firstRow.originalIndex, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
         }
-        toast({ title: "Importation terminée !", description: `${''}${report.successCount} succès, ${report.errorCount} échecs.` });
+        toast({ title: "Importation terminée !", description: `${report.successCount} succès, ${report.errorCount} échecs.` });
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast]);
 
