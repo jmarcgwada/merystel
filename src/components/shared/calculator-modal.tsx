@@ -366,7 +366,7 @@ export function CalculatorModal() {
     const modalRef = useRef<HTMLDivElement>(null);
     const [isClient, setIsClient] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
-    
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -424,21 +424,18 @@ export function CalculatorModal() {
         transform: 'none',
     } : {};
 
-    if (!isCalculatorOpen) {
-        return null;
-    }
-
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-          <DialogOverlay className="bg-black/40" />
-            <div
-                ref={modalRef}
-                style={dynamicStyle}
-                className="fixed z-50"
-            >
+            <DialogOverlay />
+            <div ref={modalRef} style={dynamicStyle} className="fixed z-50">
                 <DialogContent
                     className="sm:max-w-sm p-0 flex flex-col shadow-2xl relative"
                     hideCloseButton
+                    onInteractOutside={(e) => {
+                        if (e.target instanceof HTMLElement && e.target.closest('[data-drag-handle]')) {
+                            e.preventDefault();
+                        }
+                    }}
                 >
                     <DialogHeader 
                         data-drag-handle
