@@ -37,7 +37,7 @@ import type {
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
@@ -404,6 +404,21 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
+function PathStateTracker({ setLastReportsUrl }: { setLastReportsUrl: (url: string | null) => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (pathname.startsWith('/reports')) {
+      const currentUrl = `${pathname}?${searchParams.toString()}`;
+      setLastReportsUrl(currentUrl);
+    }
+  }, [pathname, searchParams, setLastReportsUrl]);
+
+  return null; // This component does not render anything.
+}
+
+
 export function PosProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
@@ -522,7 +537,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         if (typeof document === 'undefined') return;
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-              console.error(`Error attempting to enable full-screen mode: ${''}${err.message} (${err.name})`);
+              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
             });
         } else {
             if (document.exitFullscreen) {
@@ -1714,21 +1729,56 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
         const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-        const toastId = toast({
-            title: 'Importation...',
-            description: `Préparation de ${jsonData.length} lignes.`
-        });
     
         const addError = (line: number, message: string) => {
             report.errorCount++;
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
-    
-        let localCategories = [...categories];
-        let localItems = [...items];
-        let localCustomers = [...customers];
-    
-        if (dataType === 'ventes_completes') {
+
+        if (dataType === 'clients') {
+            const customerIds = new Set(customers.map(c => c.id));
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.id || !row.name) {
+                    addError(index, "L'ID et le nom du client sont requis."); continue;
+                }
+                if (customerIds.has(row.id)) {
+                    addError(index, `Le client avec l'ID ${row.id} existe déjà.`); continue;
+                }
+                await addCustomer(row);
+                report.successCount++;
+                customerIds.add(row.id);
+            }
+        } else if (dataType === 'articles') {
+            const itemBarcodes = new Set(items.map(i => i.barcode));
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.barcode || !row.name || !row.price || !row.vatId) {
+                    addError(index, 'Champs article requis (code-barres, nom, prix, TVA).'); continue;
+                }
+                if (itemBarcodes.has(row.barcode)) {
+                    addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
+                }
+                await addItem(row);
+                report.successCount++;
+                itemBarcodes.add(row.barcode);
+            }
+        } else if (dataType === 'fournisseurs') {
+             const supplierIds = new Set(suppliers.map(s => s.id));
+             for (const [index, row] of jsonData.entries()) {
+                if (!row.id || !row.name) {
+                    addError(index, "L'ID et le nom du fournisseur sont requis."); continue;
+                }
+                if (supplierIds.has(row.id)) {
+                    addError(index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue;
+                }
+                await addSupplier(row);
+                report.successCount++;
+                supplierIds.add(row.id);
+             }
+        } else if (dataType === 'ventes_completes') {
+            let localCategories = [...categories];
+            let localItems = [...items];
+            let localCustomers = [...customers];
+            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
             const groupedByTicket = new Map<string, any[]>();
                 
             jsonData.forEach((row, index) => {
@@ -1744,15 +1794,25 @@ export function PosProvider({ children }: { children: ReactNode }) {
             });
     
             for (const [ticketNumber, rows] of groupedByTicket.entries()) {
-                const firstRow = rows[0];
+                if (existingSaleNumbers.has(ticketNumber)) {
+                    addError(rows[0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+                    continue;
+                }
+    
                 try {
+                    const firstRow = rows[0];
                     let saleDate: Date;
-                    const dateString = firstRow.saleDate, timeString = firstRow.saleTime || '00:00';
+                    const dateString = firstRow.saleDate;
+                    const timeString = firstRow.saleTime || '00:00';
                     const fullDateTimeString = `${dateString} ${timeString}`;
                     const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                    if (!isValid(parsed)) { addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`); continue; }
+    
+                    if (!isValid(parsed)) {
+                        addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
+                        continue;
+                    }
                     saleDate = parsed;
-
+    
                     let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
                         const newCustomer = await addCustomer({
@@ -1760,13 +1820,19 @@ export function PosProvider({ children }: { children: ReactNode }) {
                             name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
                             address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
                         });
-                        if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; localCustomers.push(newCustomer); }
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
+                        }
                     }
-
+    
                     const saleItems: OrderItem[] = [];
                     for (const row of rows) {
                         if (!row.itemBarcode) {
-                            if (saleItems.length > 0 && row.itemName) { saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim(); }
+                            if (saleItems.length > 0 && row.itemName) {
+                                saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                            }
                             continue;
                         }
                         
@@ -1792,9 +1858,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
                                 price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
                                 purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
                             });
-                            if(item) { report.newItemsCount = (report.newItemsCount || 0) + 1; localItems.push(item); }
+                            if(item) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(item);
+                            }
                         }
-
+    
                         if (item) {
                              const vatInfo = vatRates.find(v => v.id === item!.vatId);
                              const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
@@ -1807,9 +1876,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                             });
                         }
                     }
-                    
-                    if(saleItems.length === 0) continue;
-                    
+    
                     const total = saleItems.reduce((sum, i) => sum + i.total, 0);
                     const totalTax = saleItems.reduce((sum, i) => {
                         const vat = vatRates.find(v => v.id === i.vatId);
@@ -1817,11 +1884,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     }, 0);
                     
                     const paymentTotals: Record<string, number> = {};
-                    rows.forEach(row => {
+                    if(firstRow) {
                         ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
-                            if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm];
+                            if (firstRow[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + firstRow[pm];
                         });
-                    });
+                    }
     
                     const payments: Payment[] = [];
                     const paymentMapping: Record<string, string> = {
@@ -1846,54 +1913,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     
                     await recordSale(newSale);
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    existingSaleNumbers.add(ticketNumber);
                 } catch (e: any) { addError(firstRow.originalIndex, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
-        } else if (dataType === 'articles') {
-            let localCategories = [...categories];
-            for (const [index, row] of jsonData.entries()) {
-                try {
-                    if (!row.barcode || !row.name || !row.price || !row.vatCode) {
-                        throw new Error("Champs requis (code-barres, nom, prix, code TVA) manquants.");
-                    }
-                    if (items.some(i => i.barcode === row.barcode)) {
-                        throw new Error(`Article avec le code-barres ${row.barcode} existe déjà.`);
-                    }
-                    
-                    const vatRate = vatRates.find(v => v.code === parseInt(row.vatCode));
-                    if (!vatRate) {
-                        throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
-                    }
-
-                    let category = localCategories.find(c => c.name === row.categoryId);
-                    if (!category && row.categoryId) {
-                        const newCategory = await addCategory({ name: row.categoryId });
-                        if (newCategory) {
-                            category = newCategory;
-                            localCategories.push(newCategory);
-                        }
-                    }
-                    
-                    await addItem({ ...row, vatId: vatRate.id, categoryId: category?.id });
-                    report.successCount++;
-                } catch (e: any) { addError(index, e.message); }
-            }
-        } else if (dataType === 'clients') {
-            for (const [index, row] of jsonData.entries()) {
-                try {
-                    if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
-                    await addCustomer(row);
-                    report.successCount++;
-                } catch (e: any) { addError(index, e.message); }
-            }
-        } else if (dataType === 'fournisseurs') {
-             for (const [index, row] of jsonData.entries()) {
-                try {
-                    if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
-                    if (suppliers.some(s => s.id === row.id)) throw new Error(`Fournisseur avec l'ID ${row.id} existe déjà.`);
-                    await addSupplier(row);
-                    report.successCount++;
-                } catch (e: any) { addError(index, e.message); }
-             }
         }
         
         shadcnToast({
@@ -1958,6 +1980,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   return (
     <PosContext.Provider value={value}>
+        <PathStateTracker setLastReportsUrl={setLastReportsUrl} />
       {children}
     </PosContext.Provider>
   );
