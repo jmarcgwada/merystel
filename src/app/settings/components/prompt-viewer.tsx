@@ -33,11 +33,11 @@ Créer une application web réactive et performante pour la gestion des ventes, 
 - **Langage :** TypeScript
 - **Style :** TailwindCSS
 - **Composants :** ShadCN/UI
-- **Backend & Base de données :** Firebase (Firestore pour la base de données, Firebase Authentication pour l'authentification)
+- **Backend & Base de données :** Stockage local persistant (localStorage) simulé via un Contexte React. La structure des données doit impérativement suivre le schéma défini dans \`docs/backend.json\`.
 - **Génération d'images IA :** Genkit avec le modèle 'googleai/gemini-pro-vision'.
 
-**Structure de la Base de Données (Firestore) :**
-La structure de la base de données doit suivre scrupuleusement le schéma défini dans le fichier \`docs/backend.json\`. Toutes les entités (Users, Companies, Items, Sales, etc.) et leurs chemins de collection doivent être conformes à ce document. La collection principale est \`companies\`, et toutes les données spécifiques à une entreprise (articles, ventes, etc.) sont stockées dans des sous-collections du document de l'entreprise. L'ID de l'entreprise est unique pour toute l'application (ex: 'main').
+**Structure des Données :**
+La structure de la base de données doit suivre scrupuleusement le schéma défini dans le fichier \`docs/backend.json\`. Toutes les entités (Users, Companies, Items, Sales, etc.) et leurs relations doivent être conformes à ce document. La collection principale est \`companies\`, et toutes les données spécifiques à une entreprise (articles, ventes, etc.) sont logiquement liées à un ID d'entreprise (ex: 'main').
 
 **Fonctionnalités Principales :**
 
@@ -47,7 +47,7 @@ La structure de la base de données doit suivre scrupuleusement le schéma défi
     *   Les \`admin\` ont tous les droits, y compris la gestion des utilisateurs et les paramètres système.
     *   Les \`manager\` peuvent gérer les opérations quotidiennes (articles, clients, etc.) et voir les rapports, mais pas les utilisateurs ni les paramètres avancés de l'entreprise.
     *   Les \`cashier\` ont un accès limité aux modes de vente (POS, Supermarché, Restaurant) et à la consultation de certaines données (lecture seule).
-    *   Gestion de session unique : si un utilisateur se connecte sur un nouvel appareil, l'ancienne session est invalidée (avec une option de "force login" via un code PIN dynamique si une commande est en cours sur le premier appareil).
+    *   Gestion de session unique : si un utilisateur se connecte sur un nouvel appareil, l'ancienne session est invalidée (avec une option de "force login" via un code PIN dynamique).
 
 2.  **Tableau de Bord (Dashboard) :**
     *   Page d'accueil après connexion.
@@ -105,11 +105,10 @@ La structure de la base de données doit suivre scrupuleusement le schéma défi
     *   **Apparence :** Couleurs de fond pour les modes de vente, les documents, et personnalisation du tableau de bord.
     *   **Paramétrage :** Mode de vente par défaut, mode forcé, gestion des notifications, affichage des descriptions d'articles.
     *   **Connectivité :** Configuration SMTP, FTP et Twilio pour les notifications et relances.
-    *   **Données Firestore (Admin) :** Zone sécurisée par code PIN pour initialiser, importer/exporter la configuration, et réinitialiser les données.
+    *   **Données (Admin) :** Zone sécurisée par code PIN pour initialiser, importer/exporter la configuration, et réinitialiser les données.
 
 9.  **Ergonomie & Interface :**
-    *   **Calculatrice déplaçable :** Une calculatrice avancée (standard, prix/marge, remise, TVA) est disponible depuis l'en-tête et peut être déplacée sur l'écran.
-    *   **Arrière-plan de la calculatrice transparent** pour voir les données derrière.
+    *   **Calculatrice déplaçable :** Une calculatrice avancée (standard, prix/marge, remise, TVA) est disponible depuis l'en-tête et peut être déplacée sur l'écran. L'arrière-plan de l'application est transparent lorsque la calculatrice est ouverte.
     *   Utilisation intensive de raccourcis clavier et navigation intuitive.
 
 **Règles Techniques et de Qualité :**
@@ -118,7 +117,7 @@ La structure de la base de données doit suivre scrupuleusement le schéma défi
 - Le code doit être propre, bien organisé et maintenable.
 - Éviter les erreurs d'hydratation en différant le code côté client (ex: via \`useEffect\`).
 - Assurer une expérience utilisateur fluide et réactive.
-- Toutes les opérations d'écriture dans Firestore doivent être robustes et gérer les cas d'erreur.
+- Toutes les opérations de modification de données doivent être robustes et gérer les cas d'erreur.
 - L'interface doit être esthétiquement plaisante et professionnelle.
 `;
 
