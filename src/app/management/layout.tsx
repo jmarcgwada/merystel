@@ -19,6 +19,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,49 +97,51 @@ export default function ManagementLayout({
   );
 
   return (
-    <div className="h-full flex">
-      <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarContent className="p-2">
-            <SidebarMenu>
-                {mainNavLinks.map(renderLink)}
-                <SidebarSeparator/>
-                {accountingNavLinks.map(renderLink)}
-                <SidebarSeparator/>
-                <SidebarGroup>
-                  <SidebarGroupLabel>Rapports</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                        {reportLinks.map(renderLink)}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-                <SidebarSeparator/>
-                <SidebarGroup>
-                  <SidebarGroupLabel>Divers</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                        {diversLinks.map(renderLink)}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-            </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                        <Link href="/dashboard">
-                            <LayoutDashboard />
-                            <span>Tableau de bord</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="h-full flex">
+        <Sidebar variant="sidebar" collapsible="icon">
+          <SidebarContent className="p-2">
+              <SidebarMenu>
+                  {mainNavLinks.map(renderLink)}
+                  <SidebarSeparator/>
+                  {accountingNavLinks.map(renderLink)}
+                  <SidebarSeparator/>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Rapports</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                          {reportLinks.map(renderLink)}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                  <SidebarSeparator/>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Divers</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                          {diversLinks.map(renderLink)}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+              </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter>
+              <SidebarMenu>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                          <Link href="/dashboard">
+                              <LayoutDashboard />
+                              <span>Tableau de bord</span>
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+              </SidebarMenu>
+          </SidebarFooter>
+        </Sidebar>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
