@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { v4 as uuidv4 } from 'uuid';
+import { EditItemDialog } from './components/edit-item-dialog';
 
 
 type SortKey = 'name' | 'price' | 'categoryId' | 'purchasePrice' | 'barcode' | 'stock' | 'supplierId' | 'vatId';
@@ -93,6 +94,9 @@ function ItemsPageContent() {
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -329,6 +333,16 @@ function ItemsPageContent() {
     }
   };
 
+  const openAddItemModal = () => {
+      setItemToEdit(null);
+      setIsEditModalOpen(true);
+  }
+  
+  const openEditItemModal = (item: Item) => {
+      setItemToEdit(item);
+      setIsEditModalOpen(true);
+  }
+
   const pageTitle = (
     <div className="flex items-center gap-4">
       <span>Articles</span>
@@ -382,7 +396,7 @@ function ItemsPageContent() {
                     <LayoutDashboard />
                 </Link>
             </Button>
-            <Button onClick={() => router.push(`/management/items/form?${searchParams.toString()}`)}>
+            <Button onClick={openAddItemModal}>
               <Plus className="mr-2 h-4 w-4" />
               Ajouter un article
             </Button>
@@ -640,7 +654,7 @@ function ItemsPageContent() {
                                 <Button variant="ghost" size="icon" onClick={() => toggleItemFavorite(item.id)}>
                                     <Star className={cn("h-4 w-4", item.isFavorite ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground')} />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => router.push(`/management/items/form?id=${item.id}&${searchParams.toString()}`)} >
+                                <Button variant="ghost" size="icon" onClick={() => openEditItemModal(item)} >
                                     <Edit className="h-4 w-4"/>
                                 </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(item)}>
@@ -656,7 +670,7 @@ function ItemsPageContent() {
           </CardContent>
         </Card>
       </div>
-
+      <EditItemDialog isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} item={itemToEdit} />
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -682,10 +696,4 @@ export default function ItemsPage() {
         </Suspense>
     )
 }
-    
-
-    
-
-
-
     
