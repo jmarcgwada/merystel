@@ -129,12 +129,12 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, 100);
   }
   
- const handleFinalizeSale = useCallback(async (finalPayments: Payment[], isFullyPaid: boolean) => {
+ const handleFinalizeSale = useCallback(async (isFullyPaid: boolean) => {
     if (isPaid) return;
     
     const docType = currentSaleContext?.documentType;
     
-    const allPayments = [...previousPayments, ...finalPayments];
+    const allPayments = [...previousPayments, ...payments];
     const totalPaidForSale = allPayments.reduce((acc, p) => acc + p.amount, 0);
     const change = totalPaidForSale > displayTotalAmount ? totalPaidForSale - displayTotalAmount : 0;
   
@@ -202,7 +202,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?docType=' + (docType === 'credit_note' ? 'credit_note' : 'invoice'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque, updateSale]);
+  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, previousPayments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque, updateSale, payments]);
 
 
   useEffect(() => {
@@ -293,7 +293,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
         if (Math.abs(newBalance) < 0.009) { // Exactly paid
             autoFinalizeTimer.current = setTimeout(() => {
-                handleFinalizeSale(newPayments, true);
+                handleFinalizeSale(true);
             }, 1000);
         }
     }
@@ -373,7 +373,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if (Math.abs(newBalance) < 0.01) {
       if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
       autoFinalizeTimer.current = setTimeout(() => {
-          handleFinalizeSale(newPayments, true);
+          handleFinalizeSale(true);
       }, 1000);
     } else {
         setCurrentAmount(newBalance.toFixed(2));
@@ -440,7 +440,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
 
   const isInvoiceMode = currentSaleContext?.documentType === 'invoice';
   const finalizeButtonDisabled = (balanceDue > 0.009 && !isInvoiceMode && !isCreditNote) || showCalculator;
-
+    
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
       if (method.type === 'indirect' && method.value) {
         let amountToAdd = method.value > Math.abs(balanceDue) ? Math.abs(balanceDue) : method.value;
@@ -448,10 +448,6 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       }
       handleAddPayment(method);
       setView('payment');
-    };
-    
-    const handleSaveAsPending = () => {
-      handleFinalizeSale(payments, false); 
     };
     
     const renderCalculator = () => (
@@ -632,8 +628,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
                         type="text"
                         value={currentAmount}
                         onChange={handleAmountChange}
-                        onFocus={() => {
+                        onFocus={(e) => {
                             setShouldReplaceValue(true);
+                            e.target.select();
                         }}
                         readOnly={isOverpaid}
                         className="!text-5xl !font-bold h-auto text-center p-0 border-0 shadow-none focus-visible:ring-0 bg-transparent disabled:cursor-default"
@@ -718,21 +715,9 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           >
            Annuler
           </Button>
-         
-         {(isInvoiceMode || isCreditNote || currentSaleContext?.status === 'pending') && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleSaveAsPending}
-              className="w-full sm:w-auto"
-              disabled={showCalculator}
-            >
-              {isCreditNote ? 'Enregistrer sans paiement' : 'Enregistrer en attente'}
-            </Button>
-         )}
 
         {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
-          <Button onClick={() => handleFinalizeSale(payments, balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
