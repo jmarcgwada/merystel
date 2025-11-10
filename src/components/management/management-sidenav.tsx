@@ -43,12 +43,13 @@ export default function ManagementSideNav() {
   ];
   
   const financeNavLinks = [
-    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
     { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
   
+  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
+
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
@@ -65,29 +66,31 @@ export default function ManagementSideNav() {
       );
   }
 
-  const renderLinks = (links: typeof mainNavLinks) => links.map(link => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary',
-              pathname.startsWith(link.href) && 'bg-secondary text-primary'
-          )}
-          >
-          <link.icon className="h-4 w-4" />
-          <span className="flex-1">{link.label}</span>
-          <Badge variant={pathname.startsWith(link.href) ? "default" : "secondary"}>{link.count}</Badge>
-        </Link>
-  ));
+  const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
+    <Link
+      key={link.href}
+      href={link.href}
+      className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary',
+          pathname.startsWith(link.href) && 'bg-secondary text-primary'
+      )}
+      >
+      <link.icon className="h-4 w-4" />
+      <span className="flex-1">{link.label}</span>
+      {typeof link.count !== 'undefined' && <Badge variant={pathname.startsWith(link.href) ? "default" : "secondary"}>{link.count}</Badge>}
+    </Link>
+  );
 
   return (
     <nav className="flex flex-col gap-2 p-4">
-      {renderLinks(mainNavLinks)}
+      {mainNavLinks.map(renderLink)}
       <Separator className="my-1" />
-      {renderLinks(financeNavLinks)}
+      {renderLink(vatLink)}
+      <Separator className="my-1" />
+      {financeNavLinks.map(renderLink)}
       <Separator className="my-1" />
       <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">RAPPORTS</h3>
-       {reportLinks.map((link) => (
+       {reportLinks.map(link => (
         <Link
           key={link.href}
           href={link.href}
