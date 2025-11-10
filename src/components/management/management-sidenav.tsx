@@ -43,16 +43,16 @@ export default function ManagementSideNav() {
   const accountingNavLinks = [
     { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
     { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
   ];
   
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
-    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
   ];
   
-  const financeNavLinks = [
+  const diversLinks = [
       { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
   ];
 
@@ -95,7 +95,7 @@ export default function ManagementSideNav() {
       {reportLinks.map(renderLink)}
       <Separator className="my-1" />
       <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">DIVERS</h3>
-      {financeNavLinks.map(renderLink)}
+      {diversLinks.map(renderLink)}
     </nav>
   );
 }
