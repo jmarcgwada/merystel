@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -43,8 +42,8 @@ export default function ManagementSideNav() {
   ];
   
   const accountingNavLinks = [
-      { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
       { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+      { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
   ];
   
   const financeNavLinks = [
