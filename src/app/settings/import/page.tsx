@@ -622,16 +622,18 @@ export default function ImportDataPage() {
                 </div>
                 <div className="lg:col-span-2">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Prévisualisation des données</CardTitle>
-                                <CardDescription>
-                                    Vérifiez que vos données sont correctement séparées.
-                                </CardDescription>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Prévisualisation des données</CardTitle>
+                                    <CardDescription>
+                                        Vérifiez que vos données sont correctement séparées.
+                                    </CardDescription>
+                                </div>
+                                <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
+                                    Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
                             </div>
-                             <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
-                                Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
-                            </Button>
                         </CardHeader>
                         <CardContent>
                             <ScrollArea className="h-[400px] border rounded-md">
@@ -684,12 +686,14 @@ export default function ImportDataPage() {
                                 Faites correspondre chaque champ requis (*) à une colonne de votre fichier.
                             </CardDescription>
                         </div>
-                         {fileName && (
-                            <div className="text-sm text-muted-foreground text-right flex-shrink-0">
-                                <p className="font-semibold">{fileName}</p>
-                                <p>{parsedData.length} lignes détectées</p>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" onClick={() => setActiveTab('file')}>
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
+                            </Button>
+                            <Button onClick={handleGenerateJson}>
+                                Générer le JSON <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -838,14 +842,6 @@ export default function ImportDataPage() {
                       })}
                     </div>
                    </ScrollArea>
-                   <div className="mt-6 flex justify-between">
-                        <Button variant="outline" onClick={() => setActiveTab('file')}>
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
-                        </Button>
-                        <Button onClick={handleGenerateJson}>
-                            Générer le JSON <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
                 </CardContent>
             </Card>
         </TabsContent>
