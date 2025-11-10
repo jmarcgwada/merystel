@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { 
@@ -67,42 +66,51 @@ La structure de la base de données doit suivre scrupuleusement le schéma défi
         *   Une table "Vente à emporter" est toujours disponible.
     *   **Fond d'écran dynamique** optionnel sur la colonne de commande, basé sur l'image du dernier article ajouté.
 
-4.  **Gestion Commerciale (Facturation) :**
-    *   Page dédiée (\`/commercial\`) pour la création et la modification de factures.
+4.  **Gestion Commerciale (Facturation, Devis...) :**
+    *   Page dédiée (\`/commercial\`) pour la création et la modification de factures, devis, bons de livraison, commandes fournisseur et avoirs.
     *   La sélection d'un client est obligatoire.
-    *   Ajout d'articles via une barre de recherche.
-    *   Modification des quantités et application de remises (en % ou montant fixe) sur chaque ligne d'article.
-    *   Saisie d'un acompte, avec calcul automatique du "Net à Payer".
-    *   Les factures peuvent être enregistrées en attente ou finalisées via la modale de paiement.
-    *   Bouton discret de génération de facture aléatoire pour les tests.
+    *   Ajout d'articles via une barre de recherche ou un catalogue visuel.
+    *   Modification des quantités, prix TTC, et application de remises en pourcentage.
+    *   Saisie d'un acompte pour les factures. Le "Net à Payer" est calculé automatiquement.
+    *   Les factures et avoirs sont finalisés via la modale de paiement.
+    *   Bouton de duplication de pièce et de génération de pièce aléatoire pour les tests.
 
 5.  **Gestion de Commande & Paiement :**
     *   La colonne de commande à droite affiche les articles, quantités, prix et remises.
     *   Pavé numérique tactile contextuel pour modifier la quantité ou appliquer une remise sur un article sélectionné.
     *   Possibilité de mettre une commande "en attente" pour la rappeler plus tard.
     *   **Modale de paiement :**
-        *   Permet le multi-paiement.
+        *   Permet le multi-paiement (y compris chèques).
         *   Calcul automatique du rendu monnaie.
         *   Association de la vente à un client (recherche ou création à la volée).
         *   Affiche l'historique des paiements précédents pour les factures modifiées.
-        *   Calculatrice intégrée pour les montants.
+        *   Calculatrice intégrée.
 
 6.  **Gestion (Management) :**
     *   Section accessible via une navigation latérale.
-    *   CRUD complet pour : Articles, Catégories, Clients, Tables, Moyens de paiement, TVA, Utilisateurs (admin).
-    *   **Articles :** Gestion du nom, prix, catégorie, TVA, code-barres, image (génération IA possible), stock (avec seuil bas), numéros de série, et déclinaisons (ex: Taille, Couleur).
+    *   CRUD complet pour : Articles, Catégories, Clients, Fournisseurs, Tables, Moyens de paiement, TVA.
+    *   **Articles :** Gestion du nom, prix (vente et achat), catégorie, fournisseur, TVA, code-barres, image (génération IA possible), stock (avec seuil bas), numéros de série, et déclinaisons (ex: Taille, Couleur).
     *   **Catégories :** Gestion du nom, couleur, image, et un flag "Dédié au mode restaurant".
+    *   **Portefeuille de chèques :** Suivi des chèques avec statuts (En portefeuille, Remis, Encaissé, Impayé...), création de bordereaux de remise, et gestion des règlements partiels pour les impayés.
+    *   **Factures Récurrentes :** Configuration de la périodicité, suivi des échéances et génération en masse des factures.
 
 7.  **Rapports (Reports) :**
-    *   Liste de toutes les ventes (tickets et factures) avec des filtres avancés (date, client, origine, article, etc.).
-    *   Vue détaillée pour chaque vente.
-    *   Page dédiée aux "Articles populaires" avec un classement par quantité et revenu.
+    *   Liste de toutes les pièces de vente avec filtres avancés (date, client, statut, etc.).
+    *   **Mémorisation de la navigation :** Revenir à la liste des rapports préserve les filtres précédemment appliqués.
+    *   Vue détaillée pour chaque pièce.
+    *   **Reporting avancé :** Analyse par ligne de vente avec des filtres complexes et des sections "Top" (articles, clients, catégories).
 
 8.  **Paramètres (Settings) :**
     *   **Personnalisation :** Modale de lien externe, visibilité des statistiques, affichage des images, apparence des cartes d'articles.
-    *   **Apparence :** Couleurs de fond pour les modes de vente, et personnalisation du tableau de bord.
+    *   **Apparence :** Couleurs de fond pour les modes de vente, les documents, et personnalisation du tableau de bord.
     *   **Paramétrage :** Mode de vente par défaut, mode forcé, gestion des notifications, affichage des descriptions d'articles.
+    *   **Connectivité :** Configuration SMTP, FTP et Twilio pour les notifications et relances.
     *   **Données Firestore (Admin) :** Zone sécurisée par code PIN pour initialiser, importer/exporter la configuration, et réinitialiser les données.
+
+9.  **Ergonomie & Interface :**
+    *   **Calculatrice déplaçable :** Une calculatrice avancée (standard, prix/marge, remise, TVA) est disponible depuis l'en-tête et peut être déplacée sur l'écran.
+    *   **Arrière-plan de la calculatrice transparent** pour voir les données derrière.
+    *   Utilisation intensive de raccourcis clavier et navigation intuitive.
 
 **Règles Techniques et de Qualité :**
 - Utiliser les Server Components de Next.js par défaut.
