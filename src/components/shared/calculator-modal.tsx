@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { usePos } from '@/contexts/pos-context';
-import { Dialog, DialogOverlay, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -372,13 +371,13 @@ export function CalculatorModal() {
     }, []);
 
     useEffect(() => {
-      if (isCalculatorOpen && !isInitialized && isClient) {
-        setPosition({ 
-            x: window.innerWidth / 2 - 208, // 208 is half of sm:max-w-sm (32rem/2 * 16px) 
-            y: window.innerHeight / 2 - 350 // rough estimate
-        });
-        setIsInitialized(true);
-      }
+        if (isCalculatorOpen && !isInitialized && isClient) {
+            setPosition({
+                x: window.innerWidth / 2 - 208, // 208 is half of sm:max-w-sm (32rem/2 * 16px)
+                y: window.innerHeight / 2 - 350
+            });
+            setIsInitialized(true);
+        }
     }, [isCalculatorOpen, isInitialized, isClient]);
 
     const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -403,7 +402,7 @@ export function CalculatorModal() {
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
     }, []);
-    
+
     useEffect(() => {
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -422,20 +421,27 @@ export function CalculatorModal() {
         top: `${position.y}px`,
         left: `${position.x}px`,
         transform: 'none',
-    } : {};
+        position: 'fixed',
+        zIndex: 100
+    } : {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 100
+    } as React.CSSProperties;
+
+    if (!isCalculatorOpen) {
+        return null;
+    }
 
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-            <DialogOverlay />
-            <div ref={modalRef} style={dynamicStyle} className="fixed z-50">
+            <DialogOverlay className="bg-black/40" />
+            <div ref={modalRef} style={dynamicStyle}>
                 <DialogContent
                     className="sm:max-w-sm p-0 flex flex-col shadow-2xl relative"
                     hideCloseButton
-                    onInteractOutside={(e) => {
-                        if (e.target instanceof HTMLElement && e.target.closest('[data-drag-handle]')) {
-                            e.preventDefault();
-                        }
-                    }}
                 >
                     <DialogHeader 
                         data-drag-handle
@@ -469,6 +475,9 @@ export function CalculatorModal() {
                             <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
                         </Tabs>
                     </div>
+                     <Button variant="ghost" onClick={() => setIsCalculatorOpen(false)} className="mt-2">
+                        Fermer
+                    </Button>
                 </DialogContent>
             </div>
         </Dialog>
