@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -43,12 +42,12 @@ export default function ManagementSideNav() {
   ];
   
   const financeNavLinks = [
+    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
     { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
   
-  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
 
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
@@ -84,8 +83,6 @@ export default function ManagementSideNav() {
   return (
     <nav className="flex flex-col gap-2 p-4">
       {mainNavLinks.map(renderLink)}
-      <Separator className="my-1" />
-      {renderLink(vatLink)}
       <Separator className="my-1" />
       {financeNavLinks.map(renderLink)}
       <Separator className="my-1" />
