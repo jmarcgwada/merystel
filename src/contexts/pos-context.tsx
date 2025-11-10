@@ -1794,54 +1794,60 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }, [sales, recordCommercialDocument]);
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-      const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-      const toastId = shadcnToast({
-          title: 'Importation...',
-          description: `Préparation de ${jsonData.length} lignes.`
-      });
-  
-      const addError = (line: number, message: string) => {
-          report.errorCount++;
-          report.errors.push(`Ligne ${line + 1}: ${message}`);
-      };
-  
-      if (dataType === 'articles') {
-          const itemBarcodes = new Set(items.map(i => i.barcode));
-          for (const [index, row] of jsonData.entries()) {
-              if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatId) {
-                  addError(index, 'Champs article requis (barcode, name, price, vatId).'); continue;
-              }
-              if (itemBarcodes.has(row.barcode)) {
-                  addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
-              }
-              await addItem(row as Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { barcode: string });
-              report.successCount++;
-              itemBarcodes.add(row.barcode);
-          }
-      } else {
-        // Fallback for other types or add more specific logic
-        for (const [index, row] of jsonData.entries()) {
-            try {
-                if (dataType === 'clients') {
-                    if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
-                    if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
-                    await addCustomer(row);
-                } else if (dataType === 'fournisseurs') {
-                     if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
-                    if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
-                    await addSupplier(row);
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
+        const toastId = shadcnToast({
+            title: 'Importation...',
+            description: `Préparation de ${jsonData.length} lignes.`
+        });
+    
+        const addError = (line: number, message: string) => {
+            report.errorCount++;
+            report.errors.push(`Ligne ${line + 1}: ${message}`);
+        };
+    
+        if (dataType === 'articles') {
+            const itemBarcodes = new Set(items.map(i => i.barcode));
+            for (const [index, row] of jsonData.entries()) {
+                if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) {
+                    addError(index, 'Champs article requis (barcode, name, price, vatCode).'); continue;
                 }
+                if (itemBarcodes.has(row.barcode)) {
+                    addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
+                }
+                
+                const vat = vatRates.find(v => v.code === row.vatCode);
+                if (!vat) {
+                    addError(index, `Code TVA "${row.vatCode}" introuvable.`); continue;
+                }
+
+                await addItem({ ...row, vatId: vat.id } as Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { barcode: string });
                 report.successCount++;
-            } catch (e: any) { addError(index, e.message); }
+                itemBarcodes.add(row.barcode);
+            }
+        } else {
+          // Fallback for other types or add more specific logic
+          for (const [index, row] of jsonData.entries()) {
+              try {
+                  if (dataType === 'clients') {
+                      if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
+                      if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+                      await addCustomer(row);
+                  } else if (dataType === 'fournisseurs') {
+                       if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
+                      if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                      await addSupplier(row);
+                  }
+                  report.successCount++;
+              } catch (e: any) { addError(index, e.message); }
+          }
         }
-      }
-      
-      shadcnToast({
-          title: "Importation terminée !",
-          description: `${report.successCount} succès, ${report.errorCount} échecs.`
-      });
-      return report;
-  }, [customers, items, suppliers, addCustomer, addItem, addSupplier, shadcnToast]);
+        
+        shadcnToast({
+            title: "Importation terminée !",
+            description: `${report.successCount} succès, ${report.errorCount} échecs.`
+        });
+        return report;
+    }, [customers, items, suppliers, addCustomer, addItem, addSupplier, shadcnToast, vatRates]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1911,5 +1917,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
