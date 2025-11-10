@@ -364,17 +364,22 @@ export function CalculatorModal() {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef<HTMLDivElement>(null);
+    const [isClient, setIsClient] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     
     useEffect(() => {
-      if (isCalculatorOpen && !isInitialized && typeof window !== 'undefined') {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+      if (isCalculatorOpen && !isInitialized && isClient) {
         setPosition({ 
-            x: window.innerWidth / 2 - 208, // 208 is half of sm:max-w-sm (32rem/2)
+            x: window.innerWidth / 2 - 208, // 208 is half of sm:max-w-sm (32rem/2 * 16px) 
             y: window.innerHeight / 2 - 350 // rough estimate
         });
         setIsInitialized(true);
       }
-    }, [isCalculatorOpen, isInitialized]);
+    }, [isCalculatorOpen, isInitialized, isClient]);
 
     const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
         if (modalRef.current) {
@@ -416,8 +421,12 @@ export function CalculatorModal() {
     const dynamicStyle = isInitialized ? {
         top: `${position.y}px`,
         left: `${position.x}px`,
+        transform: 'none',
     } : {};
 
+    if (!isCalculatorOpen) {
+        return null;
+    }
 
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
@@ -429,11 +438,6 @@ export function CalculatorModal() {
             >
                 <DialogContent
                     className="sm:max-w-sm p-0 flex flex-col shadow-2xl relative"
-                    onInteractOutside={(e) => {
-                      if (e.target instanceof HTMLElement && e.target.closest('[data-drag-handle]')) {
-                        e.preventDefault();
-                      }
-                    }}
                     hideCloseButton
                 >
                     <DialogHeader 
@@ -468,9 +472,6 @@ export function CalculatorModal() {
                             <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
                         </Tabs>
                     </div>
-                     <Button variant="ghost" onClick={() => setIsCalculatorOpen(false)} className="mt-2">
-                        Fermer
-                    </Button>
                 </DialogContent>
             </div>
         </Dialog>
