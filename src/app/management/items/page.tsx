@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, Suspense, useRef } from 'react';
@@ -314,7 +313,7 @@ function ItemsPageContent() {
     }, 700); // 700ms for long press
     setLongPressTimer(timer);
   };
-
+  
   const handleMouseUp = (clickAction: () => void) => {
     if (longPressTimer) {
         clearTimeout(longPressTimer);
@@ -688,3 +687,5 @@ export default function ItemsPage() {
     
 
 
+
+    
