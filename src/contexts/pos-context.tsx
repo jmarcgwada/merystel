@@ -1848,6 +1848,23 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                 } catch (e: any) { addError(firstRow.originalIndex, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
+        } else if (dataType === 'articles') {
+            for (const [index, row] of jsonData.entries()) {
+                try {
+                    if (!row.barcode || !row.name || !row.price || !row.vatCode) {
+                        throw new Error("Champs requis (code-barres, nom, prix, code TVA) manquants.");
+                    }
+                    if (items.some(i => i.barcode === row.barcode)) {
+                        throw new Error(`Article avec le code-barres ${row.barcode} existe déjà.`);
+                    }
+                    const vatRate = vatRates.find(v => v.code === parseInt(row.vatCode));
+                    if (!vatRate) {
+                        throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
+                    }
+                    await addItem({ ...row, vatId: vatRate.id });
+                    report.successCount++;
+                } catch (e: any) { addError(index, e.message); }
+            }
         } else if (dataType === 'clients') {
             for (const [index, row] of jsonData.entries()) {
                 try {
@@ -1856,20 +1873,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     report.successCount++;
                 } catch (e: any) { addError(index, e.message); }
             }
-        } else if (dataType === 'articles') {
-            for (const [index, row] of jsonData.entries()) {
-                try {
-                    if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Les champs obligatoires pour un article (code-barres, nom, prix, TVA) sont manquants.");
-                    if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
-                    await addItem(row);
-                    report.successCount++;
-                } catch (e: any) { addError(index, e.message); }
-            }
         } else if (dataType === 'fournisseurs') {
              for (const [index, row] of jsonData.entries()) {
                 try {
                     if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
-                    if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                    if (suppliers.some(s => s.id === row.id)) throw new Error(`Fournisseur avec l'ID ${row.id} existe déjà.`);
                     await addSupplier(row);
                     report.successCount++;
                 } catch (e: any) { addError(index, e.message); }
@@ -1950,5 +1958,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

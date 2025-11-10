@@ -38,7 +38,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 
 
 const customerFields: (keyof Customer | 'ignore')[] = ['ignore', 'id', 'name', 'email', 'phone', 'phone2', 'address', 'postalCode', 'city', 'country', 'iban', 'notes', 'isDisabled'];
-const itemFields: (keyof Item | 'ignore')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'supplierId', 'vatId', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
+const itemFields: (keyof Item | 'ignore' | 'vatCode')[] = ['ignore', 'name', 'price', 'purchasePrice', 'categoryId', 'supplierId', 'vatCode', 'description', 'description2', 'barcode', 'marginPercentage', 'stock', 'lowStockThreshold', 'isDisabled'];
 const supplierFields: (keyof Supplier | 'ignore')[] = ['ignore', 'id', 'name', 'contactName', 'email', 'phone', 'address', 'postalCode', 'city', 'country', 'siret', 'website', 'notes', 'iban', 'bic'];
 const saleFields: string[] = [
     'ignore', 
@@ -111,7 +111,7 @@ const fieldLabels: Record<string, string> = {
   purchasePrice: "Prix d'achat",
   categoryId: 'Nom de la Catégorie',
   supplierId: 'ID Fournisseur',
-  vatId: 'Code de TVA *',
+  vatCode: 'Code de TVA *',
   description: 'Description',
   description2: 'Description 2',
   barcode: 'Code-barres *',
@@ -134,7 +134,6 @@ const fieldLabels: Record<string, string> = {
   quantity: 'Quantité *',
   unitPriceHT: "Prix Unitaire HT *",
   totalLineHT: 'Prix Total Ligne HT',
-  vatCode: 'Code de TVA *',
   vatAmount: 'Montant TVA de la ligne',
   discountPercentage: 'Remise en %',
   discountAmount: 'Remise en montant',
@@ -155,7 +154,7 @@ const fieldLabels: Record<string, string> = {
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
-    articles: ['name', 'price', 'vatId', 'barcode'],
+    articles: ['name', 'price', 'vatCode', 'barcode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
     ventes_completes: ['pieceName', 'ticketNumber', 'saleDate', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
