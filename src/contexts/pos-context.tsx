@@ -223,6 +223,8 @@ export interface PosContextType {
   selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
+  exportFullData: () => string;
+  importFullData: (file: File) => Promise<void>;
   importDataFromJson: (dataType: string, jsonData: any[]) => Promise<ImportReport>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
@@ -897,7 +899,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
-            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
+            toast({ title: 'Importation de configuration réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
@@ -905,6 +907,69 @@ export function PosProvider({ children }: { children: ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
   
+  const exportFullData = useCallback(() => {
+      const allData = {
+          version: '1.0',
+          timestamp: new Date().toISOString(),
+          data: {
+              items, categories, customers, suppliers, tables: tablesData, sales, 
+              paymentMethods, vatRates, heldOrders, auditLogs, dunningLogs, 
+              cheques, paiementsPartiels, remises, companyInfo, users, mappingTemplates
+          }
+      };
+      return JSON.stringify(allData, null, 2);
+  }, [
+      items, categories, customers, suppliers, tablesData, sales, paymentMethods, 
+      vatRates, heldOrders, auditLogs, dunningLogs, cheques, paiementsPartiels, 
+      remises, companyInfo, users, mappingTemplates
+  ]);
+  
+  const importFullData = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const fullData = JSON.parse(event.target?.result as string);
+        if (fullData.version !== '1.0' || !fullData.data) {
+          throw new Error('Format de sauvegarde invalide ou version non supportée.');
+        }
+        
+        const data = fullData.data;
+
+        // Reset and rehydrate all states
+        setItems(data.items || []);
+        setCategories(data.categories || []);
+        setCustomers(data.customers || []);
+        setSuppliers(data.suppliers || []);
+        setTablesData(data.tables || []);
+        setSales(data.sales || []);
+        setPaymentMethods(data.paymentMethods || []);
+        setVatRates(data.vatRates || []);
+        setHeldOrders(data.heldOrders || []);
+        setAuditLogs(data.auditLogs || []);
+        setDunningLogs(data.dunningLogs || []);
+        setCheques(data.cheques || []);
+        setPaiementsPartiels(data.paiementsPartiels || []);
+        setRemises(data.remises || []);
+        setCompanyInfo(data.companyInfo || null);
+        setUsers(data.users || []);
+        setMappingTemplates(data.mappingTemplates || []);
+
+        toast({ title: 'Restauration complète réussie!', description: 'Toutes les données ont été restaurées depuis la sauvegarde.' });
+        // Force a page reload to ensure all components re-render with new data
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (error: any) {
+        console.error("Full data import error:", error);
+        toast({ variant: 'destructive', title: 'Erreur de restauration', description: error.message || 'Le fichier de sauvegarde est invalide.' });
+      }
+    };
+    reader.readAsText(file);
+  }, [
+      setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
+      setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setDunningLogs,
+      setCheques, setPaiementsPartiels, setRemises, setCompanyInfo, setUsers, 
+      setMappingTemplates, toast
+  ]);
+
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -1918,12 +1983,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        shadcnToast({
+        toast({
             title: "Importation terminée !",
             description: `${report.successCount} succès, ${report.errorCount} échecs.`
         });
         return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
@@ -1942,7 +2007,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       paiementsPartiels, addPaiementPartiel, 
       remises, addRemise,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,

@@ -52,6 +52,8 @@ export default function FirestoreDataPage() {
   const { 
       exportConfiguration, 
       importConfiguration,
+      exportFullData,
+      importFullData,
       resetAllData,
       seedInitialData,
       importDemoData,
@@ -72,6 +74,7 @@ export default function FirestoreDataPage() {
   const [isSelectiveResetOpen, setSelectiveResetOpen] = useState(false);
   const [isPromptViewerOpen, setPromptViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fullFileInputRef = useRef<HTMLInputElement>(null);
   
   const [isExportingToFtp, setIsExportingToFtp] = useState(false);
 
@@ -181,13 +184,15 @@ export default function FirestoreDataPage() {
   }, [isPinDialogOpen, handlePinKeyPress, handlePinBackspace, handlePinSubmit, triggerVisualFeedback]);
 
 
-  const handleDownload = () => {
-    const jsonString = exportConfiguration();
+  const handleDownload = (type: 'config' | 'full') => {
+    const isFull = type === 'full';
+    const jsonString = isFull ? exportFullData() : exportConfiguration();
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    const prefix = isFull ? 'zenith-pos-full-backup' : 'zenith-pos-config';
+    a.download = `${prefix}-${format(new Date(), 'yyyy-MM-dd')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -208,9 +213,9 @@ export default function FirestoreDataPage() {
     toast({ title: 'Préparation de l\'exportation FTP...' });
 
     try {
-      const jsonString = exportConfiguration();
+      const jsonString = exportFullData();
       const fileContentBase64 = Buffer.from(jsonString).toString('base64');
-      const fileName = `zenith-pos-config-${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.json`;
+      const fileName = `zenith-pos-full-backup-${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.json`;
 
       const ftpResult = await uploadFileFtp({
         ftpConfig: {
@@ -226,7 +231,7 @@ export default function FirestoreDataPage() {
       });
 
       if (ftpResult.success) {
-        toast({ title: 'Exportation FTP réussie', description: 'Le fichier de configuration a été envoyé.' });
+        toast({ title: 'Exportation FTP réussie', description: 'Le fichier de sauvegarde a été envoyé.' });
 
         const isSmtpConfigured = smtpConfig?.host && smtpConfig?.port && smtpConfig?.user && smtpConfig?.password && smtpConfig?.senderEmail;
 
@@ -263,10 +268,14 @@ export default function FirestoreDataPage() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'config' | 'full') => {
     const file = e.target.files?.[0];
     if (file) {
-      importConfiguration(file);
+        if (type === 'full') {
+            importFullData(file);
+        } else {
+            importConfiguration(file);
+        }
     }
   };
   
@@ -366,16 +375,49 @@ export default function FirestoreDataPage() {
                 </Card>
 
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Sauvegarde et Restauration</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Sauvegarde & Restauration Complète</h2>
+                    <Card className="mt-4 border-primary/50">
+                        <CardHeader>
+                            <CardTitle>Sauvegarde et Restauration de l'Application</CardTitle>
+                            <CardDescription>
+                                Exportez ou importez l'intégralité des données de l'application, y compris les ventes, les logs et la configuration. Idéal pour une sauvegarde complète ou pour cloner l'environnement.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col sm:flex-row gap-4">
+                            <Button onClick={() => handleDownload('full')} variant="secondary">
+                                <Download className="mr-2" />
+                                Exporter Toutes les Données
+                            </Button>
+                            <Button onClick={() => fullFileInputRef.current?.click()} variant="secondary">
+                                <Upload className="mr-2" />
+                                Restaurer une Sauvegarde Complète
+                            </Button>
+                            <input
+                                ref={fullFileInputRef}
+                                type="file"
+                                accept=".json"
+                                className="hidden"
+                                onChange={(e) => handleFileChange(e, 'full')}
+                            />
+                             <Button onClick={handleExportToFtp} variant="default" disabled={isExportingToFtp}>
+                                <Server className="mr-2 h-4 w-4"/>
+                                {isExportingToFtp ? 'Export en cours...' : 'Exporter vers FTP'}
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <div>
+                    <h2 className="text-xl font-bold tracking-tight text-primary mb-4">Gestion de la Configuration</h2>
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Sauvegarde du Code Projet</CardTitle>
                             <CardDescription>
-                                La méthode la plus fiable pour sauvegarder votre projet est de générer un "Prompt Projet". Il contient la description complète de l'architecture et de la logique de l'application, vous permettant de la recréer à l'identique.
+                                Générez un "Prompt Projet" qui contient la description complète de l'architecture pour recréer l'application à l'identique.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button variant="default" onClick={() => setPromptViewerOpen(true)}>
+                            <Button variant="outline" onClick={() => setPromptViewerOpen(true)}>
                               <FileCode className="mr-2 h-4 w-4" />
                               Générer le Prompt Projet
                             </Button>
@@ -383,31 +425,27 @@ export default function FirestoreDataPage() {
                     </Card>
                     <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Sauvegarde des Données</CardTitle>
+                            <CardTitle>Sauvegarde de la Configuration</CardTitle>
                             <CardDescription>
-                                Exportez uniquement les données de configuration (articles, catégories, etc.) sous forme de fichier JSON. Utile pour les transferts ou comme sauvegarde simple.
+                                Exportez uniquement les données de configuration (articles, clients, etc.). Utile pour les transferts ou comme sauvegarde de base.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col sm:flex-row gap-4">
-                            <Button onClick={handleDownload} variant="outline">
+                            <Button onClick={() => handleDownload('config')} variant="outline">
                                 <Download className="mr-2" />
                                 Exporter la configuration
                             </Button>
                             <Button onClick={() => fileInputRef.current?.click()} variant="outline">
                                 <Upload className="mr-2" />
-                                Importer depuis un fichier
+                                Importer la configuration
                             </Button>
                             <input
                                 ref={fileInputRef}
                                 type="file"
                                 accept=".json"
                                 className="hidden"
-                                onChange={handleFileChange}
+                                onChange={(e) => handleFileChange(e, 'config')}
                             />
-                             <Button onClick={handleExportToFtp} variant="secondary" disabled={isExportingToFtp}>
-                                <Server className="mr-2 h-4 w-4"/>
-                                {isExportingToFtp ? 'Export en cours...' : 'Exporter vers FTP'}
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>
