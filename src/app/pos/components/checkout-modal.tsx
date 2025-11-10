@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -69,7 +68,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque, updateSale } = usePos();
-  const { toast } = useShadcnToast();
+  const { toast } = useToast();
   const router = useRouter();
   
   const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
@@ -878,5 +877,3 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
-
-
