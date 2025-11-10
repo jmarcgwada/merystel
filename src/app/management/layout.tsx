@@ -69,14 +69,11 @@ export default function ManagementLayout({
   ];
   
   const accountingNavLinks = [
-    { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
-  ];
-  
-  const diversLinks = [
-    { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
+      { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
+      { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
+      { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
   ];
 
-  const recurrenceLink = { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 };
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
   const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
 
@@ -105,30 +102,18 @@ export default function ManagementLayout({
                 <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
+                    {renderLink(vatLink)}
+                    {renderLink(chequeLink)}
                     {accountingNavLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-              <Separator className="my-2" />
-              {renderLink(vatLink)}
-              <Separator className="my-2" />
-              {renderLink(chequeLink)}
               <Separator className="my-2" />
                <SidebarGroup>
                 <SidebarGroupLabel>Rapports &amp; Finance</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {reportLinks.map(renderLink)}
-                    {renderLink(recurrenceLink)}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-              <Separator className="my-2" />
-              <SidebarGroup>
-                <SidebarGroupLabel>Divers</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {diversLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -147,9 +132,9 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
-        </div>
+        </main>
       </div>
     </SidebarProvider>
   );
