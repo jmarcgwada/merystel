@@ -62,27 +62,24 @@ export default function ManagementLayout({
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
   ];
-
-  const accountingNavLinks = [
-    { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
-  ];
   
-  const financeNavLinks = [
-      { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
-  ];
-
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
   ];
   
-  const recurrenceLink = { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 };
-  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
-  const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
+  const accountingNavLinks = [
+    { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
+  ];
   
   const diversLinks = [
     { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
   ];
+
+  const recurrenceLink = { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 };
+  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
+  const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
+
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
       <SidebarMenuItem key={link.href}>
@@ -98,7 +95,7 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex h-full">
         <Sidebar>
           <SidebarContent className="p-2">
             <SidebarMenu>
@@ -108,12 +105,14 @@ export default function ManagementLayout({
                 <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {renderLink(vatLink)}
-                    {renderLink(chequeLink)}
                     {accountingNavLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+              <Separator className="my-2" />
+              {renderLink(vatLink)}
+              <Separator className="my-2" />
+              {renderLink(chequeLink)}
               <Separator className="my-2" />
                <SidebarGroup>
                 <SidebarGroupLabel>Rapports &amp; Finance</SidebarGroupLabel>
