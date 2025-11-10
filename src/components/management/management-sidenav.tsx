@@ -46,14 +46,17 @@ export default function ManagementSideNav() {
   ];
   
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
-  const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
-  const recurringLink = { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 };
 
 
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
-  ]
+  ];
+  
+  const financeNavLinks = [
+      { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
+      { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
+  ];
 
   if (!isClient) {
       return (
@@ -89,15 +92,14 @@ export default function ManagementSideNav() {
       {accountingNavLinks.map(renderLink)}
 
       <Separator className="my-1" />
-
-      {renderLink(vatLink)}
-      
-      <Separator className="my-1" />
       
       <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">RAPPORTS</h3>
       {reportLinks.map(renderLink)}
-      {renderLink(chequeLink)}
-      {renderLink(recurringLink)}
+      <Separator className="my-1" />
+      {financeNavLinks.map(renderLink)}
+      
+      <Separator className="my-1" />
+      <h3 className="px-3 text-xs font-semibold text-muted-foreground/80 tracking-wider">DIVERS</h3>
     </nav>
   );
 }
