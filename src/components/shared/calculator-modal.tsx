@@ -421,65 +421,50 @@ export function CalculatorModal() {
         top: `${position.y}px`,
         left: `${position.x}px`,
         transform: 'none',
-        position: 'fixed',
-        zIndex: 100
     } : {
-        position: 'fixed',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 100
-    } as React.CSSProperties;
-
-    if (!isCalculatorOpen) {
-        return null;
-    }
+    };
 
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-            <DialogOverlay className="bg-black/40" />
-            <div ref={modalRef} style={dynamicStyle}>
-                <DialogContent
-                    className="sm:max-w-sm p-0 flex flex-col shadow-2xl relative"
-                    hideCloseButton
+            <DialogContent
+                ref={modalRef}
+                className="sm:max-w-sm p-0 flex flex-col shadow-2xl"
+                style={dynamicStyle}
+                hideCloseButton
+            >
+                <DialogHeader 
+                    className="p-4 pb-2 text-center bg-muted/50 rounded-t-lg relative"
+                    onMouseDown={handleDragStart}
+                    data-drag-handle
                 >
-                    <DialogHeader 
-                        data-drag-handle
-                        onMouseDown={handleDragStart}
-                        className={cn(
-                            "p-4 pb-2 text-center bg-muted/50 rounded-t-lg relative",
-                            isDragging ? "cursor-grabbing" : "cursor-grab"
-                        )}
+                    <DialogTitle className={cn("text-base select-none", isDragging ? 'cursor-grabbing' : 'cursor-grab')}>Calculatrice Commerciale</DialogTitle>
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => setIsCalculatorOpen(false)}
                     >
-                        <DialogTitle className="text-base">Calculatrice Commerciale</DialogTitle>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7"
-                            onClick={() => setIsCalculatorOpen(false)}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </DialogHeader>
-                     <div className="px-4 pb-4">
-                        <Tabs defaultValue="standard">
-                            <TabsList className="grid w-full grid-cols-4">
-                                <TabsTrigger value="standard">Standard</TabsTrigger>
-                                <TabsTrigger value="pricing">Prix/Marge</TabsTrigger>
-                                <TabsTrigger value="discount">Remise</TabsTrigger>
-                                <TabsTrigger value="vat">TVA</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="standard" className="pt-4"><StandardCalculator /></TabsContent>
-                            <TabsContent value="pricing" className="pt-4"><PricingCalculator /></TabsContent>
-                            <TabsContent value="discount" className="pt-4"><DiscountCalculator /></TabsContent>
-                            <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
-                        </Tabs>
-                    </div>
-                     <Button variant="ghost" onClick={() => setIsCalculatorOpen(false)} className="mt-2">
-                        Fermer
+                        <X className="h-4 w-4" />
                     </Button>
-                </DialogContent>
-            </div>
+                </DialogHeader>
+                 <div className="px-4 pb-4">
+                    <Tabs defaultValue="standard">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="standard">Standard</TabsTrigger>
+                            <TabsTrigger value="pricing">Prix/Marge</TabsTrigger>
+                            <TabsTrigger value="discount">Remise</TabsTrigger>
+                            <TabsTrigger value="vat">TVA</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="standard" className="pt-4"><StandardCalculator /></TabsContent>
+                        <TabsContent value="pricing" className="pt-4"><PricingCalculator /></TabsContent>
+                        <TabsContent value="discount" className="pt-4"><DiscountCalculator /></TabsContent>
+                        <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
+                    </Tabs>
+                </div>
+            </DialogContent>
         </Dialog>
     );
 }
