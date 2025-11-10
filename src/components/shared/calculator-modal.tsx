@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { usePos } from '@/contexts/pos-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -360,25 +360,92 @@ const VatCalculator = () => {
 
 export function CalculatorModal() {
     const { isCalculatorOpen, setIsCalculatorOpen } = usePos();
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const modalRef = useRef<HTMLDivElement>(null);
+  
+    useEffect(() => {
+        if (isCalculatorOpen) {
+            setPosition({
+                x: window.innerWidth / 2 - 200, // Center it initially
+                y: window.innerHeight / 2 - 350,
+            });
+        }
+    }, [isCalculatorOpen]);
+
+    const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (modalRef.current) {
+            setIsDragging(true);
+            setDragStart({
+                x: e.clientX - position.x,
+                y: e.clientY - position.y,
+            });
+        }
+    };
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (isDragging) {
+            setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y,
+            });
+        }
+    }, [isDragging, dragStart]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    useEffect(() => {
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        } else {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, handleMouseMove, handleMouseUp]);
+
 
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-            <DialogContent className="sm:max-w-sm p-4">
-                <DialogHeader className="p-2">
-                    <DialogTitle className="text-center">Calculatrice Commerciale</DialogTitle>
+            <DialogContent 
+                ref={modalRef}
+                className="sm:max-w-sm p-0"
+                hideCloseButton={true}
+                style={{
+                    position: 'fixed',
+                    top: `${position.y}px`,
+                    left: `${position.x}px`,
+                    transform: 'none',
+                    margin: 0,
+                }}
+            >
+                <DialogHeader 
+                    onMouseDown={handleDragStart}
+                    className={cn("p-2 text-center bg-muted/50 rounded-t-lg", isDragging ? "cursor-grabbing" : "cursor-grab")}
+                >
+                    <DialogTitle className="text-base">Calculatrice</DialogTitle>
                 </DialogHeader>
-                <Tabs defaultValue="standard">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="standard">Standard</TabsTrigger>
-                        <TabsTrigger value="pricing">Prix/Marge</TabsTrigger>
-                        <TabsTrigger value="discount">Remise</TabsTrigger>
-                        <TabsTrigger value="vat">TVA</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="standard" className="pt-4"><StandardCalculator /></TabsContent>
-                    <TabsContent value="pricing" className="pt-4"><PricingCalculator /></TabsContent>
-                    <TabsContent value="discount" className="pt-4"><DiscountCalculator /></TabsContent>
-                    <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
-                </Tabs>
+                 <div className="p-4 pt-0">
+                    <Tabs defaultValue="standard">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="standard">Standard</TabsTrigger>
+                            <TabsTrigger value="pricing">Prix/Marge</TabsTrigger>
+                            <TabsTrigger value="discount">Remise</TabsTrigger>
+                            <TabsTrigger value="vat">TVA</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="standard" className="pt-4"><StandardCalculator /></TabsContent>
+                        <TabsContent value="pricing" className="pt-4"><PricingCalculator /></TabsContent>
+                        <TabsContent value="discount" className="pt-4"><DiscountCalculator /></TabsContent>
+                        <TabsContent value="vat" className="pt-4"><VatCalculator /></TabsContent>
+                    </Tabs>
+                </div>
             </DialogContent>
         </Dialog>
     );
