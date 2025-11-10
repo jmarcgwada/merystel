@@ -522,7 +522,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         if (typeof document === 'undefined') return;
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+              console.error(`Error attempting to enable full-screen mode: ${''}${err.message} (${err.name})`);
             });
         } else {
             if (document.exitFullscreen) {
@@ -1260,13 +1260,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+                ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
             } else {
                 const todaysSalesCount = sales.filter(s => {
                     const saleDate = new Date(s.date as Date);
                     return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
                 }).length;
-                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+                ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
             }
             
             finalSale = {
@@ -1849,6 +1849,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 } catch (e: any) { addError(firstRow.originalIndex, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
         } else if (dataType === 'articles') {
+            let localCategories = [...categories];
             for (const [index, row] of jsonData.entries()) {
                 try {
                     if (!row.barcode || !row.name || !row.price || !row.vatCode) {
@@ -1857,11 +1858,22 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     if (items.some(i => i.barcode === row.barcode)) {
                         throw new Error(`Article avec le code-barres ${row.barcode} existe déjà.`);
                     }
+                    
                     const vatRate = vatRates.find(v => v.code === parseInt(row.vatCode));
                     if (!vatRate) {
                         throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
                     }
-                    await addItem({ ...row, vatId: vatRate.id });
+
+                    let category = localCategories.find(c => c.name === row.categoryId);
+                    if (!category && row.categoryId) {
+                        const newCategory = await addCategory({ name: row.categoryId });
+                        if (newCategory) {
+                            category = newCategory;
+                            localCategories.push(newCategory);
+                        }
+                    }
+                    
+                    await addItem({ ...row, vatId: vatRate.id, categoryId: category?.id });
                     report.successCount++;
                 } catch (e: any) { addError(index, e.message); }
             }
@@ -1884,12 +1896,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
              }
         }
         
-        toast({
+        shadcnToast({
             title: "Importation terminée !",
             description: `${report.successCount} succès, ${report.errorCount} échecs.`
         });
         return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
