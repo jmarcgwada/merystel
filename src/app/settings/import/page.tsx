@@ -154,7 +154,7 @@ const fieldLabels: Record<string, string> = {
 
 const requiredFieldsMap: Record<string, string[]> = {
     clients: ['id', 'name'],
-    articles: ['name', 'price', 'vatId', 'barcode'],
+    articles: ['name', 'price', 'barcode', 'vatCode'],
     fournisseurs: ['id', 'name'],
     ventes: ['ticketNumber', 'itemBarcode', 'quantity', 'unitPriceHT'],
     ventes_completes: ['pieceName', 'ticketNumber', 'saleDate', 'itemBarcode', 'itemName', 'quantity', 'unitPriceHT', 'vatCode'],
@@ -682,8 +682,8 @@ export default function ImportDataPage() {
                     <div className="flex justify-between items-center gap-4">
                         <div className="space-y-1">
                             <CardTitle className="text-lg">Étape 2: Mappage des Colonnes</CardTitle>
-                            <CardDescription>
-                                Faites correspondre chaque champ requis (*) à une colonne de votre fichier.
+                            <CardDescription className="text-sm text-muted-foreground">
+                                Fichier: <span className="font-semibold">{fileName}</span> ({dataRows.length} lignes)
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
