@@ -1794,7 +1794,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }, [sales, recordCommercialDocument]);
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
         const toastId = shadcnToast({
             title: 'Importation...',
             description: `Préparation de ${jsonData.length} lignes.`
@@ -1805,27 +1805,33 @@ export function PosProvider({ children }: { children: ReactNode }) {
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
     
+        let localCategories = [...categories];
+        let localItems = [...items];
+        let localCustomers = [...customers];
+    
         if (dataType === 'articles') {
-            const itemBarcodes = new Set(items.map(i => i.barcode));
+            const itemBarcodes = new Set(localItems.map(i => i.barcode));
             for (const [index, row] of jsonData.entries()) {
-                if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) {
-                    addError(index, 'Champs article requis (barcode, name, price, vatCode).'); continue;
+                try {
+                    if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) {
+                        throw new Error("Champs requis manquants: barcode, name, price, vatCode.");
+                    }
+                    if (itemBarcodes.has(row.barcode)) {
+                        throw new Error(`L'article avec le code-barres ${row.barcode} existe déjà.`);
+                    }
+                    const vat = vatRates.find(v => v.code === row.vatCode);
+                    if (!vat) {
+                        throw new Error(`Code TVA "${row.vatCode}" introuvable.`);
+                    }
+                    await addItem({ ...row, vatId: vat.id });
+                    report.successCount++;
+                    itemBarcodes.add(row.barcode);
+                } catch (e: any) {
+                    addError(index, e.message);
                 }
-                if (itemBarcodes.has(row.barcode)) {
-                    addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
-                }
-                
-                const vat = vatRates.find(v => v.code === row.vatCode);
-                if (!vat) {
-                    addError(index, `Code TVA "${row.vatCode}" introuvable.`); continue;
-                }
-
-                await addItem({ ...row, vatId: vat.id } as Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & { barcode: string });
-                report.successCount++;
-                itemBarcodes.add(row.barcode);
             }
         } else {
-          // Fallback for other types or add more specific logic
+          // Fallback for other types
           for (const [index, row] of jsonData.entries()) {
               try {
                   if (dataType === 'clients') {
@@ -1847,7 +1853,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             description: `${report.successCount} succès, ${report.errorCount} échecs.`
         });
         return report;
-    }, [customers, items, suppliers, addCustomer, addItem, addSupplier, shadcnToast, vatRates]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
