@@ -65,6 +65,8 @@ export default function ManagementLayout({
 
   const accountingNavLinks = [
     { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
+    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
   ];
   
   const financeNavLinks = [
@@ -76,9 +78,6 @@ export default function ManagementLayout({
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
     { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
   ];
-
-  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
-  const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
       <SidebarMenuItem key={link.href}>
@@ -94,66 +93,56 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="h-full flex flex-col">
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar>
-            <SidebarContent className="p-2">
-                <SidebarMenu>
-                    {mainNavLinks.map(renderLink)}
-                    <Separator className="my-2"/>
-                    
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {renderLink(vatLink)}
-                                <Separator className="my-1 mx-3"/>
-                                {renderLink(chequeLink)}
-                                {accountingNavLinks.map(renderLink)}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                    
-                    <Separator className="my-2"/>
-                    
-                     <SidebarGroup>
-                        <SidebarGroupLabel>Rapports</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {reportLinks.map(renderLink)}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-
-                    <Separator className="my-2"/>
-
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Divers</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                             <SidebarMenu>
-                                {financeNavLinks.map(renderLink)}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </SidebarMenu>
-            </SidebarContent>
-             <SidebarFooter>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <Button asChild variant="ghost" className="w-full justify-start">
-                            <Link href="/dashboard">
-                                <LayoutDashboard className="mr-2 h-4 w-4" />
-                                <span>Tableau de bord</span>
-                            </Link>
-                        </Button>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
-          </Sidebar>
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar>
+          <SidebarContent className="p-2">
+            <SidebarMenu>
+              {mainNavLinks.map(renderLink)}
+              <Separator className="my-2" />
+              <SidebarGroup>
+                <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {accountingNavLinks.map(renderLink)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+              <Separator className="my-2" />
+              <SidebarGroup>
+                <SidebarGroupLabel>Rapports</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {reportLinks.map(renderLink)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+              <Separator className="my-2" />
+              <SidebarGroup>
+                <SidebarGroupLabel>Divers</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {financeNavLinks.map(renderLink)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Button asChild variant="ghost" className="w-full justify-start">
+                  <Link href="/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Tableau de bord</span>
+                  </Link>
+                </Button>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        </Sidebar>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );
