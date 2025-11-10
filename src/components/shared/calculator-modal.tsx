@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Delete, Copy } from 'lucide-react';
+import { Delete, Copy, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -360,19 +360,26 @@ const VatCalculator = () => {
 
 export function CalculatorModal() {
     const { isCalculatorOpen, setIsCalculatorOpen } = usePos();
-    const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef<HTMLDivElement>(null);
-  
+    const [isClient, setIsClient] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    
     useEffect(() => {
-        if (isCalculatorOpen) {
-            setPosition({
-                x: window.innerWidth / 2 - 200, // Center it initially
-                y: window.innerHeight / 2 - 350,
-            });
-        }
-    }, [isCalculatorOpen]);
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+      if (isCalculatorOpen && !isInitialized && typeof window !== 'undefined') {
+        setPosition({ 
+            x: window.innerWidth / 2 - 208, // 208 is half of sm:max-w-sm (32rem/2 * 16px) 
+            y: window.innerHeight / 2 - 350 // rough estimate
+        });
+        setIsInitialized(true);
+      }
+    }, [isCalculatorOpen, isInitialized]);
 
     const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
         if (modalRef.current) {
@@ -396,7 +403,7 @@ export function CalculatorModal() {
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
     }, []);
-
+    
     useEffect(() => {
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -410,29 +417,47 @@ export function CalculatorModal() {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isDragging, handleMouseMove, handleMouseUp]);
-
+    
+    const dynamicStyle = isClient ? {
+        top: `${position.y}px`,
+        left: `${position.x}px`,
+        transform: 'none',
+        position: 'fixed' as const,
+        margin: 0,
+    } : {};
 
     return (
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-            <DialogContent 
+            <DialogContent
                 ref={modalRef}
-                className="sm:max-w-sm p-0"
-                hideCloseButton={true}
-                style={{
-                    position: 'fixed',
-                    top: `${position.y}px`,
-                    left: `${position.x}px`,
-                    transform: 'none',
-                    margin: 0,
+                className="sm:max-w-sm p-0 flex flex-col shadow-2xl"
+                style={dynamicStyle}
+                hideCloseButton
+                onInteractOutside={(e) => {
+                  if (e.target instanceof HTMLElement && e.target.hasAttribute('data-drag-handle')) {
+                    e.preventDefault();
+                  }
                 }}
             >
                 <DialogHeader 
+                    data-drag-handle
                     onMouseDown={handleDragStart}
-                    className={cn("p-2 text-center bg-muted/50 rounded-t-lg", isDragging ? "cursor-grabbing" : "cursor-grab")}
+                    className={cn(
+                        "p-4 pb-2 text-center bg-muted/50 rounded-t-lg relative",
+                        isDragging ? "cursor-grabbing" : "cursor-grab"
+                    )}
                 >
                     <DialogTitle className="text-base">Calculatrice</DialogTitle>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => setIsCalculatorOpen(false)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
                 </DialogHeader>
-                 <div className="p-4 pt-0">
+                 <div className="px-4 pb-4">
                     <Tabs defaultValue="standard">
                         <TabsList className="grid w-full grid-cols-4">
                             <TabsTrigger value="standard">Standard</TabsTrigger>
@@ -450,3 +475,4 @@ export function CalculatorModal() {
         </Dialog>
     );
 }
+
